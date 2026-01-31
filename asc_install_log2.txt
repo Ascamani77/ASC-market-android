@@ -1,0 +1,8 @@
+01-29 18:31:06.312 I/PackageUpdatedTask( 2785): modified, appInfo : AppInfo(id=575 type=APP hidden=0 container=all_apps screen=0 rank=14 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 18:31:06.313 I/AppsModelWriter( 2785): updateItems(start)> 0, 575, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 18:31:06.313 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 575, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 18:31:06.317 I/AppsModelWriter( 2785): updateItems(end) : updateItem> 0, 575, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 18:31:06.318 I/Launcher.AppsPagedView( 2785): UpdateItems => id: 575, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 18:31:06.320 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 18:31:06.847 D/ASC     (21539): MainActivity.onCreate() called
+01-29 18:31:07.147 D/ASC     (21539): AscTheme content block called

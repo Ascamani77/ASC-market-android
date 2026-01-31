@@ -1,0 +1,65 @@
+01-29 17:12:01.114 I/PackageUpdatedTask( 2785): added, appInfo : AppInfo(id=569 type=APP hidden=0 container=all_apps screen=-1 rank=0 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 17:12:01.116 I/AppsModelWriter( 2785): addItems(start)> 0, 569, 0, -102, -1, 0, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.117 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.446 I/AppsModelWriter( 2785): addItems(end) : addItem> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.450 I/Launcher.AppsPagedView( 2785): addItems => id: 569, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:12:01.587 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:12:01.898 I/PackageUpdatedTask( 2785): modified, appInfo : AppInfo(id=569 type=APP hidden=0 container=all_apps screen=0 rank=14 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 17:12:01.899 I/AppsModelWriter( 2785): updateItems(start)> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.903 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.907 D/ASC     (21354): MainActivity.onCreate() called
+01-29 17:12:01.915 I/AppsModelWriter( 2785): updateItems(end) : updateItem> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:01.916 I/Launcher.AppsPagedView( 2785): UpdateItems => id: 569, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:12:01.917 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:12:02.137 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:02.163 I/AppsModelWriter( 2785): changeItemsVisibility(end) : updateItems> 0, 569, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:12:02.175 I/Launcher.AppsPagedView( 2785): UpdateItems => id: 569, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:12:02.268 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:12:02.359 D/ASC     (21354): AscTheme content block called
+01-29 17:12:03.588 D/ASC     (21354): AscTheme content block called
+01-29 17:12:07.368 D/ASC     (21354): AscTheme content block called
+01-29 17:12:07.445 D/ASC     (21354): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:12:07.544 D/ASC     (21354): AscSidebar composed: isCollapsed=false, currentView=DASHBOARD
+01-29 17:12:07.827 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:12:07.851 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:12:07.870 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:12:11.074 D/ASC     (21354): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:12:11.138 D/ASC     (21354): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:12:11.244 D/ASC     (21354): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:12:11.401 D/ASC     (21354): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:12:12.056 D/ASC     (21354): DashboardScreen composed: activeTab=EXECUTION_LEDGER
+01-29 17:12:12.068 D/ASC     (21354): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:12:12.070 D/ASC     (21354): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:12:12.072 D/ASC     (21354): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:12:12.075 D/ASC     (21354): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=true res=2131165343
+01-29 17:12:12.832 D/ASC     (21354): DashboardScreen composed: activeTab=MARKET_PSYCHOLOGY
+01-29 17:12:12.844 D/ASC     (21354): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=true res=2131165344
+01-29 17:12:12.847 D/ASC     (21354): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:12:12.849 D/ASC     (21354): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:12:12.851 D/ASC     (21354): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:12:14.838 D/ASC     (21354): DashboardScreen composed: activeTab=METHODOLOGY
+01-29 17:12:14.848 D/ASC     (21354): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:12:14.853 D/ASC     (21354): Rendering tab=METHODOLOGY lucide=lucide_book_open active=true res=2131165345
+01-29 17:12:14.856 D/ASC     (21354): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:12:16.846 D/ASC     (21354): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:12:16.887 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:12:16.931 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:12:16.999 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:12:18.062 D/ASC     (21354): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:12:18.071 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:12:18.074 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:12:18.076 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:12:22.156 D/ASC     (21354): DashboardScreen composed: activeTab=TECHNICAL_VITALS
+01-29 17:12:22.165 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:12:22.168 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=true res=2131165342
+01-29 17:12:22.172 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:12:25.237 D/ASC     (21354): DashboardScreen composed: activeTab=STRATEGY_SIGNALS
+01-29 17:12:25.246 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:12:25.248 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:12:25.250 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=true res=2131165347
+01-29 17:12:25.971 D/ASC     (21354): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:12:26.002 D/ASC     (21354): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:12:28.132 D/ASC     (21354): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:12:28.140 D/ASC     (21354): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:12:28.144 D/ASC     (21354): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:12:28.146 D/ASC     (21354): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347

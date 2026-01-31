@@ -1,0 +1,3 @@
+01-29 18:03:17.515 I/PackageUpdatedTask( 2785): added, appInfo : AppInfo(id=574 type=APP hidden=0 container=all_apps screen=-1 rank=0 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 18:03:17.515 I/AppsModelWriter( 2785): addItems(start)> 0, 574, 0, -102, -1, 0, UserHandle{0}, 0, ASC, -1, -1
+01-29 18:03:17.516 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 574, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1

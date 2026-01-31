@@ -1,0 +1,118 @@
+01-29 17:53:17.597 I/PackageUpdatedTask( 2785): added, appInfo : AppInfo(id=572 type=APP hidden=0 container=all_apps screen=-1 rank=0 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 17:53:17.599 I/AppsModelWriter( 2785): addItems(start)> 0, 572, 0, -102, -1, 0, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:17.600 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:17.661 I/AppsModelWriter( 2785): addItems(end) : addItem> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:17.666 I/Launcher.AppsPagedView( 2785): addItems => id: 572, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:53:17.673 D/ASC     (22105): MainActivity.onCreate() called
+01-29 17:53:17.726 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:53:18.034 I/PackageUpdatedTask( 2785): modified, appInfo : AppInfo(id=572 type=APP hidden=0 container=all_apps screen=0 rank=14 rankOfList=-1 user=UserHandle{0} title=ASC componentName=ComponentInfo{com.asc.markets/com.asc.markets.MainActivity} screenType=0)
+01-29 17:53:18.034 I/AppsModelWriter( 2785): updateItems(start)> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:18.035 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:18.038 I/AppsModelWriter( 2785): updateItems(end) : updateItem> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:18.040 I/Launcher.AppsPagedView( 2785): UpdateItems => id: 572, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:53:18.042 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:53:18.062 D/ASC     (22105): AscTheme content block called
+01-29 17:53:18.154 I/AppsModelWriter( 2785): normalizeVisibleItems(visibleItems)> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:18.182 I/AppsModelWriter( 2785): changeItemsVisibility(end) : updateItems> 0, 572, 0, -102, 0, 14, UserHandle{0}, 0, ASC, -1, -1
+01-29 17:53:18.192 I/Launcher.AppsPagedView( 2785): UpdateItems => id: 572, rank: 14, screenId: 0, cellX: 4, cellY: 2, container: -102, dirty: false, title: ASC, isFolder: false, user: UserHandle{0}, disabled: false, screenType: 0
+01-29 17:53:18.272 I/Launcher.AppsPageDelegate( 2785): updateItemToNewPosition = title : ASC , rank : 14 , screenId : 0, user: UserHandle{0}, pos: 14, screen: 0
+01-29 17:53:19.275 D/ASC     (22105): AscTheme content block called
+01-29 17:53:26.933 D/ASC     (22105): AscTheme content block called
+01-29 17:53:27.005 D/ASC     (22105): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:53:27.110 D/ASC     (22105): AscSidebar composed: isCollapsed=false, currentView=DASHBOARD
+01-29 17:53:27.397 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:53:27.422 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:53:27.442 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:53:32.094 D/ASC     (22105): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:53:32.169 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:53:32.227 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:53:32.289 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:53:33.137 D/ASC     (22105): DashboardScreen composed: activeTab=METHODOLOGY
+01-29 17:53:33.149 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:53:33.151 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=true res=2131165345
+01-29 17:53:33.154 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:53:34.332 D/ASC     (22105): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:53:34.404 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:53:34.447 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:53:34.493 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:53:35.159 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:35.164 D/ASC     (22105): AscTheme content block called
+01-29 17:53:36.061 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:36.760 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:39.259 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:40.356 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:40.807 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:40.957 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:41.091 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:53:44.465 D/ASC     (22105): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:53:44.473 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:53:44.477 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:53:44.479 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:53:56.179 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:54:54.473 D/ASC     (22105): DashboardScreen composed: activeTab=TECHNICAL_VITALS
+01-29 17:54:54.483 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:54:54.487 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=true res=2131165342
+01-29 17:54:54.490 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:54:55.170 D/ASC     (22105): DashboardScreen composed: activeTab=STRATEGY_SIGNALS
+01-29 17:54:55.179 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:54:55.181 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:54:55.183 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=true res=2131165347
+01-29 17:54:56.152 D/ASC     (22105): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:54:56.185 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:54:56.220 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:54:56.301 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:54:56.904 D/ASC     (22105): DashboardScreen composed: activeTab=METHODOLOGY
+01-29 17:54:56.914 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:54:56.916 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=true res=2131165345
+01-29 17:54:56.918 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:54:58.886 D/ASC     (22105): AscSidebar composed: isCollapsed=false, currentView=CHAT
+01-29 17:54:59.720 D/ASC     (22105): AscSidebar composed: isCollapsed=false, currentView=MARKETS
+01-29 17:55:00.263 D/ASC     (22105): AscSidebar composed: isCollapsed=false, currentView=PROFILE
+01-29 17:55:01.682 D/ASC     (22105): DashboardScreen composed: activeTab=MARKET_OVERVIEW
+01-29 17:55:01.694 D/ASC     (22105): AscSidebar composed: isCollapsed=false, currentView=DASHBOARD
+01-29 17:55:01.723 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=true res=2131165346
+01-29 17:55:01.733 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:55:01.743 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:56:36.916 D/ASC     (22105): DashboardScreen composed: activeTab=TECHNICAL_VITALS
+01-29 17:56:36.924 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:56:36.927 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=true res=2131165342
+01-29 17:56:36.930 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:56:37.714 D/ASC     (22105): DashboardScreen composed: activeTab=STRATEGY_SIGNALS
+01-29 17:56:37.723 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:56:37.724 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:56:37.726 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=true res=2131165347
+01-29 17:56:38.287 D/ASC     (22105): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:56:38.325 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:56:38.409 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:56:38.459 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=false res=2131165345
+01-29 17:56:38.981 D/ASC     (22105): DashboardScreen composed: activeTab=METHODOLOGY
+01-29 17:56:38.991 D/ASC     (22105): Rendering tab=MARKET_PSYCHOLOGY lucide=lucide_binary active=false res=2131165344
+01-29 17:56:38.994 D/ASC     (22105): Rendering tab=METHODOLOGY lucide=lucide_book_open active=true res=2131165345
+01-29 17:56:38.997 D/ASC     (22105): Rendering tab=EXECUTION_LEDGER lucide=lucide_arrow_left_right active=false res=2131165343
+01-29 17:56:39.805 D/ASC     (22105): Rendering tab=ANALYTICAL_QUALITY lucide=lucide_pie_chart active=false res=2131165348
+01-29 17:56:39.924 D/ASC     (22105): Rendering tab=STRATEGY_SIGNALS lucide=lucide_list_filter active=false res=2131165347
+01-29 17:56:40.074 D/ASC     (22105): Rendering tab=TECHNICAL_VITALS lucide=lucide_activity active=false res=2131165342
+01-29 17:56:40.438 D/ASC     (22105): Rendering tab=MARKET_OVERVIEW lucide=lucide_line_chart active=false res=2131165346
+01-29 17:56:42.015 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:43.313 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:43.693 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:43.862 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:44.009 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:44.142 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:44.523 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:44.707 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:44.905 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:45.124 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:45.277 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:45.426 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:45.573 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:49.518 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:50.136 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:50.682 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:56:51.134 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:19.890 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:20.820 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:22.214 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:22.686 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:22.885 D/ASC     (22105): GlobalHeader: menu icon clicked
+01-29 17:57:23.018 D/ASC     (22105): GlobalHeader: menu icon clicked

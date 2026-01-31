@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #0d0d0d;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart" style="width:100vw;height:100vh"></div>
+    <script>
+        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            layout: { background: { color: '#0d0d0d' }, textColor: '#d1d4dc' },
+            grid: { vertLines: { visible: false }, horzLines: { color: '#1e222d' } },
+        });
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#10b981', downColor: '#f43f5e', borderVisible: false,
+        });
+
+        function updateData(jsonPayload) {
+            try {
+                const data = JSON.parse(jsonPayload);
+                // Map incoming data (time in seconds) to chart format
+                const mapped = data.map(d => ({
+                    time: d.time,
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close
+                }));
+                candleSeries.setData(mapped);
+
+                // Fit content then constrain visible logical range to last ~60 bars
+                chart.timeScale().fitContent();
+                requestAnimationFrame(() => {
+                    try {
+                        const ts = chart.timeScale();
+                        const lastIndex = mapped.length - 1;
+                        // if not enough bars just return
+                        if (lastIndex <= 0) return;
+                        const from = Math.max(0, lastIndex - 60);
+                        const to = Math.min(lastIndex + 5, mapped.length + 5);
+                        // setVisibleLogicalRange expects indices
+                        ts.setVisibleLogicalRange({ from: from, to: to });
+                    } catch (err) {
+                        console.warn('setVisibleLogicalRange failed', err);
+                    }
+                });
+            } catch (e) {
+                console.error('updateData error', e);
+            }
+        }
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            chart.resize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
