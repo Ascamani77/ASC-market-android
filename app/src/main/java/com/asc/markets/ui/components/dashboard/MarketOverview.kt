@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -17,13 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.R
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.screens.LightweightChart
-import com.asc.markets.ui.screens.MacroBasketGrid
+import com.asc.markets.ui.screens.*
 import com.asc.markets.data.EconomicEvent
 import com.asc.markets.data.ForexDataPoint
 import com.asc.markets.data.ForexPair
@@ -55,7 +52,7 @@ fun MarketOverviewComponent(
     val vitals by remember(selectedPair, upcomingEvents) {
         mutableStateOf(mapOf(
             "spread" to String.format(Locale.US, "%.1f", (Math.random() * 0.5 + 0.1)),
-            "volatility" to ( (Math.random() * 40 + 10).toInt().toString() ),
+            "volatility" to ((Math.random() * 40 + 10).toInt().toString()),
             "liquidity" to "High",
             "sessionProgress" to "65",
             "nextNews" to (if (upcomingEvents.isNotEmpty()) upcomingEvents[0].time else "--:--")
@@ -117,7 +114,7 @@ fun MarketOverviewComponent(
 
         // Chart area (LightweightChart)
         InfoBox(height = 350.dp) {
-            LightweightChart(selectedPair.symbol, selectedPair.price)
+            com.asc.markets.ui.screens.LightweightChart(selectedPair.symbol, selectedPair.price)
         }
 
         // 2. Vitals grid (4 items)

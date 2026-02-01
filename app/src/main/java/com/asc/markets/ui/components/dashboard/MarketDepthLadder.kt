@@ -100,7 +100,7 @@ private fun DepthRowTable(price: String, vol: String, size: String, weight: Floa
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Volume (left) — left aligned and uses same weight as header (0.25)
-        Box(modifier = Modifier.weight(0.25f), contentAlignment = Alignment.CenterStart) {
+        Box(modifier = Modifier.weight(safeWeight(0.25f)), contentAlignment = Alignment.CenterStart) {
             Text(vol, color = SlateText, fontSize = 11.sp)
         }
 
@@ -108,14 +108,16 @@ private fun DepthRowTable(price: String, vol: String, size: String, weight: Floa
         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.04f))) {}
 
         // Price + depth bar center area — matches header weight 0.5
-        Box(modifier = Modifier.weight(0.5f)) {
+        Box(modifier = Modifier.weight(safeWeight(0.5f))) {
             // Track full width, place a directional bar inside
             Box(modifier = Modifier.fillMaxSize()) {
+                // ensure the provided weight for the bar is always > 0
+                val barWidth = safeWeight(weight)
                 Box(
                     modifier = Modifier
                         .align(if (isAsk) Alignment.CenterEnd else Alignment.CenterStart)
                         .fillMaxHeight()
-                        .fillMaxWidth(weight)
+                        .fillMaxWidth(barWidth)
                         .background(bgColor)
                 ) {}
             }
@@ -129,7 +131,7 @@ private fun DepthRowTable(price: String, vol: String, size: String, weight: Floa
         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.04f))) {}
 
         // Size (right) — right aligned and uses same weight as header (0.25)
-        Box(modifier = Modifier.weight(0.25f), contentAlignment = Alignment.CenterEnd) {
+        Box(modifier = Modifier.weight(safeWeight(0.25f)), contentAlignment = Alignment.CenterEnd) {
             Text(size, color = SlateText, fontSize = 11.sp)
         }
     }

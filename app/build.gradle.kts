@@ -72,6 +72,9 @@ dependencies {
     // Kotlinx serialization JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
+    // TradingView Lightweight Charts Android wrapper
+    implementation("com.tradingview:lightweightcharts:3.8.0")
+
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

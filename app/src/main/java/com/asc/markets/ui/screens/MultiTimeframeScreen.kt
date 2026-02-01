@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.components.MiniChart
 
 @Composable
 fun MultiTimeframeScreen(symbol: String) {
@@ -56,12 +57,13 @@ fun MiniChartContainer(tf: String) {
                 Text("BULLISH", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
             Spacer(modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(100.dp).background(Color.White.copy(alpha = 0.02f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("CHART_CORE_$tf", color = Color.White, modifier = Modifier.alpha(0.1f), fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            }
+            MiniChart(
+                values = List(40) {
+                    // simple mock series per timeframe — small random walk
+                    1.0 + (it * 0.01) + (kotlin.random.Random.nextDouble(-0.02, 0.02))
+                },
+                modifier = Modifier.fillMaxWidth().height(60.dp)
+            )
         }
     }
 }

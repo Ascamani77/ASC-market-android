@@ -1,0 +1,1269 @@
+Initialized native services in: C:\Users\HP\.gradle\native
+Initialized jansi services in: C:\Users\HP\.gradle\native
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Starting process 'command 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot\bin\java.exe''. Working directory: C:\Users\HP\.gradle\.tmp\tmp-jvm15917870388509006842probe Command: C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot\bin\java.exe -Xmx32m -Xms32m -cp . JavaProbe
+Successfully started process 'command 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot\bin\java.exe''
+Received JVM installation metadata from 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot': {JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot, JAVA_VERSION=17.0.17, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=17.0.17+10, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.17+10, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
+Starting process 'Gradle build daemon'. Working directory: C:\Users\HP\.gradle\daemon\8.13 Command: C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot\bin\java.exe --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.xml/javax.xml.namespace=ALL-UNNAMED -Xmx2048m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -cp C:\Users\HP\.gradle\wrapper\dists\gradle-8.13-bin\5xuhj0ry160q40clulazy9h7d\gradle-8.13\lib\gradle-daemon-main-8.13.jar -javaagent:C:\Users\HP\.gradle\wrapper\dists\gradle-8.13-bin\5xuhj0ry160q40clulazy9h7d\gradle-8.13\lib\agents\gradle-instrumentation-agent-8.13.jar org.gradle.launcher.daemon.bootstrap.GradleDaemon 8.13
+Successfully started process 'Gradle build daemon'
+An attempt to start the daemon took 4.545 secs.
+The client will now receive all logging from the daemon (pid: 30972). The daemon log file: C:\Users\HP\.gradle\daemon\8.13\daemon-30972.out.log
+Daemon will be stopped at the end of the build 
+Using 4 worker leases.
+Received JVM installation metadata from 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot': {JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot, JAVA_VERSION=17.0.17, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=Java(TM) SE Runtime Environment, RUNTIME_VERSION=17.0.17+10, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.17+10, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
+Watching the file system is configured to be enabled if available
+Now considering [C:\Users\HP\Downloads\folder] as hierarchies to watch
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\HP\Downloads\folder\settings.gradle.kts'.
+Projects loaded. Root project using build file 'C:\Users\HP\Downloads\folder\build.gradle.kts'.
+Included projects: [root project 'ASC', project ':app']
+
+> Configure project :
+Evaluating root project 'ASC' using build file 'C:\Users\HP\Downloads\folder\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.11.2', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.21', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\HP\Downloads\folder\app\build.gradle.kts'.
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage1) because:
+  Build cache is disabled
+Resolved plugin [id: 'com.android.application', version: '8.11.2']
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.21']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.0.21']
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage2) because:
+  Build cache is disabled
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+All projects evaluated.
+Task name matched 'clean'
+Task name matched 'assembleDebug'
+Selected primary task 'clean' from project :
+Selected primary task 'assembleDebug' from project :
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Tasks to be executed: [task ':app:clean', task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:checkDebugAarMetadata', task ':app:generateDebugResValues', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:compileDebugKotlin', task ':app:javaPreCompileDebug', task ':app:compileDebugJavaWithJavac', task ':app:mergeDebugShaders', task ':app:compileDebugShaders', task ':app:generateDebugAssets', task ':app:mergeDebugAssets', task ':app:compressDebugAssets', task ':app:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:desugarDebugFileDependencies', task ':app:mergeExtDexDebug', task ':app:mergeLibDexDebug', task ':app:dexBuilderDebug', task ':app:mergeProjectDexDebug', task ':app:mergeDebugJniLibFolders', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug']
+Tasks that were excluded: []
+Resolve mutations for :app:clean (Thread[included builds,5,main]) started.
+:app:clean (Thread[included builds,5,main]) started.
+destroyer locations for task group 0 (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:clean
+Caching disabled for task ':app:clean' because:
+  Build cache is disabled
+Task ':app:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :app:preBuild (Thread[included builds,5,main]) started.
+:app:preBuild (Thread[included builds,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[included builds,5,main]) started.
+:app:preDebugBuild (Thread[included builds,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[included builds,5,main]) started.
+:app:mergeDebugNativeDebugMetadata (Thread[included builds,5,main]) started.
+
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[included builds,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[included builds,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[included builds,5,main]) started.
+:app:checkDebugAarMetadata (Thread[included builds,5,main]) started.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker Thread 2,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:generateDebugResValues
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Task ':app:generateDebugResValues' is not up-to-date because:
+  Output property 'outputDirectory' file C:\Users\HP\Downloads\folder\app\build\generated\res\resValues\debug has been removed.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[Execution worker Thread 2,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:checkDebugAarMetadata
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:checkDebugAarMetadata' is not up-to-date because:
+  Output property 'dummyOutputDirectory' file C:\Users\HP\Downloads\folder\app\build\intermediates\aar_metadata_check\debug\checkDebugAarMetadata has been removed.
+
+> Task :app:mapDebugSourceSetPaths
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:mapDebugSourceSetPaths' is not up-to-date because:
+  Output property 'filepathMappingFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\source_set_path_map\debug\mapDebugSourceSetPaths\file-map.txt has been removed.
+Resolve mutations for :app:generateDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:generateDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:generateDebugResources
+Caching disabled for task ':app:generateDebugResources' because:
+  Build cache is disabled
+Task ':app:generateDebugResources' is not up-to-date because:
+  Output property 'validationReportFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\nested_resources_validation_report\debug\generateDebugResources\nestedResourcesValidationReport.txt has been removed.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:mergeDebugResources
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Task ':app:mergeDebugResources' is not up-to-date because:
+  Output property 'blameLogOutputFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res_blame_folder\debug\mergeDebugResources\out has been removed.
+  Output property 'blameLogOutputFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res_blame_folder\debug\mergeDebugResources\out\multi-v2 has been removed.
+  Output property 'blameLogOutputFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res_blame_folder\debug\mergeDebugResources\out\multi-v2\mergeDebugResources.json has been removed.
+  and more...
+The input changes require a full rebuild for incremental task ':app:mergeDebugResources'.
+[MergeResources] Inputs are non-incremental full task action.
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-hi\values-hi.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-hi_values-hi.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-pt\values-pt.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-pt_values-pt.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values\values.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values_values.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-watch-v21\values-watch-v21.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-watch-v21_values-watch-v21.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-hr\values-hr.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-hr_values-hr.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-hu\values-hu.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-hu_values-hu.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-hy\values-hy.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-hy_values-hy.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v16\values-v16.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v16_values-v16.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h480dp-v13\values-h480dp-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h480dp-v13_values-h480dp-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v18\values-v18.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v18_values-v18.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-w360dp-port-v13\values-w360dp-port-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-w360dp-port-v13_values-w360dp-port-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-in\values-in.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-in_values-in.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-is\values-is.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-is_values-is.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-zh-rHK\values-zh-rHK.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-zh-rHK_values-zh-rHK.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-iw\values-iw.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-iw_values-iw.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v21\values-v21.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v21_values-v21.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v22\values-v22.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v22_values-v22.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ldltr-v21\values-ldltr-v21.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ldltr-v21_values-ldltr-v21.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-w320dp-land-v13\values-w320dp-land-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-w320dp-land-v13_values-w320dp-land-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-b+sr+Latn\values-b+sr+Latn.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-b+sr+Latn_values-b+sr+Latn.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h360dp-land-v13\values-h360dp-land-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h360dp-land-v13_values-h360dp-land-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-am\values-am.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-am_values-am.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h480dp-land-v13\values-h480dp-land-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h480dp-land-v13_values-h480dp-land-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-as\values-as.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-as_values-as.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-es-rUS\values-es-rUS.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-es-rUS_values-es-rUS.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-be\values-be.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-be_values-be.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-en-rCA\values-en-rCA.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-en-rCA_values-en-rCA.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v25\values-v25.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v25_values-v25.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-pt-rPT\values-pt-rPT.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-pt-rPT_values-pt-rPT.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ja\values-ja.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ja_values-ja.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-si\values-si.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-si_values-si.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ro\values-ro.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ro_values-ro.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v24\values-v24.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v24_values-v24.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v35\values-v35.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v35_values-v35.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v26\values-v26.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v26_values-v26.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-kk\values-kk.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-kk_values-kk.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sw600dp-v13\values-sw600dp-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sw600dp-v13_values-sw600dp-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ru\values-ru.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ru_values-ru.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-bn\values-bn.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-bn_values-bn.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-bs\values-bs.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-bs_values-bs.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sw\values-sw.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sw_values-sw.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v34\values-v34.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v34_values-v34.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sq\values-sq.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sq_values-sq.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-pt-rBR\values-pt-rBR.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-pt-rBR_values-pt-rBR.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ka\values-ka.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ka_values-ka.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-km\values-km.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-km_values-km.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sl\values-sl.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sl_values-sl.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ko\values-ko.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ko_values-ko.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-cs\values-cs.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-cs_values-cs.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-th\values-th.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-th_values-th.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sr\values-sr.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sr_values-sr.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-tl\values-tl.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-tl_values-tl.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sv\values-sv.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sv_values-sv.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-en-rAU\values-en-rAU.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-en-rAU_values-en-rAU.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-lv\values-lv.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-lv_values-lv.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ky\values-ky.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ky_values-ky.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-uk\values-uk.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-uk_values-uk.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-mn\values-mn.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-mn_values-mn.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-tr\values-tr.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-tr_values-tr.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ms\values-ms.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ms_values-ms.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-lt\values-lt.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-lt_values-lt.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ldrtl-v17\values-ldrtl-v17.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ldrtl-v17_values-ldrtl-v17.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-es\values-es.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-es_values-es.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-te\values-te.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-te_values-te.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-w400dp-port-v13\values-w400dp-port-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-w400dp-port-v13_values-w400dp-port-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-da\values-da.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-da_values-da.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-night-v8\values-night-v8.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-night-v8_values-night-v8.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-lo\values-lo.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-lo_values-lo.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ml\values-ml.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ml_values-ml.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-zh-rCN\values-zh-rCN.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-zh-rCN_values-zh-rCN.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-mr\values-mr.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-mr_values-mr.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-my\values-my.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-my_values-my.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-vi\values-vi.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-vi_values-vi.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-large-v4\values-large-v4.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-large-v4_values-large-v4.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h550dp-port-v13\values-h550dp-port-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h550dp-port-v13_values-h550dp-port-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-mk\values-mk.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-mk_values-mk.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-or\values-or.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-or_values-or.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-w600dp-land-v13\values-w600dp-land-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-w600dp-land-v13_values-w600dp-land-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-nl\values-nl.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-nl_values-nl.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-fr-rCA\values-fr-rCA.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-fr-rCA_values-fr-rCA.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-pa\values-pa.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-pa_values-pa.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-fr\values-fr.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-fr_values-fr.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-zh-rTW\values-zh-rTW.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-zh-rTW_values-zh-rTW.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-eu\values-eu.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-eu_values-eu.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-land\values-land.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-land_values-land.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-gu\values-gu.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-gu_values-gu.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-port\values-port.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-port_values-port.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-fa\values-fa.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-fa_values-fa.arsc.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-mdpi\ic_launcher.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-mdpi_ic_launcher.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\ic_launcher_background.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_ic_launcher_background.xml.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-en-rXC\values-en-rXC.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-en-rXC_values-en-rXC.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-en-rGB\values-en-rGB.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-en-rGB_values-en-rGB.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-b+es+419\values-b+es+419.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-b+es+419_values-b+es+419.arsc.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\ic_launcher_foreground.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_ic_launcher_foreground.xml.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_activity.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_activity.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xxxhdpi\ic_launcher.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xxxhdpi_ic_launcher.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_book_open.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_book_open.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xxhdpi\ic_launcher.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xxhdpi_ic_launcher.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_pie_chart.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_pie_chart.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xhdpi\ic_launcher.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xhdpi_ic_launcher.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_line_chart.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_line_chart.xml.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_arrow_left_right.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_arrow_left_right.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-hdpi\ic_launcher.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-hdpi_ic_launcher.webp.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xhdpi\ic_launcher_round.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xhdpi_ic_launcher_round.webp.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-hdpi\ic_launcher_round.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-hdpi_ic_launcher_round.webp.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xxhdpi\ic_launcher_round.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xxhdpi_ic_launcher_round.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\xml\backup_rules.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\xml_backup_rules.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-xxxhdpi\ic_launcher_round.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-xxxhdpi_ic_launcher_round.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-anydpi\ic_launcher_round.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-anydpi_ic_launcher_round.xml.flat
+
+Resolve mutations for :app:packageDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+:app:packageDebugResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:packageDebugResources
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Task ':app:packageDebugResources' is not up-to-date because:
+  Output property 'dataBindingLayoutInfoOutFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\data_binding_layout_info_type_package\debug\packageDebugResources\out has been removed.
+  Output property 'incrementalFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\packageDebugResources has been removed.
+  Output property 'incrementalFolder' file C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\packageDebugResources\compile-file-map.properties has been removed.
+  and more...
+The input changes require a full rebuild for incremental task ':app:packageDebugResources'.
+[MergeResources] Inputs are non-incremental full task action.
+Resolve mutations for :app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+:app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[Execution worker,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[Execution worker,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:createDebugCompatibleScreenManifests' is not up-to-date because:
+  Value of input property 'variantOutputs.$0.versionCode' has changed for task ':app:createDebugCompatibleScreenManifests'
+  Value of input property 'variantOutputs.$0.versionName' has changed for task ':app:createDebugCompatibleScreenManifests'
+Resolve mutations for :app:extractDeepLinksDebug (Thread[Execution worker,5,main]) started.
+:app:extractDeepLinksDebug (Thread[Execution worker,5,main]) started.
+
+> Task :app:extractDeepLinksDebug
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Task ':app:extractDeepLinksDebug' is not up-to-date because:
+  Output property 'navigationJson' file C:\Users\HP\Downloads\folder\app\build\intermediates\navigation_json\debug\extractDeepLinksDebug\navigation.json has been removed.
+Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker,5,main]) started.
+:app:processDebugMainManifest (Thread[Execution worker,5,main]) started.
+
+> Task :app:parseDebugLocalResources
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Task ':app:parseDebugLocalResources' is not up-to-date because:
+  Output property 'librarySymbolsFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\local_only_symbol_list\debug\parseDebugLocalResources\R-def.txt has been removed.
+The input changes require a full rebuild for incremental task ':app:parseDebugLocalResources'.
+
+> Task :app:mergeDebugResources
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-watch-v20\values-watch-v20.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-watch-v20_values-watch-v20.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h320dp-port-v13\values-h320dp-port-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h320dp-port-v13_values-h320dp-port-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v17\values-v17.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v17_values-v17.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-af\values-af.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-af_values-af.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-it\values-it.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-it_values-it.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ar\values-ar.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ar_values-ar.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v23\values-v23.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v23_values-v23.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-az\values-az.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-az_values-az.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-zu\values-zu.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-zu_values-zu.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v28\values-v28.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v28_values-v28.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-bg\values-bg.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-bg_values-bg.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-v31\values-v31.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-v31_values-v31.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-sk\values-sk.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-sk_values-sk.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ca\values-ca.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ca_values-ca.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-kn\values-kn.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-kn_values-kn.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ta\values-ta.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ta_values-ta.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-h720dp-v13\values-h720dp-v13.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-h720dp-v13_values-h720dp-v13.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-xlarge-v4\values-xlarge-v4.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-xlarge-v4_values-xlarge-v4.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-de\values-de.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-de_values-de.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-en-rIN\values-en-rIN.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-en-rIN_values-en-rIN.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ur\values-ur.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ur_values-ur.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-uz\values-uz.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-uz_values-uz.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-el\values-el.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-el_values-el.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-et\values-et.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-et_values-et.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-nb\values-nb.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-nb_values-nb.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-ne\values-ne.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-ne_values-ne.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-fi\values-fi.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-fi_values-fi.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-hdpi-v4\values-hdpi-v4.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-hdpi-v4_values-hdpi-v4.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-gl\values-gl.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-gl_values-gl.arsc.flat
+Compiling XML table C:\Users\HP\Downloads\folder\app\build\intermediates\incremental\debug\mergeDebugResources\merged.dir\values-pl\values-pl.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\values-pl_values-pl.arsc.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_binary.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_binary.xml.flat
+Compiling file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-mdpi\ic_launcher_round.webp to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-mdpi_ic_launcher_round.webp.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\xml\data_extraction_rules.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\xml_data_extraction_rules.xml.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\mipmap-anydpi\ic_launcher.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\mipmap-anydpi_ic_launcher.xml.flat
+Compiling xml file C:\Users\HP\Downloads\folder\app\src\main\res\drawable\lucide_list_filter.xml to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_res\debug\mergeDebugResources\drawable_lucide_list_filter.xml.flat
+
+> Task :app:processDebugMainManifest
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Task ':app:processDebugMainManifest' is not up-to-date because:
+  Value of input property 'optionalFeatures' has changed for task ':app:processDebugMainManifest'
+  Value of input property 'versionCode' has changed for task ':app:processDebugMainManifest'
+  Value of input property 'versionName' has changed for task ':app:processDebugMainManifest'
+package="com.asc.markets" found in source AndroidManifest.xml: C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.asc.markets" from the source AndroidManifest.xml: C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml.
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\ee584462094409967ae7a2ea8cf72616\transformed\material-1.13.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\ca4e7e409dea0221dd593d8d0f5657d6\transformed\appcompat-resources-1.7.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c0857cfda659e759b71521a436f9061d\transformed\constraintlayout-2.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c66db1a0aff27fb4d89ea07701d6c7a5\transformed\appcompat-1.7.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\d7a2b124cf56692e7f2622c50f31c227\transformed\viewpager2-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8cb9640ae3409ca3f7d8c031a610bb17\transformed\fragment-1.5.4\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c5426cf2cc51777cba1010e9e2d6ca5a\transformed\activity-1.8.2\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\20cb0d8f2d89f8a2e839a70286fae2e6\transformed\material3-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c0c7bc88d2da52341b6a952594691c89\transformed\material-ripple-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\54262fb6c0f793b91a7feab7e11f6d18\transformed\material-icons-core-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\737e5427bf1581048996aa6307003a5a\transformed\material-icons-extended-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\02e75d575dc3c2d3864ec6d59b26d990\transformed\material-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\994ae24d142e3de790d28df39448b479\transformed\animation-core-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\d7163f6a7b7442c51d68343cde933deb\transformed\animation-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\f232f748fcf82a1128223e121a64cc68\transformed\foundation-layout-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\341a983c3a77d6a6125ff7f4e764cd6d\transformed\foundation-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\cdb8d0e4bd6dbb07cbac1147c4f381e8\transformed\ui-unit-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\16f4be63134119aa654958604cf28bab\transformed\ui-geometry-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c1b687b36c8024f666399fb1e8fb72b4\transformed\ui-util-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\3257449a6e7afd651caa62b69e48086e\transformed\ui-text-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6c91968f4ef391911c7f571cab309eb9\transformed\ui-tooling-preview-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8be7b0298f5c62e79141c602554c238a\transformed\ui-graphics-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7d924d09429f5de31b03b933eaafdfe2\transformed\ui-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5ca316eb392f59251f10ae9730804317\transformed\activity-ktx-1.8.2\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5044f7ee2ff1ec6525c4235d5c5d5127\transformed\activity-compose-1.8.2\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\9bd35e22e6462df8f5ae3dffb98d06dc\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\f2a287edd18d553ed18ee830cf8ff21c\transformed\savedstate-1.2.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1c0420c69be08292c346c5388fb98118\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\de015d0c9653b114100270a9397b5635\transformed\loader-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0a1492ab1c818fa3e4388e46fb1efdf8\transformed\lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\07878e37d764c1a4192be7029863a813\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\23319be6122e6ac1cae0b7c8da0fc623\transformed\lifecycle-process-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8b774ea1c3a8cac20e60da0f7fb5603a\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6f64365356808906c407058c2b106498\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\b3cd173d100bc14a24092404f2790fb5\transformed\lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c946b7b766d62ce48802d5e2d2fb984f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\979fa67c0b25c41e50279921821dfb9a\transformed\graphics-shapes-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7514bbe81cbe67f0c26a0e6a47ee8cd9\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\abd3c1a26809b8e4a5a696c4ee39fd75\transformed\core-ktx-1.13.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\568f9e2b6daa0f96c2d0eaf7e553f469\transformed\drawerlayout-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c5d5c93c5475121a5374bac2e0921975\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1c1bba8dce15f921599e105ee0225169\transformed\transition-1.5.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\994ae65befe73175c8840c50c0788878\transformed\dynamicanimation-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\a5133ad538ad8f20b92a6d676162e0da\transformed\recyclerview-1.2.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\b026f4fa6ffa24589f64eaa556ce1225\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\2ce41b0d520ba93b5599c4346d69bb91\transformed\vectordrawable-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\712e1450f825b1366fdd0e7a6ab40e72\transformed\viewpager-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7553b2c6d5ac3144d6e2422bf9a218a7\transformed\customview-1.1.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\dfdb551deef820e3572ac1652493ebb1\transformed\autofill-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1e85b1ac5af3cbfa3d366a479e574f7d\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\fa993b63ae6b623d0b634778cf7113e6\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8ffc89bf1d63cbb1886adff0beea7b02\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0449f299c23ff91ec6812c9771283cee\transformed\runtime-saveable-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6689ebbabe4984d7b53b198656fbc2a3\transformed\runtime-release\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\af49e973a528c9fc7d46bbc1dce610d8\transformed\versionedparcelable-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\278ca0352a2f6e0f9b77637fb88b2edc\transformed\annotation-experimental-1.4.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\be7928c73f59ecc7b2657de1fd1b14f3\transformed\cursoradapter-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0981ae57dd5a6d2d6ea77404179444de\transformed\cardview-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\945b4bb3519062c9e8e0623e7f95f96d\transformed\core-runtime-2.2.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\646800b58dda1639a0548f1d6f5e99fc\transformed\interpolator-1.0.0\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5468c5c182a4d4bfe2ff580a6b660508\transformed\startup-runtime-1.1.1\AndroidManifest.xml
+Loading library manifest C:\Users\HP\.gradle\caches\8.13\transforms\41c4f0edeb3b76da297103db90984e8e\transformed\tracing-1.0.0\AndroidManifest.xml
+Merging main manifest C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml
+
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\ee584462094409967ae7a2ea8cf72616\transformed\material-1.13.0\AndroidManifest.xml
+Merging manifest with lower [com.google.android.material:material:1.13.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [com.google.android.material:material:1.13.0] AndroidManifest.xml:20:5-44
+application defined in both files...
+Merging application with lower [com.google.android.material:material:1.13.0] AndroidManifest.xml:22:5-20
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\ca4e7e409dea0221dd593d8d0f5657d6\transformed\appcompat-resources-1.7.1\AndroidManifest.xml
+Merging manifest with lower [androidx.appcompat:appcompat-resources:1.7.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.appcompat:appcompat-resources:1.7.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c0857cfda659e759b71521a436f9061d\transformed\constraintlayout-2.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.constraintlayout:constraintlayout:2.1.0] AndroidManifest.xml:2:1-11:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.constraintlayout:constraintlayout:2.1.0] AndroidManifest.xml:5:5-7:41
+application defined in both files...
+Merging application with lower [androidx.constraintlayout:constraintlayout:2.1.0] AndroidManifest.xml:9:5-20
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c66db1a0aff27fb4d89ea07701d6c7a5\transformed\appcompat-1.7.1\AndroidManifest.xml
+Merging manifest with lower [androidx.appcompat:appcompat:1.7.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.appcompat:appcompat:1.7.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\d7a2b124cf56692e7f2622c50f31c227\transformed\viewpager2-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.viewpager2:viewpager2:1.0.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.viewpager2:viewpager2:1.0.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8cb9640ae3409ca3f7d8c031a610bb17\transformed\fragment-1.5.4\AndroidManifest.xml
+Merging manifest with lower [androidx.fragment:fragment:1.5.4] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.fragment:fragment:1.5.4] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c5426cf2cc51777cba1010e9e2d6ca5a\transformed\activity-1.8.2\AndroidManifest.xml
+Merging manifest with lower [androidx.activity:activity:1.8.2] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.activity:activity:1.8.2] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\20cb0d8f2d89f8a2e839a70286fae2e6\transformed\material3-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.material3:material3-android:1.2.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.material3:material3-android:1.2.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c0c7bc88d2da52341b6a952594691c89\transformed\material-ripple-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.material:material-ripple-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.material:material-ripple-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\54262fb6c0f793b91a7feab7e11f6d18\transformed\material-icons-core-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.material:material-icons-core-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.material:material-icons-core-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\737e5427bf1581048996aa6307003a5a\transformed\material-icons-extended-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.material:material-icons-extended-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.material:material-icons-extended-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\02e75d575dc3c2d3864ec6d59b26d990\transformed\material-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.material:material-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.material:material-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\994ae24d142e3de790d28df39448b479\transformed\animation-core-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.animation:animation-core-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.animation:animation-core-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\d7163f6a7b7442c51d68343cde933deb\transformed\animation-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.animation:animation-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.animation:animation-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\f232f748fcf82a1128223e121a64cc68\transformed\foundation-layout-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.foundation:foundation-layout-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.foundation:foundation-layout-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\341a983c3a77d6a6125ff7f4e764cd6d\transformed\foundation-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.foundation:foundation-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.foundation:foundation-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\cdb8d0e4bd6dbb07cbac1147c4f381e8\transformed\ui-unit-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-unit-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-unit-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\16f4be63134119aa654958604cf28bab\transformed\ui-geometry-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-geometry-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-geometry-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c1b687b36c8024f666399fb1e8fb72b4\transformed\ui-util-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-util-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-util-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\3257449a6e7afd651caa62b69e48086e\transformed\ui-text-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-text-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-text-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6c91968f4ef391911c7f571cab309eb9\transformed\ui-tooling-preview-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-tooling-preview-android:1.6.1] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-tooling-preview-android:1.6.1] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8be7b0298f5c62e79141c602554c238a\transformed\ui-graphics-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-graphics-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-graphics-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7d924d09429f5de31b03b933eaafdfe2\transformed\ui-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.ui:ui-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.ui:ui-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5ca316eb392f59251f10ae9730804317\transformed\activity-ktx-1.8.2\AndroidManifest.xml
+Merging manifest with lower [androidx.activity:activity-ktx:1.8.2] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.activity:activity-ktx:1.8.2] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5044f7ee2ff1ec6525c4235d5c5d5127\transformed\activity-compose-1.8.2\AndroidManifest.xml
+Merging manifest with lower [androidx.activity:activity-compose:1.8.2] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.activity:activity-compose:1.8.2] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\9bd35e22e6462df8f5ae3dffb98d06dc\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml
+Merging manifest with lower [androidx.savedstate:savedstate-ktx:1.2.1] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.savedstate:savedstate-ktx:1.2.1] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\f2a287edd18d553ed18ee830cf8ff21c\transformed\savedstate-1.2.1\AndroidManifest.xml
+Merging manifest with lower [androidx.savedstate:savedstate:1.2.1] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.savedstate:savedstate:1.2.1] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1c0420c69be08292c346c5388fb98118\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml
+Merging manifest with lower [androidx.emoji2:emoji2-views-helper:1.3.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.emoji2:emoji2-views-helper:1.3.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml
+Merging manifest with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:17:1-35:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.emoji2:emoji2:1.3.0] AndroidManifest.xml:23:5-33:19
+Adopted [provider: null]
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\de015d0c9653b114100270a9397b5635\transformed\loader-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.loader:loader:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.loader:loader:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0a1492ab1c818fa3e4388e46fb1efdf8\transformed\lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\07878e37d764c1a4192be7029863a813\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-livedata:2.7.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-livedata:2.7.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\23319be6122e6ac1cae0b7c8da0fc623\transformed\lifecycle-process-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-process:2.7.0] AndroidManifest.xml:17:1-35:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-process:2.7.0] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.lifecycle:lifecycle-process:2.7.0] AndroidManifest.xml:23:5-33:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.lifecycle:lifecycle-process:2.7.0] AndroidManifest.xml:24:9-32:20
+Adopted [meta-data: null]
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8b774ea1c3a8cac20e60da0f7fb5603a\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-livedata-core:2.7.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-livedata-core:2.7.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6f64365356808906c407058c2b106498\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\b3cd173d100bc14a24092404f2790fb5\transformed\lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c946b7b766d62ce48802d5e2d2fb984f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel:2.7.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel:2.7.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\979fa67c0b25c41e50279921821dfb9a\transformed\graphics-shapes-release\AndroidManifest.xml
+Merging manifest with lower [androidx.graphics:graphics-shapes-android:1.0.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.graphics:graphics-shapes-android:1.0.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7514bbe81cbe67f0c26a0e6a47ee8cd9\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.customview:customview-poolingcontainer:1.0.0] AndroidManifest.xml:17:1-23:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.customview:customview-poolingcontainer:1.0.0] AndroidManifest.xml:20:5-21:38
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\abd3c1a26809b8e4a5a696c4ee39fd75\transformed\core-ktx-1.13.0\AndroidManifest.xml
+Merging manifest with lower [androidx.core:core-ktx:1.13.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.core:core-ktx:1.13.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\568f9e2b6daa0f96c2d0eaf7e553f469\transformed\drawerlayout-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.drawerlayout:drawerlayout:1.1.1] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.drawerlayout:drawerlayout:1.1.1] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\c5d5c93c5475121a5374bac2e0921975\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.coordinatorlayout:coordinatorlayout:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.coordinatorlayout:coordinatorlayout:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1c1bba8dce15f921599e105ee0225169\transformed\transition-1.5.0\AndroidManifest.xml
+Merging manifest with lower [androidx.transition:transition:1.5.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.transition:transition:1.5.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\994ae65befe73175c8840c50c0788878\transformed\dynamicanimation-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.dynamicanimation:dynamicanimation:1.1.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.dynamicanimation:dynamicanimation:1.1.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\a5133ad538ad8f20b92a6d676162e0da\transformed\recyclerview-1.2.1\AndroidManifest.xml
+Merging manifest with lower [androidx.recyclerview:recyclerview:1.2.1] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.recyclerview:recyclerview:1.2.1] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\b026f4fa6ffa24589f64eaa556ce1225\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.vectordrawable:vectordrawable-animated:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.vectordrawable:vectordrawable-animated:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\2ce41b0d520ba93b5599c4346d69bb91\transformed\vectordrawable-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.vectordrawable:vectordrawable:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.vectordrawable:vectordrawable:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\712e1450f825b1366fdd0e7a6ab40e72\transformed\viewpager-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.viewpager:viewpager:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.viewpager:viewpager:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7553b2c6d5ac3144d6e2422bf9a218a7\transformed\customview-1.1.0\AndroidManifest.xml
+Merging manifest with lower [androidx.customview:customview:1.1.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.customview:customview:1.1.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\dfdb551deef820e3572ac1652493ebb1\transformed\autofill-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.autofill:autofill:1.0.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.autofill:autofill:1.0.0] AndroidManifest.xml:20:5-22:41
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml
+Merging manifest with lower [androidx.core:core:1.13.0] AndroidManifest.xml:17:1-30:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.core:core:1.13.0] AndroidManifest.xml:20:5-44
+Adopted [permission: null]
+Adopted [uses-permission: null]
+application defined in both files...
+Merging application with lower [androidx.core:core:1.13.0] AndroidManifest.xml:28:5-89
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\1e85b1ac5af3cbfa3d366a479e574f7d\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-runtime:2.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-runtime:2.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\fa993b63ae6b623d0b634778cf7113e6\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\8ffc89bf1d63cbb1886adff0beea7b02\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml
+Merging manifest with lower [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0449f299c23ff91ec6812c9771283cee\transformed\runtime-saveable-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.runtime:runtime-saveable-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.runtime:runtime-saveable-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\6689ebbabe4984d7b53b198656fbc2a3\transformed\runtime-release\AndroidManifest.xml
+Merging manifest with lower [androidx.compose.runtime:runtime-android:1.6.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.compose.runtime:runtime-android:1.6.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\af49e973a528c9fc7d46bbc1dce610d8\transformed\versionedparcelable-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:17:1-27:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:20:5-22:41
+application defined in both files...
+Merging application with lower [androidx.versionedparcelable:versionedparcelable:1.1.1] AndroidManifest.xml:24:5-25:19
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\278ca0352a2f6e0f9b77637fb88b2edc\transformed\annotation-experimental-1.4.1\AndroidManifest.xml
+Merging manifest with lower [androidx.annotation:annotation-experimental:1.4.1] AndroidManifest.xml:2:1-7:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.annotation:annotation-experimental:1.4.1] AndroidManifest.xml:5:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\be7928c73f59ecc7b2657de1fd1b14f3\transformed\cursoradapter-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.cursoradapter:cursoradapter:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.cursoradapter:cursoradapter:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml
+Merging manifest with lower [androidx.profileinstaller:profileinstaller:1.3.1] AndroidManifest.xml:17:1-55:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.profileinstaller:profileinstaller:1.3.1] AndroidManifest.xml:21:5-44
+application defined in both files...
+Merging application with lower [androidx.profileinstaller:profileinstaller:1.3.1] AndroidManifest.xml:23:5-53:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.profileinstaller:profileinstaller:1.3.1] AndroidManifest.xml:24:9-32:20
+Adopted [meta-data: null]
+Adopted [receiver: null]
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\0981ae57dd5a6d2d6ea77404179444de\transformed\cardview-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.cardview:cardview:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.cardview:cardview:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\945b4bb3519062c9e8e0623e7f95f96d\transformed\core-runtime-2.2.0\AndroidManifest.xml
+Merging manifest with lower [androidx.arch.core:core-runtime:2.2.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.arch.core:core-runtime:2.2.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\646800b58dda1639a0548f1d6f5e99fc\transformed\interpolator-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.interpolator:interpolator:1.0.0] AndroidManifest.xml:17:1-22:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.interpolator:interpolator:1.0.0] AndroidManifest.xml:20:5-44
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\5468c5c182a4d4bfe2ff580a6b660508\transformed\startup-runtime-1.1.1\AndroidManifest.xml
+Merging manifest with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:17:1-33:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:21:5-23:41
+application defined in both files...
+Merging application with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:25:5-31:19
+provider#androidx.startup.InitializationProvider defined in both files...
+Merging provider#androidx.startup.InitializationProvider with lower [androidx.startup:startup-runtime:1.1.1] AndroidManifest.xml:26:9-30:34
+Merging library manifest C:\Users\HP\.gradle\caches\8.13\transforms\41c4f0edeb3b76da297103db90984e8e\transformed\tracing-1.0.0\AndroidManifest.xml
+Merging manifest with lower [androidx.tracing:tracing:1.0.0] AndroidManifest.xml:17:1-24:12
+uses-sdk defined in both files...
+Merging uses-sdk with lower [androidx.tracing:tracing:1.0.0] AndroidManifest.xml:20:5-22:41
+Merging result: SUCCESS
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.asc.markets"
+4    android:versionCode="20260131"
+5    android:versionName="1.0.0-20260131" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- Required to allow short vibrations when user taps assets -->
+12    <uses-permission android:name="android.permission.VIBRATE" />
+12-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:7:5-66
+12-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:7:22-63
+13
+14    <permission
+14-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:22:5-24:47
+15        android:name="com.asc.markets.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+15-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:23:9-81
+16        android:protectionLevel="signature" />
+16-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:24:9-44
+17
+18    <uses-permission android:name="com.asc.markets.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+18-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:26:5-97
+18-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
+19
+20    <application
+20-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:9:5-28:19
+21        android:allowBackup="true"
+21-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:10:9-35
+22        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+22-->[androidx.core:core:1.13.0] C:\Users\HP\.gradle\caches\8.13\transforms\7c7c798fdd6b44bcc2abbf27ca3a9443\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
+23        android:dataExtractionRules="@xml/data_extraction_rules"
+23-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:11:9-65
+24        android:debuggable="true"
+25        android:extractNativeLibs="false"
+26        android:fullBackupContent="@xml/backup_rules"
+26-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:12:9-54
+27        android:icon="@mipmap/ic_launcher"
+27-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:13:9-43
+28        android:label="@string/app_name"
+28-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:14:9-41
+29        android:roundIcon="@mipmap/ic_launcher_round"
+29-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:15:9-54
+30        android:supportsRtl="true"
+30-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:16:9-35
+31        android:theme="@style/Theme.ASC" >
+31-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:17:9-41
+32        <activity
+32-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:19:9-26:20
+33            android:name="com.asc.markets.MainActivity"
+33-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:20:13-41
+34            android:exported="true" >
+34-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:21:13-36
+35            <intent-filter>
+35-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:22:13-25:29
+36                <action android:name="android.intent.action.MAIN" />
+36-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:23:17-69
+36-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:23:25-66
+37
+38                <category android:name="android.intent.category.LAUNCHER" />
+38-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:24:17-77
+38-->C:\Users\HP\Downloads\folder\app\src\main\AndroidManifest.xml:24:27-74
+39            </intent-filter>
+40        </activity>
+41
+42        <provider
+42-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+43            android:name="androidx.startup.InitializationProvider"
+43-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+44            android:authorities="com.asc.markets.androidx-startup"
+44-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+45            android:exported="false" >
+45-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+46            <meta-data
+46-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+47                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+47-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+48                android:value="androidx.startup" />
+48-->[androidx.emoji2:emoji2:1.3.0] C:\Users\HP\.gradle\caches\8.13\transforms\e40a2d253bdaf51cd75538f27c2d86cc\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+49            <meta-data
+49-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\HP\.gradle\caches\8.13\transforms\23319be6122e6ac1cae0b7c8da0fc623\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+50                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+50-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\HP\.gradle\caches\8.13\transforms\23319be6122e6ac1cae0b7c8da0fc623\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+51                android:value="androidx.startup" />
+51-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\HP\.gradle\caches\8.13\transforms\23319be6122e6ac1cae0b7c8da0fc623\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+52            <meta-data
+52-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+53                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+53-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+54                android:value="androidx.startup" />
+54-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+55        </provider>
+56
+57        <receiver
+57-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+58            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+58-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+59            android:directBootAware="false"
+59-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+60            android:enabled="true"
+60-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+61            android:exported="true"
+61-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+62            android:permission="android.permission.DUMP" >
+62-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+63            <intent-filter>
+63-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+64                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+64-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+64-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+65            </intent-filter>
+66            <intent-filter>
+66-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+67                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+67-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+67-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+68            </intent-filter>
+69            <intent-filter>
+69-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+70                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+71            </intent-filter>
+72            <intent-filter>
+72-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+73                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\HP\.gradle\caches\8.13\transforms\e185d40ffe4c547ca7dfa30c34c8a296\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+74            </intent-filter>
+75        </receiver>
+76    </application>
+77
+78</manifest>
+
+Merged manifest saved to C:\Users\HP\Downloads\folder\app\build\intermediates\merged_manifest\debug\processDebugMainManifest\AndroidManifest.xml
+Resolve mutations for :app:processDebugManifest (Thread[Execution worker,5,main]) started.
+:app:processDebugManifest (Thread[Execution worker,5,main]) started.
+
+> Task :app:processDebugManifest
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Task ':app:processDebugManifest' is not up-to-date because:
+  Value of input property 'outputsHandler.variantOutputs.$0.versionCode' has changed for task ':app:processDebugManifest'
+  Value of input property 'outputsHandler.variantOutputs.$0.versionName' has changed for task ':app:processDebugManifest'
+Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker,5,main]) started.
+:app:processDebugManifestForPackage (Thread[Execution worker,5,main]) started.
+Resolve mutations for :app:javaPreCompileDebug (Thread[included builds,5,main]) started.
+:app:javaPreCompileDebug (Thread[included builds,5,main]) started.
+
+> Task :app:processDebugManifestForPackage
+Custom actions are attached to task ':app:processDebugManifestForPackage'.
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Task ':app:processDebugManifestForPackage' is not up-to-date because:
+  Output property 'packageManifests' file C:\Users\HP\Downloads\folder\app\build\intermediates\packaged_manifests\debug\processDebugManifestForPackage has been removed.
+  Output property 'packageManifests' file C:\Users\HP\Downloads\folder\app\build\intermediates\packaged_manifests\debug\processDebugManifestForPackage\AndroidManifest.xml has been removed.
+  Output property 'packageManifests' file C:\Users\HP\Downloads\folder\app\build\intermediates\packaged_manifests\debug\processDebugManifestForPackage\output-metadata.json has been removed.
+Resolve mutations for :app:processDebugResources (Thread[Execution worker,5,main]) started.
+:app:processDebugResources (Thread[Execution worker,5,main]) started.
+
+> Task :app:javaPreCompileDebug
+Caching disabled for task ':app:javaPreCompileDebug' because:
+  Build cache is disabled
+Task ':app:javaPreCompileDebug' is not up-to-date because:
+  Output property 'annotationProcessorListFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\annotation_processor_list\debug\javaPreCompileDebug\annotationProcessors.json has been removed.
+Resolve mutations for :app:mergeDebugShaders (Thread[Execution worker Thread 2,5,main]) started.
+:app:mergeDebugShaders (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:mergeDebugShaders
+Caching disabled for task ':app:mergeDebugShaders' because:
+  Build cache is disabled
+  Simple merging task
+Task ':app:mergeDebugShaders' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\merged_shaders\debug\mergeDebugShaders\out has been removed.
+The input changes require a full rebuild for incremental task ':app:mergeDebugShaders'.
+Resolve mutations for :app:compileDebugShaders (Thread[Execution worker Thread 2,5,main]) started.
+:app:compileDebugShaders (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:compileDebugShaders NO-SOURCE
+Skipping task ':app:compileDebugShaders' as it has no source files and no previous output files.
+Resolve mutations for :app:generateDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+:app:generateDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:generateDebugAssets UP-TO-DATE
+Skipping task ':app:generateDebugAssets' as it has no actions.
+Resolve mutations for :app:mergeDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+:app:mergeDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:mergeDebugAssets
+Caching disabled for task ':app:mergeDebugAssets' because:
+  Build cache is disabled
+  Simple merging task
+Task ':app:mergeDebugAssets' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\assets\debug\mergeDebugAssets has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\assets\debug\mergeDebugAssets\chart.html has been removed.
+The input changes require a full rebuild for incremental task ':app:mergeDebugAssets'.
+Resolve mutations for :app:compressDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+:app:compressDebugAssets (Thread[Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:checkDebugDuplicateClasses (Thread[Execution worker Thread 3,5,main]) started.
+:app:checkDebugDuplicateClasses (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:compressDebugAssets
+Caching disabled for task ':app:compressDebugAssets' because:
+  Build cache is disabled
+Task ':app:compressDebugAssets' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\compressed_assets\debug\compressDebugAssets\out has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\compressed_assets\debug\compressDebugAssets\out\assets has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\compressed_assets\debug\compressDebugAssets\out\assets\chart.html.jar has been removed.
+The input changes require a full rebuild for incremental task ':app:compressDebugAssets'.
+Resolve mutations for :app:desugarDebugFileDependencies (Thread[included builds,5,main]) started.
+:app:desugarDebugFileDependencies (Thread[included builds,5,main]) started.
+
+> Task :app:desugarDebugFileDependencies
+Caching disabled for task ':app:desugarDebugFileDependencies' because:
+  Build cache is disabled
+Task ':app:desugarDebugFileDependencies' is not up-to-date because:
+  Output property 'outputDirectory' file C:\Users\HP\Downloads\folder\app\build\intermediates\external_file_lib_dex_archives\debug\desugarDebugFileDependencies has been removed.
+Resolve mutations for :app:mergeDebugJniLibFolders (Thread[included builds,5,main]) started.
+:app:mergeDebugJniLibFolders (Thread[included builds,5,main]) started.
+
+> Task :app:mergeDebugJniLibFolders
+Caching disabled for task ':app:mergeDebugJniLibFolders' because:
+  Build cache is disabled
+  Simple merging task
+Task ':app:mergeDebugJniLibFolders' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\merged_jni_libs\debug\mergeDebugJniLibFolders\out has been removed.
+The input changes require a full rebuild for incremental task ':app:mergeDebugJniLibFolders'.
+Resolve mutations for :app:mergeDebugNativeLibs (Thread[included builds,5,main]) started.
+:app:mergeDebugNativeLibs (Thread[included builds,5,main]) started.
+
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+Skipping task ':app:mergeDebugNativeLibs' as it has no source files and no previous output files.
+Resolve mutations for :app:stripDebugDebugSymbols (Thread[included builds,5,main]) started.
+:app:stripDebugDebugSymbols (Thread[included builds,5,main]) started.
+
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+Skipping task ':app:stripDebugDebugSymbols' as it has no source files and no previous output files.
+Resolve mutations for :app:validateSigningDebug (Thread[included builds,5,main]) started.
+:app:validateSigningDebug (Thread[included builds,5,main]) started.
+
+> Task :app:checkDebugDuplicateClasses
+Caching disabled for task ':app:checkDebugDuplicateClasses' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:checkDebugDuplicateClasses' is not up-to-date because:
+  Output property 'dummyOutputDirectory' file C:\Users\HP\Downloads\folder\app\build\intermediates\duplicate_classes_check\debug\checkDebugDuplicateClasses has been removed.
+
+> Task :app:processDebugResources
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Task ':app:processDebugResources' is not up-to-date because:
+  Value of input property 'outputsHandler.variantOutputs.$0.versionCode' has changed for task ':app:processDebugResources'
+  Value of input property 'outputsHandler.variantOutputs.$0.versionName' has changed for task ':app:processDebugResources'
+  Value of input property 'useStableIds' has changed for task ':app:processDebugResources'
+The input changes require a full rebuild for incremental task ':app:processDebugResources'.
+AAPT2 aapt2-8.11.2-12782657-windows Daemon #0: starting
+
+> Task :app:validateSigningDebug
+Caching disabled for task ':app:validateSigningDebug' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:validateSigningDebug' is not up-to-date because:
+  Output property 'dummyOutputDirectory' file C:\Users\HP\Downloads\folder\app\build\intermediates\validate_signing_config\debug\validateSigningDebug has been removed.
+Resolve mutations for :app:mergeExtDexDebug (Thread[included builds,5,main]) started.
+:app:mergeExtDexDebug (Thread[included builds,5,main]) started.
+Resolve mutations for :app:mergeLibDexDebug (Thread[Execution worker Thread 2,5,main]) started.
+:app:mergeLibDexDebug (Thread[Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:writeDebugAppMetadata (Thread[Execution worker Thread 3,5,main]) started.
+:app:writeDebugAppMetadata (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:writeDebugAppMetadata
+Caching disabled for task ':app:writeDebugAppMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:writeDebugAppMetadata' is not up-to-date because:
+  Output property 'outputFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\app_metadata\debug\writeDebugAppMetadata\app-metadata.properties has been removed.
+Resolve mutations for :app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 3,5,main]) started.
+:app:writeDebugSigningConfigVersions (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :app:mergeLibDexDebug
+Caching disabled for task ':app:mergeLibDexDebug' because:
+  Build cache is disabled
+Task ':app:mergeLibDexDebug' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeLibDexDebug has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeLibDexDebug\0 has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeLibDexDebug\1 has been removed.
+  and more...
+The input changes require a full rebuild for incremental task ':app:mergeLibDexDebug'.
+
+> Task :app:writeDebugSigningConfigVersions
+Caching disabled for task ':app:writeDebugSigningConfigVersions' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:writeDebugSigningConfigVersions' is not up-to-date because:
+  Output property 'outputFile' file C:\Users\HP\Downloads\folder\app\build\intermediates\signing_config_versions\debug\writeDebugSigningConfigVersions\signing-config-versions.json has been removed.
+
+> Task :app:mergeExtDexDebug
+Caching disabled for task ':app:mergeExtDexDebug' because:
+  Build cache is disabled
+Task ':app:mergeExtDexDebug' is not up-to-date because:
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeExtDexDebug has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeExtDexDebug\classes.dex has been removed.
+  Output property 'outputDir' file C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeExtDexDebug\classes2.dex has been removed.
+  and more...
+The input changes require a full rebuild for incremental task ':app:mergeExtDexDebug'.
+Merging to 'C:\Users\HP\Downloads\folder\app\build\intermediates\dex\debug\mergeExtDexDebug' with D8 from all or a subset of dex files in C:\Users\HP\.gradle\caches\8.13\transforms\37e70a66ad1b0a483fe3b999f79d45db\transformed\material-1.13.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\bdf74dad495211255a96864eace2650d\transformed\appcompat-resources-1.7.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\94fc402069e11215a5b713146241eabd\transformed\constraintlayout-2.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\7402ebfe51eb40f3efd69d4ae949e94e\transformed\appcompat-1.7.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\d0b88ad4751fba68371939c783be7620\transformed\viewpager2-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\ae2c8f4bc4f487f01a9e7e700cef0e75\transformed\fragment-1.5.4-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\61ca34b229e8f0a00f85fc4cd95b948f\transformed\activity-1.8.2-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\80e25dec32ef062b75151725a13c4399\transformed\material3-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\62366d945056408052dacbecb05d1bd8\transformed\material-ripple-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\d38d9a4ced408b11b629908d1b788066\transformed\material-icons-core-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\2e3821ec7d5ffa9dd3065c7322062d7f\transformed\material-icons-extended-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\511fe6dce12578fc6bd7ec023a6b9c38\transformed\material-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\14f8733d303107f7322e8f545501f939\transformed\animation-core-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\c00d6d0884618844222a913d19660891\transformed\animation-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\fa15ecbe782379d051acb76aee526272\transformed\foundation-layout-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\cd8ab083d37b2d9574aeb1617c1a793e\transformed\foundation-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\ea740eb71ece1d3b0300819fcb0d2f5b\transformed\ui-unit-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\e86eceedb2caea6a230164bdb2f9d1fa\transformed\ui-geometry-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\1f2432eb1c26502b7c5ac4030ea777b6\transformed\ui-util-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\c46e407dac4477ff6e98ffb9204755ae\transformed\ui-text-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\9e4ce606e825c69802c61367d80f39ef\transformed\ui-tooling-preview-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\5a5a170153deb6bfe90273278deb82d3\transformed\ui-graphics-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\ac5f7720e3916e8be3d024d2aa1049f8\transformed\ui-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\cb5ed5937e0ebf3fa2e7573d757674d7\transformed\activity-ktx-1.8.2-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\3b752794b3f794d1d4d84b6d3efe738f\transformed\activity-compose-1.8.2-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\9901c9764814877c971dd9b0fb860576\transformed\savedstate-ktx-1.2.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\f9c67d26ca354a745a22bd68a24b1968\transformed\savedstate-1.2.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\4cbf03b1f2cc268eaf010288ccd42257\transformed\emoji2-views-helper-1.3.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\467968b7c6ae812e954abcd0afdff654\transformed\emoji2-1.3.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\b12f12286e8751b7d7351f4b0d8b9172\transformed\loader-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\fbf341d4945cfaffda83a2eff73a6ad5\transformed\lifecycle-livedata-core-ktx-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\0e691085cdd28ceb260122009c4728da\transformed\lifecycle-livedata-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\a88cfa6fd1d353ed72b3644d35c53584\transformed\lifecycle-process-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\bd544724cf788c2a64063c4bb0dd5e72\transformed\lifecycle-livedata-core-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\830dc1558f379a89eeaf1cf2253312cd\transformed\lifecycle-common-2.7.0, C:\Users\HP\.gradle\caches\8.13\transforms\594994b12299711ff972ac0d08b144c3\transformed\lifecycle-viewmodel-savedstate-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\60a23499a5e57f886b76930f2a632694\transformed\lifecycle-viewmodel-ktx-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\b5ad1922ea09c5b9b7781dad85859f97\transformed\lifecycle-viewmodel-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\b402c5cb885a6793173806e2f96bccb9\transformed\graphics-shapes-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\c1a46fb48dd31f976da3f9191e7bb47c\transformed\customview-poolingcontainer-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\fb022f4941549afc3193adcbbedac071\transformed\core-ktx-1.13.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\84629d241e910379b2bffd8155aef71c\transformed\drawerlayout-1.1.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\586d99f26e710323fc8bf8b41d0dbc08\transformed\coordinatorlayout-1.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\1ea6dc728609a16f2994107185268878\transformed\transition-1.5.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\4e6eb0b78c49e0f10be1721ad14dacac\transformed\dynamicanimation-1.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\541525532f5c03175fe75d576031f377\transformed\recyclerview-1.2.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\1918ec570f76ee21fc2bd699714ea685\transformed\vectordrawable-animated-1.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\caed2ff012a4d7ca58863501441f851d\transformed\vectordrawable-1.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\cb92a14742a79633a0acdc90e629126a\transformed\viewpager-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\6f77afb738ce3498861cc9307600a354\transformed\customview-1.1.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\71980fa0827c36e7e9594b169a26bb6e\transformed\autofill-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\c5486b7f7b49057f3e17a67b5adc7971\transformed\core-1.13.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\73f06293d457e49a9c7d7b1a590a7ce1\transformed\lifecycle-runtime-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\ea95013adff6355907bc8e9f6eaec4ad\transformed\lifecycle-viewmodel-compose-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\af480780cc70b559f121a410489942a3\transformed\lifecycle-runtime-ktx-2.7.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\432568c631251f2beb5aaa4d1a18aeef\transformed\kotlinx-serialization-core-jvm-1.6.0, C:\Users\HP\.gradle\caches\8.13\transforms\5649a8257f3e62a984a740aa20c9d12e\transformed\kotlinx-serialization-json-jvm-1.6.0, C:\Users\HP\.gradle\caches\8.13\transforms\049f7d0776085080cd24126bcc01ca2b\transformed\runtime-saveable-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\c580fdb6bef0abdfa39fa12e42e7ed1c\transformed\runtime-release-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\ec8dec11ca96b994e11888cc126e3912\transformed\kotlinx-coroutines-core-jvm-1.7.1, C:\Users\HP\.gradle\caches\8.13\transforms\637f2e6d992da74d20e3f3fcf7bee996\transformed\kotlinx-coroutines-android-1.7.1, C:\Users\HP\.gradle\caches\8.13\transforms\5f7ab55d432227323f509a49e17f587b\transformed\versionedparcelable-1.1.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\05d6437851a3a7e7f231a506ecf24ed6\transformed\collection-jvm-1.4.2, C:\Users\HP\.gradle\caches\8.13\transforms\0214ff6c3f9fb5faa16646468e10df99\transformed\annotation-experimental-1.4.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\26181583cd09a3f7818e18a55ff5bc6b\transformed\cursoradapter-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\219cf8d5260079699f860efa048b6694\transformed\profileinstaller-1.3.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\46847eb146a97eb1a23abac70c6bba72\transformed\resourceinspection-annotation-1.0.1, C:\Users\HP\.gradle\caches\8.13\transforms\c6df41ac2d81f7454c06bc1319a7852c\transformed\cardview-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\2806b59cad2075a58dc82f8974537ef9\transformed\core-runtime-2.2.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\b040652d4160236111b6392b94929d8c\transformed\core-common-2.2.0, C:\Users\HP\.gradle\caches\8.13\transforms\12e91f59bfda0897859217d4b27c5256\transformed\interpolator-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\d8c7f1f0158b0c4add7918e728f9b461\transformed\concurrent-futures-1.1.0, C:\Users\HP\.gradle\caches\8.13\transforms\838fd146188348c5bf71caab9b78cd08\transformed\startup-runtime-1.1.1-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\e7f0c925e0cac08acce12e53ce13a26f\transformed\tracing-1.0.0-runtime, C:\Users\HP\.gradle\caches\8.13\transforms\980c3d63008ad1f6ea82d586c73fd074\transformed\annotation-jvm-1.8.1, C:\Users\HP\.gradle\caches\8.13\transforms\16388ee31780c7f3e7eda40f27fd85ac\transformed\kotlin-stdlib-2.0.21, C:\Users\HP\.gradle\caches\8.13\transforms\3c603415cdd2e272ac4a983cdaa50422\transformed\annotations-23.0.0, C:\Users\HP\.gradle\caches\8.13\transforms\7f4b6e502036ae619f096beaa0b089a6\transformed\error_prone_annotations-2.15.0, C:\Users\HP\.gradle\caches\8.13\transforms\8726dc2108ace5cd8d12cfcccc879513\transformed\listenablefuture-1.0, C:\Users\HP\.gradle\caches\8.13\transforms\afbdc87dbf3d87b068943ea805310dac\transformed\constraintlayout-core-1.0.0, C:\Users\HP\.gradle\caches\8.13\transforms\1173c9e3b84e464b3e49134e8ee6da1a\transformed\jspecify-1.0.0, and from all global synthetics files in 
+
+> Task :app:processDebugResources
+Aapt output file C:\Users\HP\Downloads\folder\app\build\intermediates\linked_resources_binary_format\debug\processDebugResources\linked-resources-binary-format-debug.ap_
+Resolve mutations for :app:compileDebugKotlin (Thread[Execution worker,5,main]) started.
+:app:compileDebugKotlin (Thread[Execution worker,5,main]) started.
+
+> Task :app:compileDebugKotlin
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugAndroidTestKotlin
+Caching disabled for task ':app:compileDebugKotlin' because:
+  Build cache is disabled
+Task ':app:compileDebugKotlin' is not up-to-date because:
+  Value of input property 'kotlinJavaToolchainProvider.javaVersion' has changed for task ':app:compileDebugKotlin'
+The input changes require a full rebuild for incremental task ':app:compileDebugKotlin'.
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\main\kotlin', not found
+file or directory 'C:\Users\HP\Downloads\folder\app\src\debug\java', not found
+Kotlin source files: C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\api\ForexAnalysisEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\api\GeminiRepository.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\backend\ExecutionState.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\backend\ExecutionStateManager.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\backend\OrderEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\backend\PolicyGuard.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\core\ConfluenceEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\core\LiquidityEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\core\StructureEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\core\TechnicalEngines.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\AppView.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\Constants.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\ForexDataPoint.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\Models.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\PersistenceManager.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\data\Types.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\CalendarService.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\ChartDataGenerator.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\ConnectivityManager.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\ExecutionPipeline.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\ExposureCalculator.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\ForexViewModel.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\HealthMonitor.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\IntegrityWatchdog.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\IntelligenceEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\MarketState.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\RiskEngine.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\logic\SMCProcessor.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\MainActivity.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\security\SecurityManager.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\BottomNav.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\CandlestickChart.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\CommandPalette.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\ConfidenceGauge.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\ConnectionStatus.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\AnalyticalQuality.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\ExecutionLedger.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\InstitutionalChart.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\InstitutionalLevelsGrid.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\MarketDepthLadder.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\MarketOverview.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\MarketPsychology.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\Methodology.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\MetricCell.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\SignalStyle.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\StrategySignals.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\StructuralContext.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\TechnicalVitals.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\dashboard\VenueMap.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\DashboardComponents.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\DisclaimerOverlay.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\EquityCurveGraph.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\ExposureHub.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\FloatingChartButton.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\ForexChart.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\GlobalErrorBoundary.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\GlobalHeader.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\HighImpactTicker.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\InfoBox.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\NavHeader.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\NewsItemCard.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\NewsTicker.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\OrderTerminal.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\PairFlags.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\PriceTicker.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\Sidebar.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\SystemHealthConsole.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\TradingViewChart.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\components\TradingViewWidget.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\DashboardScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\AlertsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\AnalysisResultsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\BacktestScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\CalendarPanel.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\ChatScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\AnalyticalQualityTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\DashboardOverviewTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\EducationTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\ExecutionLedgerTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\ExposureHub.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\FullAssetHeader.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\MarketOverviewTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\MarketPsychologyTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\StrategySignalsTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\dashboard\TechnicalVitalsTab.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\DashboardScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\DiagnosticsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\EducationScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\FullChartView.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\FundamentalScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\LiquidityHubScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\LiquidityMapScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\MacroIntelScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\MarketsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\MtfAnalysisScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\MultiTimeframeScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\NewsBrowserScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\NewsInAppBrowser.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\NotificationSettingsPanel.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\NotificationSettingsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\NotificationsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\ProfileScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\RiskDisclosureScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\SentimentScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\SettingsScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\TerminalScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\TradeLedgerScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\screens\TradingAssistantScreen.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\theme\AscTheme.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\theme\Color.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\theme\Theme.kt, C:\Users\HP\Downloads\folder\app\src\main\java\com\asc\markets\ui\theme\Type.kt
+Java source files: 
+Script source files: 
+Script file extensions: 
+Using Kotlin/JVM incremental compilation
+[KOTLIN] Kotlin compilation 'jdkHome' argument: null
+i: starting the daemon as: C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot\bin\java -cp C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-compiler-embeddable\2.0.21\79346ed53db48b18312a472602eb5c057070c54d\kotlin-compiler-embeddable-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\2.0.21\618b539767b4899b4660a83006e052b63f1db551\kotlin-stdlib-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-script-runtime\2.0.21\c9b044380ad41f89aa89aa896c2d32a8c0b2129d\kotlin-script-runtime-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\1.6.10\1cbe9c92c12a94eea200d23c2bbaedaf3daf5132\kotlin-reflect-1.6.10.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-daemon-embeddable\2.0.21\c9e933b23287de9b5a17e2116b4657bb91aea72c\kotlin-daemon-embeddable-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.intellij.deps\trove4j\1.0.20200330\3afb14d5f9ceb459d724e907a21145e8ff394f02\trove4j-1.0.20200330.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.6.4\2c997cd1c0ef33f3e751d3831929aeff1390cb30\kotlinx-coroutines-core-jvm-1.6.4.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\13.0\919f0dfe192fb4e063e7dacadee7f8bb9a2672a9\annotations-13.0.jar -Djava.awt.headless=true -Djava.rmi.server.hostname=127.0.0.1 -Xmx2048m -XX:ReservedCodeCacheSize=320m -Dkotlin.environment.keepalive -ea -XX:+UseCodeCacheFlushing -XX:+UseParallelGC --add-exports java.base/sun.nio.ch=ALL-UNNAMED org.jetbrains.kotlin.daemon.KotlinCompileDaemon --daemon-runFilesPath C:\Users\HP\AppData\Local\kotlin\daemon --daemon-autoshutdownIdleSeconds=7200 --daemon-compilerClasspath C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-compiler-embeddable\2.0.21\79346ed53db48b18312a472602eb5c057070c54d\kotlin-compiler-embeddable-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\2.0.21\618b539767b4899b4660a83006e052b63f1db551\kotlin-stdlib-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-script-runtime\2.0.21\c9b044380ad41f89aa89aa896c2d32a8c0b2129d\kotlin-script-runtime-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\1.6.10\1cbe9c92c12a94eea200d23c2bbaedaf3daf5132\kotlin-reflect-1.6.10.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-daemon-embeddable\2.0.21\c9e933b23287de9b5a17e2116b4657bb91aea72c\kotlin-daemon-embeddable-2.0.21.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.intellij.deps\trove4j\1.0.20200330\3afb14d5f9ceb459d724e907a21145e8ff394f02\trove4j-1.0.20200330.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.6.4\2c997cd1c0ef33f3e751d3831929aeff1390cb30\kotlinx-coroutines-core-jvm-1.6.4.jar;C:\Users\HP\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\13.0\919f0dfe192fb4e063e7dacadee7f8bb9a2672a9\annotations-13.0.jar
+i: #1 retrying connecting to the daemon 
+Options for KOTLIN DAEMON: IncrementalCompilationOptions(super=CompilationOptions(compilerMode=INCREMENTAL_COMPILER, targetPlatform=JVM, reportCategories=[0, 3], reportSeverity=2, requestedCompilationResults=[0], kotlinScriptExtensions=[]), areFileChangesKnown=false, modifiedFiles=null, deletedFiles=null, classpathChanges=NotAvailableForNonIncrementalRun, workingDir=C:\Users\HP\Downloads\folder\app\build\kotlin\compileDebugKotlin\cacheable, multiModuleICSettings=MultiModuleICSettings(buildHistoryFile=C:\Users\HP\Downloads\folder\app\build\kotlin\compileDebugKotlin\local-state\build-history.bin, useModuleDetection=true), usePreciseJavaTracking=true, icFeatures=IncrementalCompilationFeatures(withAbiSnapshot=false, preciseCompilationResultsBackup=true, keepIncrementalCompilationCachesInMemory=true, enableUnsafeIncrementalCompilationForMultiplatform=false), outputFiles=[C:\Users\HP\Downloads\folder\app\build\tmp\kotlin-classes\debug, C:\Users\HP\Downloads\folder\app\build\kotlin\compileDebugKotlin\cacheable, C:\Users\HP\Downloads\folder\app\build\kotlin\compileDebugKotlin\local-state])
+e: file:///C:/Users/HP/Downloads/folder/app/src/main/java/com/asc/markets/ui/screens/DashboardScreen.kt:13:21 Conflicting import: imported name 'Log' is ambiguous.
+e: file:///C:/Users/HP/Downloads/folder/app/src/main/java/com/asc/markets/ui/screens/DashboardScreen.kt:46:21 Conflicting import: imported name 'Log' is ambiguous.
+Finished executing kotlin compiler using DAEMON strategy
+
+> Task :app:compileDebugKotlin FAILED
+AAPT2 aapt2-8.11.2-12782657-windows Daemon #0: shutdown
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileDebugKotlin'.
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
+	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Right.fold(Either.java:175)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
+	at org.jetbrains.kotlin.gradle.tasks.TasksUtilsKt.throwExceptionIfCompilationFailed(tasksUtils.kt:21)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:119)
+	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+	... 2 more
+
+
+BUILD FAILED in 2m 18s
+27 actionable tasks: 27 executed
+Watched directory hierarchies: [C:\Users\HP\Downloads\folder]
