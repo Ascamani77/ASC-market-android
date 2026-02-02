@@ -28,8 +28,8 @@ object AutoMirrored {
         val Visibility: ImageVector get() = Icons.Filled.Visibility
         val ArrowUpward: ImageVector get() = Icons.Filled.ArrowUpward
         val ArrowDownward: ImageVector get() = Icons.Filled.ArrowDownward
-        val TrendingUp: ImageVector get() = Icons.Filled.TrendingUp
-        val TrendingDown: ImageVector get() = Icons.Filled.TrendingDown
+        val TrendingUp: ImageVector get() = Icons.Filled.ShowChart
+        val TrendingDown: ImageVector get() = Icons.Filled.ShowChart
         val ShowChart: ImageVector get() = Icons.Filled.ShowChart
         val Person: ImageVector get() = Icons.Filled.Person
         val Edit: ImageVector get() = Icons.Filled.Edit
@@ -63,8 +63,8 @@ object AutoMirrored {
         val Visibility: ImageVector get() = Icons.Outlined.Visibility
         val ArrowUpward: ImageVector get() = Icons.Outlined.ArrowUpward
         val ArrowDownward: ImageVector get() = Icons.Outlined.ArrowDownward
-        val TrendingUp: ImageVector get() = Icons.Outlined.TrendingUp
-        val TrendingDown: ImageVector get() = Icons.Outlined.TrendingDown
+        val TrendingUp: ImageVector get() = Icons.Outlined.ShowChart
+        val TrendingDown: ImageVector get() = Icons.Outlined.ShowChart
         val ShowChart: ImageVector get() = Icons.Outlined.ShowChart
         val Person: ImageVector get() = Icons.Outlined.Person
         val Edit: ImageVector get() = Icons.Outlined.Edit

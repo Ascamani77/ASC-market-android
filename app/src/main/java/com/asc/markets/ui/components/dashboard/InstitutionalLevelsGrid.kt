@@ -9,8 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,11 +43,11 @@ private fun LevelBox(label: String, value: Double, modifier: Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // choose an icon based on the label and color it and size it larger
                 val (iconImageVector, iconTint) = when {
-                    label.contains("RESISTANCE", ignoreCase = true) -> Pair(Icons.Filled.TrendingUp, RoseError)
-                    label.contains("SUPPORT", ignoreCase = true) -> Pair(Icons.Filled.TrendingDown, EmeraldSuccess)
+                    label.contains("RESISTANCE", ignoreCase = true) -> Pair(Icons.Filled.ArrowUpward, RoseError)
+                    label.contains("SUPPORT", ignoreCase = true) -> Pair(Icons.Filled.ArrowDownward, EmeraldSuccess)
                     label.contains("DAILY HIGH", ignoreCase = true) -> Pair(Icons.Filled.ArrowUpward, IndigoAccent)
                     label.contains("DAILY LOW", ignoreCase = true) -> Pair(Icons.Filled.ArrowDownward, RoseError)
-                    else -> Pair(Icons.Filled.TrendingUp, SlateText)
+                    else -> Pair(Icons.Filled.ShowChart, SlateText)
                 }
 
                 // Icon with rounded background (like NET USD EXPOSURE)

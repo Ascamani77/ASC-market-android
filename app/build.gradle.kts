@@ -24,6 +24,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Read OPENAI_API_KEY from local.properties (or CI secret via project properties). Falls back to empty string.
+        buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -41,6 +44,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // Enable generation of BuildConfig fields (we rely on BuildConfig.OPENAI_API_KEY)
+        buildConfig = true
     }
     composeOptions {
         // set an appropriate compiler extension version for your Compose BOM / Kotlin version
@@ -75,6 +80,8 @@ dependencies {
     // TradingView Lightweight Charts Android wrapper
     implementation("com.tradingview:lightweightcharts:3.8.0")
 
+    // Coil for image loading in Compose
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

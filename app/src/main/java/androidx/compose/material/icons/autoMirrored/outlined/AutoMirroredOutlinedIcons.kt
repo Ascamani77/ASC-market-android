@@ -27,8 +27,8 @@ val Star: ImageVector get() = Icons.Outlined.Star
 val Visibility: ImageVector get() = Icons.Outlined.Visibility
 val ArrowUpward: ImageVector get() = Icons.Outlined.ArrowUpward
 val ArrowDownward: ImageVector get() = Icons.Outlined.ArrowDownward
-val TrendingUp: ImageVector get() = Icons.Outlined.TrendingUp
-val TrendingDown: ImageVector get() = Icons.Outlined.TrendingDown
+val TrendingUp: ImageVector get() = Icons.Outlined.ShowChart
+val TrendingDown: ImageVector get() = Icons.Outlined.ShowChart
 val ShowChart: ImageVector get() = Icons.Outlined.ShowChart
 // common additional icons
 val History: ImageVector get() = Icons.Outlined.History
