@@ -1,47 +1,331 @@
 package com.asc.markets.ui.screens.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.CandlestickChart
+import androidx.compose.foundation.lazy.LazyColumn
 import com.asc.markets.ui.theme.*
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.min
+import kotlin.random.Random
 
 @Composable
-fun TechnicalVitalsTab() {
-    val mockPriceData = listOf(1.0840, 1.0845, 1.0842, 1.0850, 1.0848, 1.0855, 1.0860, 1.0852)
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 100.dp)
+fun TechnicalVitalsScreen() {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black)
+        .padding(vertical = 12.dp)
     ) {
-        item {
-            InfoBox(height = 200.dp) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("INTRADAY STRUCTURE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    CandlestickChart(mockPriceData)
+        // Primary Node: Session Progress (full width)
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            SessionProgressNode()
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // KPI Grid: 4 square cards in a single row (scrollable if needed)
+        Box(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp)) {
+            val scroll = rememberScrollState()
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scroll), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                val cfg = LocalConfiguration.current
+                val screenDp = cfg.screenWidthDp
+                val padding = 32 // 16 left + 16 right approximate
+                val gap = 12 * 3 // three gaps between 4 cards
+                val cardDp = ((screenDp - padding - gap) / 4f).coerceAtLeast(72f)
+                val cardSize = with(LocalDensity.current) { cardDp.dp }
+
+                VitalsKpiCard("NODE_HEALTH", "0.98", "Institutional Feed", cardSize, status = VitalsStatus.Active)
+                VitalsKpiCard("AVG_SPREAD", String.format("%.2f pips", avgSpreadSample()), "Bid/Ask spread", cardSize, status = VitalsStatus.Active)
+                VitalsKpiCard("VOL_P/H", String.format("%.1f P/H", volatilitySample()), "20-candle range", cardSize, status = VitalsStatus.Processing)
+                VitalsKpiCard("LATENCY", String.format("%.2f ms", nodeLatencySample()), "Direct LMAX Uplink", cardSize, status = VitalsStatus.Active)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Contextual Nodes: Global Regime (narrow) + Institutional Tape (wide)
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Global Regime (narrow)
+            InfoBox(modifier = Modifier.width(160.dp), minHeight = 160.dp) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Header
+                    Text("GLOBAL REGIME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("Risk-Off: USD Strength & Tightening", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = 11.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                }
+            }
+
+            // Institutional Tape (wide)
+            InfoBox(modifier = Modifier.weight(1f), minHeight = 160.dp) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("INSTITUTIONAL TAPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        val safety = isSafetyGateClosed()
+                        Text(if (safety) "BLOCKED" else "ARMED", color = if (safety) RoseError else EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    }
+
+                    // scrolling tape
+                    val events = remember { sampleTapeEvents() }
+                    Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+                        events.forEach { ev ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(ev.time, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(ev.text, color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
                 }
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                VitalsBox("SPREAD", "0.4", EmeraldSuccess, Modifier.weight(1f))
-                VitalsBox("VOLATILITY", "HIGH", RoseError, Modifier.weight(1f))
+    }
+}
+
+private fun nowUtcFormatted(): String {
+    return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm'Z'"))
+}
+
+private fun avgSpreadSample(): Double = (Random.nextDouble(0.05, 0.35))
+private fun volatilitySample(): Double = (Random.nextDouble(3.0, 18.0))
+private fun nodeLatencySample(): Double = (Random.nextDouble(0.5, 12.0))
+
+data class TapeEvent(val time: String, val text: String)
+private fun sampleTapeEvents(): List<TapeEvent> = listOf(
+    TapeEvent("08:41", "RSI enters Overbought (>70) on M5"),
+    TapeEvent("08:38", "Volume spike 2.3x 10-period MA"),
+    TapeEvent("08:35", "Price touches R1 level 1.0892"),
+    TapeEvent("08:32", "Higher High / Higher Low confirmed")
+)
+
+enum class VitalsStatus { Active, Blocked, Processing }
+
+@Composable
+private fun VitalsKpiCard(label: String, value: String, sub: String, size: androidx.compose.ui.unit.Dp, status: VitalsStatus) {
+    InfoBox(modifier = Modifier.size(size), minHeight = size) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Header row
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Box(modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (status == VitalsStatus.Blocked) RoseError else if (status == VitalsStatus.Processing) IndigoAccent else EmeraldSuccess)
+                ) {}
+            }
+
+            // Primary value
+            Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text(sub, color = SlateText, fontSize = 10.sp)
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+            Text("Audit • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+        }
+    }
+}
+
+@Composable
+private fun SessionProgressNode() {
+    // compute session info based on UTC
+    var now by remember { mutableStateOf(ZonedDateTime.now(ZoneOffset.UTC)) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = ZonedDateTime.now(ZoneOffset.UTC)
+            delay(1000L)
+        }
+    }
+
+    val session = sessionFor(now)
+    val start = session.first
+    val end = session.second
+    val total = Duration.between(start, end).toMillis().coerceAtLeast(1)
+    val elapsed = Duration.between(start, now).toMillis().coerceAtLeast(0).coerceAtMost(total)
+    val pct = elapsed.toFloat() / total.toFloat()
+    val remaining = Duration.between(now, end).seconds.coerceAtLeast(0)
+
+    InfoBox(minHeight = 140.dp) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Gauge
+            Box(modifier = Modifier.size(100.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.Canvas(modifier = Modifier.size(100.dp)) {
+                        val stroke = Stroke(width = 10f, cap = StrokeCap.Round)
+                        val startAngle = -90f
+                        drawArc(Color.White.copy(alpha = 0.06f), startAngle, 360f, false, topLeft = Offset.Zero, size = size, style = stroke)
+                        drawArc(IndigoAccent, startAngle, 360f * pct, false, topLeft = Offset.Zero, size = size, style = stroke)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(String.format("%d%%", (pct * 100).toInt()), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                    Text(timeStrFromSeconds(remaining), color = SlateText, fontSize = 11.sp)
+                }
+            }
+
+            // Narrative & context
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Session Progress", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    Text(sessionNameFor(now), color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                }
+
+                Text("${sessionNameFor(now)} ${start.toLocalTime()}–${end.toLocalTime()} UTC", color = SlateText, fontSize = 10.sp)
+                Text("Global Regime: ${regimeSummary()}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
-        item {
-            MarketDepthLadder()
+    }
+}
+
+private fun timeStrFromSeconds(sec: Long): String {
+    val s = sec % 60
+    val m = (sec / 60) % 60
+    val h = sec / 3600
+    return String.format("%02d:%02d:%02d", h, m, s)
+}
+
+private fun sessionNameFor(now: ZonedDateTime): String {
+    val utc = now.toLocalTime()
+    return when {
+        utc.hour in 8..15 -> "LONDON"
+        utc.hour in 13..20 -> "NEW YORK"
+        utc.hour in 0..7 -> "TOKYO"
+        else -> "GLOBAL"
+    }
+}
+
+private fun sessionFor(now: ZonedDateTime): Pair<ZonedDateTime, ZonedDateTime> {
+    val date = now.toLocalDate()
+    val utc = now.toLocalTime()
+    return when {
+        utc.hour in 8..15 -> Pair(ZonedDateTime.of(date, java.time.LocalTime.of(8,0), ZoneOffset.UTC), ZonedDateTime.of(date, java.time.LocalTime.of(16,0), ZoneOffset.UTC))
+        utc.hour in 13..20 -> Pair(ZonedDateTime.of(date, java.time.LocalTime.of(13,0), ZoneOffset.UTC), ZonedDateTime.of(date, java.time.LocalTime.of(21,0), ZoneOffset.UTC))
+        utc.hour in 0..7 -> Pair(ZonedDateTime.of(date, java.time.LocalTime.of(0,0), ZoneOffset.UTC), ZonedDateTime.of(date, java.time.LocalTime.of(8,0), ZoneOffset.UTC))
+        else -> Pair(ZonedDateTime.of(date, java.time.LocalTime.of(0,0), ZoneOffset.UTC), ZonedDateTime.of(date, java.time.LocalTime.of(23,59,59), ZoneOffset.UTC))
+    }
+}
+
+private fun regimeSummary(): String = "Risk-Off: Equities under pressure due to hawkish FED tone"
+
+private fun isSafetyGateClosed(): Boolean {
+    // mock: check if any hard-coded high-impact event is within ±30 minutes of now UTC
+    val now = Instant.now()
+    val events = listOf(
+        Instant.now().plusSeconds(60 * 25)
+    )
+    return events.any { ev -> kotlin.math.abs(Duration.between(now, ev).toMinutes()) <= 30 }
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TechnicalVitalsTab() {
+    val scrollState = rememberScrollState()
+    val tapeRequester = remember { BringIntoViewRequester() }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .background(Color.Black)
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Primary Node: full-width session progress
+        SessionProgressNode()
+
+        // KPI Grid: 2x2 square cards (two columns, two rows)
+        val cfg = LocalConfiguration.current
+        val screenDp = cfg.screenWidthDp
+        val padding = 32 // 16 left + 16 right
+        val gap = 12 // one gap between two columns
+        val cardDp = ((screenDp - padding - gap) / 2f).coerceAtLeast(72f)
+        val cardSize = with(LocalDensity.current) { cardDp.dp }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            VitalsKpiCard(label = "AVG_SPREAD", value = String.format("%.2f pips", avgSpreadSample()), sub = "Institutional Bid/Ask", size = cardSize, status = VitalsStatus.Active)
+            VitalsKpiCard(label = "VOL_P/H", value = String.format("%.1f P/H", volatilitySample()), sub = "20-candle range", size = cardSize, status = VitalsStatus.Processing)
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            VitalsKpiCard(label = "SAFETY_GATE", value = if (isSafetyGateClosed()) "BLOCKED" else "ARMED", sub = "High-impact window", size = cardSize, status = if (isSafetyGateClosed()) VitalsStatus.Blocked else VitalsStatus.Active)
+            VitalsKpiCard(label = "NODE_LATENCY", value = String.format("%.2f ms", nodeLatencySample()), sub = "Direct LMAX Uplink", size = cardSize, status = VitalsStatus.Active)
+        }
+
+        // Contextual Nodes: stack Global Regime above Institutional Tape
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 96.dp) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("GLOBAL REGIME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(regimeSummary(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = 11.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                }
+            }
+
+            InfoBox(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(tapeRequester), minHeight = 160.dp) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("INSTITUTIONAL TAPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        val safety = isSafetyGateClosed()
+                        Box(modifier = Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (safety) RoseError else EmeraldSuccess)
+                        ) {}
+                    }
+
+                    val events = remember { sampleTapeEvents() }
+                    Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+                        events.forEach { ev ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(ev.time, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(ev.text, color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                }
+            }
+        }
+        LaunchedEffect(Unit) {
+            // give layout a moment then bring the tape into view
+            delay(200)
+            try { tapeRequester.bringIntoView() } catch (_: Exception) { }
         }
     }
 }
