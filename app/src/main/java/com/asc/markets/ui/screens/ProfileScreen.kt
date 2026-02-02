@@ -39,7 +39,7 @@ fun ProfileScreen() {
             Box(modifier = Modifier.padding(24.dp)) {
                 // Background Watermark Parity
                 Icon(
-                    Icons.Default.Person, null, 
+                    androidx.compose.material.icons.autoMirrored.outlined.Person, null,
                     tint = Color.White.copy(alpha = 0.02f),
                     modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 30.dp, y = (-30).dp)
                 )
@@ -57,7 +57,7 @@ fun ProfileScreen() {
                             shape = CircleShape,
                             modifier = Modifier.size(24.dp).border(2.dp, PureBlack, CircleShape)
                         ) {
-                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                            Icon(androidx.compose.material.icons.autoMirrored.outlined.Edit, null, tint = Color.White, modifier = Modifier.padding(4.dp))
                         }
                     }
                     
@@ -66,7 +66,7 @@ fun ProfileScreen() {
                     Column {
                         Text("JOHN DOE", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = (-0.5).sp)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                            Icon(Icons.Default.Verified, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
+                            Icon(androidx.compose.material.icons.autoMirrored.outlined.Verified, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("INSTITUTIONAL ANALYST", color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                         }
@@ -82,7 +82,7 @@ fun ProfileScreen() {
             Column(modifier = Modifier.padding(24.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Shield, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
+                        Icon(androidx.compose.material.icons.autoMirrored.outlined.Shield, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("IDENTITY MANAGEMENT", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
@@ -100,11 +100,11 @@ fun ProfileScreen() {
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                ProfileInput("Legal Full Name", "John Doe", Icons.Default.Person)
-                ProfileInput("Intelligence Email", "john.doe@forexpro.ai", Icons.Default.Mail)
-                ProfileInput("Secure Phone Uplink", "+44 20 7946 0958", Icons.Default.Phone)
-                ProfileInput("Institutional Firm", "Alpha Strategic Capital", Icons.Default.Business)
-                ProfileInput("Operational Region", "London, UK", Icons.Default.Language)
+                ProfileInput("Legal Full Name", "John Doe", androidx.compose.material.icons.autoMirrored.outlined.Person)
+                ProfileInput("Intelligence Email", "john.doe@forexpro.ai", androidx.compose.material.icons.autoMirrored.outlined.Mail)
+                ProfileInput("Secure Phone Uplink", "+44 20 7946 0958", androidx.compose.material.icons.autoMirrored.outlined.Phone)
+                ProfileInput("Institutional Firm", "Alpha Strategic Capital", androidx.compose.material.icons.autoMirrored.outlined.Business)
+                ProfileInput("Operational Region", "London, UK", androidx.compose.material.icons.autoMirrored.outlined.Language)
             }
         }
 
@@ -142,7 +142,7 @@ fun ProfileScreen() {
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, RoseError.copy(alpha = 0.3f))
         ) {
-            Icon(Icons.Default.Logout, null, tint = RoseError, modifier = Modifier.size(18.dp))
+            Icon(androidx.compose.material.icons.autoMirrored.outlined.Logout, null, tint = RoseError, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Text("SIGN OUT SESSION", color = RoseError, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 2.sp, fontFamily = InterFontFamily)
         }

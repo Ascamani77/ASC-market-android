@@ -6,10 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,14 +32,14 @@ fun EducationTab() {
             InfoBox(minHeight = 160.dp) {
                 Box(modifier = Modifier.padding(24.dp)) {
                     Icon(
-                        imageVector = Icons.Default.School, contentDescription = null,
+                        androidx.compose.material.icons.autoMirrored.outlined.School, contentDescription = null,
                         tint = Color.White.copy(alpha = 0.03f),
                         modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 20.dp, y = (-20).dp)
                     )
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(40.dp).background(IndigoAccent.copy(alpha = 0.1f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AutoGraph, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
+                                Icon(androidx.compose.material.icons.autoMirrored.outlined.AutoGraph, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("INTELLIGENCE FRAMEWORK", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
@@ -61,44 +58,44 @@ fun EducationTab() {
             EducationCollapseItem(
                 id = "arch",
                 title = "System Architecture & Logic",
-                icon = Icons.Default.Layers,
+                icon = androidx.compose.material.icons.autoMirrored.outlined.Layers,
                 isOpen = openSection == "arch",
                 onClick = { openSection = if (openSection == "arch") null else "arch" }
             ) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("The core identifies market structure, liquidity sweeps, and supply/demand zones through strict mathematical rules, removing subjective interpretation.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(modifier = Modifier.weight(1f).background(GhostWhite, RoundedCornerShape(8.dp)).padding(12.dp)) {
-                            Column {
-                                Text("TECHNICAL", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                Text("60% Weight", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                        Box(modifier = Modifier.weight(1f).background(GhostWhite, RoundedCornerShape(8.dp)).padding(12.dp)) {
-                            Column {
-                                Text("SAFETY", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                Text("40% Weight", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                    }
-                }
-            }
+                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                     Text("The core identifies market structure, liquidity sweeps, and supply/demand zones through strict mathematical rules, removing subjective interpretation.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                         Box(modifier = Modifier.weight(1f).background(GhostWhite, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                             Column {
+                                 Text("TECHNICAL", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                 Text("60% Weight", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                             }
+                         }
+                         Box(modifier = Modifier.weight(1f).background(GhostWhite, RoundedCornerShape(8.dp)).padding(12.dp)) {
+                             Column {
+                                 Text("SAFETY", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                 Text("40% Weight", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                             }
+                         }
+                     }
+                 }
+             }
         }
 
         item {
             EducationCollapseItem(
                 id = "concepts",
                 title = "Market Concepts Library",
-                icon = Icons.Default.MenuBook,
+                icon = androidx.compose.material.icons.autoMirrored.outlined.MenuBook,
                 isOpen = openSection == "concepts",
                 onClick = { openSection = if (openSection == "concepts") null else "concepts" }
             ) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    ConceptItem("Market Structure", "Mapping directional flow via HH/HL/LH/LL swing points.")
-                    ConceptItem("Liquidity Sweeps", "Institutional interaction with retail stop-loss clusters.")
-                    ConceptItem("Supply & Demand", "Areas of high-volume displacement and unfilled orders.")
-                }
-            }
+                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                     ConceptItem("Market Structure", "Mapping directional flow via HH/HL/LH/LL swing points.")
+                     ConceptItem("Liquidity Sweeps", "Institutional interaction with retail stop-loss clusters.")
+                     ConceptItem("Supply & Demand", "Areas of high-volume displacement and unfilled orders.")
+                 }
+             }
         }
 
         item {
@@ -120,7 +117,7 @@ fun EducationTab() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Info, null, tint = IndigoAccent, modifier = Modifier.size(16.dp))
+                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Info, null, tint = IndigoAccent, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         "The analytical node provides risk framing based on historical alignment. Final decision authority resides with the operator.",
@@ -136,6 +133,7 @@ fun EducationTab() {
 }
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 private fun EducationCollapseItem(id: String, title: String, icon: ImageVector, isOpen: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
         color = PureBlack,
@@ -154,7 +152,8 @@ private fun EducationCollapseItem(id: String, title: String, icon: ImageVector, 
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(title.uppercase(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 }
-                Icon(if (isOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, tint = Color.Gray)
+                // Show FILLED icon for the active/open state, OUTLINED for the inactive state
+                Icon(if (isOpen) androidx.compose.material.icons.autoMirrored.filled.ExpandLess else androidx.compose.material.icons.autoMirrored.outlined.ExpandMore, null, tint = Color.Gray)
             }
             AnimatedVisibility(visible = isOpen, enter = expandVertically(), exit = shrinkVertically()) {
                 Box(modifier = Modifier.border(androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)), RoundedCornerShape(0.dp))) {

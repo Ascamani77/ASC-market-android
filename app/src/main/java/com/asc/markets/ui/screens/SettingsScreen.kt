@@ -1,6 +1,6 @@
+@file:Suppress("DEPRECATION", "UNUSED_PARAMETER")
 package com.asc.markets.ui.screens
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,22 +20,21 @@ import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import com.asc.markets.data.FOREX_PAIRS
-// removed unused import: RiskMode
 
 sealed class SettingsSection(val id: String, val title: String, val icon: ImageVector, val value: String? = null) {
-    object Workspace : SettingsSection("workspace", "Workspace Interface", Icons.Default.Settings, "DARK")
-    object Analytical : SettingsSection("analytical", "Analytical Canvas & Focus", Icons.Default.Timeline, "H1")
-    object Intelligence : SettingsSection("intelligence", "Intelligence Filtering Logic", Icons.Default.FilterList)
-    object Security : SettingsSection("security", "Security Protocol", Icons.Default.Lock, "ENABLED")
-    object Risk : SettingsSection("risk", "Risk Governance & Execution", Icons.Default.AccountBalance, "BALANCED")
-    object Dispatch : SettingsSection("dispatch", "Intelligence Dispatch", Icons.Default.Notifications)
-    object Asset : SettingsSection("asset", "Asset Universe Filtering", Icons.Default.List)
-    object Calibration : SettingsSection("calibration", "Strategy Calibration", Icons.Default.Tune)
-    object Engine : SettingsSection("engine", "Core Engine Analytical Tuning", Icons.Default.Memory)
+    object Workspace : SettingsSection("workspace", "Workspace Interface", androidx.compose.material.icons.autoMirrored.outlined.Settings, "DARK")
+    object Analytical : SettingsSection("analytical", "Analytical Canvas & Focus", androidx.compose.material.icons.autoMirrored.outlined.Timeline, "H1")
+    object Intelligence : SettingsSection("intelligence", "Intelligence Filtering Logic", androidx.compose.material.icons.autoMirrored.outlined.FilterList)
+    object Security : SettingsSection("security", "Security Protocol", androidx.compose.material.icons.autoMirrored.outlined.Lock, "ENABLED")
+    object Risk : SettingsSection("risk", "Risk Governance & Execution", androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, "BALANCED")
+    object Dispatch : SettingsSection("dispatch", "Intelligence Dispatch", androidx.compose.material.icons.autoMirrored.outlined.Notifications)
+    object Asset : SettingsSection("asset", "Asset Universe Filtering", androidx.compose.material.icons.autoMirrored.outlined.List)
+    object Calibration : SettingsSection("calibration", "Strategy Calibration", androidx.compose.material.icons.autoMirrored.outlined.Tune)
+    object Engine : SettingsSection("engine", "Core Engine Analytical Tuning", androidx.compose.material.icons.autoMirrored.outlined.Memory)
 }
 
 @Composable
-fun SettingsScreen(viewModel: ForexViewModel) {
+fun SettingsScreen(_viewModel: ForexViewModel) {
     var activeSection by remember { mutableStateOf<SettingsSection?>(null) }
     val scrollState = rememberScrollState()
 
@@ -51,7 +50,7 @@ fun SettingsScreen(viewModel: ForexViewModel) {
         ) {
             if (activeSection != null) {
                 IconButton(onClick = { activeSection = null }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                    Icon(androidx.compose.material.icons.autoMirrored.outlined.ArrowBack, contentDescription = null, tint = Color.White)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -81,8 +80,8 @@ fun SettingsScreen(viewModel: ForexViewModel) {
                     Spacer(modifier = Modifier.height(24.dp))
                     HorizontalDivider(color = HairlineBorder)
                     
-                    SettingsMenuRow("Export Analysis Logs", Icons.Default.Download) { /* Export */ }
-                    SettingsMenuRow("Delete all history", Icons.Default.Delete, isError = true) { /* Purge */ }
+                    SettingsMenuRow("Export Analysis Logs", androidx.compose.material.icons.autoMirrored.outlined.Download) { /* Export */ }
+                    SettingsMenuRow("Delete all history", androidx.compose.material.icons.autoMirrored.outlined.Delete, isError = true) { /* Purge */ }
                 }
             } else {
                 SettingsDetailContent(activeSection!!)
@@ -100,14 +99,14 @@ fun SettingsScreen(viewModel: ForexViewModel) {
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("SAVE CONFIG", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 11.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 InfoBox(minHeight = 60.dp) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = SlateText, modifier = Modifier.size(16.dp))
+                        Icon(androidx.compose.material.icons.autoMirrored.outlined.Info, contentDescription = null, tint = SlateText, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             "Parameters influence the internal node's local weighting. Changes are committed to secure hardware storage.".uppercase(),
@@ -146,7 +145,7 @@ fun SettingsMenuRow(label: String, icon: ImageVector, value: String? = null, isE
                 Text(value, color = SlateMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.DarkGray)
+            Icon(androidx.compose.material.icons.autoMirrored.outlined.ChevronRight, contentDescription = null, tint = Color.DarkGray)
         }
     }
 }
@@ -205,7 +204,7 @@ fun SettingsDetailContent(section: SettingsSection) {
                     placeholder = { Text("Search Universe...", color = Color.Gray) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = SlateText) },
+                    leadingIcon = { Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, null, tint = SlateText) },
                     colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
                 )
                 FOREX_PAIRS.forEach { pair ->
@@ -249,7 +248,7 @@ fun SliderRow(label: String, value: Float, min: Float, max: Float, suffix: Strin
     Column(modifier = Modifier.padding(vertical = 16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label.uppercase(), color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-            Text("${String.format("%.1f", value)}$suffix", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text("${String.format(java.util.Locale.US, "%.1f", value)}$suffix", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
         }
         Slider(
             value = value,
@@ -276,8 +275,8 @@ fun AssetSettingRow(pair: com.asc.markets.data.ForexPair) {
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(20.dp))
-            Icon(Icons.Default.Visibility, null, tint = SlateText, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(androidx.compose.material.icons.autoMirrored.outlined.Visibility, null, tint = SlateText, modifier = Modifier.size(20.dp))
         }
     }
 }

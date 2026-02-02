@@ -7,8 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,7 +69,7 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
                 placeholder = { Text("FILTER SYMBOLS...", color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Black) },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(24.dp),
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp)) },
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = Color.White.copy(alpha = 0.05f),
                     focusedBorderColor = Color.White.copy(alpha = 0.2f),
@@ -80,6 +78,18 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
                     focusedTextColor = Color.White
                 )
             )
+        }
+
+        // Markets screen overview / feature writeup (so operators understand what this view provides)
+        InfoBox(minHeight = 100.dp) {
+            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Markets View - Features", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                Text("• Category chips for quick filtering by asset class (ALL / FOREX / CRYPTO / INDICES / COMMODITIES).", color = Color.White, fontSize = 12.sp)
+                Text("• Integrated search for rapid symbol discovery.", color = Color.White, fontSize = 12.sp)
+                Text("• Live price surveillance with color-coded percent changes (Emerald = gain, Rose = loss).", color = Color.White, fontSize = 12.sp)
+                Text("• Edge-to-edge sparklines on each asset card provide immediate trend context.", color = Color.White, fontSize = 12.sp)
+                Text("• Tap any asset card to open the full terminal / detail view for deep analysis.", color = Color.White, fontSize = 12.sp)
+            }
         }
 
         LazyColumn(
@@ -152,14 +162,14 @@ fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
             ) {
                 Column {
                     Text(
-                        text = String.format("%.5f", pair.price),
+                        text = String.format(java.util.Locale.US, "%.5f", pair.price),
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                     )
                     Text(
-                        text = "${if (isUp) "+" else ""}${String.format("%.2f", pair.changePercent)}%",
+                        text = "${if (isUp) "+" else ""}${String.format(java.util.Locale.US, "%.2f", pair.changePercent)}%",
                         color = if (isUp) EmeraldSuccess else RoseError,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
@@ -181,13 +191,13 @@ fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
                 Box(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(4.dp)).padding(6.dp)) {
                     Column {
                         Text("DAY HIGH", color = Color.DarkGray, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                        Text(String.format("%.5f", pair.price * 1.002), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 1.002), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                     }
                 }
                 Box(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(4.dp)).padding(6.dp)) {
                     Column {
                         Text("DAY LOW", color = Color.DarkGray, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                        Text(String.format("%.5f", pair.price * 0.998), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 0.998), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                     }
                 }
             }

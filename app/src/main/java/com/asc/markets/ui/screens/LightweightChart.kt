@@ -16,21 +16,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexDataPoint
+import java.util.Locale
 import kotlin.math.sin
 
 @Composable
 fun LightweightChart(
     symbol: String,
     price: Double,
-    sparkline: List<ForexDataPoint> = emptyList(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sparkline: List<ForexDataPoint> = emptyList()
 ) {
     // produce mock sparkline data if none provided; use Float for Canvas math
     val data: List<Float> = if (sparkline.isNotEmpty()) {
         sparkline.map { it.close.toFloat() }
     } else {
         val base = price.takeIf { it > 0.0 } ?: 1.0
-        List(40) { i -> (base + sin(i * 0.25).toDouble() * (base * 0.01) + (i % 3) * 0.005 * base).toFloat() }
+        List(40) { i -> (base + sin(i * 0.25) * (base * 0.01) + (i % 3) * 0.005 * base).toFloat() }
     }
 
     val min = data.minOrNull() ?: 0f
@@ -43,7 +44,7 @@ fun LightweightChart(
             .padding(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = symbol, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text(text = String.format("%.4f", price), fontSize = 13.sp, color = Color(0xFF94A3B8))
+                Text(text = String.format(Locale.US, "%.4f", price), fontSize = 13.sp, color = Color(0xFF94A3B8))
             }
 
             Spacer(modifier = Modifier.height(8.dp))

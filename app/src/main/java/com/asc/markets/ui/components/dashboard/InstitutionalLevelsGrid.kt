@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.asc.markets.ui.components.dashboard
 
 import androidx.compose.foundation.background

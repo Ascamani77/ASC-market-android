@@ -126,8 +126,8 @@ private fun CorrelationHeatmapCard(pair: String, coeff: Double) {
         ) {
             Text(pair, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             Text(
-                text = String.format("%.2f", coeff), 
-                color = Color.White, 
+                text = String.format(java.util.Locale.US, "%.2f", coeff),
+                color = Color.White,
                 fontSize = 18.sp, 
                 fontWeight = FontWeight.Black,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace

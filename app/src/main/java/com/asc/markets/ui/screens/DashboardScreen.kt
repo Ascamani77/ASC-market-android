@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.dashboard.*
 import com.asc.markets.ui.theme.*
 import com.asc.markets.data.ForexPair
@@ -40,8 +41,11 @@ fun DashboardScreen(viewModel: ForexViewModel) {
             // Content
             Box(modifier = Modifier.weight(1f)) {
                 androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
-                    when (tab) {
-                        DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair)
+                        when (tab) {
+                        DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->
+                            viewModel.selectPair(pair)
+                            viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                        }
                         DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab()
                         DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab()
                         DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab()

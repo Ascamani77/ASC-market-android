@@ -1,15 +1,13 @@
 package com.asc.markets.ui.screens.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.autoMirrored.outlined.Info
+import androidx.compose.material.icons.autoMirrored.outlined.History
+import androidx.compose.material.icons.autoMirrored.outlined.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,14 +34,14 @@ fun ExecutionLedgerTab() {
             InfoBox(minHeight = 140.dp) {
                 Box(modifier = Modifier.padding(24.dp)) {
                     Icon(
-                        Icons.Default.History, null, 
+                        History, null,
                         tint = Color.White.copy(alpha = 0.02f),
                         modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 20.dp, y = (-20).dp)
                     )
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(40.dp).background(IndigoAccent.copy(alpha = 0.1f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Shield, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
+                                Icon(Shield, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("REAL-TIME NODE", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
@@ -69,7 +67,7 @@ fun ExecutionLedgerTab() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Info, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
+                    Icon(Info, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         "All ledger entries are immutable. This audit trail is provided for diagnostic review ensuring the engine adheres to policy-driven parameters.",
@@ -120,10 +118,10 @@ fun LedgerTradeCard(trade: AutomatedTrade) {
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     Box(modifier = Modifier.width(4.dp).fillMaxHeight().background(IndigoAccent))
                     Text(
-                        text = trade.reasoning, 
-                        color = Color.White, 
-                        fontSize = 13.sp, 
-                        lineHeight = 20.sp, 
+                        text = trade.reasoning,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
                         modifier = Modifier.padding(16.dp),
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Medium,
@@ -138,7 +136,7 @@ fun LedgerTradeCard(trade: AutomatedTrade) {
                 ContextMiniBox("PRE-TRADE CONTEXT", trade.preTradeContext, Modifier.weight(1f))
                 ContextMiniBox("OUTCOME PROFILE", trade.postTradeOutcome, Modifier.weight(1f))
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
             HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
             Spacer(modifier = Modifier.height(16.dp))

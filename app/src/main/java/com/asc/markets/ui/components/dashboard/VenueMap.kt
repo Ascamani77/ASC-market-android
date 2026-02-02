@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.asc.markets.ui.components.dashboard
 
 import androidx.compose.foundation.layout.*
@@ -7,17 +8,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.SlateText
 
@@ -53,7 +47,7 @@ fun VenueMap() {
         itemsIndexed(venues) { idx, code ->
             val weight = weights.getOrNull(idx) ?: 0f
             val latency = kotlin.random.Random.nextDouble(0.01, 0.5)
-            val latencyMs = String.format("%.2fms", latency)
+            val latencyMs = String.format(java.util.Locale.US, "%.2fms", latency)
             val isActive = weight > 0.5f
 
             InfoBox(modifier = Modifier.widthIn(min = 280.dp).fillMaxWidth(), height = 120.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
@@ -70,10 +64,10 @@ fun VenueMap() {
                             Spacer(modifier = Modifier.width(8.dp))
                             // Venue icon mapping
                             when (code) {
-                                "JPM", "DB", "BARC" -> Icon(Icons.Filled.AccountBalance, contentDescription = "bank", tint = Color.White, modifier = Modifier.size(18.dp))
-                                "CTDL" -> Icon(Icons.Filled.ShowChart, contentDescription = "ctdl", tint = Color.White, modifier = Modifier.size(18.dp))
-                                "LMAX" -> Icon(Icons.Filled.TrendingUp, contentDescription = "lmax", tint = Color.White, modifier = Modifier.size(18.dp))
-                                else -> Icon(Icons.Filled.AccountBalance, contentDescription = "venue", tint = Color.White, modifier = Modifier.size(18.dp))
+                                "JPM", "DB", "BARC" -> Icon(androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, contentDescription = "bank", tint = Color.White, modifier = Modifier.size(18.dp))
+                                "CTDL" -> Icon(androidx.compose.material.icons.autoMirrored.outlined.ShowChart, contentDescription = "ctdl", tint = Color.White, modifier = Modifier.size(18.dp))
+                                "LMAX" -> Icon(androidx.compose.material.icons.autoMirrored.outlined.TrendingUp, contentDescription = "lmax", tint = Color.White, modifier = Modifier.size(18.dp))
+                                else -> Icon(androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, contentDescription = "venue", tint = Color.White, modifier = Modifier.size(18.dp))
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(code, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
@@ -81,7 +75,7 @@ fun VenueMap() {
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        Text("WGT: ${String.format("%.1f%%", weight)}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("WGT: ${String.format(java.util.Locale.US, "%.1f%%", weight)}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
 
                     // Forex scale chips (small pair badges)
@@ -101,7 +95,7 @@ fun VenueMap() {
                                 .background(Color(0xFF0F1720))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(Icons.Filled.ShowChart, contentDescription = null, tint = SlateText, modifier = Modifier.size(12.dp))
+                                    Icon(androidx.compose.material.icons.autoMirrored.outlined.ShowChart, contentDescription = null, tint = SlateText, modifier = Modifier.size(12.dp))
                                     Text(p, color = Color.White, fontSize = 11.sp)
                                 }
                             }
