@@ -18,36 +18,9 @@ import com.asc.markets.ui.theme.*
 
 @Composable
 fun StrategySignalsTab() {
-    val signals = listOf(
-        SignalData("EUR/USD", "BUY", 88, "FOCUS"),
-        SignalData("GBP/JPY", "SELL", 72, "OBSERVE"),
-        SignalData("XAU/USD", "NEUTRAL", 40, "WAIT")
-    )
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
-    ) {
-        item {
-            InfoBox(minHeight = 100.dp) {
-                Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(44.dp).background(IndigoAccent.copy(alpha = 0.1f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                        Text("⚡", fontSize = 20.sp)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("OPPORTUNITY AWARENESS MATRIX", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("STRUCTURED INTELLIGENCE FEED", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                    }
-                }
-            }
-        }
-
-        items(signals) { signal ->
-            SignalCard(signal)
-        }
-    }
+    // Delegate to the new DashboardSignals implementation which implements
+    // the Opportunity Awareness Matrix (Deterministic Weighing Engine, responsive grid, modal, footer)
+    DashboardSignals()
 }
 
 data class SignalData(val pair: String, val dir: String, val conf: Int, val status: String)

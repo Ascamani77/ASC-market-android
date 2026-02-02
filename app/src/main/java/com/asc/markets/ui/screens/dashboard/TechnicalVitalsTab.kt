@@ -239,7 +239,7 @@ private fun sessionFor(now: ZonedDateTime): Pair<ZonedDateTime, ZonedDateTime> {
 
 private fun regimeSummary(): String = "Risk-Off: Equities under pressure due to hawkish FED tone"
 
-private fun isSafetyGateClosed(): Boolean {
+fun isSafetyGateClosed(): Boolean {
     // mock: check if any hard-coded high-impact event is within ±30 minutes of now UTC
     val now = Instant.now()
     val events = listOf(
@@ -284,7 +284,7 @@ fun TechnicalVitalsTab() {
 
         // Contextual Nodes: stack Global Regime above Institutional Tape
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 96.dp) {
+            InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 200.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("GLOBAL REGIME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Text(regimeSummary(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
@@ -295,7 +295,7 @@ fun TechnicalVitalsTab() {
                 }
             }
 
-            InfoBox(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(tapeRequester), minHeight = 160.dp) {
+            InfoBox(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(tapeRequester), minHeight = 260.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("INSTITUTIONAL TAPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -308,7 +308,7 @@ fun TechnicalVitalsTab() {
                     }
 
                     val events = remember { sampleTapeEvents() }
-                    Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                         events.forEach { ev ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(ev.time, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
