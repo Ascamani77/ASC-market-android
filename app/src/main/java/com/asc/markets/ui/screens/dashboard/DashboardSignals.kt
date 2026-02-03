@@ -113,10 +113,14 @@ fun DashboardSignals() {
         // Group signals into categories of 5 and label each group on the deep-black background
         val groupLabels = listOf("Forex Majors", "Commodities", "Crypto Majors", "Stocks", "Indexes")
         val groups = signals.chunked(5)
+        var openGroup by remember { mutableStateOf<Int?>(null) }
 
         groups.forEachIndexed { gi, group ->
             // category label (on deep black background, not inside InfoBox)
-            Text(groupLabels.getOrNull(gi) ?: "Group ${gi + 1}", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 4.dp))
+            Row(modifier = Modifier.fillMaxWidth().clickable { openGroup = gi }.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("›", color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(groupLabels.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+            }
             Spacer(modifier = Modifier.height(6.dp))
 
             // Responsive rows for this group
@@ -136,6 +140,43 @@ fun DashboardSignals() {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Group modal: show full list for the opened category in InfoBox style
+        if (openGroup != null) {
+            val gi = openGroup!!
+            Surface(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Card(modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.86f)) {
+                        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(groupLabels.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                                Text("Close", color = SlateText, modifier = Modifier.clickable { openGroup = null })
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // show each pair as an InfoBox within this modal
+                            val list = groups.getOrNull(gi) ?: emptyList()
+                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                list.forEach { s ->
+                                    InfoBox {
+                                        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(s.symbol, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                                Text(s.rationale.joinToString(", "), color = SlateText, fontSize = 11.sp)
+                                            }
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(s.timeframe, color = SlateText, fontSize = 11.sp)
+                                                Text(s.entry, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Footer disclosure (auto-height)

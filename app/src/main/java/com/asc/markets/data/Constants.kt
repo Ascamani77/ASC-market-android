@@ -50,6 +50,8 @@ val MOCK_TRADES = listOf(
         reasoning = "Node detected institutional buy program following Asian low sweep. CHoCH confirmed on M15.",
         timestamp = System.currentTimeMillis() - 7200000,
         preTradeContext = "Market was in consolidation; Liquidity build-up at 1.0820.",
-        postTradeOutcome = "Price reached TP1 within 4 hours. Institutional accumulation hold."
+        postTradeOutcome = "Price reached TP1 within 4 hours. Institutional accumulation hold.",
+        relayId = "PRIMARY-UK-L14",
+        latencyMs = 0.02
     )
 )

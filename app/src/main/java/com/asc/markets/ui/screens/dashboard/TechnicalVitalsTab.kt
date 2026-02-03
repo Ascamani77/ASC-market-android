@@ -41,7 +41,7 @@ import kotlin.random.Random
 fun TechnicalVitalsScreen() {
     Column(modifier = Modifier
         .fillMaxSize()
-        .background(Color.Black)
+        .background(DeepBlack)
         .padding(vertical = 12.dp)
     ) {
         // Primary Node: Session Progress (full width)
@@ -257,7 +257,7 @@ fun TechnicalVitalsTab() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .background(Color.Black)
+            .background(DeepBlack)
             .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

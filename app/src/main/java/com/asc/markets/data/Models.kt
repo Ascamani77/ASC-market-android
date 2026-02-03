@@ -67,7 +67,11 @@ data class AutomatedTrade(
     val reasoning: String,
     val timestamp: Long = System.currentTimeMillis(),
     val preTradeContext: String = "",
-    val postTradeOutcome: String = ""
+    val postTradeOutcome: String = "",
+    // Relay identity used for the dispatch (e.g., PRIMARY-UK-L14)
+    val relayId: String = "PRIMARY-UK-L14",
+    // Measured execution latency in milliseconds
+    val latencyMs: Double = 0.02
 )
 
 data class ChatMessage(
