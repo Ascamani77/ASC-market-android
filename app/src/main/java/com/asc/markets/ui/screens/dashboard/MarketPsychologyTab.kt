@@ -2,6 +2,7 @@ package com.asc.markets.ui.screens.dashboard
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,6 +32,8 @@ fun MarketPsychologyTab() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
     ) {
+        
+
         item {
             InfoBox(height = 320.dp) {
                 Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -45,21 +49,60 @@ fun MarketPsychologyTab() {
                 }
             }
         }
-
+        // Global Sentiment Header (dual-pill)
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoBox(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp), height = 120.dp) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                        Text("SMART MONEY", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Text("BULLISH", color = EmeraldSuccess, fontSize = 22.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("INSTITUTIONAL_HOLD", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+            InfoBox {
+                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(painter = painterResource(id = com.asc.markets.R.drawable.lucide_binary), contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("GLOBAL SENTIMENT INDEX", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(shape = RoundedCornerShape(999.dp), color = EmeraldSuccess.copy(alpha = 0.06f), modifier = Modifier.padding(end = 4.dp)) {
+                                Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("SMART MONEY", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("BULLISH", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                            Surface(shape = RoundedCornerShape(999.dp), color = RoseError.copy(alpha = 0.06f)) {
+                                Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("RETAIL FLOW", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("BEARISH", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
                     }
                 }
-                InfoBox(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp), height = 120.dp) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                        Text("RETAIL FLOW", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Text("BEARISH", color = RoseError, fontSize = 22.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("CROWDED_EXIT", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+            }
+        }
+
+        // 7-Day Momentum area chart
+        item {
+            InfoBox {
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                    Text("7-Day Momentum", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth().height(120.dp).background(Color.Transparent)) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+                            val points = listOf(0.4f, 0.45f, 0.5f, 0.6f, 0.55f, 0.7f, 0.72f)
+                            val step = w / (points.size - 1)
+                            val path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(0f, h)
+                                points.forEachIndexed { i, v ->
+                                    lineTo(i * step, h - (v * h))
+                                }
+                                lineTo(w, h)
+                                close()
+                            }
+                            drawPath(path, brush = Brush.verticalGradient(listOf(RoseError, IndigoAccent, EmeraldSuccess)))
+                        }
                     }
                 }
             }
@@ -67,9 +110,14 @@ fun MarketPsychologyTab() {
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("NODE SENTIMENT ADVISOR", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-                FOREX_PAIRS.take(6).forEach { pair ->
-                    SentimentAssetRow(pair)
+                Text("SENTIMENT REGISTRY", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                var selectedPair by remember { mutableStateOf<com.asc.markets.data.ForexPair?>(null) }
+                FOREX_PAIRS.forEach { pair ->
+                    SentimentAssetRow(pair) { selectedPair = it }
+                }
+
+                if (selectedPair != null) {
+                    InstitutionalContextModal(pair = selectedPair!!, onClose = { selectedPair = null })
                 }
             }
         }
@@ -77,25 +125,88 @@ fun MarketPsychologyTab() {
 }
 
 @Composable
-private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair) {
+private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair, onOpenContext: (com.asc.markets.data.ForexPair) -> Unit) {
     val bullishVal = (50 + (pair.changePercent * 10)).coerceIn(5.0, 95.0).toInt()
     
-    InfoBox {
-        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            PairFlags(pair.symbol, 24)
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(pair.symbol, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text(if (bullishVal > 60) "BULLISH BIAS" else if (bullishVal < 40) "BEARISH BIAS" else "NEUTRAL", color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("$bullishVal%", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                    Text("/", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp))
-                    Text("${100 - bullishVal}%", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+    InfoBox(modifier = Modifier.fillMaxWidth().clickable { onOpenContext(pair) }) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Layer 1: Identity row
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                PairFlags(pair.symbol, 28)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(pair.symbol, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text(String.format("%.2f", pair.price), color = SlateText, fontSize = 12.sp)
                 }
-                Box(modifier = Modifier.width(80.dp).height(2.dp).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(1.dp))) {
-                    Box(modifier = Modifier.fillMaxWidth(bullishVal / 100f).height(2.dp).background(EmeraldSuccess, RoundedCornerShape(1.dp)))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(String.format("%+.2f%%", pair.changePercent), color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                }
+            }
+
+            // Layer 2: Split bar with labels
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${bullishVal}% Long", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                    Text("${100 - bullishVal}% Short", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(4.dp))) {
+                    Box(modifier = Modifier.fillMaxWidth(bullishVal / 100f).fillMaxHeight().background(EmeraldSuccess, RoundedCornerShape(4.dp)))
+                    Box(modifier = Modifier.fillMaxWidth().offset(x = 0.dp).fillMaxHeight().background(RoseError.copy(alpha = 0.0f))) {}
+                }
+            }
+
+            // Layer 3: Bias badge + flow descriptor
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                val yellow = Color(0xFFF59E0B)
+                val badgeBg = when {
+                    bullishVal > 60 -> EmeraldSuccess.copy(alpha = 0.08f)
+                    bullishVal < 40 -> RoseError.copy(alpha = 0.08f)
+                    else -> Color.Transparent
+                }
+                val badgeTextColor = when {
+                    bullishVal > 60 -> EmeraldSuccess
+                    bullishVal < 40 -> RoseError
+                    else -> yellow
+                }
+
+                Surface(shape = RoundedCornerShape(6.dp), color = badgeBg) {
+                    Text(if (bullishVal > 60) "BULLISH" else if (bullishVal < 40) "BEARISH" else "NEUTRAL", color = badgeTextColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontWeight = FontWeight.Black)
+                }
+                Text(if (bullishVal > 70) "Aggressive Buying" else if (bullishVal < 30) "Capitulation" else "Mixed Flow", color = SlateText, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InstitutionalContextModal(pair: com.asc.markets.data.ForexPair, onClose: () -> Unit) {
+    Surface(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Card(modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.86f)) {
+                Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Institutional Context — ${pair.symbol}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                        Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
+                    }
+
+                    Text("Why", color = SlateText, fontSize = 12.sp)
+                    Text("High Greed derived from decreasing VIX premiums and concentrated flows into larger lot sizes. Retail proxies decoupled from volume on delta.", color = Color.White)
+
+                    Text("Supporting Data", color = SlateText, fontSize = 12.sp)
+                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Volume Divergence", color = SlateText)
+                            Text("+12%", color = Color.White, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Positioning Multiplier", color = SlateText)
+                            Text("2.4x", color = Color.White, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Retail Alignment", color = SlateText)
+                            Text("Extreme", color = RoseError, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        }
+                    }
                 }
             }
         }

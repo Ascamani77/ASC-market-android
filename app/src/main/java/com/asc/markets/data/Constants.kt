@@ -35,6 +35,11 @@ val FOREX_PAIRS = listOf(
     ForexPair("NAS100", "Nasdaq 100", 18240.50, 142.30, 0.79),
     ForexPair("US30", "Dow Jones 30", 39120.00, 85.00, 0.22),
     ForexPair("SPX500", "S&P 500", 5210.45, 12.15, 0.23)
+    ,
+    // Stocks
+    ForexPair("AAPL", "Apple Inc.", 173.22, 1.52, 0.88),
+    ForexPair("MSFT", "Microsoft Corp.", 334.12, -0.84, -0.25),
+    ForexPair("GOOGL", "Alphabet Inc.", 142.55, 2.10, 1.50)
 )
 
 val MOCK_TRADES = listOf(
