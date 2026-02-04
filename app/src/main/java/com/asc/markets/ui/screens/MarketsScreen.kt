@@ -1,9 +1,16 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +27,8 @@ import com.asc.markets.data.FOREX_PAIRS
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 
 @Composable
 fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
@@ -41,16 +50,31 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             ) {
                 items(categories) { cat ->
                     val active = activeCategory == cat
+                    val catIcon = when (cat) {
+                        "ALL" -> Icons.Default.BarChart
+                        "FOREX" -> Icons.Default.LineAxis
+                        "CRYPTO" -> Icons.Default.Bolt
+                        "INDICES" -> Icons.Default.GridView
+                        "COMMODITIES" -> Icons.Default.AccountTree
+                        "STOCKS" -> Icons.Default.BarChart
+                        else -> Icons.Default.BarChart
+                    }
+
                     Surface(
                         color = if (active) Color.White else Color.Transparent,
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.height(32.dp).clickable { activeCategory = cat }
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        ) {
+                            Icon(catIcon, contentDescription = cat, tint = if (active) Color.Black else Color.Gray, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = cat, 
-                                color = if (active) Color.Black else Color.Gray, 
-                                fontSize = 9.sp, 
+                                text = cat,
+                                color = if (active) Color.Black else Color.Gray,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
                                 fontFamily = InterFontFamily,
                                 letterSpacing = 1.sp
@@ -61,23 +85,42 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             }
         }
 
-        // Search Input Parity
+        // Search Input Parity (zero internal padding)
         Box(modifier = Modifier.padding(16.dp)) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("FILTER SYMBOLS...", color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Black) },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+            var isFocused by remember { mutableStateOf(false) }
+            
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(40.dp),
                 shape = RoundedCornerShape(24.dp),
-                leadingIcon = { Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp)) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.05f),
-                    focusedBorderColor = Color.White.copy(alpha = 0.2f),
-                    focusedContainerColor = Color.White.copy(alpha = 0.02f),
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White
-                )
-            )
+                color = Color.Transparent,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 13.sp, color = Color.White, lineHeight = 13.sp, fontWeight = FontWeight.SemiBold),
+                        cursorBrush = SolidColor(Color.White),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusEvent { focusState ->
+                                isFocused = focusState.isFocused
+                            }
+                    ) { inner ->
+                        if (searchQuery.isEmpty() && !isFocused) {
+                            Text("FILTER SYMBOLS...", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        }
+                        inner()
+                    }
+                }
+            }
         }
 
         // Markets screen overview / feature writeup (so operators understand what this view provides)
@@ -96,11 +139,19 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(bottom = 120.dp)
-        ) {
+            val listState = rememberLazyListState()
+
+            LaunchedEffect(activeCategory) {
+                // when the active category changes, scroll the list to top
+                listState.animateScrollToItem(0)
+            }
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 120.dp)
+            ) {
             val filtered = FOREX_PAIRS.filter {
                 val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
                 val matchesCat = when(activeCategory) {
@@ -126,7 +177,7 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
 fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
     val isUp = pair.change >= 0
     InfoBox(onClick = { onClick(pair) }, minHeight = 150.dp) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             // Top: Asset Info & Bias Parity
             Row(
                 modifier = Modifier.fillMaxWidth(),
