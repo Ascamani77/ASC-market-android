@@ -57,7 +57,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
             }
             
             // Fixed Top Tab Switcher (Floating style)
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 18.dp), contentAlignment = Alignment.Center) {
                 val context = LocalContext.current
                 Surface(
                     color = Color.Black.copy(alpha = 0.8f),

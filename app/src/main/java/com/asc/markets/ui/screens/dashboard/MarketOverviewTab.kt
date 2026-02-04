@@ -181,7 +181,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
-        contentPadding = PaddingValues(bottom = 140.dp)
+        contentPadding = PaddingValues(bottom = 158.dp)
     ) {
         // Top header
         item {

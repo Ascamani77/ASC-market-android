@@ -28,7 +28,7 @@ import com.asc.markets.ui.theme.*
 fun ExecutionLedgerTab() {
     var selectedTx by remember { mutableStateOf<ExecutionTx?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize().background(DeepBlack).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(DeepBlack).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 0.dp)) {
         ExecutionLedgerSection(onOpenCompliance = { selectedTx = it })
     }
 
