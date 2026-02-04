@@ -89,6 +89,8 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
         Box(modifier = Modifier.padding(16.dp)) {
             var isFocused by remember { mutableStateOf(false) }
             
+            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
             Surface(
                 modifier = Modifier.fillMaxWidth().height(40.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -109,7 +111,7 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
                         textStyle = TextStyle(fontSize = 13.sp, color = Color.White, lineHeight = 13.sp, fontWeight = FontWeight.SemiBold),
                         cursorBrush = SolidColor(Color.White),
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
                             .onFocusEvent { focusState ->
                                 isFocused = focusState.isFocused
                             }
@@ -118,6 +120,20 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
                             Text("FILTER SYMBOLS...", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
                         }
                         inner()
+                    }
+                    // show clear icon when focused or when there's input
+                    if (isFocused || searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            focusManager.clearFocus()
+                        }, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
