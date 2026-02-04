@@ -16,8 +16,16 @@ data class ForexPair(
     val name: String,
     val price: Double,
     val change: Double,
-    val changePercent: Double
+    val changePercent: Double,
+    val category: MarketCategory = MarketCategory.FOREX
 )
+
+enum class MarketCategory {
+    FOREX, CRYPTO, COMMODITIES, INDICES, STOCK
+}
+
+// Infer category from symbol heuristics
+fun ForexPair.category(): MarketCategory = this.category
 
 @Serializable
 data class ForexDataPoint(

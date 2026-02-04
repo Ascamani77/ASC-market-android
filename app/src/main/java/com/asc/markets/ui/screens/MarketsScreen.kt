@@ -25,7 +25,7 @@ import com.asc.markets.ui.theme.*
 fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
     var activeCategory by remember { mutableStateOf("ALL") }
     var searchQuery by remember { mutableStateOf("") }
-    val categories = listOf("ALL", "FOREX", "CRYPTO", "INDICES", "COMMODITIES")
+    val categories = listOf("ALL", "FOREX", "CRYPTO", "INDICES", "COMMODITIES", "STOCKS")
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
         // Categories Bar Parity
@@ -81,14 +81,18 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
         }
 
         // Markets screen overview / feature writeup (so operators understand what this view provides)
-        InfoBox(minHeight = 100.dp) {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Markets View - Features", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                Text("• Category chips for quick filtering by asset class (ALL / FOREX / CRYPTO / INDICES / COMMODITIES).", color = Color.White, fontSize = 12.sp)
-                Text("• Integrated search for rapid symbol discovery.", color = Color.White, fontSize = 12.sp)
-                Text("• Live price surveillance with color-coded percent changes (Emerald = gain, Rose = loss).", color = Color.White, fontSize = 12.sp)
-                Text("• Edge-to-edge sparklines on each asset card provide immediate trend context.", color = Color.White, fontSize = 12.sp)
-                Text("• Tap any asset card to open the full terminal / detail view for deep analysis.", color = Color.White, fontSize = 12.sp)
+        // NOTE: This features/info box should be controlled by backend flags. Set to false to hide.
+        val showMarketFeatures = false
+        if (showMarketFeatures) {
+            InfoBox(minHeight = 100.dp) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Markets View - Features", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("• Category chips for quick filtering by asset class (ALL / FOREX / CRYPTO / INDICES / COMMODITIES).", color = Color.White, fontSize = 12.sp)
+                    Text("• Integrated search for rapid symbol discovery.", color = Color.White, fontSize = 12.sp)
+                    Text("• Live price surveillance with color-coded percent changes (Emerald = gain, Rose = loss).", color = Color.White, fontSize = 12.sp)
+                    Text("• Edge-to-edge sparklines on each asset card provide immediate trend context.", color = Color.White, fontSize = 12.sp)
+                    Text("• Tap any asset card to open the full terminal / detail view for deep analysis.", color = Color.White, fontSize = 12.sp)
+                }
             }
         }
 
@@ -98,17 +102,19 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
             val filtered = FOREX_PAIRS.filter {
-                val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true)
+                val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
                 val matchesCat = when(activeCategory) {
                     "ALL" -> true
-                    "FOREX" -> it.symbol.contains("/")
-                    "CRYPTO" -> it.symbol.contains("BTC") || it.symbol.contains("ETH") || it.symbol.contains("SOL")
-                    "INDICES" -> it.symbol.contains("NAS") || it.symbol.contains("US") || it.symbol.contains("SPX")
+                    "FOREX" -> it.category == com.asc.markets.data.MarketCategory.FOREX
+                    "CRYPTO" -> it.category == com.asc.markets.data.MarketCategory.CRYPTO
+                    "INDICES" -> it.category == com.asc.markets.data.MarketCategory.INDICES
+                    "COMMODITIES" -> it.category == com.asc.markets.data.MarketCategory.COMMODITIES
+                    "STOCKS" -> it.category == com.asc.markets.data.MarketCategory.STOCK
                     else -> true
                 }
                 matchesSearch && matchesCat
             }
-            
+
             items(filtered) { pair ->
                 MarketCard(pair, onSelectPair)
             }
