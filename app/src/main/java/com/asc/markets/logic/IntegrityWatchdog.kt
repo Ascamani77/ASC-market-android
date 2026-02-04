@@ -18,8 +18,8 @@ object IntegrityWatchdog {
                 val now = System.currentTimeMillis()
                 val drift = (now - lastTick - 1000).toInt()
                 val usedMemory = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024
-                
-                HealthMonitor.updateProfiler(usedMemory.toInt(), drift)
+                val timerAccuracy = kotlin.math.abs(drift)
+                HealthMonitor.updateProfiler(usedMemory.toInt(), drift, timerAccuracy, "VISIBLE")
                 
                 lastTick = now
                 handler.postDelayed(this, 1000)

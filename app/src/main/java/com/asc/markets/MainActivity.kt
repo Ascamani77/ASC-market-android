@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.collect
 import androidx.compose.runtime.snapshotFlow
 import com.asc.markets.data.AppView
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.logic.IntegrityWatchdog
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
 import com.asc.markets.ui.theme.*
@@ -52,6 +53,8 @@ class MainActivity : ComponentActivity() {
             // ignore on older devices
         }
         Log.d("ASC", "MainActivity.onCreate() called")
+        // start integrity watchdog to keep profiler metrics updated
+        IntegrityWatchdog.start()
         setContent {
             AscTheme {
                 Log.d("ASC", "AscTheme content block called")

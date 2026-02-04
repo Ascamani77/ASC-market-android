@@ -8,7 +8,9 @@ data class HealthMetrics(
     val clockDriftMs: Int = 0,
     val integrityStatus: String = "INTEGRITY_OK",
     val throttlingDetected: Boolean = false,
-    val uptimePercent: Float = 99.9f
+    val uptimePercent: Float = 99.9f,
+    val timerAccuracyMs: Int = 0,
+    val visibilityStatus: String = "VISIBLE"
 )
 
 object HealthMonitor {
@@ -25,10 +27,12 @@ object HealthMonitor {
         )
     }
 
-    fun updateProfiler(usedMemory: Int, drift: Int) {
+    fun updateProfiler(usedMemory: Int, drift: Int, timerAccuracyMs: Int = 0, visibilityStatus: String = "VISIBLE") {
         _metrics.value = _metrics.value.copy(
             memoryUsageMb = usedMemory,
-            clockDriftMs = drift
+            clockDriftMs = drift,
+            timerAccuracyMs = timerAccuracyMs,
+            visibilityStatus = visibilityStatus
         )
     }
 }

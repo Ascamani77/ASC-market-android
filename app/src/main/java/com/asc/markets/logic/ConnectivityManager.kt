@@ -19,6 +19,7 @@ object ConnectivityManager {
     private var circuitBreakerActive: Boolean = false
     private var reconnectAttempts = 0
     private const val MAX_BACKOFF = 30000L
+    private var executionInterlock: Boolean = false
 
     fun recordHeartbeat() {
         lastHeartbeat = System.currentTimeMillis()
@@ -26,6 +27,19 @@ object ConnectivityManager {
         if (!circuitBreakerActive) {
             _state.value = ConnectionState.LIVE
         }
+    }
+
+    fun toggleExecutionInterlock(enabled: Boolean) {
+        executionInterlock = enabled
+        logDiagnostic("EXECUTION_INTERLOCK:${if (enabled) "ENABLED" else "DISABLED"}")
+    }
+
+    fun forceReconnect() {
+        logDiagnostic("MANUAL_RECONNECT: User triggered force reconnect.")
+        // quick reconnect attempt simulation
+        reconnectAttempts = 0
+        recordHeartbeat()
+        _state.value = ConnectionState.LIVE
     }
 
     fun logDiagnostic(message: String) {
