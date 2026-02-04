@@ -7,6 +7,8 @@ import androidx.compose.ui.graphics.Color
 val DeepBlack = Color(0xFF0D0D0D)
 // Component Surface Calibration: #000000
 val PureBlack = Color(0xFF000000)
+// Active sidebar highlight (slightly brighter than DeepBlack)
+val ActiveHighlight = Color(0xFF141414)
 
 // TradingView / Bloomberg-like bright cyan accent
 val IndigoAccent = Color(0xFF00B8D9)

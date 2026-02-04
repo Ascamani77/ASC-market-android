@@ -14,6 +14,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,10 +52,16 @@ fun AscSidebar(
         modifier = Modifier.width(sidebarWidth).fillMaxHeight()
     ) {
         Box(modifier = Modifier.fillMaxHeight()) {
+            // measure footer height and reserve that space at the bottom of the scrollable area
+            val footerHeightPx = remember { mutableStateOf(0) }
+            val density = LocalDensity.current
+            val footerPaddingDp = with(density) { footerHeightPx.value.toDp() }
+
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
+                    .padding(bottom = footerPaddingDp + if (isCollapsed) 20.dp else 28.dp)
             ) {
             // Brand / Header with close action
             Box(modifier = Modifier
@@ -59,7 +69,7 @@ fun AscSidebar(
                 .fillMaxWidth()
                 .padding(horizontal = if (isCollapsed) 0.dp else 16.dp), contentAlignment = Alignment.CenterStart) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("▲", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black)
+                    Text("∧", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black)
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -118,6 +128,7 @@ fun AscSidebar(
                     .align(Alignment.BottomStart)
                     .background(PureBlack)
                     .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = if (isCollapsed) 12.dp else 16.dp)
+                    .onGloballyPositioned { footerHeightPx.value = it.size.height }
             ) {
                 Column(
                     modifier = Modifier
@@ -128,7 +139,7 @@ fun AscSidebar(
                             Column {
                                 FooterRow("RISK DISCLOSURE", Icons.Default.Security) { }
                                 Spacer(modifier = Modifier.height(8.dp))
-                                FooterRow("SYSTEM CONFIG", Icons.Default.Settings) { }
+                                FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) { }
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -168,7 +179,7 @@ private fun SidebarGroup(title: String, isCollapsed: Boolean, items: List<NavIte
                     .padding(horizontal = 8.dp, vertical = 4.dp)
                     .height(44.dp)
                     .clickable { onViewChange(item.view) },
-                color = if (active) DeepBlack else Color.Transparent,
+                color = if (active) ActiveHighlight else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
