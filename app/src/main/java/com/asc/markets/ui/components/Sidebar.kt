@@ -44,10 +44,15 @@ fun AscSidebar(
     )
 
     Surface(
-        color = DeepBlack,
+        color = PureBlack,
         modifier = Modifier.width(sidebarWidth).fillMaxHeight()
     ) {
-        Column(modifier = Modifier.fillMaxHeight().verticalScroll(rememberScrollState())) {
+        Box(modifier = Modifier.fillMaxHeight()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+            ) {
             // Brand / Header with close action
             Box(modifier = Modifier
                 .height(80.dp)
@@ -103,23 +108,46 @@ fun AscSidebar(
                 NavItem(AppView.CALENDAR, "Scheduling", Icons.Default.CalendarToday)
             ), currentView, onViewChange)
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
-            // System Footer
-            if (!isCollapsed) {
-                Spacer(modifier = Modifier.height(8.dp))
-                FooterUserCard(
-                    name = "JOHN DOE",
-                    node = "L14-UK",
-                    initials = "JD",
-                    version = "V0.9.0",
-                    onClick = { onViewChange(AppView.PROFILE) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            } else {
-                // Collapsed footer: small avatar
-                Box(modifier = Modifier.padding(12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Box(modifier = Modifier.size(36.dp).background(GhostWhite, RoundedCornerShape(18.dp))) { }
+            // Static footer region (never scrolls)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomStart)
+                    .background(PureBlack)
+                    .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = if (isCollapsed) 12.dp else 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    if (!isCollapsed) {
+                            Column {
+                                FooterRow("RISK DISCLOSURE", Icons.Default.Security) { }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                FooterRow("SYSTEM CONFIG", Icons.Default.Settings) { }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            FooterProfileBox(
+                                name = "JOHN DOE",
+                                node = "L14-UK",
+                                initials = "JD",
+                                version = "V0.9.0-BETA",
+                                onClick = { onViewChange(AppView.PROFILE) }
+                            )
+
+                            // (removed duplicate small avatar for expanded state)
+                    } else {
+                        // Collapsed: only the small avatar centered
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.size(36.dp).background(GhostWhite, RoundedCornerShape(18.dp))) { }
+                        }
+                    }
                 }
             }
         }
@@ -140,14 +168,14 @@ private fun SidebarGroup(title: String, isCollapsed: Boolean, items: List<NavIte
                     .padding(horizontal = 8.dp, vertical = 4.dp)
                     .height(44.dp)
                     .clickable { onViewChange(item.view) },
-                color = if (active) Color.White else Color.Transparent,
+                color = if (active) DeepBlack else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(item.icon, null, tint = if (active) Color.Black else SlateText, modifier = Modifier.size(18.dp))
+                    Icon(item.icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(item.label.uppercase(), color = if (active) Color.Black else SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Text(item.label.uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
@@ -164,6 +192,43 @@ private fun FooterRow(label: String, icon: ImageVector, onClick: () -> Unit) {
         Icon(icon, null, tint = SlateText, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Text(label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun FooterProfileBox(name: String, node: String, initials: String, version: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .padding(horizontal = 0.dp)
+            .fillMaxWidth(),
+        color = DeepBlack,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, HairlineBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(36.dp).background(GhostWhite, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                Text(initials, color = Color.Black, fontWeight = FontWeight.Black, fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("LIVE", color = EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("NODE: $node", color = SlateText, fontSize = 11.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(version, color = Color(0xFF3EA6FF), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                }
+            }
+        }
     }
 }
 
