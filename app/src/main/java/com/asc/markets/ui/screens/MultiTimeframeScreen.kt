@@ -23,10 +23,7 @@ fun MultiTimeframeScreen(symbol: String) {
     val tfs = listOf("D1", "H4", "H1", "M30", "M15", "M5")
     
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-        Text("MTF ANALYSIS", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-        Text("FRACTAL STRUCTURAL SYNC: $symbol", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-        
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // One box per row, edge-to-edge
         androidx.compose.foundation.lazy.LazyColumn(

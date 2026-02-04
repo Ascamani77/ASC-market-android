@@ -23,17 +23,67 @@ fun MiniChart(values: List<Double>, modifier: Modifier = Modifier) {
         Json.encodeToString(values).replace("'", "\\'") 
     }
 
-    // Load HTML from assets as a string for "fail-safe" loading
-    val htmlContent = remember {
-        try {
-            val inputStream = context.assets.open("mini-chart.html")
-            val reader = InputStreamReader(inputStream)
-            reader.readText()
-        } catch (e: Exception) {
-            // Fallback empty template if asset is missing
-            "<!DOCTYPE html><html><body style='background:transparent;'><div id='chart' style='width:100vw;height:100vh;'></div></body></html>"
+        // Load HTML from assets as a string for "fail-safe" loading. If asset missing,
+        // use a Lightweight Charts template that exposes `window.updateData(valuesJson)`
+        // so Kotlin can push numeric series into the chart. This provides a TradingView-like
+        // lightweight chart experience without external paywalled libraries.
+        val htmlContent = remember {
+                try {
+                        val inputStream = context.assets.open("mini-chart.html")
+                        val reader = InputStreamReader(inputStream)
+                        reader.readText()
+                } catch (e: Exception) {
+                        // Lightweight Charts standalone bundle from unpkg
+                        """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                html, body, #chart { height:100%; margin:0; padding:0; background: transparent; }
+                                #chart { box-sizing: border-box; }
+                            </style>
+                        </head>
+                        <body>
+                            <div id="chart"></div>
+
+                            <script src="https://unpkg.com/lightweight-charts@3.7.0/dist/lightweight-charts.standalone.production.js"></script>
+                            <script>
+                                const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                                    width: document.getElementById('chart').clientWidth,
+                                    height: document.getElementById('chart').clientHeight,
+                                    layout: { backgroundColor: 'transparent', textColor: '#FFFFFF' },
+                                    rightPriceScale: { visible: false },
+                                    timeScale: { visible: false }
+                                });
+
+                                const series = chart.addLineSeries({ color: '#3EA6FF', lineWidth: 2 });
+
+                                window.updateData = function(json) {
+                                    try {
+                                        const arr = JSON.parse(json);
+                                        if (!Array.isArray(arr) || arr.length === 0) return;
+
+                                        const now = Math.floor(Date.now() / 1000);
+                                        const data = arr.map((v, i) => ({ time: now - (arr.length - i) * 60, value: Number(v) }));
+
+                                        series.setData(data);
+                                        chart.resize(document.getElementById('chart').clientWidth, document.getElementById('chart').clientHeight);
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+                                };
+
+                                // ensure chart resizes when container changes
+                                window.addEventListener('resize', function() {
+                                    chart.resize(document.getElementById('chart').clientWidth, document.getElementById('chart').clientHeight);
+                                });
+                            </script>
+                        </body>
+                        </html>
+                        """.trimIndent()
+                }
         }
-    }
 
     AndroidView(
         factory = { ctx ->

@@ -5,6 +5,8 @@
 
     <!-- Required to allow short vibrations when user taps assets -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Required for WebView to load remote charting scripts -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
