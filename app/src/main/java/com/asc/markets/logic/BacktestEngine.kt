@@ -78,10 +78,40 @@ object BacktestEngine {
         }
 
         val rationale = buildString {
-            append("Synthetic Audit Summary:\n")
-            append("Parameters: FastMA=${params.fastMa} SlowMA=${params.slowMa} RSI=${params.rsiPeriod}(${params.rsiLow}-${params.rsiHigh}) TF=${params.timeframe} on ${params.pair}\n\n")
-            append("Model observed alignment with institutional cycles: ")
-            append(if (verdict == "BUY") "Accumulation bias visible across sessions." else if (verdict == "SELL") "Distribution characteristics observed." else "Mixed signals; insufficient conviction.")
+            append("Institutional Audit & Strategy Analysis\n\n")
+
+            // Strategy overview
+            append("**Strategy Overview**: The simulation utilized a Moving Average Crossover (${params.fastMa}/${params.slowMa}) on the ${params.timeframe} timeframe, filtered by RSI(${params.rsiPeriod}) to avoid entries during extreme overbought (>${params.rsiHigh}) or oversold (<${params.rsiLow}) conditions. This filter is intended to reduce false entries during consolidation phases.\n\n")
+
+            // Performance metrics
+            append("**Performance Metrics**:\n")
+            val pfStr = String.format("%.2f", profitFactor)
+            val wrStr = String.format("%.1f", winRate)
+            val sharpeStr = String.format("%.2f", sharpe)
+            val recStr = String.format("%.2f", recovery)
+            if (profitFactor > 1.0) {
+                append("- **Profitability**: The system demonstrates a positive mathematical expectancy. Win rate is ${wrStr}%, Profit Factor is ${pfStr}.\n")
+            } else {
+                append("- **Profitability**: The system shows weak expectancy on these parameters. Win rate is ${wrStr}%, Profit Factor is ${pfStr}.\n")
+            }
+            append("- **Risk Profile**: Sharpe Ratio ${sharpeStr}, Recovery Ratio ${recStr}. Max drawdown not estimated in this synthetic run.\n\n")
+
+            // Institutional alignment
+            append("**Institutional Alignment**:\n")
+            if (sessions.isNotEmpty()) {
+                append("- **Liquidity**: Majority of attributed sessions: ${sessions.joinToString(", ")}. ")
+                if (sessions.contains("London") && sessions.contains("New York")) {
+                    append("Notable opportunity around London/New York overlap where institutional orderflow is commonly injected.\n")
+                } else {
+                    append("Observed session alignment may favour ${sessions.first()}.\n")
+                }
+            } else {
+                append("- **Liquidity**: No specific session alignment detected.\n")
+            }
+            append("- **Market Structure**: The ${params.slowMa} EMA acts as a dynamic pivot; current signals show ${if (verdict == "BUY") "accumulation" else if (verdict == "SELL") "distribution" else "mixed"} characteristics.\n\n")
+
+            // Conclusion
+            append("**Conclusion**: The strategy is generally more robust in trending environments and may underperform during range-bound regimes. Current structured output suggests a ${if (verdict == "BUY") "bullish" else if (verdict == "SELL") "bearish" else "neutral/mixed"} bias.\n")
         }
 
         emit("[Sim_Engine_Node_L14] Finalizing structured output")

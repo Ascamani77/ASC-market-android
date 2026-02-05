@@ -268,6 +268,55 @@ fun BacktestScreen(viewModel: ForexViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Preview writeup shown before initiating audit
+        if (!running && result == null) {
+            // compute lightweight preview metrics (deterministic, no randomness)
+            val basePreview = (fastMa + slowMa) % 50
+            val winRatePreview = (40.0 + (rsiHigh - rsiLow) * 0.4 + (basePreview % 10)).coerceIn(10.0, 95.0)
+            val profitFactorPreview = (1.1 + (slowMa - fastMa) * 0.02).coerceIn(0.3, 5.0)
+            val sharpePreview = (0.2 + (rsiHigh - rsiLow) * 0.01).coerceIn(-1.0, 3.5)
+            val recoveryPreview = (0.5 + profitFactorPreview * 0.4).coerceIn(0.2, 6.0)
+            val sessionsPreview = mutableListOf<String>().apply {
+                if (timeframe in listOf("M15", "M30", "H1")) add("London")
+                if (timeframe in listOf("H1", "H4", "D1")) add("New York")
+                if (isEmpty()) add("London")
+            }
+
+            Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = PureBlack, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = SlateText, modifier = Modifier.size(48.dp))
+                    Text("READY FOR STRATEGIC SIMULATION", color = Color.White.copy(alpha = 0.9f), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("SELECT ASSET AND CALIBRATION TO BEGIN HISTORICAL AUDIT.", color = SlateText, fontSize = 12.sp)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // short sample audit writeup
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                        Text("Institutional Audit & Strategy Analysis", color = SlateText, fontWeight = FontWeight.Black)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Strategy Overview: The simulation uses a Moving Average Crossover (${fastMa}/${slowMa}) on the $timeframe timeframe filtered by RSI($rsiPeriod) to avoid extreme entries.", color = Color.Gray, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Win Rate", color = SlateText, fontSize = 11.sp)
+                                Text(String.format("%.1f%%", winRatePreview), color = Color.White, fontWeight = FontWeight.ExtraBold)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Profit Factor", color = SlateText, fontSize = 11.sp)
+                                Text(String.format("%.2f", profitFactorPreview), color = Color.White, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Institutional Alignment: Majority of attributed sessions — ${sessionsPreview.joinToString(", ")}.", color = Color.Gray, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Conclusion: The strategy tends to perform in trending regimes; preview metrics suggest ${if (profitFactorPreview>1.0) "positive expectancy" else "weak expectancy"}.", color = Color.Gray, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
         // Running status card (shows while simulation runs)
         if (running) {
             Surface(
@@ -324,7 +373,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 else -> Color(0xFFFFA000)
             }
 
-            Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = PureBlack, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
+            Surface(modifier = Modifier.fillMaxWidth(), color = PureBlack, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // header row with small labels + icon
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start, modifier = Modifier.fillMaxWidth()) {
@@ -362,13 +411,21 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Surface(modifier = Modifier.weight(1f), color = PureBlack, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Win Rate", color = SlateText)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.TrendingUp, contentDescription = null, tint = SlateText, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Win Rate", color = SlateText)
+                                }
                                 Text("${r.winRate}%", color = Color.White, fontWeight = FontWeight.Black)
                             }
                         }
                         Surface(modifier = Modifier.weight(1f), color = PureBlack, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Profit Factor", color = SlateText)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.ShowChart, contentDescription = null, tint = SlateText, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Profit Factor", color = SlateText)
+                                }
                                 Text("${r.profitFactor}", color = Color.White, fontWeight = FontWeight.Black)
                             }
                         }
@@ -377,13 +434,21 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Surface(modifier = Modifier.weight(1f), color = PureBlack, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Sharpe", color = SlateText)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.BarChart, contentDescription = null, tint = SlateText, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Sharpe", color = SlateText)
+                                }
                                 Text("${r.sharpe}", color = Color.White, fontWeight = FontWeight.Black)
                             }
                         }
                         Surface(modifier = Modifier.weight(1f), color = PureBlack, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Recovery", color = SlateText)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Autorenew, contentDescription = null, tint = SlateText, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Recovery", color = SlateText)
+                                }
                                 Text("${r.recoveryRatio}", color = Color.White, fontWeight = FontWeight.Black)
                             }
                         }
@@ -399,18 +464,18 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                                 // left column (two rows of metrics)
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Column { Text("SHARPE RATIO", color = SlateText); Text("${r.sharpe}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold) }
-                                        Column { Text("RECOVERY FACTOR", color = SlateText); Text("${r.recoveryRatio}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("SHARPE RATIO", color = SlateText, fontSize = 10.sp); Text("${r.sharpe}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("RECOVERY FACTOR", color = SlateText, fontSize = 10.sp); Text("${r.recoveryRatio}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold) }
                                     }
                                     Spacer(modifier = Modifier.height(14.dp))
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Column { Text("AVG DURATION", color = SlateText); Text("6h 45m", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
-                                        Column { Text("BEST DISPATCH", color = SlateText); Text("+142.5 pips", color = EmeraldSuccess, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("AVG DURATION", color = SlateText, fontSize = 10.sp); Text("6h 45m", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("BEST DISPATCH", color = SlateText, fontSize = 10.sp); Text("+142.5 pips", color = EmeraldSuccess, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
                                     }
                                     Spacer(modifier = Modifier.height(14.dp))
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Column { Text("WORST DISPATCH", color = SlateText); Text("-45.2 pips", color = RoseError, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
-                                        Column { Text("TOTAL SIGNALS", color = SlateText); Text("342", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("WORST DISPATCH", color = SlateText, fontSize = 10.sp); Text("-45.2 pips", color = RoseError, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
+                                        Column { Text("TOTAL SIGNALS", color = SlateText, fontSize = 10.sp); Text("342", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
                                     }
                                 }
                             }
@@ -451,6 +516,16 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                             }
                             Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color(0xFF0B0B0C), RoundedCornerShape(4.dp))) {
                                 Box(modifier = Modifier.fillMaxWidth(0.20f).height(8.dp).background(Color.White, RoundedCornerShape(4.dp))) {}
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Australia Hub
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("AUSTRALIA HUB", color = SlateText, modifier = Modifier.weight(1f))
+                                Text("10%", color = Color.White)
+                            }
+                            Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color(0xFF0B0B0C), RoundedCornerShape(4.dp))) {
+                                Box(modifier = Modifier.fillMaxWidth(0.10f).height(8.dp).background(Color.White, RoundedCornerShape(4.dp))) {}
                             }
                         }
                     }
