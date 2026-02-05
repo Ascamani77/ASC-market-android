@@ -179,6 +179,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.MARKETS -> MarketsScreen { viewModel.selectPair(it) }
                                         AppView.CHAT -> ChatScreen(viewModel)
                                         AppView.ALERTS -> AlertsScreen(viewModel)
+                                        AppView.BACKTEST -> BacktestScreen(viewModel)
                                         AppView.TRADING_ASSISTANT -> TerminalScreen(viewModel)
                                         AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(selectedPair.symbol)
                                         AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
