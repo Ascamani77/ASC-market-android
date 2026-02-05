@@ -75,6 +75,17 @@ class ForexViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Select a pair without changing the current view (no navigation).
+     * Use this when updating selection from within a modal or settings screen.
+     */
+    fun selectPairBySymbolNoNavigate(symbol: String) {
+        val pair = FOREX_PAIRS.find { it.symbol == symbol }
+        pair?.let {
+            _selectedPair.value = it
+        }
+    }
+
     fun computeMarketState(symbol: String, data: List<ForexDataPoint>) {
         viewModelScope.launch {
             val last20 = data.takeLast(20).map { it.close }
