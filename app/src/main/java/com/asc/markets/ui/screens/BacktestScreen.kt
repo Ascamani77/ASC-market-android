@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,6 +27,10 @@ import com.asc.markets.logic.BacktestParams
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
 import com.asc.markets.ui.components.HorizontalDivider
+import com.asc.markets.ui.components.ShimmerPlaceholder
+import com.asc.markets.ui.components.SkeletonColumn
+import com.asc.markets.ui.components.TooltipIcon
+import com.asc.markets.ui.components.responsivePadding
 import kotlinx.coroutines.launch
 
 @Composable
@@ -249,7 +256,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp).focusable().semantics { contentDescription = "Initiate audit" },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -351,6 +358,36 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         Text(line, color = Color(0xFF2EF28C), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp)
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Staged content reveal: shimmer placeholders while async panels load
+            if (running && result == null) {
+                Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = PureBlack, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
+                    Column(modifier = Modifier.padding(responsivePadding()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // verdict skeleton
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(8.dp)))
+
+                        // bias skeleton
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(8.dp)))
+
+                        // metrics row skeletons
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ShimmerPlaceholder(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(8.dp)))
+                            ShimmerPlaceholder(modifier = Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(8.dp)))
+                        }
+
+                        // Efficiency Matrix & Session Liquidity placeholders
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(8.dp)))
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(8.dp)))
+
+                        // rationale skeleton
+                        ShimmerPlaceholder(modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(8.dp)))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -457,7 +494,11 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                     // --- Efficiency Matrix & Session Liquidity (two boxed panels) ---
                     Surface(modifier = Modifier.fillMaxWidth(), color = PureBlack, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("EFFICIENCY MATRIX", color = SlateText, fontWeight = FontWeight.Black)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("EFFICIENCY MATRIX", color = SlateText, fontWeight = FontWeight.Black)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                TooltipIcon("Sharpe and Recovery metrics are risk-adjusted and show distributional performance versus drawdown. Click for more.")
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

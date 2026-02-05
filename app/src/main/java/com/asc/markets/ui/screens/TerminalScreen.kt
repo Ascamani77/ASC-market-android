@@ -4,11 +4,36 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.keyframes
 import androidx.compose.runtime.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,7 +45,12 @@ import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
 import com.asc.markets.backend.ExecutionStateManager
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun TerminalScreen(viewModel: ForexViewModel) {
     val logs by viewModel.terminalLogs.collectAsState()
@@ -47,9 +77,17 @@ fun TerminalScreen(viewModel: ForexViewModel) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val statusColor = if (isArmed) Color.White else Color.Gray
-                    Box(modifier = Modifier.background(statusColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp)).padding(horizontal = 10.dp, vertical = 5.dp)) {
+                    // pulsing heartbeat glow
+                    val pulse = rememberInfiniteTransition()
+                    val pulseAlpha by pulse.animateFloat(
+                        initialValue = 0.15f,
+                        targetValue = 0.6f,
+                        animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse)
+                    )
+
+                    Box(modifier = Modifier.background(statusColor.copy(alpha = 0.06f), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(modifier = Modifier.size(6.dp).background(statusColor, androidx.compose.foundation.shape.CircleShape))
+                            Box(modifier = Modifier.size(8.dp).background(statusColor.copy(alpha = pulseAlpha), androidx.compose.foundation.shape.CircleShape))
                             Text(
                                 text = if (isArmed) "PIPELINE_ARMED" else "SAFETY_LOCK_ACTIVE",
                                 color = statusColor,
@@ -83,31 +121,84 @@ fun TerminalScreen(viewModel: ForexViewModel) {
         }
 
         LazyColumn(
-            modifier = Modifier.weight(1f).padding(16.dp),
+            modifier = Modifier.weight(1f).padding(16.dp).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             reverseLayout = true
         ) {
-            items(logs) { log ->
+            items(logs, key = { it.id }) { log ->
                 val isSystem = log.content.startsWith("[")
-                Text(
-                    text = if (log.role == "user") "> ${log.content}" else log.content,
-                    color = if (isSystem) Color.White else if (log.role == "user") Color.White.copy(alpha = 0.6f) else SlateText,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = if (isSystem) FontWeight.Black else FontWeight.Normal,
-                    lineHeight = 18.sp
-                )
+                AnimatedVisibility(visible = true, enter = fadeIn(animationSpec = tween(300))) {
+                    val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                    val ts = sdf.format(Date(log.timestamp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
+                        // message bubble
+                        Surface(
+                            color = if (log.role == "model") Color(0xFF0D1113) else IndigoAccent,
+                            shape = RoundedCornerShape(8.dp),
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .fillMaxWidth(0.72f)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                // timestamp aligned to the same side as the bubble content
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
+                                    Text(ts, color = SlateText, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                if (log.role == "model") {
+                                    TypewriterText(text = log.content)
+                                } else {
+                                    Text(
+                                        text = log.content,
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Normal,
+                                        lineHeight = 18.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
+        val bringRequester = remember { BringIntoViewRequester() }
+        val keyboardController = LocalSoftwareKeyboardController.current
+        var inputFocused by remember { mutableStateOf(false) }
+
         Surface(
             color = Color.Black,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .imePadding()
+                .navigationBarsPadding(),
             shape = RoundedCornerShape(8.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder)
         ) {
-            Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("SYS_CMD >", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+            Row(modifier = Modifier
+                .padding(horizontal = 12.dp)
+                .bringIntoViewRequester(bringRequester), verticalAlignment = Alignment.CenterVertically) {
+                // SYS_CMD with blinking cursor
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("SYS_CMD >", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                    val cursorTransition = rememberInfiniteTransition()
+                    val cursorAlpha by cursorTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(animation = keyframes { durationMillis = 800 }, repeatMode = RepeatMode.Reverse)
+                    )
+                    Box(modifier = Modifier.padding(start = 6.dp)) {
+                        Text("|", color = EmeraldSuccess.copy(alpha = cursorAlpha), fontFamily = FontFamily.Monospace)
+                    }
+                }
+
                 TextField(
                     value = input,
                     onValueChange = { input = it },
@@ -118,15 +209,40 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedTextColor = Color.White
                     ),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { state -> inputFocused = state.isFocused },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                 )
+                LaunchedEffect(inputFocused) {
+                    if (inputFocused) bringRequester.bringIntoView()
+                }
                 IconButton(onClick = { if (input.isNotBlank()) { viewModel.sendCommand(input); input = "" } }) {
                     Text("↵", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(100.dp))
     }
+}
+
+
+@Composable
+fun TypewriterText(text: String) {
+    var displayed by remember { mutableStateOf("") }
+    LaunchedEffect(text) {
+        displayed = ""
+        for (c in text) {
+            displayed += c
+            delay(6)
+        }
+    }
+
+    Text(
+        text = displayed,
+        color = Color.White,
+        fontSize = 12.sp,
+        fontFamily = FontFamily.Monospace,
+        lineHeight = 18.sp
+    )
 }

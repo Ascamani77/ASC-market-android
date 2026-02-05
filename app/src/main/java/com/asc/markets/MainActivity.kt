@@ -137,17 +137,19 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                             containerColor = PureBlack,
                             bottomBar = {
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(65.dp),
-                                    color = PureBlack,
-                                    tonalElevation = 0.dp
-                                ) {
-                                    NotchedBottomNav(
-                                        currentView = currentView,
-                                        onNavigate = { viewModel.navigateTo(it) }
-                                    )
+                                if (currentView != AppView.TRADING_ASSISTANT) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(65.dp),
+                                        color = PureBlack,
+                                        tonalElevation = 0.dp
+                                    ) {
+                                        NotchedBottomNav(
+                                            currentView = currentView,
+                                            onNavigate = { viewModel.navigateTo(it) }
+                                        )
+                                    }
                                 }
                             }
                         ) { innerPadding ->

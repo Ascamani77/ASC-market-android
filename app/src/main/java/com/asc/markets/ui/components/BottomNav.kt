@@ -2,6 +2,9 @@ package com.asc.markets.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -124,23 +127,30 @@ fun NotchedBottomNav(
                 .height(85.dp),
             contentAlignment = Alignment.TopCenter
         ) {
-            FloatingActionButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigate(AppView.ANALYSIS_RESULTS)
-                },
-                containerColor = Color.White,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                interactionSource = interactionSource,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 10.dp),
-                modifier = Modifier
-                    .size(56.dp)
-                    .scale(fabScale)
-            ) {
-                // Sparkles Icon Parity
-                Text("✦", fontSize = 24.sp, fontWeight = FontWeight.Black)
-            }
+                val fabOffset = remember { Animatable(-20f) }
+                val fabScope = rememberCoroutineScope()
+                LaunchedEffect(Unit) {
+                    fabOffset.animateTo(0f, animationSpec = tween(durationMillis = 420))
+                }
+
+                FloatingActionButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigate(AppView.ANALYSIS_RESULTS)
+                    },
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                    shape = CircleShape,
+                    interactionSource = interactionSource,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 10.dp),
+                    modifier = Modifier
+                        .offset(y = fabOffset.value.dp)
+                        .size(56.dp)
+                        .scale(fabScale)
+                ) {
+                    // Sparkles Icon Parity
+                    Text("✦", fontSize = 24.sp, fontWeight = FontWeight.Black)
+                }
         }
     }
 }

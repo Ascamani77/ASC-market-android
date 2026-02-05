@@ -30,3 +30,21 @@ val Typography = Typography(
         letterSpacing = (-1).sp
     )
 )
+
+// Terminal / Monospace styles
+val TerminalFontFamily = FontFamily.Monospace
+
+val TerminalTypography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = TerminalFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        letterSpacing = 0.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = TerminalFontFamily,
+        fontWeight = FontWeight.Black,
+        fontSize = 10.sp,
+        letterSpacing = 1.sp
+    )
+)
