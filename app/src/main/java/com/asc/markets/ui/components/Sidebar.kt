@@ -23,12 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.AppView
 import com.asc.markets.ui.theme.*
 
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import android.widget.Toast
+import com.asc.markets.data.RemoteConfigManager
 
 data class NavItem(val view: AppView, val label: String, val icon: ImageVector)
 
@@ -120,7 +127,7 @@ fun AscSidebar(
 
             SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
                 NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
-                NavItem(AppView.DIAGNOSTICS, "Post-Move Audit", Icons.Default.List),
+                NavItem(AppView.POST_MOVE_AUDIT, "Post-Move Audit", Icons.Default.List),
                 NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
             ), currentView, onViewChange)
 
@@ -128,6 +135,15 @@ fun AscSidebar(
                 NavItem(AppView.NEWS, "Macro Intel", Icons.Default.Public),
                 NavItem(AppView.CALENDAR, "Scheduling", Icons.Default.CalendarToday)
             ), currentView, onViewChange)
+
+            // Insert LEGAL section directly below Scheduling to keep legal items near knowledge
+            if (!isCollapsed) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text("LEGAL", color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Box(modifier = Modifier.padding(start = if (isCollapsed) 12.dp else 16.dp)) {
+                    FooterRow("RISK DISCLOSURE", Icons.Default.Security) { onViewChange(AppView.NEWS) }
+                }
+            }
 
                 Spacer(modifier = Modifier.weight(1f))
             }
@@ -138,32 +154,25 @@ fun AscSidebar(
                     .fillMaxWidth()
                     .align(Alignment.BottomStart)
                     .background(PureBlack)
-                    .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = if (isCollapsed) 12.dp else 16.dp)
+                    .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = if (isCollapsed) 6.dp else 6.dp)
                     .onGloballyPositioned { footerHeightPx.value = it.size.height }
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.Top
-                ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
                     if (!isCollapsed) {
-                            Column {
-                                FooterRow("RISK DISCLOSURE", Icons.Default.Security) { }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) { }
-                            }
+                                        Column {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) { }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                                                    // Remote status moved to sidebar footer to avoid compressing main dashboard
+                                                                    SidebarRemoteStatus(isCollapsed = isCollapsed, promoteMacro = promoteMacro, onViewChange = onViewChange)
+                                                }
 
-                            FooterProfileBox(
-                                name = "JOHN DOE",
-                                node = "L14-UK",
-                                initials = "JD",
-                                version = "V0.9.0-BETA",
-                                onClick = { onViewChange(AppView.PROFILE) }
-                            )
-
-                            // (removed duplicate small avatar for expanded state)
+                            // profile box removed — avatar now shown in remote status row
                     } else {
                         // Collapsed: only the small avatar centered
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -217,42 +226,7 @@ private fun FooterRow(label: String, icon: ImageVector, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun FooterProfileBox(name: String, node: String, initials: String, version: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .padding(horizontal = 0.dp)
-            .fillMaxWidth(),
-        color = DeepBlack,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, HairlineBorder)
-    ) {
-        Row(
-            modifier = Modifier
-                .clickable { onClick() }
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.size(36.dp).background(GhostWhite, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                Text(initials, color = Color.Black, fontWeight = FontWeight.Black, fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("LIVE", color = EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("NODE: $node", color = SlateText, fontSize = 11.sp)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(version, color = Color(0xFF3EA6FF), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                }
-            }
-        }
-    }
-}
+// FooterProfileBox removed — avatar displayed inline in `SidebarRemoteStatus`
 
 @Composable
 private fun FooterUserCard(name: String, node: String, initials: String, version: String, onClick: () -> Unit) {
@@ -289,6 +263,100 @@ private fun FooterUserCard(name: String, node: String, initials: String, version
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 Text(version, color = Color(0xFF3EA6FF), modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChange: (AppView) -> Unit) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+
+    if (isCollapsed) return
+
+    // Read persisted prefs for remote mode and interval
+    val prefs = context.getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+    val force = try { prefs.getBoolean("force_remote_override", false) } catch (_: Exception) { false }
+    val interval = try { prefs.getLong("remote_poll_ms", 10000L) } catch (_: Exception) { 10000L }
+    val lastFetch = RemoteConfigManager.lastFetchMillis
+    val lastOk = RemoteConfigManager.lastFetchSuccess
+
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text("REMOTE STATUS", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black)
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // First row: remote mode and interval on left (avatar moved to Macro row)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (force) "Remote: FORCE" else "Remote: RESPECT",
+                    color = if (force) RoseError else Color(0xFFF59E0B),
+                    modifier = Modifier.clickable {
+                        val txt = if (force) "remote_mode:FORCE" else "remote_mode:RESPECT"
+                        clipboard.setText(AnnotatedString(txt))
+                        Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
+                    }.padding(horizontal = 6.dp, vertical = 4.dp),
+                    fontSize = 11.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${interval}ms",
+                    color = SlateText,
+                    modifier = Modifier.clickable {
+                        val remoteUrl = try {
+                            val bcClass = com.asc.markets.BuildConfig::class.java
+                            val f = bcClass.getDeclaredField("REMOTE_CONFIG_URL")
+                            val v = f.get(null)
+                            if (v is String) v else ""
+                        } catch (_: Exception) { "" }
+                        val toCopy = if (!remoteUrl.isNullOrBlank()) remoteUrl else "poll_interval_ms:${interval}"
+                        clipboard.setText(AnnotatedString(toCopy))
+                        Toast.makeText(context, "Copied: ${if (toCopy.length > 80) toCopy.take(80) + "..." else toCopy}", Toast.LENGTH_SHORT).show()
+                    }.padding(horizontal = 6.dp, vertical = 4.dp),
+                    fontSize = 11.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = if (promoteMacro) "Macro Promoted" else "Macro Normal",
+                color = if (promoteMacro) Color(0xFF10B981) else SlateText,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        val txt = "promote_macro_stream:${promoteMacro}"
+                        clipboard.setText(AnnotatedString(txt))
+                        Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
+                    }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // last fetch small
+            val now = System.currentTimeMillis()
+            val ageMs = if (lastFetch > 0) now - lastFetch else Long.MAX_VALUE
+            val ageText = when {
+                lastFetch == 0L -> "never"
+                ageMs < 60_000L -> "${ageMs / 1000}s"
+                ageMs < 3_600_000L -> "${ageMs / 60_000L}m"
+                else -> "${ageMs / 3_600_000L}h"
+            }
+            val dot = if (lastOk) Color(0xFF10B981) else Color(0xFFEF4444)
+            Box(modifier = Modifier.size(8.dp).align(Alignment.CenterVertically).background(dot, shape = RoundedCornerShape(6.dp)))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("last: $ageText", color = SlateText, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterVertically))
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Avatar moved here: right aligned on same row as Macro Normal
+            Box(modifier = Modifier.size(36.dp).align(Alignment.CenterVertically).clickable { onViewChange(AppView.PROFILE) }.background(IndigoAccent, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                Text("JD", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
             }
         }
     }

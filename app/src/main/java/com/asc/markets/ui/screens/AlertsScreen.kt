@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.VigilanceNodeEngine
+import com.asc.markets.data.AuditRecord
 import com.asc.markets.logic.VigilanceNode
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
@@ -94,10 +95,49 @@ fun AlertsScreen(viewModel: ForexViewModel) {
         if (isSmartMode) {
             SmartCalibration(logicScore, selectedConfirmations, viewModel) { node ->
                 activeNodes.add(0, node)
+                // Append an AuditRecord for the deployed node so Post-Move Audit shows it
+                try {
+                    val impact = when {
+                        node.confidenceScore >= 75 -> "CRITICAL"
+                        node.confidenceScore >= 50 -> "HIGH"
+                        else -> "INFO"
+                    }
+                    viewModel.appendAuditRecord(AuditRecord(
+                        id = node.id,
+                        headline = node.description.ifEmpty { node.trigger },
+                        impact = impact,
+                        confidence = node.confidenceScore,
+                        assets = node.pair,
+                        status = "ACTIVE",
+                        timeUtc = System.currentTimeMillis(),
+                        reasoning = node.description,
+                        nodeId = node.id,
+                        integrityHash = ""
+                    ))
+                } catch (_: Exception) { }
             }
         } else {
             SimpleCalibration { node ->
                 activeNodes.add(0, node)
+                try {
+                    val impact = when {
+                        node.confidenceScore >= 75 -> "CRITICAL"
+                        node.confidenceScore >= 50 -> "HIGH"
+                        else -> "INFO"
+                    }
+                    viewModel.appendAuditRecord(AuditRecord(
+                        id = node.id,
+                        headline = node.description.ifEmpty { node.trigger },
+                        impact = impact,
+                        confidence = node.confidenceScore,
+                        assets = node.pair,
+                        status = "ACTIVE",
+                        timeUtc = System.currentTimeMillis(),
+                        reasoning = node.description,
+                        nodeId = node.id,
+                        integrityHash = ""
+                    ))
+                } catch (_: Exception) { }
             }
         }
 

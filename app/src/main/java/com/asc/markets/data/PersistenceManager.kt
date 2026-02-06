@@ -28,6 +28,30 @@ class PersistenceManager(context: Context) {
         return SecurityManager.decrypt(encrypted)
     }
 
+    // Audit helpers
+    fun listAuditKeys(): List<String> {
+        return prefs.all.keys.filter { it.startsWith("audit_") }.toList()
+    }
+
+    fun saveAuditRecord(key: String, json: String) {
+        secureSave(key, json)
+    }
+
+    fun loadAuditRecord(key: String): String? {
+        return secureLoad(key)
+    }
+
+    fun loadAllAuditRecords(): List<String> {
+        return listAuditKeys().mapNotNull { k -> secureLoad(k) }
+    }
+
+    fun clearAuditRecords() {
+        val keys = listAuditKeys()
+        val editor = prefs.edit()
+        keys.forEach { editor.remove(it) }
+        editor.apply()
+    }
+
     // Parity: Key format asc_state_${symbol.replace('/', '_')}
     fun getChartStateKey(symbol: String): String {
         return "asc_state_${symbol.replace("/", "_")}"

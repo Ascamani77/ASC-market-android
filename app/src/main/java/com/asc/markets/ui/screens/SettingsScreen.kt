@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
@@ -214,6 +216,38 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
             SettingsSection.Engine -> {
                 SliderRow("Node Lookback Depth", 500f, 100f, 5000f, " Bars")
                 ToggleRow("HTF Context Aggregator", "Deep structural scanning", true)
+            }
+            SettingsSection.Intelligence -> {
+                val force by viewModel.forceRemoteOverride.collectAsState()
+                val interval by viewModel.remotePollIntervalMs.collectAsState()
+
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                    Text("Remote Feature Flags", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ToggleRowControlled(
+                        label = "Force Remote Override",
+                        sub = "When enabled, remote promote macro stream flag overrides local preference",
+                        checked = force,
+                        onCheckedChange = { viewModel.setForceRemoteOverride(it) }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Poll Interval (ms)", color = SlateText, fontSize = 10.sp)
+                    OutlinedTextField(
+                        value = interval.toString(),
+                        onValueChange = { v ->
+                            val cleaned = v.filter { it.isDigit() }
+                            val parsed = cleaned.toLongOrNull()
+                            if (parsed != null) viewModel.setRemotePollIntervalMs(parsed)
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+                    Text("Minimum 2000ms — higher values reduce network use.", color = SlateMuted, fontSize = 10.sp)
+                }
             }
             SettingsSection.Calibration -> {
                 val sensitivity by viewModel.patternSensitivity.collectAsState()

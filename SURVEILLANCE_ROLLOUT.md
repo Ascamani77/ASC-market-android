@@ -5,7 +5,7 @@ Goal:
 
 Metrics to monitor:
 - % sessions landing on MacroStream (sessionLandingCount)
-- Clicks to execution (clicksToExecutionCount)
+- Clicks to action controls (clicksToExecutionCount)
 - User overrides / opt-ins (userOverrideCount)
 - Ingestion drop rate (ingestionDroppedCount)
 - False positives/negatives for vigilance nodes (requires offline labeling)
@@ -19,7 +19,7 @@ Phased rollout:
 
 Safety & rollback:
 - `promoteMacroStream` is persisted and reversible — use it to quickly roll back.
-- Require opt-in modal before enabling execution surfaces; audit all opt-ins.
+- Require opt-in modal before enabling trading/dispatch controls; audit all opt-ins.
 - Maintain a simple health dashboard showing the metrics listed above.
 
 QA checklist before each phase:

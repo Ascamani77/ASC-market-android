@@ -119,6 +119,15 @@ fun ProfileScreen() {
                     StatusMiniRow("PLAN", "PRO", Color.White)
                     StatusMiniRow("VERIFY", "SECURE", EmeraldSuccess)
                     StatusMiniRow("EXP", "NOV 25", Color.Gray)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Moved here from sidebar footer
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("NODE:", color = SlateMuted, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("L14-UK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text("V0.9.0-BETA", color = Color(0xFF3EA6FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             InfoBox(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp)) {

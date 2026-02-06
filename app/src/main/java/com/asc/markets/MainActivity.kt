@@ -167,20 +167,27 @@ class MainActivity : ComponentActivity() {
                                     .padding(innerPadding)
                             ) {
                                 // THE TRICK: Swap header based on state
-                                if (currentView == AppView.DASHBOARD) {
-                                    GlobalHeader(
-                                        currentView = currentView,
-                                        selectedPair = selectedPair,
-                                        onOpenDrawer = { viewModel.openDrawer() },
-                                        onSearch = { viewModel.openCommandPalette() },
-                                        onNotifications = { viewModel.navigateTo(AppView.DIAGNOSTICS) }
-                                    )
-                                } else {
-                                    NavHeader(
-                                        title = currentView.name.replace("_", " "),
-                                        onBack = { viewModel.navigateTo(AppView.DASHBOARD) },
-                                        onSearch = { viewModel.openCommandPalette() }
-                                    )
+                                when (currentView) {
+                                    AppView.DASHBOARD -> {
+                                        GlobalHeader(
+                                            currentView = currentView,
+                                            selectedPair = selectedPair,
+                                            onOpenDrawer = { viewModel.openDrawer() },
+                                            onSearch = { viewModel.openCommandPalette() },
+                                            onNotifications = { viewModel.navigateTo(AppView.DIAGNOSTICS) }
+                                        )
+                                    }
+                                    // Let the Post-Move Audit screen render its own top controls
+                                    AppView.POST_MOVE_AUDIT -> {
+                                        /* Intentionally no header here. PostMoveAuditScreen provides its own top control bar which should replace the app header. */
+                                    }
+                                    else -> {
+                                        NavHeader(
+                                            title = currentView.name.replace("_", " "),
+                                            onBack = { viewModel.navigateTo(AppView.DASHBOARD) },
+                                            onSearch = { viewModel.openCommandPalette() }
+                                        )
+                                    }
                                 }
 
                                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -206,6 +213,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.EDUCATION -> EducationScreen()
                                         AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
                                         AppView.DIAGNOSTICS -> DiagnosticsScreen()
+                                        AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
                                         AppView.PROFILE -> ProfileScreen()
                                         AppView.SETTINGS -> SettingsScreen(viewModel)
                                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

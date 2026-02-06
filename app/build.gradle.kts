@@ -27,6 +27,12 @@ android {
 
         // Read OPENAI_API_KEY from local.properties (or CI secret via project properties). Falls back to empty string.
         buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
+        // Optional remote config endpoint for staged feature flags (empty by default)
+        buildConfigField("String", "REMOTE_CONFIG_URL", "\"${project.findProperty("REMOTE_CONFIG_URL") ?: ""}\"")
+        // Default behavior for force-remote override (false unless explicitly set)
+        buildConfigField("boolean", "DEFAULT_FORCE_REMOTE", "${project.findProperty("DEFAULT_FORCE_REMOTE") ?: false}")
+        // Default poll interval (ms) used if not overridden in prefs (10_000 ms)
+        buildConfigField("long", "DEFAULT_REMOTE_POLL_MS", "${project.findProperty("DEFAULT_REMOTE_POLL_MS") ?: 10000}L")
     }
 
     buildTypes {

@@ -8,11 +8,20 @@ import com.asc.markets.api.ForexAnalysisEngine
 import com.asc.markets.data.*
 import com.asc.markets.data.ForexDataPoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.coroutines.launch
 import com.asc.markets.data.MacroEvent
 import com.asc.markets.data.PersistenceManager
+import com.asc.markets.data.AuditRecord
+    
 import com.asc.markets.data.TelemetryManager
 import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
@@ -21,6 +30,10 @@ import com.asc.markets.BuildConfig
 class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentView = MutableStateFlow(AppView.DASHBOARD)
     val currentView = _currentView.asStateFlow()
+
+    // Track previous view to allow back-navigation from screens like POST_MOVE_AUDIT
+    private val _previousView = MutableStateFlow<AppView?>(null)
+    val previousView = _previousView.asStateFlow()
 
     private val _isSidebarCollapsed = MutableStateFlow(false)
     val isSidebarCollapsed = _isSidebarCollapsed.asStateFlow()
@@ -83,6 +96,10 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _ingestionDroppedCount = MutableStateFlow(0)
     val ingestionDroppedCount = _ingestionDroppedCount.asStateFlow()
 
+    // Post-move audit ledger
+    private val _auditLog = MutableStateFlow<List<com.asc.markets.data.AuditRecord>>(listOf())
+    val auditLog = _auditLog.asStateFlow()
+
     private val _userOverrideCount = MutableStateFlow(0)
     val userOverrideCount = _userOverrideCount.asStateFlow()
 
@@ -98,6 +115,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _patternSensitivity = MutableStateFlow(50f)
     val patternSensitivity = _patternSensitivity.asStateFlow()
 
+    // Remote config control: when true, always apply remote flag immediately (force remote override).
+    private val _forceRemoteOverride = MutableStateFlow(false)
+    val forceRemoteOverride = _forceRemoteOverride.asStateFlow()
+
+    // Poll interval for remote config (ms). Can be updated from Settings and persisted.
+    private val _remotePollIntervalMs = MutableStateFlow(10_000L)
+    val remotePollIntervalMs = _remotePollIntervalMs.asStateFlow()
+
     init {
         viewModelScope.launch {
             delay(1200)
@@ -105,7 +130,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             // ensure initial stream list is computed
             _macroStreamEvents.value = computeMacroStreamList(_allMacroEvents.value)
 
-            // Read persisted preference first so user toggle survives restarts
+            // Read persisted preferences first so user toggles survive restarts
             try {
                 val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
                 val persisted = prefs.getBoolean("promote_macro_stream", false)
@@ -117,6 +142,37 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 // Load persisted pattern sensitivity (0..100)
                 val persistedPattern = prefs.getFloat("pattern_sensitivity", 50f)
                 _patternSensitivity.value = persistedPattern
+
+                // Load persisted remote-mode override (force remote) if present
+                if (prefs.contains("force_remote_override")) {
+                    _forceRemoteOverride.value = prefs.getBoolean("force_remote_override", false)
+                } else {
+                    // fallback to BuildConfig.DEFAULT_FORCE_REMOTE if available via reflection
+                    try {
+                        val bcClass = com.asc.markets.BuildConfig::class.java
+                        val f = bcClass.getDeclaredField("DEFAULT_FORCE_REMOTE")
+                        val v = f.get(null)
+                        if (v is Boolean) _forceRemoteOverride.value = v
+                        if (v is String) _forceRemoteOverride.value = v.toBoolean()
+                    } catch (_: Exception) { }
+                }
+
+                // Load persisted poll interval (ms)
+                if (prefs.contains("remote_poll_ms")) {
+                    _remotePollIntervalMs.value = prefs.getLong("remote_poll_ms", 10_000L)
+                } else {
+                    // fallback to BuildConfig.DEFAULT_REMOTE_POLL_MS via reflection
+                    try {
+                        val bcClass = com.asc.markets.BuildConfig::class.java
+                        val f = bcClass.getDeclaredField("DEFAULT_REMOTE_POLL_MS")
+                        val v = f.get(null)
+                        when (v) {
+                            is Number -> _remotePollIntervalMs.value = v.toLong()
+                            is String -> _remotePollIntervalMs.value = v.toLongOrNull() ?: 10_000L
+                        }
+                    } catch (_: Exception) { }
+                }
+
             } catch (_: Exception) {
                 // ignore and fall through to BuildConfig reflection fallback
             }
@@ -126,6 +182,59 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 TelemetryManager.init(getApplication())
             } catch (_: Exception) {
                 // ignore
+            }
+
+            // Load persisted audit records into memory
+            try {
+                val pm = PersistenceManager(getApplication())
+                val raw = pm.loadAllAuditRecords()
+                val parsed = raw.mapNotNull { r ->
+                    try { Json.decodeFromString<AuditRecord>(r) } catch (_: Exception) { null }
+                }
+                _auditRecords.value = parsed
+            } catch (_: Exception) { }
+            // Start continuous polling of remote config; poll interval and mode are configurable.
+            viewModelScope.launch(Dispatchers.IO) {
+                var backoffMs = 10_000L
+                while (isActive) {
+                    val interval = _remotePollIntervalMs.value
+                    var nextDelay = interval
+                    try {
+                        val remote = RemoteConfigManager.fetchRemoteConfig()
+                        if (remote != null) {
+                            val promoteRemote = remote["promote_macro_stream"]?.jsonPrimitive?.booleanOrNull
+                            if (promoteRemote != null) {
+                                if (_forceRemoteOverride.value) {
+                                    // Force-apply remote value (overrides any local setting)
+                                    val current = _promoteMacroStream.value
+                                    if (promoteRemote != current) {
+                                        setPromoteMacroStream(promoteRemote)
+                                        TelemetryManager.recordEvent("remote_config_override_applied", mapOf("promote_macro_stream" to promoteRemote))
+                                    } else {
+                                        TelemetryManager.recordEvent("remote_config_no_change", mapOf("promote_macro_stream" to promoteRemote))
+                                    }
+                                } else {
+                                    // Respect-local mode: only apply remote when no explicit local preference exists.
+                                    val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+                                    val hasLocal = prefs.contains("promote_macro_stream")
+                                    if (!hasLocal) {
+                                        setPromoteMacroStream(promoteRemote)
+                                        TelemetryManager.recordEvent("remote_config_applied_respect_local", mapOf("promote_macro_stream" to promoteRemote))
+                                    } else {
+                                        TelemetryManager.recordEvent("remote_config_skipped_respect_local", mapOf("promote_macro_stream" to promoteRemote))
+                                    }
+                                }
+                            }
+                        }
+                        // success -> reset backoff
+                        backoffMs = 10_000L
+                    } catch (t: Throwable) {
+                        TelemetryManager.recordEvent("remote_config_error", mapOf("error" to (t.message ?: "unknown")))
+                        backoffMs = (backoffMs * 2).coerceAtMost(120_000L)
+                        nextDelay = backoffMs
+                    }
+                    delay(nextDelay)
+                }
             }
 
             // Fallback: read optional BuildConfig default for promoting MacroStream via reflection
@@ -148,7 +257,106 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     // no default defined; leave runtime flag as-is (false)
                 }
             }
+
+            // Load persisted audit log
+            try {
+                val pm = PersistenceManager(getApplication())
+                val raw = pm.secureLoad("audit_log")
+                if (!raw.isNullOrBlank()) {
+                    val list = Json.decodeFromString<List<com.asc.markets.data.AuditRecord>>(raw)
+                    _auditLog.value = list
+                }
+            } catch (_: Exception) { }
         }
+    }
+
+    // Audit ledger state
+    private val _auditRecords = MutableStateFlow<List<AuditRecord>>(emptyList())
+    val auditRecords = _auditRecords.asStateFlow()
+
+    // Append and persist an audit record
+    fun appendAuditRecord(record: AuditRecord) {
+        try {
+            val pm = PersistenceManager(getApplication())
+            val key = "audit_${record.id}"
+            val json = Json.encodeToString(record)
+            pm.saveAuditRecord(key, json)
+            _auditRecords.value = listOf(record) + _auditRecords.value
+            TelemetryManager.recordEvent("audit_record_appended", mapOf("id" to record.id))
+        } catch (_: Exception) { }
+    }
+
+    fun markAuditRecordAudited(id: String) {
+        try {
+            val current = _auditRecords.value.toMutableList()
+            val idx = current.indexOfFirst { it.id == id }
+            if (idx >= 0) {
+                val updated = current[idx].copy(audited = true)
+                current[idx] = updated
+                _auditRecords.value = current
+                val pm = PersistenceManager(getApplication())
+                val key = "audit_${id}"
+                pm.saveAuditRecord(key, Json.encodeToString(updated))
+                TelemetryManager.recordEvent("audit_record_marked_audited", mapOf("id" to id))
+            }
+        } catch (_: Exception) { }
+    }
+
+    fun clearAuditLedger() {
+        try {
+            val pm = PersistenceManager(getApplication())
+            pm.clearAuditRecords()
+            _auditRecords.value = emptyList()
+            TelemetryManager.recordEvent("audit_ledger_cleared", emptyMap())
+        } catch (_: Exception) { }
+    }
+
+    /**
+     * Mark all in-memory audit records as audited and persist each.
+     */
+    fun markAllAuditRecordsAudited() {
+        try {
+            val current = _auditRecords.value.map { it.copy(audited = true) }
+            _auditRecords.value = current
+            val pm = PersistenceManager(getApplication())
+            current.forEach { rec ->
+                val key = "audit_${rec.id}"
+                try { pm.saveAuditRecord(key, Json.encodeToString(rec)) } catch (_: Throwable) {}
+            }
+            TelemetryManager.recordEvent("audit_mark_all_records_audited", mapOf("count" to current.size))
+        } catch (_: Exception) { }
+    }
+
+    // Audit log APIs
+    fun addAuditRecord(record: com.asc.markets.data.AuditRecord) {
+        val updated = listOf(record) + _auditLog.value
+        _auditLog.value = updated
+        persistAuditLog(updated)
+    }
+
+    fun markAudited(id: String) {
+        val updated = _auditLog.value.map { if (it.id == id) it.copy(audited = true) else it }
+        _auditLog.value = updated
+        persistAuditLog(updated)
+    }
+
+    fun clearAuditLog() {
+        _auditLog.value = listOf()
+        try { PersistenceManager(getApplication()).secureSave("audit_log", "[]") } catch (_: Exception) { }
+    }
+
+    fun markAllAudited() {
+        val updated = _auditLog.value.map { it.copy(audited = true) }
+        _auditLog.value = updated
+        persistAuditLog(updated)
+    }
+
+    private fun persistAuditLog(list: List<com.asc.markets.data.AuditRecord>) {
+        try {
+            val pm = PersistenceManager(getApplication())
+            val raw = Json.encodeToString(list)
+            pm.secureSave("audit_log", raw)
+        } catch (_: Exception) { }
     }
 
     private fun computeMacroStreamList(all: List<MacroEvent>): List<MacroEvent> {
@@ -223,7 +431,20 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // record previous view for back navigation (unless navigating to same view)
+        if (_currentView.value != view) {
+            _previousView.value = _currentView.value
+        }
         _currentView.value = view
+    }
+
+    /**
+     * Navigate back to the previously recorded view. Falls back to DASHBOARD when none recorded.
+     */
+    fun navigateBack() {
+        val prev = _previousView.value ?: AppView.DASHBOARD
+        _currentView.value = prev
+        _previousView.value = null
     }
     fun toggleSidebar() { _isSidebarCollapsed.value = !_isSidebarCollapsed.value }
     fun toggleDrawer() { _isDrawerOpen.value = !_isDrawerOpen.value }
@@ -385,5 +606,26 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     // External API to set the Dashboard's active top tab by name (e.g., "MACRO_STREAM")
     fun setDashboardTab(tabName: String) {
         _dashboardTabTarget.value = tabName
+    }
+
+    // Settings API: control whether remote config should force-override local choice.
+    fun setForceRemoteOverride(force: Boolean) {
+        _forceRemoteOverride.value = force
+        try {
+            val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("force_remote_override", force).apply()
+            TelemetryManager.recordEvent("force_remote_override_set", mapOf("value" to force))
+        } catch (_: Exception) { }
+    }
+
+    // Settings API: set poll interval (ms) for remote config fetches.
+    fun setRemotePollIntervalMs(ms: Long) {
+        val safe = ms.coerceIn(2000L, 300_000L)
+        _remotePollIntervalMs.value = safe
+        try {
+            val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putLong("remote_poll_ms", safe).apply()
+            TelemetryManager.recordEvent("remote_poll_interval_set", mapOf("ms" to safe))
+        } catch (_: Exception) { }
     }
 }

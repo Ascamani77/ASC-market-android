@@ -8,7 +8,8 @@ enum class AppView {
     DASHBOARD, MARKETS, MACRO_STREAM, CHAT, ALERTS, NOTIFICATIONS,
     NEWS, CALENDAR, SENTIMENT, EDUCATION, PROFILE, SETTINGS,
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
-    BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS
+    BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
+    POST_MOVE_AUDIT
 }
 
 data class ForexPair(
@@ -113,4 +114,19 @@ data class MacroEvent(
     val status: MacroEventStatus = MacroEventStatus.UPCOMING,
     val source: String = "",
     val details: String = ""
+)
+
+@kotlinx.serialization.Serializable
+data class AuditRecord(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val headline: String,
+    val impact: String,
+    val confidence: Int,
+    val assets: String,
+    val status: String,
+    val timeUtc: Long = System.currentTimeMillis(),
+    val reasoning: String = "",
+    val nodeId: String = "L14-UK",
+    val integrityHash: String = "",
+    var audited: Boolean = false
 )
