@@ -50,7 +50,8 @@ import com.asc.markets.ui.theme.SlateText
 @Composable
 fun NotchedBottomNav(
     currentView: AppView,
-    onNavigate: (AppView) -> Unit
+    onNavigate: (AppView) -> Unit,
+    onHomeSelected: (() -> Unit)? = null
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -81,7 +82,11 @@ fun NotchedBottomNav(
                     isActive = currentView == AppView.DASHBOARD
                 ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigate(AppView.DASHBOARD)
+                    if (onHomeSelected != null) {
+                        onHomeSelected()
+                    } else {
+                        onNavigate(AppView.DASHBOARD)
+                    }
                 }
 
                 NavItem(

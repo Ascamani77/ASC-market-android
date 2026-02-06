@@ -151,7 +151,11 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         NotchedBottomNav(
                                             currentView = currentView,
-                                            onNavigate = { viewModel.navigateTo(it) }
+                                            onNavigate = { viewModel.navigateTo(it) },
+                                            onHomeSelected = {
+                                                viewModel.navigateTo(AppView.DASHBOARD)
+                                                viewModel.setDashboardTab("MACRO_STREAM")
+                                            }
                                         )
                                     }
                                 }

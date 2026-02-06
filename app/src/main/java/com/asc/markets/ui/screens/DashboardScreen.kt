@@ -30,13 +30,21 @@ import androidx.compose.ui.platform.LocalContext
 import android.os.Vibrator
 import android.os.VibrationEffect
 
-enum class DashboardTab { MARKET_OVERVIEW, TECHNICAL_VITALS, STRATEGY_SIGNALS, ANALYTICAL_QUALITY, EXECUTION_LEDGER, MARKET_PSYCHOLOGY, METHODOLOGY }
+enum class DashboardTab { MACRO_STREAM, MARKET_OVERVIEW, TECHNICAL_VITALS, STRATEGY_SIGNALS, ANALYTICAL_QUALITY, EXECUTION_LEDGER, MARKET_PSYCHOLOGY, METHODOLOGY }
 
 @Composable
 fun DashboardScreen(viewModel: ForexViewModel) {
-    var activeTab by remember { mutableStateOf(DashboardTab.MARKET_OVERVIEW) }
+    var activeTab by remember { mutableStateOf(DashboardTab.MACRO_STREAM) }
     val selectedPair by viewModel.selectedPair.collectAsState()
     val promoteMacro by viewModel.promoteMacroStream.collectAsState()
+    val dashboardTarget by viewModel.dashboardTabTarget.collectAsState()
+
+    // react to external requests to focus a specific dashboard tab
+    LaunchedEffect(dashboardTarget) {
+        try {
+            activeTab = DashboardTab.valueOf(dashboardTarget)
+        } catch (_: Exception) { /* ignore invalid names */ }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -51,6 +59,12 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                 } else {
                     androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
                         when (tab) {
+                            DashboardTab.MACRO_STREAM -> {
+                                val events by viewModel.macroStreamEvents.collectAsState()
+                                CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                                    MacroStreamView(events = events)
+                                }
+                            }
                             DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->
                                 viewModel.selectPair(pair)
                                 viewModel.navigateTo(AppView.TRADING_ASSISTANT)
@@ -90,11 +104,14 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                         val vib = context.getSystemService(Vibrator::class.java)
                                         vib?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
                                         activeTab = tab
+                                        // persist selection back to ViewModel so Home can reflect it
+                                        viewModel.setDashboardTab(tab.name)
                                     }
                             ) {
                                 Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     val resId = when (tab) {
-                                        DashboardTab.MARKET_OVERVIEW -> R.drawable.lucide_line_chart
+                                        DashboardTab.MACRO_STREAM -> R.drawable.lucide_line_chart
+                                        DashboardTab.MARKET_OVERVIEW -> R.drawable.lucide_pie_chart
                                         DashboardTab.TECHNICAL_VITALS -> R.drawable.lucide_activity
                                         DashboardTab.STRATEGY_SIGNALS -> R.drawable.lucide_list_filter
                                         DashboardTab.ANALYTICAL_QUALITY -> R.drawable.lucide_pie_chart

@@ -17,7 +17,7 @@ import com.asc.markets.data.ImpactPriority
 import com.asc.markets.BuildConfig
 
 class ForexViewModel(application: Application) : AndroidViewModel(application) {
-    private val _currentView = MutableStateFlow(AppView.MACRO_STREAM)
+    private val _currentView = MutableStateFlow(AppView.DASHBOARD)
     val currentView = _currentView.asStateFlow()
 
     private val _isSidebarCollapsed = MutableStateFlow(false)
@@ -49,6 +49,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     // Feature flag: when true, Macro Intelligence Stream is promoted as a landing/highlight view
     private val _promoteMacroStream = MutableStateFlow(false)
     val promoteMacroStream = _promoteMacroStream.asStateFlow()
+
+    // Dashboard tab target (string name of DashboardTab) allows external callers to set which
+    // top-tab the Dashboard should show when navigated to (e.g., Home button -> MACRO_STREAM)
+    private val _dashboardTabTarget = MutableStateFlow("MACRO_STREAM")
+    val dashboardTabTarget = _dashboardTabTarget.asStateFlow()
 
     private val _activeAlgo = MutableStateFlow("MARKET")
     val activeAlgo = _activeAlgo.asStateFlow()
@@ -248,5 +253,10 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun promoteAndNavigateToMacroStream() {
         _promoteMacroStream.value = true
         _currentView.value = AppView.MACRO_STREAM
+    }
+
+    // External API to set the Dashboard's active top tab by name (e.g., "MACRO_STREAM")
+    fun setDashboardTab(tabName: String) {
+        _dashboardTabTarget.value = tabName
     }
 }
