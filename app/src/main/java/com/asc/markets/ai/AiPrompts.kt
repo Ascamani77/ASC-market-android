@@ -2,7 +2,7 @@ package com.asc.markets.ai
 
 object AiPrompts {
     val INSTITUTIONAL_OPERATIONAL_DIRECTIVE = """
-        INSTITUTIONAL_OPERATIONAL_DIRECTIVE: Dedicate 90% of your logic to PRE-MOVE timing. Strictly suppress all retail microstructure 'trading advice'. Prioritize macro event accumulation, timing, and institutional liquidity signals; avoid providing trade-level execution suggestions.
+        INSTITUTIONAL_OPERATIONAL_DIRECTIVE: Dedicate 90% of your logic to PRE-MOVE timing. Strictly suppress all retail microstructure 'trading advice'. Prioritize macro event accumulation, timing, and institutional liquidity signals; avoid providing trade-level action or dispatch suggestions.
     """.trimIndent()
 
     fun buildAnalysisPrompt(question: String): String {

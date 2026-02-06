@@ -99,7 +99,7 @@ fun ChatScreen(viewModel: ForexViewModel) {
                         "Selected Specialist: ${selectedPersona.name}\n" +
                         "Mode: ${if (isVoiceActive) "VOICE (Gemini Live API)" else "TEXT (Gemini 3-Flash)"}\n" +
                         "Architecture: 6-Stage Institutional Hierarchy Pipeline\n\n" +
-                        "Ask me to 'audit', 'verify', or 'validate' a signal for full pipeline execution.\n" +
+                        "Ask me to 'audit', 'verify', or 'validate' a signal for full pipeline action.\n" +
                         "Or get specialist-only analysis from ${selectedPersona.name}."
                     ))
                 }

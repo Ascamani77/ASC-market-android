@@ -26,7 +26,7 @@ sealed class SettingsSection(val id: String, val title: String, val icon: ImageV
     object Analytical : SettingsSection("analytical", "Analytical Canvas & Focus", androidx.compose.material.icons.autoMirrored.outlined.Timeline, "H1")
     object Intelligence : SettingsSection("intelligence", "Intelligence Filtering Logic", androidx.compose.material.icons.autoMirrored.outlined.FilterList)
     object Security : SettingsSection("security", "Security Protocol", androidx.compose.material.icons.autoMirrored.outlined.Lock, "ENABLED")
-    object Risk : SettingsSection("risk", "Risk Governance & Execution", androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, "BALANCED")
+    object Risk : SettingsSection("risk", "Risk Governance & Surveillance", androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, "BALANCED")
     object Dispatch : SettingsSection("dispatch", "Intelligence Dispatch", androidx.compose.material.icons.autoMirrored.outlined.Notifications)
     object Asset : SettingsSection("asset", "Asset Universe Filtering", androidx.compose.material.icons.autoMirrored.outlined.List)
     object Calibration : SettingsSection("calibration", "Strategy Calibration", androidx.compose.material.icons.autoMirrored.outlined.Tune)

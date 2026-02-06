@@ -224,22 +224,22 @@ class MainActivity : ComponentActivity() {
                                 onSelectAsset = { viewModel.selectPairBySymbol(it) }
                             )
                         }
-                        // Safety Gate: Execution opt-in modal
+                        // Safety Gate: Controls opt-in modal
                         val execOptInRequested by viewModel.executionOptInRequested.collectAsState()
                         if (execOptInRequested) {
                             AlertDialog(
                                 onDismissRequest = { viewModel.cancelExecutionOptIn() },
-                                title = { Text("Execution Controls — Safety Gate", color = Color.White) },
+                                title = { Text("Controls — Safety Gate", color = Color.White) },
                                 text = {
                                     Text(
-                                        "You are attempting to access execution controls while the app is in Surveillance‑First mode.\n\n" +
-                                                "Execution features expose sensitive capabilities. Confirm you understand the risks and that your session is authorized to proceed.",
+                                        "You are attempting to access trading controls while the app is in Surveillance‑First mode.\n\n" +
+                                                "These controls expose sensitive capabilities. Confirm you understand the risks and that your session is authorized to proceed.",
                                         color = Color.LightGray
                                     )
                                 },
                                 confirmButton = {
                                     TextButton(onClick = { viewModel.confirmExecutionOptIn() }) {
-                                        Text("Confirm — Enable Execution", color = Color.White)
+                                        Text("Confirm — Enable Controls", color = Color.White)
                                     }
                                 },
                                 dismissButton = {

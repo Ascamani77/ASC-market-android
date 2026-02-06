@@ -78,7 +78,7 @@ data class AutomatedTrade(
     val postTradeOutcome: String = "",
     // Relay identity used for the dispatch (e.g., PRIMARY-UK-L14)
     val relayId: String = "PRIMARY-UK-L14",
-    // Measured execution latency in milliseconds
+    // Measured action latency in milliseconds
     val latencyMs: Double = 0.02
 )
 

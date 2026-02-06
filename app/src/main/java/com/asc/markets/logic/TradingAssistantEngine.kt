@@ -22,7 +22,7 @@ object TradingAssistantEngine {
     var safetyLockActive: Boolean = true
     var armed: Boolean = false
 
-    // Execution profile
+    // Dispatch profile
     var executionAlgo: String = "MARKET"
 
     // Simple in-memory ledger for mocked automated trades (Paper Bridge)
@@ -89,7 +89,7 @@ object TradingAssistantEngine {
         // Paper Bridge: push to ledger regardless (hydration)
         MOCK_AUTOMATED_TRADES.add(0, record)
 
-        return ExecutionResult(success = success, message = if (success) "Trade $id dispatched via $algo" else "Dispatch failed due to execution error", record = record)
+        return ExecutionResult(success = success, message = if (success) "Trade $id dispatched via $algo" else "Dispatch failed due to action error", record = record)
     }
 
     private suspend fun chatWithForexExpert(question: String): String {

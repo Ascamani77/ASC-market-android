@@ -66,7 +66,7 @@ fun TradingAssistantScreen(viewModel: ForexViewModel) {
             }
         }
 
-        // Execution Input Desk
+        // Action Input Desk
         Surface(
             color = Color.Black,
             modifier = Modifier.fillMaxWidth().padding(16.dp),

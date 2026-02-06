@@ -112,7 +112,7 @@ fun VenueMap() {
                     // Latency row: label left, latency value right
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Execution Latency", color = SlateText, fontSize = 10.sp)
+                            Text("Action Latency", color = SlateText, fontSize = 10.sp)
                         }
                         Text(latencyMs, color = SlateText, fontSize = 12.sp)
                     }

@@ -240,7 +240,7 @@ fun EducationTab() {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("NEWS VOLATILITY LOGIC", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("The system blocks all execution during High-Impact news because price action in these windows is often driven by algorithm-rebalancing rather than logical technical structure.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Text("The system blocks automated dispatches during High-Impact news because price action in these windows is often driven by algorithm-rebalancing rather than logical technical structure.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("THE WAITING EDGE", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
                         Text("Professional analysts view waiting as a decision of equal importance to executing. If the Safety Gate is active, no technical pattern is valid.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))

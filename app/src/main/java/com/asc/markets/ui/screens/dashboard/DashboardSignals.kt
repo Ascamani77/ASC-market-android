@@ -186,7 +186,7 @@ fun DashboardSignals() {
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text("Surveillance Protocol Disclosure", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("This node provides situational awareness only — not execution commands. Beta feature.", color = SlateText, fontSize = 11.sp)
+                    Text("This node provides situational awareness only — not dispatch commands. Beta feature.", color = SlateText, fontSize = 11.sp)
                 }
             }
         }
@@ -282,7 +282,7 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Bottom: execution levels and audit
+            // Bottom: action levels and audit
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column { Text("Entry", color = SlateText, fontSize = 10.sp); Text(signal.entry, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black) }
                 Column { Text("Invalidation", color = SlateText, fontSize = 10.sp); Text(signal.invalidation, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black) }

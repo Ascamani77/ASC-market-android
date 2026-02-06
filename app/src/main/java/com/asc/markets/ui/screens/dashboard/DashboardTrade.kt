@@ -173,7 +173,7 @@ private fun DeepComplianceModal(entry: TradeEntry, onClose: () -> Unit) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Operational Metrics", color = SlateText, fontWeight = FontWeight.Black)
                             Text("Timestamp: ${entry.timestamp}", color = SlateText)
-                            Text("Execution Type: AI Autonomous", color = SlateText)
+                            Text("Action Type: AI Autonomous", color = SlateText)
                             Text("Latency: ${entry.latencyMs} ms", color = SlateText)
                         }
 

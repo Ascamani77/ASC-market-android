@@ -12,6 +12,13 @@ class PersistenceManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("asc_secure_prefs", Context.MODE_PRIVATE)
 
     fun secureSave(key: String, value: String) {
+        // Defensive guard: block attempts to persist potential API keys or tokens via this generic secure API.
+        val forbidden = Regex("(?i)(openai|api[_-]?key|api-?key|secret|token)")
+        if (forbidden.containsMatchIn(key)) {
+            android.util.Log.w("PersistenceManager", "Blocked attempt to save potential API key into secure prefs for key='${key}'")
+            return
+        }
+
         val encrypted = SecurityManager.encrypt(value)
         prefs.edit().putString(key, encrypted).apply()
     }

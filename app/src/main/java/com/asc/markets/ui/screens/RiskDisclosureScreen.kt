@@ -28,7 +28,7 @@ fun RiskDisclosureScreen() {
         
         Text(
             "Forex, Crypto, and CFD trading involve significant risk to your capital. The ASC Markets platform provides analytical intelligence and rule-based market mapping for situational awareness only.\n\n" +
-            "This application DOES NOT issue financial advice or direct execution commands. The AI analytical desk summarizes historical alignment and technical confluence.\n\n" +
+            "This application DOES NOT issue financial advice or direct trading or automated dispatch commands. The AI analytical desk summarizes historical alignment and technical confluence.\n\n" +
             "Data is sourced from TradingView, Finnhub, and LMAX Hubs. Connectivity may be subject to sub-millisecond latency. Past performance is not indicative of future results.",
             color = Color.White,
             fontSize = 14.sp,

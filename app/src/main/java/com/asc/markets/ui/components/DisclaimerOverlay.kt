@@ -88,7 +88,7 @@ fun DisclaimerOverlay(onAccept: () -> Unit) {
                         )
                         
                         Text(
-                            text = "This application DOES NOT issue financial advice or direct execution commands. The AI analytical desk summarizes historical alignment and technical confluence.",
+                            text = "This application DOES NOT issue financial advice or direct trading or automated dispatch commands. The AI analytical desk summarizes historical alignment and technical confluence.",
                             color = Color.White,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
