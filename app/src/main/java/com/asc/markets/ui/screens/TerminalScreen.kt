@@ -57,6 +57,12 @@ fun TerminalScreen(viewModel: ForexViewModel) {
     val isArmed by viewModel.isArmed.collectAsState()
     val activeAlgo by viewModel.activeAlgo.collectAsState()
     var input by remember { mutableStateOf("") }
+    var pasteBlocked by remember { mutableStateOf(false) }
+    fun isSuspectedApiKey(s: String): Boolean {
+        val keyPattern = Regex("(?i)sk-[A-Za-z0-9_-]{20,}")
+        val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
+        return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
+    }
 
     // Sync ViewModel with Backend State
     LaunchedEffect(isArmed) {
@@ -201,7 +207,14 @@ fun TerminalScreen(viewModel: ForexViewModel) {
 
                 TextField(
                     value = input,
-                    onValueChange = { input = it },
+                    onValueChange = {
+                        if (isSuspectedApiKey(it)) {
+                            pasteBlocked = true
+                        } else {
+                            pasteBlocked = false
+                            input = it
+                        }
+                    },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -214,6 +227,9 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         .onFocusChanged { state -> inputFocused = state.isFocused },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                 )
+                if (pasteBlocked) {
+                    Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                }
                 LaunchedEffect(inputFocused) {
                     if (inputFocused) bringRequester.bringIntoView()
                 }

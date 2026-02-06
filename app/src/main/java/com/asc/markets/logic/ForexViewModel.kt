@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.asc.markets.data.MacroEvent
+import com.asc.markets.data.PersistenceManager
+import com.asc.markets.data.TelemetryManager
 import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
 import com.asc.markets.BuildConfig
@@ -119,6 +121,13 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 // ignore and fall through to BuildConfig reflection fallback
             }
 
+            // Initialize telemetry sink (app-private storage)
+            try {
+                TelemetryManager.init(getApplication())
+            } catch (_: Exception) {
+                // ignore
+            }
+
             // Fallback: read optional BuildConfig default for promoting MacroStream via reflection
             if (!_promoteMacroStream.value) {
                 try {
@@ -187,6 +196,10 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         val dropped = events.size - filtered.size
         if (dropped > 0) {
             _ingestionDroppedCount.value = _ingestionDroppedCount.value + dropped
+            // Record telemetry for ingestion drops
+            try {
+                TelemetryManager.recordEvent("ingestion_dropped", mapOf("dropped" to dropped, "sourceCount" to events.size))
+            } catch (_: Exception) { }
         }
 
         if (filtered.isEmpty()) return
@@ -195,12 +208,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         val merged = (filtered + _allMacroEvents.value).distinctBy { it.title + it.datetimeUtc }
         _allMacroEvents.value = merged
         _macroStreamEvents.value = computeMacroStreamList(merged)
+        try { TelemetryManager.recordEvent("macrostream_update", mapOf("newTotal" to merged.size)) } catch (_: Exception) { }
     }
 
     fun navigateTo(view: AppView) {
         // Track user attempts to open execution surfaces
         if (view == AppView.TRADE || view == AppView.TRADING_ASSISTANT || view == AppView.LIQUIDITY_HUB) {
             _clicksToExecutionCount.value = _clicksToExecutionCount.value + 1
+            try { TelemetryManager.recordEvent("clicks_to_execution", mapOf("count" to _clicksToExecutionCount.value, "target" to view.name)) } catch (_: Exception) { }
             if (_promoteMacroStream.value) {
                 // Require explicit opt-in before exposing execution screens when surveillance is promoted
                 requestExecutionOptIn(view)
@@ -306,6 +321,18 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _terminalLogs.value = listOf(
             ChatMessage(role = "model", content = "[AUDIT] Execution opt-in confirmed at ${System.currentTimeMillis()}")
         ) + _terminalLogs.value
+
+        // Persist an encrypted audit record for the opt-in event
+        try {
+            val pm = PersistenceManager(getApplication())
+            val ts = System.currentTimeMillis()
+            val key = "audit_$ts"
+            val json = "{\"event\":\"execution_opt_in_confirmed\",\"target\":\"${target?.name}\",\"timestamp\":$ts,\"sessionLanding\":${_sessionLandingCount.value}}"
+            pm.secureSave(key, json)
+            try { TelemetryManager.recordEvent("execution_opt_in_confirmed", mapOf("target" to target?.name, "auditKey" to key)) } catch (_: Exception) { }
+        } catch (_: Exception) {
+            // ignore persistence failure but keep audit in terminal logs
+        }
 
         // Navigate to the requested execution view after explicit confirmation
         target?.let {

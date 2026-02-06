@@ -30,6 +30,12 @@ fun CommandPalette(
     onSelectAsset: (String) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
+    var pasteBlocked by remember { mutableStateOf(false) }
+    fun isSuspectedApiKey(s: String): Boolean {
+        val keyPattern = Regex("(?i)sk-[A-Za-z0-9_-]{20,}")
+        val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
+        return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
+    }
     
     Dialog(
         onDismissRequest = onDismiss,
@@ -57,7 +63,14 @@ fun CommandPalette(
                     Icon(Icons.Default.Search, contentDescription = null, tint = SlateText)
                     TextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = {
+                            if (isSuspectedApiKey(it)) {
+                                pasteBlocked = true
+                            } else {
+                                pasteBlocked = false
+                                query = it
+                            }
+                        },
                         placeholder = { Text("SEARCH ASSETS OR COMMANDS...", color = Color.DarkGray, fontSize = 14.sp, fontWeight = FontWeight.Black) },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -68,6 +81,9 @@ fun CommandPalette(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    if (pasteBlocked) {
+                        Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 12.dp, top = 6.dp))
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

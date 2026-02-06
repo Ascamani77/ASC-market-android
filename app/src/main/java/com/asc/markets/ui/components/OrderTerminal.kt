@@ -18,6 +18,12 @@ import com.asc.markets.ui.theme.*
 @Composable
 fun OrderTerminal(symbol: String) {
     var size by remember { mutableStateOf("0.10") }
+    var pasteBlocked by remember { mutableStateOf(false) }
+    fun isSuspectedApiKey(s: String): Boolean {
+        val keyPattern = Regex("(?i)sk-[A-Za-z0-9_-]{20,}")
+        val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
+        return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
+    }
     var selectedAlgo by remember { mutableStateOf("MARKET") }
     
     Column(
@@ -67,7 +73,14 @@ fun OrderTerminal(symbol: String) {
         
         OutlinedTextField(
             value = size,
-            onValueChange = { size = it },
+            onValueChange = {
+                if (isSuspectedApiKey(it)) {
+                    pasteBlocked = true
+                } else {
+                    pasteBlocked = false
+                    size = it
+                }
+            },
             label = { Text("POSITION SIZE (LOTS)", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -79,6 +92,9 @@ fun OrderTerminal(symbol: String) {
                 cursorColor = Color.White
             )
         )
+        if (pasteBlocked) {
+            Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+        }
     }
 }
 

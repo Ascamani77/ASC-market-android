@@ -31,6 +31,12 @@ import com.asc.markets.ui.theme.*
 @Composable
 fun ChatScreen(viewModel: ForexViewModel) {
     var input by remember { mutableStateOf("") }
+    var pasteBlocked by remember { mutableStateOf(false) }
+    fun isSuspectedApiKey(s: String): Boolean {
+        val keyPattern = Regex("(?i)sk-[A-Za-z0-9_-]{20,}")
+        val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
+        return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
+    }
     val messages = remember { mutableStateListOf<ChatMessage>() }
     var selectedPersona by remember { mutableStateOf(ANALYST_MODELS[0]) }
     var isVoiceActive by remember { mutableStateOf(false) }
@@ -143,7 +149,14 @@ fun ChatScreen(viewModel: ForexViewModel) {
                 // Input field (expanded)
                 TextField(
                     value = input,
-                    onValueChange = { input = it },
+                    onValueChange = {
+                        if (isSuspectedApiKey(it)) {
+                            pasteBlocked = true
+                        } else {
+                            pasteBlocked = false
+                            input = it
+                        }
+                    },
                     placeholder = { Text("COMMAND INPUT...", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -157,6 +170,9 @@ fun ChatScreen(viewModel: ForexViewModel) {
                         .heightIn(min = 40.dp),
                     singleLine = true
                 )
+                if (pasteBlocked) {
+                    Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                }
 
                 // Add data button
                 IconButton(onClick = { }) {
