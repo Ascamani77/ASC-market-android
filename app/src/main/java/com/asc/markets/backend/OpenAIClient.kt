@@ -47,11 +47,9 @@ object OpenAIClient {
     private data class ChatResponse(val id: String? = null, val choices: List<Choice> = emptyList())
 
     suspend fun chatCompletion(prompt: String, model: String = "gpt-4o-mini"): String = withContext(Dispatchers.IO) {
-        // Prefer the build-time injected key, fall back to an environment variable if present.
-        val buildKey = BuildConfig.OPENAI_API_KEY
-        val envKey = try { System.getenv("OPENAI_API_KEY") } catch (_: Throwable) { null }
-        val key = buildKey.takeIf { it.isNotBlank() } ?: envKey.orEmpty()
-        require(key.isNotBlank()) { "OPENAI_API_KEY not set. Add it to app/local.properties as OPENAI_API_KEY=sk-... or set environment variable OPENAI_API_KEY." }
+        // Only use the build-time injected key. Do NOT accept runtime/pasted API keys.
+        val key = BuildConfig.OPENAI_API_KEY
+        require(key.isNotBlank()) { "OPENAI_API_KEY not set in BuildConfig. Add it to app/local.properties as OPENAI_API_KEY=sk-... and rebuild the app." }
 
         val req = ChatRequest(model = model, messages = listOf(Message(role = "user", content = prompt)))
         val url = URL("$BASE/chat/completions")
@@ -90,8 +88,8 @@ object OpenAIClient {
      * Helper to let callers quickly check whether an API key is available at runtime.
      */
     fun isKeyConfigured(): Boolean {
+        // Only consider the build-time injected key as valid. This prevents accepting pasted/runtime keys.
         val buildKey = BuildConfig.OPENAI_API_KEY
-        val envKey = try { System.getenv("OPENAI_API_KEY") } catch (_: Throwable) { null }
-        return buildKey.isNotBlank() || (envKey?.isNotBlank() == true)
+        return buildKey.isNotBlank()
     }
 }

@@ -128,7 +128,11 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                     if (active) {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = tab.name.replace("_", " ").toLowerCase().capitalize(),
+                                            text = when(tab) {
+                                                DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
+                                                DashboardTab.EXECUTION_LEDGER -> "Post-Move Audit"
+                                                else -> tab.name.replace("_", " ").toLowerCase().capitalize()
+                                            },
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Black,
                                             color = Color.Black

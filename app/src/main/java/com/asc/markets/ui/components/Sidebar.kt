@@ -120,7 +120,7 @@ fun AscSidebar(
 
             SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
                 NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
-                NavItem(AppView.DIAGNOSTICS, "Execution Audit", Icons.Default.List),
+                NavItem(AppView.DIAGNOSTICS, "Post-Move Audit", Icons.Default.List),
                 NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
             ), currentView, onViewChange)
 
