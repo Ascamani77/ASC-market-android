@@ -71,6 +71,27 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _macroStreamEvents = MutableStateFlow<List<MacroEvent>>(computeMacroStreamList(_allMacroEvents.value))
     val macroStreamEvents = _macroStreamEvents.asStateFlow()
 
+    // Basic telemetry/metrics for rollout monitoring
+    private val _sessionLandingCount = MutableStateFlow(0)
+    val sessionLandingCount = _sessionLandingCount.asStateFlow()
+
+    private val _clicksToExecutionCount = MutableStateFlow(0)
+    val clicksToExecutionCount = _clicksToExecutionCount.asStateFlow()
+
+    private val _ingestionDroppedCount = MutableStateFlow(0)
+    val ingestionDroppedCount = _ingestionDroppedCount.asStateFlow()
+
+    private val _userOverrideCount = MutableStateFlow(0)
+    val userOverrideCount = _userOverrideCount.asStateFlow()
+
+    // Execution opt-in flow: UI shows education modal when this is true
+    private val _executionOptInRequested = MutableStateFlow(false)
+    val executionOptInRequested = _executionOptInRequested.asStateFlow()
+
+    // Hold the target view the user attempted to access so we can navigate after opt-in
+    private val _pendingExecutionTarget = MutableStateFlow<AppView?>(null)
+    val pendingExecutionTarget = _pendingExecutionTarget.asStateFlow()
+
     init {
         viewModelScope.launch {
             delay(1200)
@@ -83,7 +104,10 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
                 val persisted = prefs.getBoolean("promote_macro_stream", false)
                 _promoteMacroStream.value = persisted
-                if (persisted) _currentView.value = AppView.MACRO_STREAM
+                if (persisted) {
+                    _currentView.value = AppView.MACRO_STREAM
+                    _sessionLandingCount.value = _sessionLandingCount.value + 1
+                }
             } catch (_: Exception) {
                 // ignore and fall through to BuildConfig reflection fallback
             }
@@ -102,6 +126,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     _promoteMacroStream.value = promoteDefault
                     if (promoteDefault) {
                         _currentView.value = AppView.MACRO_STREAM
+                        _sessionLandingCount.value = _sessionLandingCount.value + 1
                     }
                 } catch (_: Exception) {
                     // no default defined; leave runtime flag as-is (false)
@@ -151,6 +176,12 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             microKeywords.none { kw -> src.contains(kw) }
         }
 
+        // Count how many events were dropped due to microstructure filtering
+        val dropped = events.size - filtered.size
+        if (dropped > 0) {
+            _ingestionDroppedCount.value = _ingestionDroppedCount.value + dropped
+        }
+
         if (filtered.isEmpty()) return
 
         // merge with existing allMacroEvents, newest first
@@ -159,7 +190,19 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _macroStreamEvents.value = computeMacroStreamList(merged)
     }
 
-    fun navigateTo(view: AppView) { _currentView.value = view }
+    fun navigateTo(view: AppView) {
+        // Track user attempts to open execution surfaces
+        if (view == AppView.TRADE || view == AppView.TRADING_ASSISTANT || view == AppView.LIQUIDITY_HUB) {
+            _clicksToExecutionCount.value = _clicksToExecutionCount.value + 1
+            if (_promoteMacroStream.value) {
+                // Require explicit opt-in before exposing execution screens when surveillance is promoted
+                requestExecutionOptIn(view)
+                return
+            }
+        }
+
+        _currentView.value = view
+    }
     fun toggleSidebar() { _isSidebarCollapsed.value = !_isSidebarCollapsed.value }
     fun toggleDrawer() { _isDrawerOpen.value = !_isDrawerOpen.value }
     fun openDrawer() { _isDrawerOpen.value = true }
@@ -238,12 +281,50 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleArm() { _isArmed.value = !_isArmed.value }
 
+    // Trigger a UI education modal requiring explicit opt-in before exposing execution controls
+    fun requestExecutionOptIn(target: AppView) {
+        _pendingExecutionTarget.value = target
+        _executionOptInRequested.value = true
+        _terminalLogs.value = listOf(
+            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in requested for ${target.name} at ${System.currentTimeMillis()}")
+        ) + _terminalLogs.value
+    }
+
+    // Called by UI when user confirms they understand the risks and explicitly opts into execution
+    fun confirmExecutionOptIn() {
+        val target = _pendingExecutionTarget.value
+        _pendingExecutionTarget.value = null
+        _executionOptInRequested.value = false
+        _userOverrideCount.value = _userOverrideCount.value + 1
+        _terminalLogs.value = listOf(
+            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in confirmed at ${System.currentTimeMillis()}")
+        ) + _terminalLogs.value
+
+        // Navigate to the requested execution view after explicit confirmation
+        target?.let {
+            _currentView.value = it
+        }
+    }
+
+    fun cancelExecutionOptIn() {
+        _pendingExecutionTarget.value = null
+        _executionOptInRequested.value = false
+        _terminalLogs.value = listOf(
+            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in cancelled at ${System.currentTimeMillis()}")
+        ) + _terminalLogs.value
+    }
+
     // API: enable/disable promotion of MacroStream (non-destructive)
     fun setPromoteMacroStream(enabled: Boolean) {
         _promoteMacroStream.value = enabled
         try {
             val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
             prefs.edit().putBoolean("promote_macro_stream", enabled).apply()
+            if (enabled) {
+                _sessionLandingCount.value = _sessionLandingCount.value + 1
+            } else {
+                _userOverrideCount.value = _userOverrideCount.value + 1
+            }
         } catch (_: Exception) {
             // ignore persistence failure — runtime flag still set
         }
@@ -253,6 +334,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun promoteAndNavigateToMacroStream() {
         _promoteMacroStream.value = true
         _currentView.value = AppView.MACRO_STREAM
+        _sessionLandingCount.value = _sessionLandingCount.value + 1
     }
 
     // External API to set the Dashboard's active top tab by name (e.g., "MACRO_STREAM")

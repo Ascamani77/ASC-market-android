@@ -224,6 +224,31 @@ class MainActivity : ComponentActivity() {
                                 onSelectAsset = { viewModel.selectPairBySymbol(it) }
                             )
                         }
+                        // Safety Gate: Execution opt-in modal
+                        val execOptInRequested by viewModel.executionOptInRequested.collectAsState()
+                        if (execOptInRequested) {
+                            AlertDialog(
+                                onDismissRequest = { viewModel.cancelExecutionOptIn() },
+                                title = { Text("Execution Controls — Safety Gate", color = Color.White) },
+                                text = {
+                                    Text(
+                                        "You are attempting to access execution controls while the app is in Surveillance‑First mode.\n\n" +
+                                                "Execution features expose sensitive capabilities. Confirm you understand the risks and that your session is authorized to proceed.",
+                                        color = Color.LightGray
+                                    )
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { viewModel.confirmExecutionOptIn() }) {
+                                        Text("Confirm — Enable Execution", color = Color.White)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { viewModel.cancelExecutionOptIn() }) {
+                                        Text("Cancel", color = Color.LightGray)
+                                    }
+                                }
+                            )
+                        }
                         // Periodic ingestion: poll VigilanceNodeEngine and feed MacroStream with mapped macro events
                         LaunchedEffect(Unit) {
                             while (true) {
