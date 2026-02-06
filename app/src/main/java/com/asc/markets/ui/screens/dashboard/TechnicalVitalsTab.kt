@@ -332,6 +332,9 @@ fun TechnicalVitalsTab() {
 
 @Composable
 fun MarketDepthLadder() {
+    val showMicro = com.asc.markets.ui.components.LocalShowMicrostructure.current
+    if (!showMicro) return
+
     InfoBox {
         Column(modifier = Modifier.padding(20.dp)) {
             Text("MARKET DEPTH (L2)", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)

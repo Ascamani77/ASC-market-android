@@ -46,6 +46,9 @@ fun MarketDepthLadder(
     val currentPrice = selectedPair.price
     
     // Determine tick size based on asset type
+    val showMicro = com.asc.markets.ui.components.LocalShowMicrostructure.current
+    if (!showMicro) return
+
     val step = remember(selectedPair.symbol) {
         when {
             selectedPair.symbol.contains("/") -> 0.0001  // Forex: 1 pip

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.data.MacroEvent
 import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
+import com.asc.markets.data.sampleMacroEvents
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
 import java.time.Instant
@@ -86,7 +87,4 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents()) {
     }
 }
 
-private fun sampleMacroEvents(): List<MacroEvent> = listOf(
-    MacroEvent(title = "US NFP", currency = "USD", datetimeUtc = System.currentTimeMillis() + 3600_000, priority = ImpactPriority.CRITICAL, status = MacroEventStatus.UPCOMING, source = "Economic Calendar", details = "Payrolls estimate vs actual"),
-    MacroEvent(title = "ECB Rate Decision", currency = "EUR", datetimeUtc = System.currentTimeMillis() - 7200_000, priority = ImpactPriority.HIGH, status = MacroEventStatus.CONFIRMED, source = "ECB")
-)
+// sampleMacroEvents now provided by com.asc.markets.data.SampleData

@@ -25,6 +25,7 @@ import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.dashboard.*
 import com.asc.markets.ui.theme.*
 import com.asc.markets.data.ForexPair
+import com.asc.markets.ui.components.LocalShowMicrostructure
 import androidx.compose.ui.platform.LocalContext
 import android.os.Vibrator
 import android.os.VibrationEffect
@@ -35,23 +36,32 @@ enum class DashboardTab { MARKET_OVERVIEW, TECHNICAL_VITALS, STRATEGY_SIGNALS, A
 fun DashboardScreen(viewModel: ForexViewModel) {
     var activeTab by remember { mutableStateOf(DashboardTab.MARKET_OVERVIEW) }
     val selectedPair by viewModel.selectedPair.collectAsState()
+    val promoteMacro by viewModel.promoteMacroStream.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Content
             Box(modifier = Modifier.weight(1f)) {
-                androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
+                if (promoteMacro) {
+                    // When promoted, show the Macro Intelligence Stream prominently (90/10 enforced by the view)
+                    val events by viewModel.macroStreamEvents.collectAsState()
+                    CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                        MacroStreamView(events = events)
+                    }
+                } else {
+                    androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
                         when (tab) {
-                        DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->
-                            viewModel.selectPair(pair)
-                            viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                            DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->
+                                viewModel.selectPair(pair)
+                                viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                            }
+                            DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab()
+                            DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab()
+                            DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab()
+                            DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab()
+                            DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab()
+                            DashboardTab.METHODOLOGY -> EducationTab()
                         }
-                        DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab()
-                        DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab()
-                        DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab()
-                        DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab()
-                        DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab()
-                        DashboardTab.METHODOLOGY -> EducationTab()
                     }
                 }
             }

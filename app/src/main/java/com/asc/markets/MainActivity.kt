@@ -30,6 +30,8 @@ import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.IntegrityWatchdog
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
+import androidx.compose.runtime.CompositionLocalProvider
+import com.asc.markets.ui.components.LocalShowMicrostructure
 import com.asc.markets.ui.theme.*
 import android.util.Log
 
@@ -187,7 +189,12 @@ class MainActivity : ComponentActivity() {
                                         AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
                                         AppView.TRADE -> TradeLedgerScreen()
                                         AppView.NEWS -> MacroIntelScreen()
-                                        AppView.MACRO_STREAM -> MacroStreamView()
+                                        AppView.MACRO_STREAM -> {
+                                            val events by viewModel.macroStreamEvents.collectAsState()
+                                            CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                                                MacroStreamView(events = events)
+                                            }
+                                        }
                                         AppView.CALENDAR -> EconomicCalendarScreen()
                                         AppView.SENTIMENT -> SentimentScreen()
                                         AppView.EDUCATION -> EducationScreen()

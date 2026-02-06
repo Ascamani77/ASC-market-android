@@ -60,13 +60,7 @@ suspend fun fetchNewsFromGemini(): List<NewsItem> {
             return emptyList()
         }
 
-        val prompt = """
-            System directive: You are the Macro Intelligence Stream assistant. Focus ONLY on macro event accumulation phases and macro event timing. Ignore price action microstructure, order book, DOM ladders, spreads, and trade-level execution details. Produce surveillance-style event summaries suitable for the Macro Intelligence Stream.
-            Generate up to 10 macro-relevant headlines or event notices for the Macro Intelligence Stream. Prefer events tied to macro calendars, accumulation signs across sessions, or institutional rebalancing cues.
-            For each item return a JSON object with fields: title, source, datetime_utc (ISO 8601), priority (one of: "CRITICAL","HIGH","MEDIUM"), status ("UPCOMING" or "CONFIRMED"), details (brief). Return ONLY a valid JSON array (no extra text).
-            Example:
-            [{"title":"...","source":"...","datetime_utc":"2024-06-12T13:30:00Z","priority":"HIGH","status":"UPCOMING","details":"..."}, ...]
-        """.trimIndent()
+        val prompt = com.asc.markets.ai.AiPrompts.buildNewsPrompt()
 
         val bodyJson = JSONObject().apply {
             put("model", "gpt-4o-mini")

@@ -96,7 +96,7 @@ object TradingAssistantEngine {
         // If the OpenAI API key is configured, call the remote model; otherwise use a local stub
         try {
             if (BuildConfig.OPENAI_API_KEY.isNotBlank()) {
-            val prompt = "You are the Macro Intelligence Stream assistant. Ignore microstructure and execution-level details; focus on accumulation phases and macro event timing. Provide a concise surveillance-style analysis for: $question"
+                val prompt = com.asc.markets.ai.AiPrompts.buildAnalysisPrompt(question)
                 val resp = OpenAIClient.chatCompletion(prompt)
                 return "[ANALYSIS] " + resp
             }

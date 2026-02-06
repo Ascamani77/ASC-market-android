@@ -84,7 +84,7 @@ fun SettingsScreen(_viewModel: ForexViewModel) {
                     SettingsMenuRow("Delete all history", androidx.compose.material.icons.autoMirrored.outlined.Delete, isError = true) { /* Purge */ }
                 }
             } else {
-                SettingsDetailContent(activeSection!!)
+                SettingsDetailContent(activeSection!!, _viewModel)
             }
         }
 
@@ -151,7 +151,7 @@ fun SettingsMenuRow(label: String, icon: ImageVector, value: String? = null, isE
 }
 
 @Composable
-fun SettingsDetailContent(section: SettingsSection) {
+fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
     val scrollState = rememberScrollState()
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(bottom = 100.dp)) {
         when (section) {
@@ -221,6 +221,25 @@ fun SettingsDetailContent(section: SettingsSection) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ToggleRowControlled(label: String, sub: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, isHighImpact: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = if (isHighImpact) RoseError else Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(sub.uppercase(), color = SlateMuted, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (isHighImpact) RoseError else IndigoAccent)
+        )
     }
 }
 
