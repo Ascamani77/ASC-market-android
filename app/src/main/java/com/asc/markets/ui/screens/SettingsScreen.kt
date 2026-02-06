@@ -215,6 +215,25 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                 SliderRow("Node Lookback Depth", 500f, 100f, 5000f, " Bars")
                 ToggleRow("HTF Context Aggregator", "Deep structural scanning", true)
             }
+            SettingsSection.Calibration -> {
+                val sensitivity by viewModel.patternSensitivity.collectAsState()
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                    Text("Pattern Sensitivity", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Controls how aggressively the vigilance engine treats pattern matches (0 = permissive, 100 = strict)", color = SlateMuted, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Slider(
+                            value = sensitivity,
+                            onValueChange = { viewModel.setPatternSensitivity(it) },
+                            valueRange = 0f..100f,
+                            colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = IndigoAccent, inactiveTrackColor = GhostWhite)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("${sensitivity.toInt()}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
             else -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("NODE CONFIG READY", color = Color.DarkGray, fontWeight = FontWeight.Black)

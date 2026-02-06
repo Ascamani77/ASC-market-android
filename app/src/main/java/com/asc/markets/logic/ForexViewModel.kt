@@ -92,6 +92,10 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _pendingExecutionTarget = MutableStateFlow<AppView?>(null)
     val pendingExecutionTarget = _pendingExecutionTarget.asStateFlow()
 
+    // Pattern Sensitivity: persisted calibration value (0-100)
+    private val _patternSensitivity = MutableStateFlow(50f)
+    val patternSensitivity = _patternSensitivity.asStateFlow()
+
     init {
         viewModelScope.launch {
             delay(1200)
@@ -108,6 +112,9 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     _currentView.value = AppView.MACRO_STREAM
                     _sessionLandingCount.value = _sessionLandingCount.value + 1
                 }
+                // Load persisted pattern sensitivity (0..100)
+                val persistedPattern = prefs.getFloat("pattern_sensitivity", 50f)
+                _patternSensitivity.value = persistedPattern
             } catch (_: Exception) {
                 // ignore and fall through to BuildConfig reflection fallback
             }
@@ -335,6 +342,17 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _promoteMacroStream.value = true
         _currentView.value = AppView.MACRO_STREAM
         _sessionLandingCount.value = _sessionLandingCount.value + 1
+    }
+
+    // Persist pattern sensitivity calibration (0..100)
+    fun setPatternSensitivity(value: Float) {
+        _patternSensitivity.value = value.coerceIn(0f, 100f)
+        try {
+            val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putFloat("pattern_sensitivity", _patternSensitivity.value).apply()
+        } catch (_: Exception) {
+            // ignore persistence failure
+        }
     }
 
     // External API to set the Dashboard's active top tab by name (e.g., "MACRO_STREAM")
