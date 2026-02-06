@@ -91,8 +91,8 @@ internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
 
     Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Execution Ledger", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-            Text("Recent automated dispatches", color = SlateText, fontSize = 11.sp)
+            Text("Macro Intelligence Ledger", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+            Text("Recent institutional observations", color = SlateText, fontSize = 11.sp)
         }
 
         Spacer(modifier = Modifier.height(8.dp))

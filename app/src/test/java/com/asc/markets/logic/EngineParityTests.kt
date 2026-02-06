@@ -33,7 +33,7 @@ class EngineParityTests {
         // CalendarService mock state should replicate the ±30m news window
         val status = CalendarService.getTradingStatus("EUR/USD")
         
-        // Assert that the safety gate blocks execution as it does in TS
+        // Assert that the safety gate blocks surveillance actions as it does in TS
         assertEquals(true, status.isBlocked)
         assert(status.reason?.contains("SAFETY GATE") == true)
     }

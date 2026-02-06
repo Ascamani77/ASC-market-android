@@ -73,7 +73,7 @@ fun TechnicalVitalsScreen() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Contextual Nodes: Global Regime (narrow) + Institutional Tape (wide)
+        // Contextual Nodes: Global Regime (narrow) + Macro Intelligence Stream (wide)
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // Global Regime (narrow)
             InfoBox(modifier = Modifier.width(160.dp), minHeight = 160.dp) {
@@ -88,17 +88,17 @@ fun TechnicalVitalsScreen() {
                 }
             }
 
-            // Institutional Tape (wide)
+            // Macro Intelligence Stream (wide)
             InfoBox(modifier = Modifier.weight(1f), minHeight = 160.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("INSTITUTIONAL TAPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         val safety = isSafetyGateClosed()
                         Text(if (safety) "BLOCKED" else "ARMED", color = if (safety) RoseError else EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     }
 
-                    // scrolling tape
-                    val events = remember { sampleTapeEvents() }
+                    // scrolling stream
+                    val events = remember { sampleStreamEvents() }
                     Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
                         events.forEach { ev ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -124,12 +124,12 @@ private fun avgSpreadSample(): Double = (Random.nextDouble(0.05, 0.35))
 private fun volatilitySample(): Double = (Random.nextDouble(3.0, 18.0))
 private fun nodeLatencySample(): Double = (Random.nextDouble(0.5, 12.0))
 
-data class TapeEvent(val time: String, val text: String)
-private fun sampleTapeEvents(): List<TapeEvent> = listOf(
-    TapeEvent("08:41", "RSI enters Overbought (>70) on M5"),
-    TapeEvent("08:38", "Volume spike 2.3x 10-period MA"),
-    TapeEvent("08:35", "Price touches R1 level 1.0892"),
-    TapeEvent("08:32", "Higher High / Higher Low confirmed")
+data class StreamEvent(val time: String, val text: String)
+private fun sampleStreamEvents(): List<StreamEvent> = listOf(
+    StreamEvent("08:41", "RSI enters Overbought (>70) on M5"),
+    StreamEvent("08:38", "Volume spike 2.3x 10-period MA"),
+    StreamEvent("08:35", "Price touches R1 level 1.0892"),
+    StreamEvent("08:32", "Higher High / Higher Low confirmed")
 )
 
 enum class VitalsStatus { Active, Blocked, Processing }
@@ -282,7 +282,7 @@ fun TechnicalVitalsTab() {
             VitalsKpiCard(label = "NODE_LATENCY", value = String.format("%.2f ms", nodeLatencySample()), sub = "Direct LMAX Uplink", size = cardSize, status = VitalsStatus.Active)
         }
 
-        // Contextual Nodes: stack Global Regime above Institutional Tape
+        // Contextual Nodes: stack Global Regime above Macro Intelligence Stream
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 200.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -298,7 +298,7 @@ fun TechnicalVitalsTab() {
             InfoBox(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(tapeRequester), minHeight = 260.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("INSTITUTIONAL TAPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         val safety = isSafetyGateClosed()
                         Box(modifier = Modifier
                             .size(8.dp)
@@ -307,7 +307,7 @@ fun TechnicalVitalsTab() {
                         ) {}
                     }
 
-                    val events = remember { sampleTapeEvents() }
+                    val events = remember { sampleStreamEvents() }
                     Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                         events.forEach { ev ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -323,7 +323,7 @@ fun TechnicalVitalsTab() {
             }
         }
         LaunchedEffect(Unit) {
-            // give layout a moment then bring the tape into view
+            // give layout a moment then bring the stream into view
             delay(200)
             try { tapeRequester.bringIntoView() } catch (_: Exception) { }
         }

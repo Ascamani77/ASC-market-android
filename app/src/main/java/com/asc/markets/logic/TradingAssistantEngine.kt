@@ -35,18 +35,18 @@ object TradingAssistantEngine {
     suspend fun handleInput(raw: String): Pair<String, ExecutionResult?> {
         val text = raw.trim()
 
-        // ARM PIPELINE command
+        // ARM SURVEILLANCE command
         if (armCmd.containsMatchIn(text)) {
             safetyLockActive = false
             armed = true
-            return "[CONFIRMATION] Pipeline armed. Execution enabled." to null
+            return "[CONFIRMATION] Surveillance pipeline armed. Macro Intelligence Stream enabled." to null
         }
 
         // Set algorithm
         setAlgoCmd.find(text)?.let { m ->
             val algo = m.groupValues[1].uppercase()
             executionAlgo = algo
-            return "[CONFIRMATION] Execution algorithm set to $algo." to null
+            return "[CONFIRMATION] Surveillance algorithm set to $algo." to null
         }
 
         // Trade command
@@ -56,7 +56,7 @@ object TradingAssistantEngine {
             val lots = m.groupValues[3].toDoubleOrNull() ?: 0.0
 
             if (safetyLockActive || !armed) {
-                return "[REJECTION] Pipeline locked — ARM PIPELINE required before dispatch." to null
+                return "[REJECTION] Surveillance locked — ARM SURVEILLANCE required before dispatch." to null
             }
 
             // basic validation
@@ -96,7 +96,7 @@ object TradingAssistantEngine {
         // If the OpenAI API key is configured, call the remote model; otherwise use a local stub
         try {
             if (BuildConfig.OPENAI_API_KEY.isNotBlank()) {
-                val prompt = "You are a professional FX execution assistant. Provide a concise analysis for: $question"
+            val prompt = "You are the Macro Intelligence Stream assistant. Ignore microstructure and execution-level details; focus on accumulation phases and macro event timing. Provide a concise surveillance-style analysis for: $question"
                 val resp = OpenAIClient.chatCompletion(prompt)
                 return "[ANALYSIS] " + resp
             }
@@ -111,7 +111,7 @@ object TradingAssistantEngine {
     private fun generateClinicalAudit(side: String, pair: String, lots: Double, algo: String): String {
         return buildString {
             append("Clinical Audit:\n")
-            append("Execution: $side $pair $lots lots via $algo algorithm.\n")
+            append("Surveillance Node: $side $pair $lots lots via $algo algorithm.\n")
             append("Rationale: Aligning with session liquidity and institutional flow; targeting minimized slippage and block routing where possible.\n")
             append("Safety: Trade annotated with internal prop-guard tags; simulated compliance checks passed.\n")
         }

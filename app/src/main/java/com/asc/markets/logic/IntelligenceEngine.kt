@@ -14,7 +14,7 @@ data class AnalystPersona(
 val ANALYST_MODELS = listOf(
     AnalystPersona("macro", "Macro Pulse", "Regime & Context", "Monitor scheduled macroeconomic releases (rates, NFP, CPI) and policy communications.", "⊙"),
     AnalystPersona("smc", "SMC Core", "Directional Structure", "Analyze BOS and CHoCH to identify shifts in directional control.", "⚡"),
-    AnalystPersona("liquidity", "Liquidity Scan", "Execution Timing", "Examine wick behavior and volume anomalies.", "⏳"),
+    AnalystPersona("liquidity", "Liquidity Scan", "Surveillance Timing", "Examine wick behavior and volume anomalies.", "⏳"),
     AnalystPersona("algo", "Algo Quant", "Expectancy Filter", "Evaluate probabilistic edges using distributional behavior.", "⚙"),
     AnalystPersona("sentiment", "Sentiment Hub", "Risk Modifier", "Evaluate crowding risk and contrarian positioning.", "👤"),
     AnalystPersona("prop", "Prop Guard", "FINAL VETO", "Enforce capital protection rules. FINAL VETO authority.", "🛡")

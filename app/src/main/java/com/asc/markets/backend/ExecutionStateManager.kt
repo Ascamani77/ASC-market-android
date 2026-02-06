@@ -4,17 +4,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Institutional Execution State Container
- * Tracks arming status and active policy-locks.
+ * Institutional Surveillance State Container
+ * Tracks arming status and active policy-locks for the Macro Intelligence Stream.
  */
-object ExecutionStateManager {
-    data class GlobalExecutionState(
+object SurveillanceStateManager {
+    data class GlobalSurveillanceState(
         val isArmed: Boolean = false,
         val activePolicy: String = "L14_STANDARD",
         val lastAuditId: String? = null
     )
 
-    private val _state = MutableStateFlow(GlobalExecutionState())
+    private val _state = MutableStateFlow(GlobalSurveillanceState())
     val state = _state.asStateFlow()
 
     fun setArmed(armed: Boolean) {

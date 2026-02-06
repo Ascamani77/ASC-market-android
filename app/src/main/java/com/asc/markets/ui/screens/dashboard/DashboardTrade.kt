@@ -24,7 +24,7 @@ import com.asc.markets.ui.theme.*
 import kotlin.random.Random
 
 /**
- * Execution Ledger (DashboardTrade) - Institutional Audit layout
+ * Macro Intelligence Ledger (DashboardTrade) - Institutional Audit layout
  */
 @Composable
 fun DashboardTrade() {

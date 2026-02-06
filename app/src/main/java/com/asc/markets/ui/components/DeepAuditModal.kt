@@ -59,8 +59,8 @@ fun DeepAuditModal(trade: AutomatedTrade, onClose: () -> Unit) {
                                     Text(trade.entryPrice, color = SlateText)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Execution Type", color = Color.White, fontWeight = FontWeight.Black)
-                                    Text("AI Autonomous", color = SlateText)
+                                        Text("Intelligence Type", color = Color.White, fontWeight = FontWeight.Black)
+                                        Text("AI Analytical", color = SlateText)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Transaction ID", color = Color.White, fontWeight = FontWeight.Black)

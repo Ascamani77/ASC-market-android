@@ -93,24 +93,26 @@ fun AscSidebar(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Groups
-            SidebarGroup("OPERATIONS", isCollapsed, listOf(
-                NavItem(AppView.DASHBOARD, "Dashboard", Icons.Default.LineAxis),
-                NavItem(AppView.MARKETS, "Markets", Icons.Default.BarChart),
-                NavItem(AppView.MULTI_TIMEFRAME, "MTF Analysis", Icons.Default.GridView),
-                NavItem(AppView.LIQUIDITY_HUB, "Liquidity Map", Icons.Default.AccountTree),
-                NavItem(AppView.DIAGNOSTICS, "System Health", Icons.Default.Shield)
+            // Pre-Move Surveillance group (arranged per design)
+            SidebarGroup("PRE-MOVE SURVEILLANCE", isCollapsed, listOf(
+                NavItem(AppView.ANALYSIS_RESULTS, "Analysis Node", Icons.Default.LineAxis),
+                NavItem(AppView.MACRO_STREAM, "Macro Intelligence Stream", Icons.Default.Public),
+                NavItem(AppView.LIQUIDITY_HUB, "Liquidity Maps", Icons.Default.AccountTree),
+                NavItem(AppView.MULTI_TIMEFRAME, "Order Flow Delta", Icons.Default.GridView),
+                NavItem(AppView.MARKETS, "Markets Scanner", Icons.Default.BarChart),
+                NavItem(AppView.DIAGNOSTICS, "Micro-Jitter Monitor", Icons.Default.Shield)
             ), currentView, onViewChange)
 
             SidebarGroup("INTELLIGENCE", isCollapsed, listOf(
                 NavItem(AppView.CHAT, "AI Intel", Icons.Default.Memory),
                 NavItem(AppView.ALERTS, "Vigilance Nodes", Icons.Default.Notifications),
-                NavItem(AppView.BACKTEST, "Backtest", Icons.Default.History)
+                NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History)
             ), currentView, onViewChange)
 
-            SidebarGroup("EXECUTION", isCollapsed, listOf(
-                NavItem(AppView.TRADING_ASSISTANT, "Terminal", Icons.Default.Terminal),
-                NavItem(AppView.TRADE, "Audit Ledger", Icons.Default.ReceiptLong),
-                NavItem(AppView.DIAGNOSTICS, "Event Logs", Icons.Default.List)
+            SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
+                NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
+                NavItem(AppView.DIAGNOSTICS, "Execution Audit", Icons.Default.List),
+                NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
             ), currentView, onViewChange)
 
             SidebarGroup("KNOWLEDGE", isCollapsed, listOf(

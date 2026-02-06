@@ -32,7 +32,7 @@ fun NotificationSettingsPanel() {
             ToggleRow("Enable Push", true)
             ToggleRow("Market Alerts", true)
             ToggleRow("News Alerts", true)
-            ToggleRow("Order Execution", true)
+            ToggleRow("Order Surveillance", true)
         }
 
         Spacer(modifier = Modifier.height(32.dp))

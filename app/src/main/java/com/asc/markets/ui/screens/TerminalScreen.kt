@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
-import com.asc.markets.backend.ExecutionStateManager
+import com.asc.markets.backend.SurveillanceStateManager
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,7 +60,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
 
     // Sync ViewModel with Backend State
     LaunchedEffect(isArmed) {
-        ExecutionStateManager.setArmed(isArmed)
+        SurveillanceStateManager.setArmed(isArmed)
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
@@ -85,11 +85,11 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse)
                     )
 
-                    Box(modifier = Modifier.background(statusColor.copy(alpha = 0.06f), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                        Box(modifier = Modifier.background(statusColor.copy(alpha = 0.06f), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(modifier = Modifier.size(8.dp).background(statusColor.copy(alpha = pulseAlpha), androidx.compose.foundation.shape.CircleShape))
                             Text(
-                                text = if (isArmed) "PIPELINE_ARMED" else "SAFETY_LOCK_ACTIVE",
+                                text = if (isArmed) "SURVEILLANCE_ARMED" else "SURVEILLANCE_LOCKED",
                                 color = statusColor,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
@@ -109,7 +109,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                     modifier = Modifier.clickable { viewModel.toggleArm() }
                 ) {
                     Text(
-                        text = if (isArmed) "DISARM" else "ARM_PIPELINE",
+                        text = if (isArmed) "DISARM" else "ARM_SURVEILLANCE",
                         color = if (isArmed) Color.Black else Color.White,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,

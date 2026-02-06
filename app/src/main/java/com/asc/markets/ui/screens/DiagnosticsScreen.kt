@@ -187,10 +187,10 @@ fun DiagnosticsScreen() {
                     
                     Divider(color = terminalGreen.copy(alpha = 0.12f), thickness = 1.dp, modifier = Modifier.padding(bottom = 12.dp))
                     
-                    // Execution Interlock Row
+                    // Intel Interlock Row
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("EXECUTION INTERLOCK", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("INTEL INTERLOCK", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text("DISABLE DISPATCHES IF RTT > 50MS", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
                         }
                         Switch(checked = interlock, onCheckedChange = {

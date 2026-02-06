@@ -123,7 +123,7 @@ fun DashboardQuality() {
             ProofBadgeBox(modifier = Modifier.fillMaxWidth(), iconRes = R.drawable.lucide_binary, iconTint = IndigoAccent, onTap = { selectedBox = "Proof Badge" })
         }
 
-        // Execution ledger is implemented in a separate file (`ExecutionLedger.kt`).
+        // Macro Intelligence Ledger is implemented in a separate file (`ExecutionLedger.kt`).
         // It is intentionally not embedded here so this analytical page remains unchanged.
     }
 
@@ -132,7 +132,7 @@ fun DashboardQuality() {
         VerificationModal(title = selectedBox!!, onClose = { selectedBox = null })
     }
 
-    // Execution Ledger removed from this file (moved to ExecutionLedger.kt)
+// Macro Intelligence Ledger removed from this file (moved to ExecutionLedger.kt)
 }
 
 // Execution ledger moved to ExecutionLedger.kt to keep DashboardQuality focused on analytical UI.

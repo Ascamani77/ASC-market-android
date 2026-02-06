@@ -1,29 +1,29 @@
 package com.asc.markets.logic
 
 import android.util.Log
-import com.asc.markets.backend.ExecutionStateManager
+import com.asc.markets.backend.SurveillanceStateManager
 
 object ExecutionPipeline {
-    private const val TAG = "ExecutionPipeline"
+    private const val TAG = "SurveillancePipeline"
 
     /**
-     * Policy Guard: Final deterministic check before dispatching to order engine.
+     * Policy Guard: Final deterministic check before dispatching to the institutional surveillance engine.
      */
     fun authorizeDispatch(pair: String, side: String, size: Double): Boolean {
         val gate = CalendarService.getTradingStatus(pair)
-        val armed = ExecutionStateManager.state.value.isArmed
+        val armed = SurveillanceStateManager.state.value.isArmed
 
         if (gate.isBlocked) {
-            Log.e(TAG, "DISPATCH_VETO: Safety Gate Blocked - ${gate.reason}")
+            Log.e(TAG, "SURVEILLANCE_VETO: Safety Gate Blocked - ${gate.reason}")
             return false
         }
 
         if (!armed) {
-            Log.e(TAG, "DISPATCH_VETO: Pipeline Not Armed")
+            Log.e(TAG, "SURVEILLANCE_VETO: Surveillance Pipeline Not Armed")
             return false
         }
 
-        Log.i(TAG, "DISPATCH_AUTHORIZED: $side $pair $size lots. Policy: COMPLIANT")
+        Log.i(TAG, "SURVEILLANCE_AUTHORIZED: $side $pair $size lots. Policy: COMPLIANT")
         return true
     }
 

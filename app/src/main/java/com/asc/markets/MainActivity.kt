@@ -187,6 +187,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
                                         AppView.TRADE -> TradeLedgerScreen()
                                         AppView.NEWS -> MacroIntelScreen()
+                                        AppView.MACRO_STREAM -> MacroStreamView()
                                         AppView.CALENDAR -> EconomicCalendarScreen()
                                         AppView.SENTIMENT -> SentimentScreen()
                                         AppView.EDUCATION -> EducationScreen()

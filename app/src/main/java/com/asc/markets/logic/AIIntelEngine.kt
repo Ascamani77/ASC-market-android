@@ -106,7 +106,7 @@ object AIIntelEngine {
         val vetoMessage = if (propGuardVeto) {
             "⛔ VETO TRIGGERED: Risk parameters breached. Signal REJECTED regardless of technical confluence."
         } else {
-            "✓ Risk parameters VERIFIED. Signal APPROVED for execution."
+            "✓ Risk parameters VERIFIED. Signal APPROVED for confirmation/surveillance."
         }
         
         pipeline.add(PipelineStage(
@@ -119,9 +119,9 @@ object AIIntelEngine {
         ))
         
         val finalRecommendation = if (propGuardVeto) {
-            "❌ AUDIT REJECTED by Prop Guard. Risk profile incompatible with position size. Adjust parameters and retry."
+            "❌ AUDIT REJECTED by Prop Guard. Risk profile incompatible with recommended action. Adjust parameters and retry."
         } else {
-            "✅ FULL INSTITUTIONAL AUDIT PASSED. Signal validated through 6-stage hierarchy. Ready for execution."
+            "✅ FULL INSTITUTIONAL AUDIT PASSED. Signal validated through 6-stage hierarchy. Ready for confirmation/monitoring."
         }
         
         val riskWarning = when {
@@ -156,7 +156,7 @@ object AIIntelEngine {
             "liquidity" -> {
                 "💧 LIQUIDITY SCAN ANALYSIS\n" +
                 "Volume profile: ${analyzeLiquidityProfile(context.userQuery, context.marketContext)}\n" +
-                "Optimal execution timing based on wick sweeps and delta reversals."
+                "Optimal surveillance timing based on wick sweeps and delta reversals."
             }
             "algo" -> {
                 "📈 ALGO QUANT ANALYSIS\n" +
@@ -191,8 +191,8 @@ object AIIntelEngine {
     }
     
     private fun analyzeLiquidityProfile(query: String, context: MarketContext): String {
-        return "Volume delta: POSITIVE. Recent sweep of 1.0900 level = institutional accumulation signal. " +
-               "Wick rejection confirms support. Execution window: next 4H candle close."
+         return "Volume delta: POSITIVE. Recent sweep of 1.0900 level = institutional accumulation signal. " +
+             "Wick rejection confirms support. Surveillance window: next 4H candle close."
     }
     
     private fun evaluateProbabilisticEdge(query: String, context: MarketContext): String {
@@ -236,7 +236,7 @@ object AIIntelEngine {
         val persona: String,
         val query: String,
         val auditResult: AuditResponse,
-        val executionStatus: String = "PENDING"
+        val surveillanceStatus: String = "PENDING"
     )
     
     private val auditArchive = mutableListOf<IntelligenceLog>()

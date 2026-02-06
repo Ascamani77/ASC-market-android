@@ -37,7 +37,7 @@ private val ICON_ZAP_OFF = R.drawable.lucide_binary
 private val ICON_COMPASS = R.drawable.lucide_arrow_left_right
 private val ICON_ACTIVITY = R.drawable.lucide_activity
 
-data class TapeItem(val id: Long, val text: String, val time: String, val isDim: Boolean)
+data class StreamItem(val id: Long, val text: String, val time: String, val isDim: Boolean)
 
 @Composable
 fun MarketOverviewComponent(
@@ -59,9 +59,9 @@ fun MarketOverviewComponent(
         ))
     }
 
-    var tape by remember { mutableStateOf<List<TapeItem>>(emptyList()) }
+    var stream by remember { mutableStateOf<List<StreamItem>>(emptyList()) }
 
-    // periodic tape updates every 5s
+    // periodic stream updates every 5s
     LaunchedEffect(Unit) {
         val actions = listOf(
             "Institutional Buy Program Detected",
@@ -75,9 +75,9 @@ fun MarketOverviewComponent(
             delay(5000)
             val text = actions.random()
             val now = SimpleDateFormat("HH:mm", Locale.US).format(Date())
-            val item = TapeItem(System.currentTimeMillis(), text, now, Math.random() > 0.5)
-            tape = listOf(item) + tape
-            if (tape.size > 10) tape = tape.take(10)
+            val item = StreamItem(System.currentTimeMillis(), text, now, Math.random() > 0.5)
+            stream = listOf(item) + stream
+            if (stream.size > 10) stream = stream.take(10)
         }
     }
 
@@ -164,16 +164,16 @@ fun MarketOverviewComponent(
                 }
             }
 
-            // right: activity tape
+            // right: activity feed (Institutional Surveillance Feed)
             Surface(shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(2f)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Institutional Background Activity", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.ExtraBold)
+                        Text("Institutional Surveillance Feed", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.ExtraBold)
                         Icon(painter = painterResource(id = ICON_ACTIVITY), contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(14.dp))
                     }
                     Box(modifier = Modifier.height(240.dp)) {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(tape) { item ->
+                            items(stream) { item ->
                                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Box(modifier = Modifier.size(6.dp).background(Color(0xFF6366F1).copy(alpha = 0.5f), shape = RoundedCornerShape(3.dp)))

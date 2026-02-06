@@ -96,7 +96,7 @@ fun NewsInAppBrowser(news: NewsItem, onBack: () -> Unit) {
                         }
                         Box(modifier = Modifier.weight(1f).background(GhostWhite, RoundedCornerShape(12.dp)).padding(16.dp)) {
                             Column {
-                                Text("TRADE IDEA", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                Text("UPCOMING INTEL NODE", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black)
                                 Text("Wait for sweep", color = Color.White, fontSize = 14.sp)
                             }
                         }

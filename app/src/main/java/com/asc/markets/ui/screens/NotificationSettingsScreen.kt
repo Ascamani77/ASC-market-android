@@ -38,7 +38,7 @@ fun NotificationSettingsScreen(viewModel: ForexViewModel) {
             ToggleRow("ENABLE PUSH", "GLOBAL MASTER SWITCH", true)
             ToggleRow("MARKET ALERTS", "STRUCTURE & TRIGGER NOTICES", true)
             ToggleRow("NEWS ALERTS", "HIGH-IMPACT FUNDAMENTAL EVENTS", true)
-            ToggleRow("EXECUTION LOGS", "ORDER FILLS & TERMINAL UPDATES", true)
+            ToggleRow("INSTITUTIONAL SURVEILLANCE LOGS", "ORDER FILLS & TERMINAL UPDATES", true)
         }
 
         Spacer(modifier = Modifier.height(24.dp))

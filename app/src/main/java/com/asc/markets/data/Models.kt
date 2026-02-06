@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 enum class AppView {
-    DASHBOARD, MARKETS, CHAT, ALERTS, NOTIFICATIONS,
+    DASHBOARD, MARKETS, MACRO_STREAM, CHAT, ALERTS, NOTIFICATIONS,
     NEWS, CALENDAR, SENTIMENT, EDUCATION, PROFILE, SETTINGS,
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS
@@ -98,4 +98,19 @@ data class EconomicEvent(
     val actual: String? = null,
     val estimate: String? = null,
     val previous: String? = null
+)
+
+enum class MacroEventStatus { UPCOMING, CONFIRMED }
+
+enum class ImpactPriority { CRITICAL, HIGH, MEDIUM }
+
+data class MacroEvent(
+    val id: String = UUID.randomUUID().toString(),
+    val title: String,
+    val currency: String,
+    val datetimeUtc: Long,
+    val priority: ImpactPriority = ImpactPriority.MEDIUM,
+    val status: MacroEventStatus = MacroEventStatus.UPCOMING,
+    val source: String = "",
+    val details: String = ""
 )

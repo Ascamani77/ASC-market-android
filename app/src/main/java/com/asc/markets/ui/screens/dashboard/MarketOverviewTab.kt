@@ -61,11 +61,11 @@ suspend fun fetchNewsFromGemini(): List<NewsItem> {
         }
 
         val prompt = """
-            Generate 10 recent financial market news headlines for trading markets.
-            Include a mix of asset types: forex, crypto, stocks, indices.
-            For each headline include: headline, source, timestamp (e.g. "2h ago"), assetType (one of: "forex","crypto","stocks","indices"), imageUrl (https or empty).
-            Return ONLY a valid JSON array (no extra text) like:
-            [{"headline":"...","source":"...","timestamp":"...","assetType":"...","imageUrl":"..."}, ...]
+            System directive: You are the Macro Intelligence Stream assistant. Focus ONLY on macro event accumulation phases and macro event timing. Ignore price action microstructure, order book, DOM ladders, spreads, and trade-level execution details. Produce surveillance-style event summaries suitable for the Macro Intelligence Stream.
+            Generate up to 10 macro-relevant headlines or event notices for the Macro Intelligence Stream. Prefer events tied to macro calendars, accumulation signs across sessions, or institutional rebalancing cues.
+            For each item return a JSON object with fields: title, source, datetime_utc (ISO 8601), priority (one of: "CRITICAL","HIGH","MEDIUM"), status ("UPCOMING" or "CONFIRMED"), details (brief). Return ONLY a valid JSON array (no extra text).
+            Example:
+            [{"title":"...","source":"...","datetime_utc":"2024-06-12T13:30:00Z","priority":"HIGH","status":"UPCOMING","details":"..."}, ...]
         """.trimIndent()
 
         val bodyJson = JSONObject().apply {
@@ -456,13 +456,13 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         item { Spacer(modifier = Modifier.height(12.dp)) }
 
-        // 5. INSTITUTIONAL TAPE (Event Log)
+        // 5. MACRO INTELLIGENCE STREAM (Event Log)
         item {
             InfoBox(minHeight = 150.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("📊", fontSize = 18.sp)
-                        Text("Institutional Tape", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("Macro Intelligence Stream", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
                     
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {

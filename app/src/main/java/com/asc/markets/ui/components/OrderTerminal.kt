@@ -29,7 +29,7 @@ fun OrderTerminal(symbol: String) {
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text("EXECUTION DESK", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                Text("MACRO INTELLIGENCE DESK", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                 Text("INSTITUTIONAL PIPELINE v4.2", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
             
