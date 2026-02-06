@@ -36,6 +36,7 @@ data class NavItem(val view: AppView, val label: String, val icon: ImageVector)
 fun AscSidebar(
     currentView: AppView,
     isCollapsed: Boolean,
+    promoteMacro: Boolean = false,
     onViewChange: (AppView) -> Unit,
     onClose: () -> Unit = {}
 ) {
@@ -86,6 +87,14 @@ fun AscSidebar(
                 if (!isCollapsed) {
                     IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).size(36.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = SlateText)
+                    }
+                }
+                // Small PRE-EVENT MODE badge under header when promoted
+                if (!isCollapsed && promoteMacro) {
+                    Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                        Surface(color = Color(0xFF081A2B), shape = RoundedCornerShape(8.dp)) {
+                            Text("PRE-EVENT MODE", color = IndigoAccent, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        }
                     }
                 }
             }

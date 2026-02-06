@@ -29,6 +29,18 @@ fun ExecutionLedgerTab() {
     var selectedTx by remember { mutableStateOf<ExecutionTx?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 0.dp)) {
+        // Header for Execution Audit (Post-Move Efficiency Ledger)
+        InfoBox(minHeight = 60.dp) {
+            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Execution Audit", color = IndigoAccent, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    Text("Slippage & Fill Latency — Post-Move Ledger", color = SlateText, fontSize = 11.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         ExecutionLedgerSection(onOpenCompliance = { selectedTx = it })
     }
 

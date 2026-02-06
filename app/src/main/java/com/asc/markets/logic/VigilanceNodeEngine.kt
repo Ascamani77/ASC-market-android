@@ -205,4 +205,28 @@ object VigilanceNodeEngine {
     fun clearNode(nodeId: String) {
         activeNodes.removeAll { it.id == nodeId }
     }
+
+    /**
+     * Convert active vigilance nodes into MacroEvent objects for ingestion into MacroStream.
+     * This mapping intentionally ignores microstructure specifics and focuses on macro signals.
+     */
+    fun toMacroEvents(): List<com.asc.markets.data.MacroEvent> {
+        return activeNodes.map { node ->
+            val priority = when {
+                node.confidenceScore >= 75 -> com.asc.markets.data.ImpactPriority.CRITICAL
+                node.confidenceScore >= 50 -> com.asc.markets.data.ImpactPriority.HIGH
+                else -> com.asc.markets.data.ImpactPriority.MEDIUM
+            }
+
+            com.asc.markets.data.MacroEvent(
+                title = node.description.ifEmpty { node.trigger },
+                currency = node.pair,
+                datetimeUtc = System.currentTimeMillis(),
+                priority = priority,
+                status = if (node.isActive) com.asc.markets.data.MacroEventStatus.UPCOMING else com.asc.markets.data.MacroEventStatus.CONFIRMED,
+                source = "VigilanceNodeEngine",
+                details = "${node.trigger} | ${node.strength} | conf=${node.confidenceScore}"
+            )
+        }
+    }
 }

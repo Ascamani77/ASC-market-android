@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
                 val selectedPair by viewModel.selectedPair.collectAsState()
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
                 val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
+                val promoteMacro by viewModel.promoteMacroStream.collectAsState()
 
                 if (isInitializing) {
                     SecureBootScreen()
@@ -118,6 +119,7 @@ class MainActivity : ComponentActivity() {
                                     AscSidebar(
                                         currentView = currentView,
                                         isCollapsed = false,
+                                        promoteMacro = promoteMacro,
                                         onViewChange = { view ->
                                             viewModel.navigateTo(view)
                                             viewModel.closeDrawer()
@@ -217,6 +219,20 @@ class MainActivity : ComponentActivity() {
                                 onNavigate = { viewModel.navigateTo(it); viewModel.closeCommandPalette() },
                                 onSelectAsset = { viewModel.selectPairBySymbol(it) }
                             )
+                        }
+                        // Periodic ingestion: poll VigilanceNodeEngine and feed MacroStream with mapped macro events
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                try {
+                                    val events = com.asc.markets.logic.VigilanceNodeEngine.toMacroEvents()
+                                    if (events.isNotEmpty()) {
+                                        viewModel.ingestMacroEventsFromSources(events)
+                                    }
+                                } catch (t: Throwable) {
+                                    android.util.Log.e("ASC", "Error ingesting vigilance nodes: ${t.message}")
+                                }
+                                kotlinx.coroutines.delay(15_000)
+                            }
                         }
                     }
                 }

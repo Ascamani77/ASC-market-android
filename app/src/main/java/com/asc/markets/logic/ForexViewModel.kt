@@ -1,6 +1,8 @@
 package com.asc.markets.logic
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.asc.markets.api.ForexAnalysisEngine
 import com.asc.markets.data.*
@@ -14,8 +16,8 @@ import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
 import com.asc.markets.BuildConfig
 
-class ForexViewModel : ViewModel() {
-    private val _currentView = MutableStateFlow(AppView.DASHBOARD)
+class ForexViewModel(application: Application) : AndroidViewModel(application) {
+    private val _currentView = MutableStateFlow(AppView.MACRO_STREAM)
     val currentView = _currentView.asStateFlow()
 
     private val _isSidebarCollapsed = MutableStateFlow(false)
@@ -71,23 +73,34 @@ class ForexViewModel : ViewModel() {
             // ensure initial stream list is computed
             _macroStreamEvents.value = computeMacroStreamList(_allMacroEvents.value)
 
-            // Step 6: read optional BuildConfig default for promoting MacroStream.
-            // Use reflection so this code remains safe if the field isn't defined in BuildConfig.
+            // Read persisted preference first so user toggle survives restarts
             try {
-                val bcClass = com.asc.markets.BuildConfig::class.java
-                val field = bcClass.getDeclaredField("DEFAULT_PROMOTE_MACRO_STREAM")
-                val valObj = field.get(null)
-                val promoteDefault = when (valObj) {
-                    is Boolean -> valObj
-                    is String -> valObj.toBoolean()
-                    else -> false
-                }
-                _promoteMacroStream.value = promoteDefault
-                if (promoteDefault) {
-                    _currentView.value = AppView.MACRO_STREAM
-                }
+                val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+                val persisted = prefs.getBoolean("promote_macro_stream", false)
+                _promoteMacroStream.value = persisted
+                if (persisted) _currentView.value = AppView.MACRO_STREAM
             } catch (_: Exception) {
-                // no default defined; leave runtime flag as-is (false)
+                // ignore and fall through to BuildConfig reflection fallback
+            }
+
+            // Fallback: read optional BuildConfig default for promoting MacroStream via reflection
+            if (!_promoteMacroStream.value) {
+                try {
+                    val bcClass = com.asc.markets.BuildConfig::class.java
+                    val field = bcClass.getDeclaredField("DEFAULT_PROMOTE_MACRO_STREAM")
+                    val valObj = field.get(null)
+                    val promoteDefault = when (valObj) {
+                        is Boolean -> valObj
+                        is String -> valObj.toBoolean()
+                        else -> false
+                    }
+                    _promoteMacroStream.value = promoteDefault
+                    if (promoteDefault) {
+                        _currentView.value = AppView.MACRO_STREAM
+                    }
+                } catch (_: Exception) {
+                    // no default defined; leave runtime flag as-is (false)
+                }
             }
         }
     }
@@ -119,6 +132,26 @@ class ForexViewModel : ViewModel() {
     fun updateMacroEvents(events: List<MacroEvent>) {
         _allMacroEvents.value = events
         _macroStreamEvents.value = computeMacroStreamList(events)
+    }
+
+    /**
+     * Ingest macro events from external sources, filtering out microstructure-origin events.
+     * This enforces that MacroStream only receives macro-level signals.
+     */
+    fun ingestMacroEventsFromSources(events: List<MacroEvent>) {
+        val filtered = events.filter { ev ->
+            val src = ev.source?.lowercase() ?: ""
+            // reject obvious microstructure sources
+            val microKeywords = listOf("tick", "trade", "spread", "orderbook", "dom", "depth", "l2", "fill", "execution", "latency")
+            microKeywords.none { kw -> src.contains(kw) }
+        }
+
+        if (filtered.isEmpty()) return
+
+        // merge with existing allMacroEvents, newest first
+        val merged = (filtered + _allMacroEvents.value).distinctBy { it.title + it.datetimeUtc }
+        _allMacroEvents.value = merged
+        _macroStreamEvents.value = computeMacroStreamList(merged)
     }
 
     fun navigateTo(view: AppView) { _currentView.value = view }
@@ -201,7 +234,15 @@ class ForexViewModel : ViewModel() {
     fun toggleArm() { _isArmed.value = !_isArmed.value }
 
     // API: enable/disable promotion of MacroStream (non-destructive)
-    fun setPromoteMacroStream(enabled: Boolean) { _promoteMacroStream.value = enabled }
+    fun setPromoteMacroStream(enabled: Boolean) {
+        _promoteMacroStream.value = enabled
+        try {
+            val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("promote_macro_stream", enabled).apply()
+        } catch (_: Exception) {
+            // ignore persistence failure — runtime flag still set
+        }
+    }
 
     // Convenience: promote and navigate to MacroStream
     fun promoteAndNavigateToMacroStream() {

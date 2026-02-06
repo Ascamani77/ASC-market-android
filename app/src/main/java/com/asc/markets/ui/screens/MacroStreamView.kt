@@ -36,8 +36,18 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents()) {
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Regime Weighting: 67%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                    Text("Pre-Event Awareness: 90%", color = Color.White, fontSize = 11.sp)
+                    // Subtle macro-weighted badge (no explicit percentages)
+                    Surface(color = Color(0xFF142737), shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(bottom = 6.dp)) {
+                        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("MACRO-WEIGHTED", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    DominancePill(events = events)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text("Pre-Event Awareness", color = Color.White, fontSize = 11.sp)
                 }
             }
         }
@@ -88,3 +98,19 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents()) {
 }
 
 // sampleMacroEvents now provided by com.asc.markets.data.SampleData
+
+@Composable
+private fun DominancePill(events: List<MacroEvent>) {
+    val upcoming = events.count { it.status == MacroEventStatus.UPCOMING }
+    val confirmed = events.count { it.status == MacroEventStatus.CONFIRMED }
+    val total = (upcoming + confirmed).coerceAtLeast(1)
+    val upcomingWeight = upcoming.toFloat() / total
+    val confirmedWeight = confirmed.toFloat() / total
+
+    Surface(color = Color(0xFF0F1B24), shape = RoundedCornerShape(12.dp), modifier = Modifier.width(140.dp).height(20.dp)) {
+        Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(if (upcomingWeight.isNaN()) 0.9f else upcomingWeight).fillMaxHeight().background(IndigoAccent.copy(alpha = 0.95f)))
+            Box(modifier = Modifier.weight(if (confirmedWeight.isNaN()) 0.1f else confirmedWeight).fillMaxHeight().background(Color.White.copy(alpha = 0.06f)))
+        }
+    }
+}

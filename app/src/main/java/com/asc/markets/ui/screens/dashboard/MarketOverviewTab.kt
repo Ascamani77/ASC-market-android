@@ -177,14 +177,14 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         modifier = Modifier.fillMaxSize().background(DeepBlack),
         contentPadding = PaddingValues(bottom = 158.dp)
     ) {
-        // Top header
+        // Top header (Surveillance Node)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Institutional Explore", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text("Surveillance Node — Liquidity Surveillance", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 Icon(Icons.Filled.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
         }
