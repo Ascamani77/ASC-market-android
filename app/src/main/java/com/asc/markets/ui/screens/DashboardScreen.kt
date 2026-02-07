@@ -68,16 +68,16 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                 if (promoteMacro) {
                     // When promoted, show the Macro Intelligence Stream prominently (90/10 enforced by the view)
                     val events by viewModel.macroStreamEvents.collectAsState()
-                    CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                        MacroStreamView(events = events)
-                    }
+                                    CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                                    MacroStreamView(events = events, viewModel = viewModel)
+                                }
                 } else {
                     androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
                         when (tab) {
                             DashboardTab.MACRO_STREAM -> {
-                                val events by viewModel.macroStreamEvents.collectAsState()
+                                    val events by viewModel.macroStreamEvents.collectAsState()
                                 CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                    MacroStreamView(events = events)
+                                    MacroStreamView(events = events, viewModel = viewModel)
                                 }
                             }
                             DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->

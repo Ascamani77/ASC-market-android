@@ -34,6 +34,9 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     // Track previous view to allow back-navigation from screens like POST_MOVE_AUDIT
     private val _previousView = MutableStateFlow<AppView?>(null)
     val previousView = _previousView.asStateFlow()
+    // Remember if navigation originated from the drawer being open so back can re-open it
+    private val _previousWasDrawerOpen = MutableStateFlow(false)
+    val previousWasDrawerOpen = _previousWasDrawerOpen.asStateFlow()
 
     private val _isSidebarCollapsed = MutableStateFlow(false)
     val isSidebarCollapsed = _isSidebarCollapsed.asStateFlow()
@@ -45,6 +48,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isCommandPaletteOpen = MutableStateFlow(false)
     val isCommandPaletteOpen = _isCommandPaletteOpen.asStateFlow()
+
+    // Global header visibility (used by MacroStream to hide/show app header on scroll)
+    private val _isGlobalHeaderVisible = MutableStateFlow(true)
+    val isGlobalHeaderVisible = _isGlobalHeaderVisible.asStateFlow()
+
+    fun setGlobalHeaderVisible(visible: Boolean) {
+        _isGlobalHeaderVisible.value = visible
+    }
 
     private val _marketState = MutableStateFlow<MarketState?>(null)
     val marketState = _marketState.asStateFlow()
@@ -434,6 +445,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         // record previous view for back navigation (unless navigating to same view)
         if (_currentView.value != view) {
             _previousView.value = _currentView.value
+            _previousWasDrawerOpen.value = _isDrawerOpen.value
         }
         _currentView.value = view
     }
@@ -444,7 +456,12 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun navigateBack() {
         val prev = _previousView.value ?: AppView.DASHBOARD
         _currentView.value = prev
+        // If navigation originated from an open drawer, reopen it to return 'where' the user clicked
+        if (_previousWasDrawerOpen.value) {
+            _isDrawerOpen.value = true
+        }
         _previousView.value = null
+        _previousWasDrawerOpen.value = false
     }
     fun toggleSidebar() { _isSidebarCollapsed.value = !_isSidebarCollapsed.value }
     fun toggleDrawer() { _isDrawerOpen.value = !_isDrawerOpen.value }

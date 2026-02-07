@@ -7,6 +7,7 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,10 +25,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.collect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.animation.core.animateIntAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import androidx.compose.ui.Alignment
@@ -110,47 +123,99 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
     val audits by viewModel.auditRecords.collectAsState()
 
     Surface(modifier = Modifier.fillMaxSize(), color = DeepBlack) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top Control Bar with back arrow (replaces app header when open)
-            Surface(color = PureBlack, modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = headerTopPad), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("POST-MOVE AUDIT", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+        // collapsing header + sticky submenu pattern
+        val showMainHeader = rememberSaveable { mutableStateOf(true) }
+        val listState = rememberLazyListState()
+
+        // watch scroll direction to toggle main header visibility
+        LaunchedEffect(listState) {
+            var previous = 0L
+            snapshotFlow { listState.firstVisibleItemIndex.toLong() * 100000L + listState.firstVisibleItemScrollOffset }
+                .collect { cur ->
+                    if (cur > previous) {
+                        // scrolling down -> hide main header
+                        showMainHeader.value = false
+                    } else if (cur < previous) {
+                        // scrolling up -> show main header
+                        showMainHeader.value = true
                     }
-                    Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
-                        IconButton(onClick = { /* navigate to settings */ Toast.makeText(context, "Settings", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White) }
-                        var moreOpen by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { moreOpen = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White) }
-                            DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
-                                DropdownMenuItem(text = { Text("Clear Ledger") }, onClick = { viewModel.clearAuditLedger(); moreOpen = false })
-                                DropdownMenuItem(text = { Text("Mark All Audited") }, onClick = { viewModel.markAllAuditRecordsAudited(); moreOpen = false })
+                    previous = cur
+                }
+        }
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            topBar = {
+            // We animate the combined header+submenu together to produce a smooth collapse
+            var mainHeaderHeightPx by remember { mutableStateOf(0) }
+            var submenuHeightPx by remember { mutableStateOf(0) }
+
+            // When hidden we slide the header up; additionally we shrink the internal header top padding
+            val targetOffset = if (showMainHeader.value) 0 else -mainHeaderHeightPx
+            val animatedOffset by animateIntAsState(targetValue = targetOffset, animationSpec = tween(180))
+
+            val animatedHeaderTopPad by animateDpAsState(targetValue = if (showMainHeader.value) headerTopPad else 6.dp, animationSpec = tween(180))
+
+            Column(modifier = Modifier.offset { IntOffset(0, animatedOffset) }) {
+                // Main local header (measured)
+                Surface(color = PureBlack, modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { mainHeaderHeightPx = it.size.height }) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = animatedHeaderTopPad), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("POST-MOVE AUDIT", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                        Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
+                            IconButton(onClick = { /* navigate to settings */ Toast.makeText(context, "Settings", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White) }
+                            var moreOpen by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { moreOpen = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White) }
+                                DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                                    DropdownMenuItem(text = { Text("Clear Ledger") }, onClick = { viewModel.clearAuditLedger(); moreOpen = false })
+                                    DropdownMenuItem(text = { Text("Mark All Audited") }, onClick = { viewModel.markAllAuditRecordsAudited(); moreOpen = false })
+                                }
                             }
                         }
                     }
-            }
-            }
+                }
 
-            // Category Filter Bar
-            val pills = listOf("ALL", "SIMPLE ALERTS", "SMART ALERTS", "NEWS", "STRATEGY", "SYSTEM", "ACCOUNT")
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 8.dp)) {
-                pills.forEach { p ->
-                    val active = p == filterState.value
-                    Surface(color = if (active) DeepBlack else Color.Transparent, shape = RoundedCornerShape(18.dp), modifier = Modifier.padding(end = 6.dp)) {
-                        Text(p, color = if (active) Color.White else SlateText, modifier = Modifier
-                            .clickable { filterState.value = p }
-                            .padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                // Sticky Sub-Menu (moves together with header for smooth transition)
+                val pills = listOf("ALL", "SIMPLE ALERTS", "SMART ALERTS", "NEWS", "STRATEGY", "SYSTEM", "ACCOUNT")
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(start = 8.dp)
+                    .onGloballyPositioned { submenuHeightPx = it.size.height }) {
+                    pills.forEach { p ->
+                        val active = p == filterState.value
+                        Surface(color = if (active) DeepBlack else Color.Transparent, shape = RoundedCornerShape(18.dp), modifier = Modifier.padding(end = 6.dp)) {
+                            Text(p, color = if (active) Color.White else SlateText, modifier = Modifier
+                                .clickable { filterState.value = p }
+                                .padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        }, bottomBar = {
+            Surface(color = Color(0xFF08121A), modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "THE NOTIFICATION LEDGER IS READ-ONLY. ANALYTICAL STATE ADJUSTMENTS AND EXECUTION COMMANDS MUST BE ROUTED THROUGH THE PRIMARY TERMINAL NODES.",
+                    color = SlateText,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(12.dp),
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }, content = { paddingValues ->
             // Ledger list (Safe Set)
-            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp)) {
+            LazyColumn(state = listState, modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp)
+                .padding(paddingValues)) {
                 items(audits, key = { it.id }) { entry ->
                     val isExpanded = expanded[entry.id] ?: false
                     Surface(
@@ -168,7 +233,7 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                Column(modifier = Modifier.weight(1f)) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
                                     // Tag pills row (pair, impact, status)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Surface(color = Color(0xFF0F2630), shape = RoundedCornerShape(8.dp)) {
@@ -256,16 +321,6 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                 }
             }
 
-            // Bottom Disclosure Footer
-            Surface(color = Color(0xFF08121A), modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "THE NOTIFICATION LEDGER IS READ-ONLY. ANALYTICAL STATE ADJUSTMENTS AND EXECUTION COMMANDS MUST BE ROUTED THROUGH THE PRIMARY TERMINAL NODES.",
-                    color = SlateText,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(12.dp),
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-        }
+        })
     }
 }

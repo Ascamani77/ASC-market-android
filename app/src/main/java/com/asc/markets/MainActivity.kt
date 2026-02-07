@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
                 val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
                 val promoteMacro by viewModel.promoteMacroStream.collectAsState()
+                val isHeaderVisible by viewModel.isGlobalHeaderVisible.collectAsState()
 
                 if (isInitializing) {
                     SecureBootScreen()
@@ -169,23 +170,25 @@ class MainActivity : ComponentActivity() {
                                 // THE TRICK: Swap header based on state
                                 when (currentView) {
                                     AppView.DASHBOARD -> {
-                                        GlobalHeader(
-                                            currentView = currentView,
-                                            selectedPair = selectedPair,
-                                            onOpenDrawer = { viewModel.openDrawer() },
-                                            onSearch = { viewModel.openCommandPalette() },
-                                            onNotifications = { viewModel.navigateTo(AppView.DIAGNOSTICS) }
-                                        )
+                                        if (isHeaderVisible) {
+                                            GlobalHeader(
+                                                currentView = currentView,
+                                                selectedPair = selectedPair,
+                                                onOpenDrawer = { viewModel.openDrawer() },
+                                                onSearch = { viewModel.openCommandPalette() },
+                                                onNotifications = { viewModel.navigateTo(AppView.DIAGNOSTICS) }
+                                            )
+                                        }
                                     }
                                     // Let the Post-Move Audit screen render its own top controls
                                     AppView.POST_MOVE_AUDIT -> {
                                         /* Intentionally no header here. PostMoveAuditScreen provides its own top control bar which should replace the app header. */
                                     }
                                     else -> {
-                                        NavHeader(
-                                            title = currentView.name.replace("_", " "),
-                                            onBack = { viewModel.navigateTo(AppView.DASHBOARD) },
-                                            onSearch = { viewModel.openCommandPalette() }
+                                            NavHeader(
+                                                title = currentView.name.replace("_", " "),
+                                                onBack = { viewModel.navigateBack() },
+                                                onSearch = { viewModel.openCommandPalette() }
                                         )
                                     }
                                 }
@@ -205,7 +208,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.MACRO_STREAM -> {
                                             val events by viewModel.macroStreamEvents.collectAsState()
                                             CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                                MacroStreamView(events = events)
+                                                MacroStreamView(events = events, viewModel = viewModel)
                                             }
                                         }
                                         AppView.CALENDAR -> EconomicCalendarScreen()
