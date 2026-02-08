@@ -166,6 +166,7 @@ fun getMockAscNews(): List<NewsItem> = listOf(
 )
 
 // --- UI ---
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit = {}) {
     val context = LocalContext.current
@@ -177,43 +178,38 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         modifier = Modifier.fillMaxSize().background(DeepBlack),
         contentPadding = PaddingValues(bottom = 158.dp)
     ) {
-        // Top header (Surveillance Node)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Surveillance Node — Liquidity Surveillance", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Icon(Icons.Filled.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-            }
-        }
+        // Top header removed per request
 
-        // Category chips
-        item {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Category chips as sticky subheader (won't scroll with page)
+        stickyHeader {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = DeepBlack
             ) {
-                items(categories) { cat ->
-                    val isSelected = selectedCat == cat
-                    Surface(
-                        color = if (isSelected) Color(0xFF2d2d2d) else Color.Transparent,
-                        shape = RoundedCornerShape(12.dp),
-                        border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
-                        modifier = Modifier.clickable {
-                            vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-                            selectedCat = cat
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { cat ->
+                        val isSelected = selectedCat == cat
+                        Surface(
+                            color = if (isSelected) Color(0xFF2d2d2d) else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp),
+                            border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
+                            modifier = Modifier.clickable {
+                                vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                                selectedCat = cat
+                            }
+                        ) {
+                            Text(
+                                text = cat,
+                                color = if (isSelected) Color.White else Color(0xFF94a3b8),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    ) {
-                        Text(
-                            text = cat,
-                            color = if (isSelected) Color.White else Color(0xFF94a3b8),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             }
