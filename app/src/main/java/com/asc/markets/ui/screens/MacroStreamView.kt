@@ -1,5 +1,7 @@
 package com.asc.markets.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,16 +17,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.MacroEvent
-import com.asc.markets.data.MacroEventStatus
-import com.asc.markets.data.ImpactPriority
-import com.asc.markets.data.sampleMacroEvents
+import com.asc.markets.data.*
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
 import java.time.Instant
@@ -76,19 +76,10 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
         
 
         // UI Controls removed: category pills and look-ahead slider were intentionally removed per design
-        var expandedMap = remember { mutableStateMapOf<Int, Boolean>() }
 
-        // Main area
-        Row(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-            Column(modifier = Modifier.weight(0.9f).fillMaxHeight().padding(end = 8.dp)) {
-                // Section header (compact)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                    Text("UPCOMING INTEL NODES", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
-                    Surface(color = Color(0xFF0F1B24), shape = RoundedCornerShape(8.dp)) {
-                        Text("90% BIAS", color = IndigoAccent, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp, fontWeight = FontWeight.Black)
-                    }
-                }
-
+        // Main area — removed external padding so items are full-bleed
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.weight(0.9f).fillMaxHeight()) {
                         val listState = rememberLazyListState()
                         // hide/show global header based on scroll direction
                         LaunchedEffect(listState) {
@@ -107,51 +98,71 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
                         }
 
                         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                    val upcoming = events.filter { it.status == MacroEventStatus.UPCOMING }
-                    items(upcoming) { ev ->
+                    val allEvents = events  // Show all events (both UPCOMING and CONFIRMED)
+                    items(allEvents) { ev ->
                         val key = ev.hashCode()
-                        val expanded = expandedMap.getOrPut(key) { false }
-                        Surface(color = Color(0xFF071017), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
-                            expandedMap[key] = !(expandedMap[key] ?: false)
-                        }) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
-                                    Box(modifier = Modifier.size(52.dp).background(Color(0xFF08121A), shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Public, contentDescription = null, tint = IndigoAccent)
+                        val isUpcoming = ev.status == MacroEventStatus.UPCOMING
+                        val visualAlpha = if (isUpcoming) 1f else 0.32f
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            // Full-width black event box with all content stacked vertically
+                            Box(modifier = Modifier.fillMaxWidth().background(PureBlack).alpha(visualAlpha)) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                    // Top row: priority + currency + title
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                        // Priority label (no background)
+                                        Text(ev.priority.name, color = when (ev.priority) { ImpactPriority.CRITICAL -> RoseError; ImpactPriority.HIGH -> Color(0xFFBBBBBB); else -> IndigoAccent }, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 8.dp))
+                                        // Identity: currency code (no background)
+                                        Text(ev.currency, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(end = 10.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        // Use the consistent display title helper (Full name followed by abbreviation in brackets)
+                                        Text(ev.displayTitle(), color = Color.White, style = TerminalTypography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold))
                                     }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Surface(color = when (ev.priority) { ImpactPriority.CRITICAL -> RoseError; ImpactPriority.HIGH -> Color(0xFF2B2B2B); else -> IndigoAccent }, shape = RoundedCornerShape(8.dp)) {
-                                                Text(ev.priority.name, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp)
-                                            }
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Box(modifier = Modifier.size(8.dp).background(Color(0xFF494F55), shape = RoundedCornerShape(4.dp)))
+                                    
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    
+                                    // Brief explanation / details
+                                    Text(ev.details, color = Color.White.copy(alpha = 0.8f), style = TerminalTypography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium), modifier = Modifier.fillMaxWidth())
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    
+                                    // Source with world icon
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Public, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(ev.source, color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 10.sp))
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    // Bottom row: time + timezone (left) + status with blinking dot (right)
+                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Column {
+                                            val fmtBig = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneOffset.systemDefault())
+                                            Text(fmtBig.format(Instant.ofEpochMilli(ev.datetimeUtc)), color = Color.White.copy(alpha = 0.9f), style = TerminalTypography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold))
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text("UTC WINDOW", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                                         }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(ev.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        
+                                        // Status text with blinking dot (only for upcoming)
+                                        if (isUpcoming) {
+                                            val infiniteTransition = rememberInfiniteTransition(label = "blinking")
+                                            val blinkAlpha by infiniteTransition.animateFloat(
+                                                initialValue = 1f,
+                                                targetValue = 0.3f,
+                                                animationSpec = infiniteRepeatable(
+                                                    animation = tween(durationMillis = 1000, easing = LinearEasing),
+                                                    repeatMode = RepeatMode.Reverse
+                                                ),
+                                                label = "blinkAlpha"
+                                            )
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Public, contentDescription = null, tint = SlateText, modifier = Modifier.size(12.dp))
+                                                Box(modifier = Modifier.size(8.dp).background(Color(0xFF00FF00).copy(alpha = blinkAlpha), shape = CircleShape))
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text(ev.source, color = SlateText, fontSize = 10.sp)
+                                                Text("UPCOMING", color = Color(0xFF0F6F52), style = TerminalTypography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold))
                                             }
-                                            val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneOffset.systemDefault())
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(fmt.format(Instant.ofEpochMilli(ev.datetimeUtc)), color = SlateText, fontSize = 11.sp)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Surface(color = Color(0xFF0F6F52), shape = RoundedCornerShape(8.dp)) { Text("UPCOMING", color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp) }
-                                            }
-                                        }
-
-                                        // Expanded Intent Layer
-                                        if (expandedMap[key] == true) {
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                TextButton(onClick = { viewModel?.navigateTo(com.asc.markets.data.AppView.ANALYSIS_RESULTS) }) { Text("VIEW CONTEXT", color = Color.White) }
-                                                TextButton(onClick = { expandedMap[key] = false }) { Text("MINIMIZE", color = SlateText) }
-                                            }
+                                        } else {
+                                            Text("CONFIRMED", color = Color(0xFF7A7A7A), style = TerminalTypography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold))
                                         }
                                     }
                                 }

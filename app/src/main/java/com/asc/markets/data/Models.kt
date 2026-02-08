@@ -116,6 +116,45 @@ data class MacroEvent(
     val details: String = ""
 )
 
+// Helper to produce a consistent display title: Full descriptive name followed by abbreviation in brackets.
+fun MacroEvent.displayTitle(): String {
+    // Known abbreviation -> full name map
+    val known = mapOf(
+        "NFP" to "Non-Farm Payrolls",
+        "CPI" to "Consumer Price Index",
+        "ECB" to "European Central Bank",
+        "PMI" to "Purchasing Managers' Index",
+        "BLS" to "Bureau of Labor Statistics Employment Report",
+        "PPI" to "Producer Price Index",
+        "FED" to "Federal Reserve",
+        "BOE" to "Bank of England",
+        "ISM" to "ISM Services PMI",
+        "GDP" to "Gross Domestic Product"
+    )
+
+    // If the title already contains brackets, assume it's formatted
+    if (title.contains("[") && title.contains("]")) return title
+
+    // Look for a token that is an uppercase abbreviation (2-4 letters)
+    val tokens = title.split(Regex("""[ \-|,]+"""))
+    val abbr = tokens.find { it.matches(Regex("^[A-Z]{2,4}")) }
+    if (abbr != null) {
+        val full = known[abbr] ?: tokens.filter { it != abbr }.joinToString(" ")
+        // If full is the same as tokens without abbr and it's already descriptive, return "full [abbr]"
+        return if (known.containsKey(abbr)) {
+            // Prepend any geographic prefix (e.g., US) from the title
+            val prefix = tokens.firstOrNull { it.matches(Regex("^[A-Z]{2}")) && it != abbr }
+            if (prefix != null) "$prefix $full [$abbr]" else "$full [$abbr]"
+        } else {
+            // Fall back to original title with brackets
+            "${title.replace(abbr, "").trim()} [$abbr]"
+        }
+    }
+
+    // No abbreviation found — return title as-is
+    return title
+}
+
 @kotlinx.serialization.Serializable
 data class AuditRecord(
     val id: String = java.util.UUID.randomUUID().toString(),
@@ -130,3 +169,44 @@ data class AuditRecord(
     val integrityHash: String = "",
     var audited: Boolean = false
 )
+
+/**
+ * Utility to normalize event titles into the format: "Full Descriptive Name [ABBR]".
+ * If the title already contains bracketed text it is returned unchanged.
+ */
+fun formatEventTitle(raw: String): String {
+    if (raw.contains("[")) return raw
+    val mappings = mapOf(
+        "NFP" to "Non-Farm Payrolls",
+        "CPI" to "Consumer Price Index",
+        "PMI" to "Purchasing Managers' Index",
+        "ECB" to "European Central Bank",
+        "ISM" to "ISM Services PMI",
+        "GDP" to "Gross Domestic Product",
+        "BLS" to "Bureau of Labor Statistics Employment Report",
+        "PPI" to "Producer Price Index",
+        "FED" to "Federal Reserve",
+        "BOE" to "Bank of England"
+    )
+
+    val title = raw.trim()
+
+    for ((abbr, full) in mappings) {
+        // match abbreviation as a standalone word
+        val abbrRegex = Regex("""\b${Regex.escape(abbr)}\b""", RegexOption.IGNORE_CASE)
+        val fullRegex = Regex(Regex.escape(full), RegexOption.IGNORE_CASE)
+
+        if (abbrRegex.containsMatchIn(title)) {
+            // replace the abbreviation occurrence with the full name + [ABBR]
+            return title.replace(abbrRegex, "$full [$abbr]")
+        }
+
+        if (fullRegex.containsMatchIn(title)) {
+            // if full name exists but abbreviation not present, append abbreviation
+            return if (title.contains("[")) title else "$title [$abbr]"
+        }
+    }
+
+    // No mapping found — return as-is
+    return title
+}

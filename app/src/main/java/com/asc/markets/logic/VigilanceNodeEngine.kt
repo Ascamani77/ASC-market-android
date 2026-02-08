@@ -219,7 +219,7 @@ object VigilanceNodeEngine {
             }
 
             com.asc.markets.data.MacroEvent(
-                title = node.description.ifEmpty { node.trigger },
+                title = com.asc.markets.data.formatEventTitle(node.description.ifEmpty { node.trigger }),
                 currency = node.pair,
                 datetimeUtc = System.currentTimeMillis(),
                 priority = priority,
