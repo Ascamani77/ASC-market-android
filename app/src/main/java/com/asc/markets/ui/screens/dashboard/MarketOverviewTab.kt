@@ -29,6 +29,12 @@ import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.MiniChart
 import com.asc.markets.ui.components.ForexIcon
 import com.asc.markets.ui.theme.*
+import com.asc.markets.state.AssetContext
+import com.asc.markets.state.AssetContextStore
+import com.asc.markets.state.mapCategoryToAssetContext
+import com.asc.markets.state.MarketOverviewConfigs
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import android.os.Vibrator
 import android.os.VibrationEffect
 import androidx.compose.ui.platform.LocalContext
@@ -171,8 +177,8 @@ fun getMockAscNews(): List<NewsItem> = listOf(
 fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit = {}) {
     val context = LocalContext.current
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    val categories = listOf("Overview", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
-    var selectedCat by remember { mutableStateOf("Overview") }
+    val categories = listOf("Commodities", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
+    var selectedCat by remember { mutableStateOf("Commodities") }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
@@ -186,97 +192,70 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                 modifier = Modifier.fillMaxWidth(),
                 color = DeepBlack
             ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(categories) { cat ->
-                        val isSelected = selectedCat == cat
-                        Surface(
-                            color = if (isSelected) Color(0xFF2d2d2d) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                            border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
-                            modifier = Modifier.clickable {
-                                vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-                                selectedCat = cat
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(categories) { cat ->
+                            val isSelected = selectedCat == cat
+                            Surface(
+                                color = if (isSelected) Color(0xFF2d2d2d) else Color.Transparent,
+                                shape = RoundedCornerShape(12.dp),
+                                border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
+                                modifier = Modifier.clickable {
+                                    vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                                    selectedCat = cat
+                                    AssetContextStore.set(mapCategoryToAssetContext(cat))
+                                }
+                            ) {
+                                Text(
+                                    text = cat,
+                                    color = if (isSelected) Color.White else Color(0xFF94a3b8),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                        ) {
-                            Text(
-                                text = cat,
-                                color = if (isSelected) Color.White else Color(0xFF94a3b8),
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
                     }
+
+                    // badge removed (frontend)
                 }
             }
         }
 
-        // Market overview summary (kept concise)
+        // Market overview summary (driven by AssetContext -> MarketOverviewConfig)
         item {
             InfoBox(minHeight = 180.dp) {
+                val assetCtx by AssetContextStore.context.collectAsState()
+                val cfg = MarketOverviewConfigs.configs[assetCtx] ?: MarketOverviewConfigs.default
+
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Market Overview", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Global Sentiment", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("Bullish", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Volatility Index", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("18.5 (Low)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Trading Volume", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("High", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Top Gainer", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("BTC +8.2%", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Top Loser", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("EUR/USD -1.1%", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Market Cap", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("2.56 Trillion", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+
+                    // Primary sentiment label
+                    Text(cfg.primarySentimentLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                    // Metrics rendered generically from the config (loop-based)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        cfg.metrics.forEach { metric ->
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(metric.label, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                // Placeholder value rendering; actual sources should map to metric.valueSource in data layer
+                                Text(text = "—", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
                         }
                     }
-                    
-                    // Explanatory points
-                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            "• Global Sentiment reflects aggregate market bias: Bullish indicates net long positioning across major indices and crypto.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                        Text(
-                            "• Volatility Index (VIX-equivalent) measures expected price swing range: Low = calm markets, High = institutional hedging active.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                        Text(
-                            "• Trading Volume surge indicates breakout potential: High volume on bullish days confirms trend strength and liquidity.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                        Text(
-                            "• Top Gainer/Loser tracks momentum leaders: Use as sentiment gauge for sector rotation and relative strength analysis.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                        Text(
-                            "• Market Cap concentration shows where institutional capital flows: Crypto > $2.5T signals strong institutional adoption.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
-                        Text(
-                            "• Real-time updates: All metrics refresh every 60 seconds to capture micro-trends before they cascade across asset classes.",
-                            color = Color.White, fontSize = 10.sp, lineHeight = 13.sp
-                        )
+
+                    // Explanatory bullets sourced from config
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        cfg.explanatoryText.forEach { line ->
+                            Text("• ${line}", color = Color(0xFF94a3b8), fontSize = 11.sp)
+                        }
                     }
                 }
             }
