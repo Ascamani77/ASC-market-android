@@ -315,6 +315,308 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
     val selectedPairCtx = mapCategoryToAssetContext(selectedPair.category.name)
     val newsItemsForCtx = remember(assetCtxForNews) { getNewsForContext(assetCtxForNews) }
 
+
+    @Composable
+    fun UniversalOverviewBox(ctx: AssetContext, pair: ForexPair) {
+        var showPostMarket by remember { mutableStateOf(false) }
+
+        // Simple heuristics to derive overview fields from the selected pair and asset context.
+        val absChange = kotlin.math.abs(pair.changePercent)
+        val marketState = when {
+            absChange > 1.0 -> "Trending"
+            absChange > 0.5 -> "Transitional"
+            else -> "Ranging"
+        }
+
+        val volatilityState = when {
+            absChange > 2.0 -> "Erratic"
+            absChange > 0.8 -> "Expanding"
+            else -> "Compressed"
+        }
+
+        val liquidityCondition = when (ctx) {
+            AssetContext.FOREX -> "Normal"
+            AssetContext.CRYPTO -> "Moderate"
+            AssetContext.COMMODITIES -> "Normal"
+            AssetContext.INDICES -> "Heavy"
+            AssetContext.STOCKS -> "Moderate"
+            AssetContext.FUTURES -> "Variable"
+            AssetContext.BONDS -> "Normal"
+            AssetContext.ALL -> "Normal"
+        }
+
+        val sessionSensitivity = when (ctx) {
+            AssetContext.FOREX -> "Asia / London / NY (overlap: London/NY)"
+            AssetContext.COMMODITIES -> "London / NY"
+            AssetContext.CRYPTO -> "24/7"
+            AssetContext.INDICES -> "NY / London"
+            AssetContext.STOCKS -> "Market Hours (Local)"
+            AssetContext.FUTURES -> "Settlement-sensitive"
+            AssetContext.BONDS -> "NY"
+            AssetContext.ALL -> "Cross-asset"
+        }
+
+        val biasLabel = when {
+            pair.changePercent > 0.25 -> "Bullish (Conditional)"
+            pair.changePercent < -0.25 -> "Bearish (Conditional)"
+            else -> "Neutral"
+        }
+
+        val confidence = kotlin.math.min(90, (50 + (absChange * 20)).toInt())
+
+        // Key levels: use simple price-based approximations (placeholders until feeds wired)
+        val level1 = String.format("%.4f", pair.price * (1 + 0.01))
+        val level2 = String.format("%.4f", pair.price * (1 - 0.01))
+        val level3 = String.format("%.4f", pair.price)
+
+        val invalidation = String.format("%.4f", pair.price * (1 - 0.005))
+
+        val macroAlignment = when {
+            pair.changePercent > 0 -> "Risk-On"
+            pair.changePercent < 0 -> "Risk-Off"
+            else -> "Mixed"
+        }
+
+        val playbook = when {
+            volatilityState == "Compressed" && liquidityCondition == "Normal" -> "Breakout"
+            volatilityState == "Erratic" || liquidityCondition == "Variable" -> "Wait"
+            else -> "Mean Reversion"
+        }
+
+        InfoBox(minHeight = 220.dp) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Overview — What matters before the market moves", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+
+                // 1. Market Regime Snapshot
+                Column {
+                    Text("1. Market Regime Snapshot", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Asset Class:", color = SlateText, fontSize = 11.sp)
+                            Text(ctx.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Market State:", color = SlateText, fontSize = 11.sp)
+                            Text(marketState, color = Color.White, fontSize = 12.sp)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Volatility:", color = SlateText, fontSize = 11.sp)
+                            Text(volatilityState, color = Color.White, fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Liquidity:", color = SlateText, fontSize = 11.sp)
+                            Text(liquidityCondition, color = Color.White, fontSize = 12.sp)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Session Sensitivity:", color = SlateText, fontSize = 11.sp)
+                            Text(sessionSensitivity, color = Color.White, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                // 2. Dominant Bias Engine
+                Column {
+                    Text("2. Dominant Bias Engine", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Bias:", color = SlateText, fontSize = 11.sp)
+                            Text(biasLabel, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Confidence:", color = SlateText, fontSize = 11.sp)
+                            Text("$confidence%", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("Reason:", color = SlateText, fontSize = 11.sp)
+                    Text("${pair.symbol} ${if (biasLabel.contains("Bull")) "momentum and liquidity bias" else if (biasLabel.contains("Bear")) "selling pressure and flow" else "mixed signals"}", color = Color.White, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+
+                // 3. Key Levels That Matter
+                Column {
+                    Text("3. Key Levels That Matter", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("• Level 1: $level1 — liquidity high / prior session high", color = Color.White, fontSize = 11.sp)
+                    Text("• Level 2: $level2 — prior session low", color = Color.White, fontSize = 11.sp)
+                    Text("• Level 3: $level3 — weekly equilibrium", color = Color.White, fontSize = 11.sp)
+                }
+
+                // 4. Invalidation & Risk Flags
+                Column {
+                    Text("4. Invalidation & Risk Flags", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("• Bias invalidated if: price re-enters value below $invalidation", color = Color.White, fontSize = 11.sp)
+                    Text("• High-risk windows: check upcoming macro and expiries", color = Color.White, fontSize = 11.sp)
+                    Text("• Liquidity traps: equal highs/lows near key levels", color = Color.White, fontSize = 11.sp)
+                }
+
+                // 5. Macro Pressure Index
+                Column {
+                    Text("5. Macro Pressure Index", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("• Macro Alignment: $macroAlignment", color = Color.White, fontSize = 11.sp)
+                    Text("• Key Drivers: Rates / Inflation / Growth", color = SlateText, fontSize = 11.sp)
+                    Text("• Event Sensitivity: Medium", color = Color.White, fontSize = 11.sp)
+                }
+
+                // 6. Playbook Readiness
+                Column {
+                    Text("6. Playbook Readiness", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("• Setup Quality: ${if (confidence > 60) "Clean" else "Developing"}", color = Color.White, fontSize = 11.sp)
+                    Text("• Liquidity Availability: $liquidityCondition", color = Color.White, fontSize = 11.sp)
+                    Text("• Best Strategy Type: $playbook", color = Color.White, fontSize = 11.sp)
+                }
+
+                // 7. Post-Market Micro Review (collapsed by default)
+                Column {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("7. Post-Market Micro Review", color = SlateText, fontSize = 12.sp)
+                        Text(if (showPostMarket) "Hide" else "Show", color = IndigoAccent, modifier = Modifier.clickable { showPostMarket = !showPostMarket })
+                    }
+                    if (showPostMarket) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Did bias play out? —", color = Color.White, fontSize = 11.sp)
+                        Text("Liquidity behavior: —", color = Color.White, fontSize = 11.sp)
+                        Text("Learning: —", color = Color.White, fontSize = 11.sp)
+                    }
+                }
+
+                // Asset-specific note (small)
+                Spacer(modifier = Modifier.height(6.dp))
+                when (ctx) {
+                    AssetContext.FOREX -> Text("Focus: Central bank divergence / Dominant Currency / Session in control", color = SlateText, fontSize = 11.sp)
+                    AssetContext.COMMODITIES -> Text("Focus: Supply/demand / Inventory pressure / Physical vs paper", color = SlateText, fontSize = 11.sp)
+                    AssetContext.CRYPTO -> Text("Focus: Liquidity cycles / BTC dominance / Funding pressure", color = SlateText, fontSize = 11.sp)
+                    AssetContext.INDICES -> Text("Focus: Risk appetite / Sector leadership / Yield pressure", color = SlateText, fontSize = 11.sp)
+                    AssetContext.STOCKS -> Text("Focus: Earnings / Sector movers / Company-specific risk", color = SlateText, fontSize = 11.sp)
+                    AssetContext.FUTURES -> Text("Focus: Contract rolls / Liquidity across maturities / Curve structure", color = SlateText, fontSize = 11.sp)
+                    AssetContext.BONDS -> Text("Focus: Yield curve / Inflation expectations / Duration risk", color = SlateText, fontSize = 11.sp)
+                    AssetContext.ALL -> Text("Focus: Cross-asset pressure and correlation regime", color = SlateText, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun PerAssetOverviewBox(ctx: AssetContext, pair: ForexPair) {
+        var showPostAnalysis by remember { mutableStateOf(false) }
+
+        // Lightweight summary derived from macro events (filtered) and pair heuristics
+        val events = remember(ctx) { getMacroEventsForContext(ctx) }
+        val topEvent = events.firstOrNull()?.second ?: "No major macro events"
+
+        val absChange = kotlin.math.abs(pair.changePercent)
+        val structure = when {
+            absChange > 1.0 -> "Trend (HTF)"
+            absChange > 0.5 -> "Trend (LTF)"
+            absChange > 0.2 -> "Range"
+            else -> "Compression"
+        }
+
+        val volatility = when {
+            absChange > 2.0 -> "High"
+            absChange > 0.8 -> "Elevated"
+            else -> "Low"
+        }
+
+        val liquidity = when (ctx) {
+            AssetContext.CRYPTO -> "Thin at times"
+            AssetContext.FOREX -> "Deep"
+            AssetContext.COMMODITIES -> "Variable"
+            AssetContext.INDICES -> "Deep"
+            AssetContext.STOCKS -> "Market-hours concentrated"
+            AssetContext.FUTURES -> "Roll/expiry sensitive"
+            AssetContext.BONDS -> "Venue dependent"
+            AssetContext.ALL -> "Cross-asset"
+        }
+
+        val bias = when {
+            pair.changePercent > 0.25 -> "Institutional Bullish"
+            pair.changePercent < -0.25 -> "Institutional Bearish"
+            else -> "No Clear Institutional Bias"
+        }
+
+        val primaryPlay = when {
+            structure.contains("Trend") -> "Trend Following"
+            structure == "Range" -> "Range Play"
+            else -> "Wait for Breakout"
+        }
+        val altPlay = if (primaryPlay == "Trend Following") "Pullback entries" else "Fade extremes"
+        val failurePlan = "If structure invalidates, step aside and reassess"
+
+        val confidence = kotlin.math.min(90, (50 + (absChange * 20)).toInt())
+        val execPermission = when {
+            confidence > 65 && volatility != "High" -> "Go"
+            confidence > 50 -> "Caution"
+            else -> "Hold"
+        }
+
+        InfoBox(minHeight = 160.dp) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Overview — ${ctx.name} summary", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+
+                // Macro Alignment Summary (tiny mirror)
+                Text("Macro Alignment:", color = SlateText, fontSize = 11.sp)
+                Text(topEvent, color = Color.White, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+                // Institutional Bias
+                Text("Institutional Bias:", color = SlateText, fontSize = 11.sp)
+                Text(bias, color = Color.White, fontSize = 12.sp)
+
+                // Structure / Liquidity / Volatility row
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Structure:", color = SlateText, fontSize = 10.sp)
+                        Text(structure, color = Color.White, fontSize = 12.sp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Liquidity:", color = SlateText, fontSize = 10.sp)
+                        Text(liquidity, color = Color.White, fontSize = 12.sp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Volatility:", color = SlateText, fontSize = 10.sp)
+                        Text(volatility, color = Color.White, fontSize = 12.sp)
+                    }
+                }
+
+                // Playbook
+                Text("Scenario Playbook:", color = SlateText, fontSize = 11.sp)
+                Text("Primary: $primaryPlay | Alternative: $altPlay | Failure: $failurePlan", color = Color.White, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+                // Execution permission
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("Execution Permission:", color = SlateText, fontSize = 10.sp)
+                        Text(execPermission, color = Color.White, fontSize = 12.sp)
+                    }
+                    Text("Confidence: $confidence%", color = SlateText, fontSize = 10.sp)
+                }
+
+                // Post-Event Analysis (collapsed by default)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Post-Event Analysis", color = SlateText, fontSize = 11.sp)
+                    Text(if (showPostAnalysis) "Hide" else "Show", color = IndigoAccent, modifier = Modifier.clickable { showPostAnalysis = !showPostAnalysis })
+                }
+                if (showPostAnalysis) {
+                    Text("Outcome: —", color = Color.White, fontSize = 11.sp)
+                    Text("Execution notes: —", color = Color.White, fontSize = 11.sp)
+                }
+
+                // AI reasoning scope note (ensures prompts include active asset)
+                Text("AI scope: ${AssetContextStore.aiPromptPrefix()}", color = SlateText, fontSize = 9.sp)
+            }
+        }
+    }
+
     // Derive the selected chip from the global AssetContext so this composable
     // won't overwrite the app-wide context on initial composition.
     val selectedCatName = remember(assetCtxForNews) {
@@ -380,6 +682,15 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             }
         }
 
+        // When `All` is selected, show the Universal Overview box below the chips
+        if (assetCtxForNews == AssetContext.ALL) {
+            item {
+                UniversalOverviewBox(assetCtxForNews, selectedPair)
+            }
+            // Add padding between the first two boxes for the ALL view
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
         // Market overview summary (driven by AssetContext -> MarketOverviewConfig)
         item {
             InfoBox(minHeight = 180.dp) {
@@ -412,6 +723,15 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         }
                     }
                 }
+            }
+        }
+
+        // Per-asset concise Overview (adds the new fields for each asset view, does not replace existing info)
+        if (assetCtxForNews != AssetContext.ALL) {
+            // Add padding between the Market Overview and the Per-Asset Overview
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+            item {
+                PerAssetOverviewBox(assetCtxForNews, selectedPair)
             }
         }
 
