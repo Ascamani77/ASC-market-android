@@ -26,19 +26,77 @@ import com.asc.markets.ui.theme.*
 fun TradeLedgerScreen() {
     var selectedTrade by remember { mutableStateOf<com.asc.markets.data.AutomatedTrade?>(null) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(DeepBlack).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 120.dp)
-    ) {
-        item {
-            Text("REAL-TIME NODE", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            Text("AUTONOMOUS AUDIT STREAM", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Separator between main menu and subheader
+        Divider(modifier = Modifier.fillMaxWidth().height(1.dp), color = Color.White.copy(alpha = 0.06f))
+
+        // Static subheader that does not scroll
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(PureBlack)
+                .padding(vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("REAL-TIME NODE AUTONOMOUS AUDIT STREAM", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Area between subheader and page content uses DeepBlack background
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(DeepBlack)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Divider(modifier = Modifier.fillMaxWidth().height(1.dp), color = Color.White.copy(alpha = 0.06f))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
-        items(MOCK_TRADES) { trade ->
-            DashboardTrade(trade) { selectedTrade = it }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().background(DeepBlack),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 120.dp)
+        ) {
+            // Full-width execution quality banner (touches screen edges)
+            item {
+                InfoBox(minHeight = 220.dp, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(modifier = Modifier.size(64.dp), shape = RoundedCornerShape(12.dp), color = Color(0xFF101010)) {
+                            Box(contentAlignment = Alignment.Center) { Text("🔒", color = Color.White, fontSize = 20.sp) }
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text("EXECUTION", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("QUALITY", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("POST-MOVE EFFICIENCY\nLEDGER (10%)", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("AVG SLIPPAGE", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("0.12 PIPS", color = EmeraldSuccess, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("SYSTEM EFFICIENCY", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("96.8% VALIDATED", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+            }
+
+            items(MOCK_TRADES) { trade ->
+                DashboardTrade(trade) { selectedTrade = it }
+                Spacer(modifier = Modifier.height(0.dp))
+            }
         }
     }
 
