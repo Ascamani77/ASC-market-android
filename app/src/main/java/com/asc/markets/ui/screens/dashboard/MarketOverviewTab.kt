@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -187,7 +190,9 @@ fun getNewsForContext(ctx: com.asc.markets.state.AssetContext): List<NewsItem> {
         com.asc.markets.state.AssetContext.FOREX -> all.filter { it.assetType.lowercase() == "forex" }
         com.asc.markets.state.AssetContext.CRYPTO -> all.filter { it.assetType.lowercase() == "crypto" }
         com.asc.markets.state.AssetContext.COMMODITIES -> all.filter { it.assetType.lowercase() == "commodities" || it.assetType.lowercase() == "energy" }
-        com.asc.markets.state.AssetContext.INDICES -> all.filter { it.assetType.lowercase() == "indices" || it.assetType.lowercase() == "stocks" }
+        com.asc.markets.state.AssetContext.INDICES -> all.filter { it.assetType.lowercase() == "indices" }
+        com.asc.markets.state.AssetContext.STOCKS -> all.filter { it.assetType.lowercase() == "stocks" }
+        com.asc.markets.state.AssetContext.FUTURES -> all.filter { it.assetType.lowercase() == "indices" || it.assetType.lowercase() == "futures" }
         com.asc.markets.state.AssetContext.BONDS -> all.filter { it.assetType.lowercase() == "bonds" }
     }
 }
@@ -214,6 +219,16 @@ fun getMacroEventsForContext(ctx: com.asc.markets.state.AssetContext): List<Pair
             "08:41" to "Advance/Decline ratio improves; breadth turning positive",
             "08:38" to "Small caps outperform large caps intraday",
             "08:35" to "Sector rotation into cyclicals observed"
+        )
+        com.asc.markets.state.AssetContext.STOCKS -> listOf(
+            "08:41" to "Earnings season driving stock-specific moves",
+            "08:38" to "Sector rotation shows strength in technology and energy",
+            "08:35" to "Large-cap leadership persists intraday"
+        )
+        com.asc.markets.state.AssetContext.FUTURES -> listOf(
+            "08:41" to "Futures liquidity widens ahead of settlement",
+            "08:38" to "Commodity futures curve showing contango in WTI",
+            "08:35" to "Index futures lead pre-market price discovery"
         )
         com.asc.markets.state.AssetContext.BONDS -> listOf(
             "08:41" to "10y yield edges up 4bps; curve flattening",
@@ -272,9 +287,15 @@ fun getExploreItemsForContext(ctx: com.asc.markets.state.AssetContext): List<For
     com.asc.markets.state.AssetContext.CRYPTO -> provideCryptoExplore()
     com.asc.markets.state.AssetContext.COMMODITIES -> provideCommoditiesExplore()
     com.asc.markets.state.AssetContext.INDICES -> provideIndicesExplore()
+    com.asc.markets.state.AssetContext.STOCKS -> provideStocksExplore()
+    com.asc.markets.state.AssetContext.FUTURES -> provideFuturesExplore()
     com.asc.markets.state.AssetContext.BONDS -> provideBondsExplore()
     com.asc.markets.state.AssetContext.ALL -> provideForexExplore()
 }
+
+fun provideStocksExplore(): List<ForexPair> = FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.STOCK }
+
+fun provideFuturesExplore(): List<ForexPair> = provideIndicesExplore()
 
 // --- UI ---
 @OptIn(ExperimentalFoundationApi::class)
@@ -282,20 +303,35 @@ fun getExploreItemsForContext(ctx: com.asc.markets.state.AssetContext): List<For
 fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit = {}) {
     val context = LocalContext.current
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    val categories = listOf("Commodities", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
-    var selectedCat by remember { mutableStateOf("Commodities") }
+    val categories = listOf("All", "Commodities", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
+
+    // Remembered state for the main scrollable list so we can programmatically
+    // scroll to top when the user selects an asset category.
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     // Observe current AssetContext at composable scope for use in several sections
     val assetCtxForNews by AssetContextStore.context.collectAsState()
     val selectedPairCtx = mapCategoryToAssetContext(selectedPair.category.name)
     val newsItemsForCtx = remember(assetCtxForNews) { getNewsForContext(assetCtxForNews) }
 
-    // Ensure the global AssetContext matches the selected category on first composition and when user toggles chips
-    LaunchedEffect(selectedCat) {
-        AssetContextStore.setAndInvalidate(mapCategoryToAssetContext(selectedCat))
+    // Derive the selected chip from the global AssetContext so this composable
+    // won't overwrite the app-wide context on initial composition.
+    val selectedCatName = remember(assetCtxForNews) {
+        when (assetCtxForNews) {
+            AssetContext.FOREX -> "Forex"
+            AssetContext.CRYPTO -> "Crypto"
+            AssetContext.COMMODITIES -> "Commodities"
+            AssetContext.INDICES -> "Indices"
+            AssetContext.STOCKS -> "Stocks"
+            AssetContext.FUTURES -> "Futures"
+            AssetContext.BONDS -> "Bonds"
+            AssetContext.ALL -> "Markets"
+        }
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().background(DeepBlack),
         contentPadding = PaddingValues(bottom = 158.dp)
     ) {
@@ -314,15 +350,18 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(categories) { cat ->
-                            val isSelected = selectedCat == cat
+                            val isSelected = mapCategoryToAssetContext(cat) == assetCtxForNews
                             Surface(
                                 color = if (isSelected) Color(0xFF2d2d2d) else Color.Transparent,
                                 shape = RoundedCornerShape(12.dp),
                                 border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
                                 modifier = Modifier.clickable {
                                     vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-                                    selectedCat = cat
                                     AssetContextStore.setAndInvalidate(mapCategoryToAssetContext(cat))
+                                    // After changing context, jump the list back to the top
+                                    coroutineScope.launch {
+                                        listState.scrollToItem(0)
+                                    }
                                 }
                             ) {
                                 Text(
@@ -634,14 +673,16 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         // Explore grid title (context-aware)
         item {
-            val exploreTitle = when (assetCtxForNews) {
-                AssetContext.FOREX -> "Forex Majors"
-                AssetContext.CRYPTO -> "Crypto Gainers"
-                AssetContext.COMMODITIES -> "Commodities"
-                AssetContext.INDICES -> "Major Indices"
-                AssetContext.BONDS -> "Bond Market"
-                AssetContext.ALL -> "Markets"
-            }
+                val exploreTitle = when (assetCtxForNews) {
+                    AssetContext.FOREX -> "Forex Majors"
+                    AssetContext.CRYPTO -> "Crypto Gainers"
+                    AssetContext.COMMODITIES -> "Commodities"
+                    AssetContext.INDICES -> "Major Indices"
+                    AssetContext.STOCKS -> "Stocks"
+                    AssetContext.FUTURES -> "Futures"
+                    AssetContext.BONDS -> "Bond Market"
+                    AssetContext.ALL -> "Markets"
+                }
             Text(
                 exploreTitle,
                 color = Color.White,
@@ -987,7 +1028,12 @@ fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
     if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.CRYPTO) return
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-        Text("Crypto Gainers", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.CRYPTO -> "Crypto Gainers"
+            com.asc.markets.state.AssetContext.ALL -> "Crypto Gainers"
+            else -> "Crypto"
+        }
+        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
         
         val cryptoList = provideCryptoExplore()
@@ -1036,10 +1082,15 @@ private fun CryptoCard(name: String, symbol: String, price: String, onClick: () 
 @Composable
 fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
     val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
-    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.STOCKS) return
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-        Text("Stocks Gainers", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.STOCKS -> "Stocks Gainers"
+            com.asc.markets.state.AssetContext.ALL -> "Stocks Gainers"
+            else -> "Stocks"
+        }
+        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
         
         val stocks = listOf(
@@ -1048,7 +1099,7 @@ fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
             Pair("Gas Holdings", "1.8308 USD")
         )
         
-        val stockList = provideIndicesExplore()
+        val stockList = provideStocksExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
             items(stockList) { fp ->
                 StockCard(fp.name, String.format(Locale.US, "%.2f", fp.price)) {
@@ -1094,7 +1145,12 @@ fun IndicesCardsSection(onAssetClick: (ForexPair) -> Unit) {
     if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-        Text("Major Indices", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.INDICES -> "Major Indices"
+            com.asc.markets.state.AssetContext.ALL -> "Major Indices"
+            else -> "Indices"
+        }
+        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
         
         val indices = listOf(

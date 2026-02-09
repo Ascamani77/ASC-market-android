@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class AssetContext { ALL, FOREX, CRYPTO, COMMODITIES, INDICES, BONDS }
+enum class AssetContext { ALL, FOREX, CRYPTO, COMMODITIES, INDICES, STOCKS, FUTURES, BONDS }
 
 object AssetContextStore {
     // default to ALL so modules can show aggregated view until user picks a lens
@@ -23,17 +23,19 @@ object AssetContextStore {
         AssetContext.CRYPTO -> "Analyze Crypto market conditions"
         AssetContext.COMMODITIES -> "Analyze Commodities supply/demand conditions"
         AssetContext.INDICES -> "Analyze Equity indices breadth and sector rotation"
+        AssetContext.STOCKS -> "Analyze individual equity performance and sector movers"
+        AssetContext.FUTURES -> "Analyze futures market and contract trends"
         AssetContext.BONDS -> "Analyze bond market and yield curve"
     }
 }
 
 fun mapCategoryToAssetContext(category: String): AssetContext = when (category.trim().lowercase()) {
     "all", "all assets", "global" -> AssetContext.ALL
-    "commodities" -> AssetContext.COMMODITIES
-    "stocks" -> AssetContext.INDICES
-    "crypto" -> AssetContext.CRYPTO
-    "futures" -> AssetContext.COMMODITIES
-    "forex" -> AssetContext.FOREX
-    "bonds" -> AssetContext.BONDS
+    "commodities", "commodity", "energy" -> AssetContext.COMMODITIES
+    "stocks", "stock" -> AssetContext.STOCKS
+    "crypto", "cryptocurrency", "cryptos" -> AssetContext.CRYPTO
+    "futures", "future" -> AssetContext.FUTURES
+    "forex", "fx" -> AssetContext.FOREX
+    "bonds", "bond" -> AssetContext.BONDS
     else -> AssetContext.ALL
 }
