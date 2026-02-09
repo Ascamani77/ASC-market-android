@@ -21,7 +21,8 @@ import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
-import com.asc.markets.data.FOREX_PAIRS
+import com.asc.markets.state.AssetContextStore
+import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
 
 sealed class SettingsSection(val id: String, val title: String, val icon: ImageVector, val value: String? = null) {
     object Workspace : SettingsSection("workspace", "Workspace Interface", androidx.compose.material.icons.autoMirrored.outlined.Settings, "DARK")
@@ -209,7 +210,8 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                     leadingIcon = { Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, null, tint = SlateText) },
                     colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
                 )
-                FOREX_PAIRS.forEach { pair ->
+                val exploreItems = getExploreItemsForContext(AssetContextStore.get())
+                exploreItems.forEach { pair ->
                     AssetSettingRow(pair)
                 }
             }

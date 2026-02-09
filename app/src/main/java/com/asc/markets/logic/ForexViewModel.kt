@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.asc.markets.api.ForexAnalysisEngine
 import com.asc.markets.data.*
+import com.asc.markets.ui.screens.dashboard.provideForexExplore
 import com.asc.markets.data.ForexDataPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -63,7 +64,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRiskAccepted = MutableStateFlow(false)
     val isRiskAccepted = _isRiskAccepted.asStateFlow()
 
-    private val _selectedPair = MutableStateFlow(FOREX_PAIRS[0])
+    private val _selectedPair = MutableStateFlow(provideForexExplore().first())
     val selectedPair = _selectedPair.asStateFlow()
 
     private val _isInitializing = MutableStateFlow(true)
@@ -476,7 +477,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectPairBySymbol(symbol: String) {
-        val pair = FOREX_PAIRS.find { it.symbol == symbol }
+        val pair = provideForexExplore().find { it.symbol == symbol }
         pair?.let {
             selectPair(it)
         }
@@ -487,7 +488,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
      * Use this when updating selection from within a modal or settings screen.
      */
     fun selectPairBySymbolNoNavigate(symbol: String) {
-        val pair = FOREX_PAIRS.find { it.symbol == symbol }
+        val pair = provideForexExplore().find { it.symbol == symbol }
         pair?.let {
             _selectedPair.value = it
         }

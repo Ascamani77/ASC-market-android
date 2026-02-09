@@ -20,31 +20,53 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.FOREX_PAIRS
+import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
+import com.asc.markets.state.AssetContext
+import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 
 @Composable
 fun MarketPsychologyTab() {
+    val ctx by AssetContextStore.context.collectAsState()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
     ) {
-        
-
-        item {
-            InfoBox(height = 320.dp) {
-                Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("GLOBAL PSYCHOLOGY METER", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.weight(1f))
-                    PsychologyGauge(72)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        SentimentStateBox("STATE", "GREED REGIME", EmeraldSuccess)
-                        SentimentStateBox("VOLATILITY", "STABLE", Color.White)
-                        SentimentStateBox("DXY BETA", "0.82 HIGH", Color.White)
+        // If asset context is FOREX, show the detailed psychology meter; otherwise show an asset-specific summary
+        if (ctx == AssetContext.FOREX) {
+            item {
+                InfoBox(height = 320.dp) {
+                    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("GLOBAL PSYCHOLOGY METER", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                        Spacer(modifier = Modifier.weight(1f))
+                        PsychologyGauge(72)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            SentimentStateBox("STATE", "GREED REGIME", EmeraldSuccess)
+                            SentimentStateBox("VOLATILITY", "STABLE", Color.White)
+                            SentimentStateBox("DXY BETA", "0.82 HIGH", Color.White)
+                        }
+                    }
+                }
+            }
+        } else {
+            item {
+                InfoBox(height = 160.dp) {
+                    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${ctx.name} Psychology Summary", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        val events = getMacroEventsForContext(ctx)
+                        events.take(3).forEach { (t, txt) ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(t, color = SlateText, fontSize = 10.sp)
+                                Text(txt, color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Institutional bias and flow summary available for ${ctx.name}.", color = SlateText, fontSize = 11.sp)
                     }
                 }
             }
@@ -112,12 +134,18 @@ fun MarketPsychologyTab() {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("SENTIMENT REGISTRY", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                 var selectedPair by remember { mutableStateOf<com.asc.markets.data.ForexPair?>(null) }
-                FOREX_PAIRS.forEach { pair ->
-                    SentimentAssetRow(pair) { selectedPair = it }
-                }
+                if (ctx == AssetContext.FOREX) {
+                    val list = getExploreItemsForContext(ctx)
+                    list.forEach { pair ->
+                        SentimentAssetRow(pair) { selectedPair = it }
+                    }
 
-                if (selectedPair != null) {
-                    InstitutionalContextModal(pair = selectedPair!!, onClose = { selectedPair = null })
+                    if (selectedPair != null) {
+                        InstitutionalContextModal(pair = selectedPair!!, onClose = { selectedPair = null })
+                    }
+                } else {
+                    // Per-asset sentiment placeholder when specific registry is unavailable
+                    Text("Sentiment registry not available for ${ctx.name}. See Overview for concise bias and flow.", color = SlateText, fontSize = 11.sp)
                 }
             }
         }

@@ -118,9 +118,16 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
     val headerTopPad = (configuration.screenHeightDp * 0.02f).dp
 
     val filterState = remember { mutableStateOf("ALL") }
+    val assetCtx by com.asc.markets.state.AssetContextStore.context.collectAsState()
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
     val audits by viewModel.auditRecords.collectAsState()
+    // Apply ActiveAssetContext filtering: if not ALL, show only audits referencing the active asset
+    val auditsForDisplay = remember(audits, assetCtx) {
+        if (assetCtx == com.asc.markets.state.AssetContext.ALL) audits else audits.filter { entry ->
+            entry.assets.contains(assetCtx.name, true)
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = DeepBlack) {
         // collapsing header + sticky submenu pattern
@@ -216,7 +223,7 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(horizontal = 12.dp)
                 .padding(paddingValues)) {
-                items(audits, key = { it.id }) { entry ->
+                items(auditsForDisplay, key = { it.id }) { entry ->
                     val isExpanded = expanded[entry.id] ?: false
                     Surface(
                         modifier = Modifier

@@ -41,6 +41,8 @@ data class Signal(
 
 @Composable
 fun DashboardSignals() {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+
     // sample signals — 25 items: 5 Forex majors, 5 Commodities, 5 Crypto, 5 Stocks, 5 Indexes
     val signals = remember {
         listOf(
@@ -81,6 +83,29 @@ fun DashboardSignals() {
         )
     }
 
+    // Helper: map AssetContext -> allowed group indices
+    fun allowedGroupIndicesFor(ctx: com.asc.markets.state.AssetContext): Set<Int> {
+        return when (ctx) {
+            com.asc.markets.state.AssetContext.FOREX -> setOf(0)
+            com.asc.markets.state.AssetContext.COMMODITIES -> setOf(1)
+            com.asc.markets.state.AssetContext.CRYPTO -> setOf(2)
+            com.asc.markets.state.AssetContext.STOCKS -> setOf(3)
+            com.asc.markets.state.AssetContext.INDICES, com.asc.markets.state.AssetContext.FUTURES -> setOf(4)
+            com.asc.markets.state.AssetContext.ALL -> setOf(0,1,2,3,4)
+            else -> setOf(0,1,2,3,4)
+        }
+    }
+
+    // Public provider (simple) — returns filtered signals by asset context.
+    fun provideSignalsForContext(ctx: com.asc.markets.state.AssetContext): List<Signal> {
+        val groups = signals.chunked(5)
+        val allowed = allowedGroupIndicesFor(ctx)
+        return groups.mapIndexedNotNull { idx, grp -> if (allowed.contains(idx)) grp else null }.flatten()
+    }
+
+    // Use provider to get signals for current active asset context
+    val visibleSignals = remember(ctx) { provideSignalsForContext(ctx) }
+
     var engineRefreshSeconds by remember { mutableStateOf(300) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -112,7 +137,7 @@ fun DashboardSignals() {
 
         // Group signals into categories of 5 and label each group on the deep-black background
         val groupLabels = listOf("Forex Majors", "Commodities", "Crypto Majors", "Stocks", "Indexes")
-        val groups = signals.chunked(5)
+        val groups = visibleSignals.chunked(5)
         var openGroup by remember { mutableStateOf<Int?>(null) }
 
         groups.forEachIndexed { gi, group ->

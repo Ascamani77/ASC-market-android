@@ -23,7 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
-import com.asc.markets.data.FOREX_PAIRS
+import com.asc.markets.state.mapCategoryToAssetContext
+import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
@@ -168,18 +169,10 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 120.dp)
             ) {
-            val filtered = FOREX_PAIRS.filter {
+            val base = getExploreItemsForContext(mapCategoryToAssetContext(activeCategory))
+            val filtered = base.filter {
                 val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
-                val matchesCat = when(activeCategory) {
-                    "ALL" -> true
-                    "FOREX" -> it.category == com.asc.markets.data.MarketCategory.FOREX
-                    "CRYPTO" -> it.category == com.asc.markets.data.MarketCategory.CRYPTO
-                    "INDICES" -> it.category == com.asc.markets.data.MarketCategory.INDICES
-                    "COMMODITIES" -> it.category == com.asc.markets.data.MarketCategory.COMMODITIES
-                    "STOCKS" -> it.category == com.asc.markets.data.MarketCategory.STOCK
-                    else -> true
-                }
-                matchesSearch && matchesCat
+                matchesSearch
             }
 
             items(filtered) { pair ->

@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.asc.markets.data.AppView
-import com.asc.markets.data.FOREX_PAIRS
+import com.asc.markets.state.AssetContextStore
+import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
+import androidx.compose.runtime.collectAsState
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -88,13 +90,14 @@ fun CommandPalette(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                val assetCtx by AssetContextStore.context.collectAsState()
+                val filteredPairs = remember(assetCtx, query) { getExploreItemsForContext(assetCtx).filter { it.symbol.contains(query, ignoreCase = true) } }
+
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    val filteredPairs = FOREX_PAIRS.filter { it.symbol.contains(query, ignoreCase = true) }
-                    
                     item {
                         Text("SYSTEM NODES", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, modifier = Modifier.padding(bottom = 12.dp))
                     }
-                    
+
                     items(AppView.values().take(5)) { view ->
                         CommandItem(view.name.replace("_", " "), "NODE_UPLINK") { onNavigate(view) }
                     }
@@ -105,7 +108,7 @@ fun CommandPalette(
                     }
 
                     items(filteredPairs) { pair ->
-                        CommandItem(pair.symbol, pair.name) { 
+                        CommandItem(pair.symbol, pair.name) {
                             onSelectAsset(pair.symbol)
                             onDismiss()
                         }
