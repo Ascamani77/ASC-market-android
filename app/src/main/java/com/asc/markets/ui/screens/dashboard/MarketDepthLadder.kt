@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +45,10 @@ fun MarketDepthLadder(
     selectedPair: ForexPair,
     modifier: Modifier = Modifier
 ) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    // Defensive: only show depth for matching asset context or when in ALL view
+    val pairCtx = com.asc.markets.state.mapCategoryToAssetContext(selectedPair.category.name)
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != pairCtx) return
     val currentPrice = selectedPair.price
     
     // Determine tick size based on asset type

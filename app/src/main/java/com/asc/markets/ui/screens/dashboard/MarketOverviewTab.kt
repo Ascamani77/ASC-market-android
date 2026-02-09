@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.FOREX_PAIRS
+import com.asc.markets.data.MarketCategory
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.MiniChart
 import com.asc.markets.ui.components.ForexIcon
@@ -58,7 +59,7 @@ data class NewsItem(
 
 // --- Networking: fetch from OpenAI (uses BuildConfig.OPENAI_API_KEY) ---
 @Suppress("BlockingMethodInNonBlockingContext")
-suspend fun fetchNewsFromGemini(): List<NewsItem> {
+suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null): List<NewsItem> {
     return try {
         val apiKey = BuildConfig.OPENAI_API_KEY
         if (apiKey.isBlank()) {
@@ -66,7 +67,12 @@ suspend fun fetchNewsFromGemini(): List<NewsItem> {
             return emptyList()
         }
 
-        val prompt = com.asc.markets.ai.AiPrompts.buildNewsPrompt()
+        val activeCtx = ctx ?: AssetContextStore.get()
+        val promptPrefix = AssetContextStore.aiPromptPrefix()
+        val basePrompt = com.asc.markets.ai.AiPrompts.buildNewsPrompt()
+        // Add hard constraint per asset-scope requirement
+        val hardConstraint = "ONLY analyze assets within the active AssetContext: ${activeCtx.name}. Explicitly ignore all others."
+        val prompt = "$promptPrefix. $hardConstraint. $basePrompt"
 
         val bodyJson = JSONObject().apply {
             put("model", "gpt-4o-mini")
@@ -150,7 +156,9 @@ suspend fun fetchNewsFromGemini(): List<NewsItem> {
         }
 
         android.util.Log.d("AscNews", "Parsed ${items.size} news items from OpenAI")
-        if (items.isNotEmpty()) items else emptyList()
+        // Defensive filter: ensure returned items are within requested context when ctx provided
+        val filtered = if (ctx != null) items.filter { it.assetType.equals(ctx.name.lowercase(), true) } else items
+        if (filtered.isNotEmpty()) filtered else emptyList()
     } catch (e: Exception) {
         android.util.Log.e("AscNews", "Exception in fetchNewsFromGemini: ${e.message}", e)
         emptyList()
@@ -171,6 +179,103 @@ fun getMockAscNews(): List<NewsItem> = listOf(
     NewsItem("US unemployment rate drops to 3.5% signaling robust economic health", "Bureau of Labor", "4h ago", "indices")
 )
 
+// Context-aware news filtering helper
+fun getNewsForContext(ctx: com.asc.markets.state.AssetContext): List<NewsItem> {
+    val all = getMockAscNews()
+    return when (ctx) {
+        com.asc.markets.state.AssetContext.ALL -> all
+        com.asc.markets.state.AssetContext.FOREX -> all.filter { it.assetType.lowercase() == "forex" }
+        com.asc.markets.state.AssetContext.CRYPTO -> all.filter { it.assetType.lowercase() == "crypto" }
+        com.asc.markets.state.AssetContext.COMMODITIES -> all.filter { it.assetType.lowercase() == "commodities" || it.assetType.lowercase() == "energy" }
+        com.asc.markets.state.AssetContext.INDICES -> all.filter { it.assetType.lowercase() == "indices" || it.assetType.lowercase() == "stocks" }
+        com.asc.markets.state.AssetContext.BONDS -> all.filter { it.assetType.lowercase() == "bonds" }
+    }
+}
+
+// --- Context-aware mock macro events (should be sourced from data layer in future) ---
+fun getMacroEventsForContext(ctx: com.asc.markets.state.AssetContext): List<Pair<String, String>> {
+    return when (ctx) {
+        com.asc.markets.state.AssetContext.FOREX -> listOf(
+            "08:41" to "EUR/USD: Momentum shift, watch 1.0900 level",
+            "08:38" to "DXY strength persists; USD correlated across majors",
+            "08:35" to "Liquidity thinning ahead of London open"
+        )
+        com.asc.markets.state.AssetContext.CRYPTO -> listOf(
+            "08:41" to "On-chain flows show exchange outflows for BTC",
+            "08:38" to "Derivatives open interest drops 4%",
+            "08:35" to "Large whale moved funds to cold storage"
+        )
+        com.asc.markets.state.AssetContext.COMMODITIES -> listOf(
+            "08:41" to "API inventory surprise in crude: -3.2M barrels",
+            "08:38" to "Futures curve steepens for Brent",
+            "08:35" to "Metals ETF inflows indicate demand pickup"
+        )
+        com.asc.markets.state.AssetContext.INDICES -> listOf(
+            "08:41" to "Advance/Decline ratio improves; breadth turning positive",
+            "08:38" to "Small caps outperform large caps intraday",
+            "08:35" to "Sector rotation into cyclicals observed"
+        )
+        com.asc.markets.state.AssetContext.BONDS -> listOf(
+            "08:41" to "10y yield edges up 4bps; curve flattening",
+            "08:38" to "Inflation breakevens tick higher",
+            "08:35" to "Duration-sensitive funds increase hedges"
+        )
+        com.asc.markets.state.AssetContext.ALL -> listOf(
+            "08:41" to "Cross-asset volatility rising; monitor correlations",
+            "08:38" to "Macro headlines impacting FX and equities",
+            "08:35" to "Liquidity snapshot: mixed across venues"
+        )
+    }
+}
+
+// Centralized providers for explore/grid items so UI sections reuse the same data source
+fun provideForexExplore(): List<ForexPair> = FOREX_PAIRS
+
+fun provideCryptoExplore(): List<ForexPair> = listOf(
+    ForexPair("BTC/USD", "Bitcoin", 76762.0, 1200.0, 1.59, category = com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("ETH/USD", "Ethereum", 3000.0, 150.0, 5.26, category = com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("SOL/USD", "Solana", 120.0, 8.0, 7.14, category = com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("BNB/USD", "BNB", 420.0, -5.0, -1.17, category = com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("ADA/USD", "Cardano", 0.45, 0.02, 4.65, category = com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("XRP/USD", "XRP", 0.62, -0.01, -1.59, category = com.asc.markets.data.MarketCategory.CRYPTO)
+)
+
+fun provideCommoditiesExplore(): List<ForexPair> = listOf(
+    ForexPair("XAU/USD", "Gold", 2087.5, 38.0, 1.85, category = com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("WTI", "Crude WTI", 76.45, -1.02, -1.32, category = com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("NG", "Natural Gas", 2.856, 0.09, 3.21, category = com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("XAG/USD", "Silver", 25.3, 0.4, 1.61, category = com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("COPPER", "Copper", 4.32, 0.05, 1.17, category = com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("PLAT", "Platinum", 980.0, -10.0, -1.01, category = com.asc.markets.data.MarketCategory.COMMODITIES)
+)
+
+fun provideIndicesExplore(): List<ForexPair> = listOf(
+    ForexPair("SPX", "S&P 500", 6939.02, 60.0, 0.87, category = com.asc.markets.data.MarketCategory.INDICES),
+    ForexPair("NDX", "Nasdaq 100", 25552.39, 358.0, 1.42, category = com.asc.markets.data.MarketCategory.INDICES),
+    ForexPair("DAX", "DAX", 24538.81, 229.0, 0.94, category = com.asc.markets.data.MarketCategory.INDICES),
+    ForexPair("FTSE", "FTSE 100", 10223.54, 52.0, 0.51, category = com.asc.markets.data.MarketCategory.INDICES),
+    ForexPair("NI225", "Japan 225", 53322.8, 1100.0, 2.10, category = com.asc.markets.data.MarketCategory.INDICES),
+    ForexPair("SSE", "SSE Comp", 4117.95, -40.0, -0.96, category = com.asc.markets.data.MarketCategory.INDICES)
+)
+
+fun provideBondsExplore(): List<ForexPair> = listOf(
+    ForexPair("US10Y", "US 10Y", 102.5, 0.2, 0.20, category = com.asc.markets.data.MarketCategory.STOCK),
+    ForexPair("US2Y", "US 2Y", 98.3, -0.1, -0.10, category = com.asc.markets.data.MarketCategory.STOCK),
+    ForexPair("UK10Y", "UK 10Y", 101.2, 0.3, 0.30, category = com.asc.markets.data.MarketCategory.STOCK),
+    ForexPair("GER10Y", "Germany 10Y", 89.7, 0.4, 0.45, category = com.asc.markets.data.MarketCategory.STOCK),
+    ForexPair("JPN10Y", "Japan 10Y", 26.5, 0.0, 0.00, category = com.asc.markets.data.MarketCategory.STOCK),
+    ForexPair("AUS10Y", "Australia 10Y", 105.4, 0.5, 0.48, category = com.asc.markets.data.MarketCategory.STOCK)
+)
+
+fun getExploreItemsForContext(ctx: com.asc.markets.state.AssetContext): List<ForexPair> = when (ctx) {
+    com.asc.markets.state.AssetContext.FOREX -> provideForexExplore()
+    com.asc.markets.state.AssetContext.CRYPTO -> provideCryptoExplore()
+    com.asc.markets.state.AssetContext.COMMODITIES -> provideCommoditiesExplore()
+    com.asc.markets.state.AssetContext.INDICES -> provideIndicesExplore()
+    com.asc.markets.state.AssetContext.BONDS -> provideBondsExplore()
+    com.asc.markets.state.AssetContext.ALL -> provideForexExplore()
+}
+
 // --- UI ---
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -179,6 +284,16 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
     val categories = listOf("Commodities", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
     var selectedCat by remember { mutableStateOf("Commodities") }
+
+    // Observe current AssetContext at composable scope for use in several sections
+    val assetCtxForNews by AssetContextStore.context.collectAsState()
+    val selectedPairCtx = mapCategoryToAssetContext(selectedPair.category.name)
+    val newsItemsForCtx = remember(assetCtxForNews) { getNewsForContext(assetCtxForNews) }
+
+    // Ensure the global AssetContext matches the selected category on first composition and when user toggles chips
+    LaunchedEffect(selectedCat) {
+        AssetContextStore.setAndInvalidate(mapCategoryToAssetContext(selectedCat))
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
@@ -207,7 +322,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                                 modifier = Modifier.clickable {
                                     vibrator?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
                                     selectedCat = cat
-                                    AssetContextStore.set(mapCategoryToAssetContext(cat))
+                                    AssetContextStore.setAndInvalidate(mapCategoryToAssetContext(cat))
                                 }
                             ) {
                                 Text(
@@ -425,35 +540,24 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         item { Spacer(modifier = Modifier.height(12.dp)) }
 
-        // 5. MACRO INTELLIGENCE STREAM (Event Log)
+        // 5. MACRO INTELLIGENCE STREAM (Event Log) - context-aware
         item {
             InfoBox(minHeight = 150.dp) {
+                val assetCtx by AssetContextStore.context.collectAsState()
+                val events = getMacroEventsForContext(assetCtx)
+
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("📊", fontSize = 18.sp)
                         Text("Macro Intelligence Stream", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
-                    
+
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        // Event 1
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("08:41", color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("RSI enters Overbought (>70) on M5", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        // Event 2
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("08:38", color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("Volume spike 2.3x 10-period MA", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        // Event 3
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("08:35", color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("Price touches R1 level 1.0892", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        // Event 4
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("08:32", color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("Higher High / Higher Low confirmed", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        events.forEach { (time, text) ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(time, color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                                Text(text, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -528,10 +632,18 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         item { Spacer(modifier = Modifier.height(24.dp)) }
 
-        // Forex Majors title
+        // Explore grid title (context-aware)
         item {
+            val exploreTitle = when (assetCtxForNews) {
+                AssetContext.FOREX -> "Forex Majors"
+                AssetContext.CRYPTO -> "Crypto Gainers"
+                AssetContext.COMMODITIES -> "Commodities"
+                AssetContext.INDICES -> "Major Indices"
+                AssetContext.BONDS -> "Bond Market"
+                AssetContext.ALL -> "Markets"
+            }
             Text(
-                "Forex Majors",
+                exploreTitle,
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
@@ -539,8 +651,9 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             )
         }
 
-        // 3. EXPLORE GRID (2-Column Matrix)
-        val gridItems = FOREX_PAIRS.take(6).chunked(2)
+        // Use centralized provider for explore items
+        val exploreItems = getExploreItemsForContext(assetCtxForNews).take(6)
+        val gridItems = exploreItems.chunked(2)
         items(gridItems) { row ->
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
@@ -571,16 +684,11 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             }
         }
 
-        // 5. NEWS FLOW ITEMS
-        val newsItems = listOf(
-            Triple("Reuters • 10:06 pm", "Two things OPEC+ can't control: Trump and China imports", "B"),
-            Triple("Dow Jones • 10:00 pm", "Week Ahead for FX, Bonds: U.S. Jobs Data, Central Bank Decisions in Focus", "W"),
-            Triple("Reuters • 09:45 pm", "Island Pharmaceuticals Seeks Trading Halt", "I"),
-            Triple("Bloomberg • 09:30 pm", "Bitcoin's Price Sinks Further: High Volatility Expected", "B")
-        )
-
-        items(newsItems) { (meta, title, iconChar) ->
-            NewsFlowRow(meta, title, iconChar)
+        // 5. NEWS FLOW ITEMS (context-aware)
+        items(newsItemsForCtx) { item ->
+            val meta = "${item.source} • ${item.timestamp}"
+            val iconChar = item.assetType.take(1).uppercase()
+            NewsFlowRow(meta, item.headline, iconChar)
         }
 
         // MARKET FLOW (NEWS STREAM) WITH VISUALIZATION
@@ -765,21 +873,28 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         item { Spacer(modifier = Modifier.height(12.dp)) }
 
         // 6. MARKET DEPTH LADDER
-        item {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 16.dp)) {
-                MarketDepthLadder(selectedPair = selectedPair)
+        if (assetCtxForNews == AssetContext.ALL || assetCtxForNews == selectedPairCtx) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 16.dp)) {
+                    MarketDepthLadder(selectedPair = selectedPair)
+                }
             }
         }
 
-        // NEW SECTIONS: Crypto, Stocks, Indices Cards
-        item { CryptoCardsSection(onAssetClick) }
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-        item { StockCardsSection(onAssetClick) }
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-        item { IndicesCardsSection(onAssetClick) }
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-        item { MajorIndicesSection(onAssetClick) }
-        item { Spacer(modifier = Modifier.height(12.dp)) }
+        // NEW SECTIONS: show cards only for matching AssetContext (or ALL)
+        if (assetCtxForNews == AssetContext.CRYPTO || assetCtxForNews == AssetContext.ALL) {
+            item { CryptoCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
+        if (assetCtxForNews == AssetContext.INDICES || assetCtxForNews == AssetContext.ALL) {
+            item { StockCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+            item { IndicesCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+            item { MajorIndicesSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
         // Crypto market cap removed per request
     }
 }
@@ -868,21 +983,18 @@ private fun NewsFlowRow(meta: String, title: String, iconChar: String) {
 
 @Composable
 fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.CRYPTO) return
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
         Text("Crypto Gainers", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
         
+        val cryptoList = provideCryptoExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
-            items(3) { idx ->
-                val cryptos = listOf(
-                    Triple("Bitcoin", "BTC", "76,762"),
-                    Triple("Ethereum", "ETH", "2,300.9"),
-                    Triple("zkSync", "ZK", "0.028705")
-                )
-                val (name, symbol, price) = cryptos[idx % cryptos.size]
-                CryptoCard(name, symbol, price) {
-                    val p = price.replace(",", "").toDoubleOrNull() ?: 0.0
-                    onAssetClick(ForexPair(symbol, name, p, 0.0, 0.0))
+            items(cryptoList) { fp ->
+                CryptoCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price)) {
+                    onAssetClick(fp)
                 }
             }
         }
@@ -923,6 +1035,9 @@ private fun CryptoCard(name: String, symbol: String, price: String, onClick: () 
 
 @Composable
 fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
         Text("Stocks Gainers", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
@@ -933,12 +1048,11 @@ fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
             Pair("Gas Holdings", "1.8308 USD")
         )
         
+        val stockList = provideIndicesExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
-            items(stocks.size) { idx ->
-                val (name, price) = stocks[idx]
-                StockCard(name, price) {
-                    val p = price.replace(" INR", "").replace(" USD", "").replace(",", "").toDoubleOrNull() ?: 0.0
-                    onAssetClick(ForexPair(name, name, p, 0.0, 0.0))
+            items(stockList) { fp ->
+                StockCard(fp.name, String.format(Locale.US, "%.2f", fp.price)) {
+                    onAssetClick(fp)
                 }
             }
         }
@@ -976,6 +1090,9 @@ private fun StockCard(name: String, price: String, onClick: () -> Unit = {}) {
 
 @Composable
 fun IndicesCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
         Text("Major Indices", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
@@ -986,10 +1103,10 @@ fun IndicesCardsSection(onAssetClick: (ForexPair) -> Unit) {
             Triple("DAX", "DAX", "24,538.81")
         )
         
-        indices.forEach { (name, symbol, price) ->
-            IndexCard(name, symbol, price) {
-                val p = price.replace(",", "").replace(" USD", "").replace(" JPY", "").toDoubleOrNull() ?: 0.0
-                onAssetClick(ForexPair(symbol, name, p, 0.0, 0.0))
+        val indicesList = provideIndicesExplore()
+        indicesList.forEach { fp ->
+            IndexCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price)) {
+                onAssetClick(fp)
             }
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -1070,6 +1187,9 @@ private fun IndexCard(name: String, symbol: String, price: String, onClick: () -
 
 @Composable
 fun MajorIndicesSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
@@ -1079,32 +1199,13 @@ fun MajorIndicesSection(onAssetClick: (ForexPair) -> Unit) {
             Text("All Major Markets", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         }
         
-        val majorMarkets = listOf(
-            // STOCK INDICES
-            MajorIndex("S&P 500", "SPX", "6,939.02 USD", "+0.87%", EmeraldSuccess),
-            MajorIndex("Nasdaq 100", "NDX", "25,552.39 USD", "+1.42%", EmeraldSuccess),
-            MajorIndex("DAX", "DAX", "24,538.81 EUR", "+0.94%", EmeraldSuccess),
-            MajorIndex("FTSE 100", "UKX", "10,223.54 GBP", "+0.51%", EmeraldSuccess),
-            
-            // FOREX PAIRS
-            MajorIndex("EUR/USD", "EURUSD", "1.0852", "+0.23%", EmeraldSuccess),
-            MajorIndex("GBP/USD", "GBPUSD", "1.2734", "-0.15%", RoseError),
-            MajorIndex("USD/JPY", "USDJPY", "149.85", "+0.42%", EmeraldSuccess),
-            
-            // ASIAN INDICES
-            MajorIndex("Japan 225", "NI225", "53,322.80 JPY", "+2.10%", EmeraldSuccess),
-            MajorIndex("SSE Composite", "000001", "4,117.9476 CNY", "-0.96%", RoseError),
-            
-            // COMMODITIES
-            MajorIndex("Gold (Spot)", "XAUUSD", "2,087.50 USD", "+1.85%", EmeraldSuccess),
-            MajorIndex("Crude Oil WTI", "WTICRUDEOJ", "76.45 USD", "-1.32%", RoseError),
-            MajorIndex("Natural Gas", "NGAS", "2.856 USD", "+3.21%", EmeraldSuccess)
-        )
+        // majorMarkets inline list removed; use centralized provider instead
         
-        majorMarkets.forEach { market ->
+        val majorMarketsList = provideIndicesExplore()
+        majorMarketsList.forEach { fp ->
+            val market = MajorIndex(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), "", if (fp.changePercent >= 0) EmeraldSuccess else RoseError)
             MajorIndexRow(market) {
-                val p = market.value.replace(",", "").replace(" USD", "").replace(" JPY", "").replace(" GBP", "").toDoubleOrNull() ?: 0.0
-                onAssetClick(ForexPair(market.code, market.name, p, 0.0, 0.0))
+                onAssetClick(fp)
             }
         }
         
@@ -1153,20 +1254,30 @@ private fun MajorIndexRow(index: MajorIndex, onClick: () -> Unit = {}) {
 
 @Composable
 fun AscNewsSection() {
-    var newsList by remember { mutableStateOf<List<NewsItem>>(getMockAscNews()) }
+    val assetCtx by AssetContextStore.context.collectAsState()
+    var newsList by remember { mutableStateOf<List<NewsItem>>(getNewsForContext(assetCtx)) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(assetCtx) {
         try {
-            android.util.Log.d("AscNews", "Starting to fetch news from OpenAI...")
-            val fetchedNews = fetchNewsFromGemini()
+            android.util.Log.d("AscNews", "Starting to fetch news from OpenAI for $assetCtx...")
+            // Invalidate local caches for this view when context changes
+            com.asc.markets.data.AssetDataCache.invalidateAll()
+
+            val fetchedNews = fetchNewsFromGemini(assetCtx)
             android.util.Log.d("AscNews", "Fetched ${fetchedNews.size} news items")
             if (fetchedNews.isNotEmpty()) {
-                newsList = fetchedNews
-                android.util.Log.d("AscNews", "Updated newsList with ${fetchedNews.size} items")
+                newsList = if (assetCtx == com.asc.markets.state.AssetContext.ALL) fetchedNews else fetchedNews.filter { it.assetType.equals(assetCtx.name.lowercase(), true) }
+                android.util.Log.d("AscNews", "Updated newsList with ${newsList.size} items")
+                // store into cache
+                com.asc.markets.data.AssetDataCache.putNews(assetCtx, newsList)
+            } else {
+                // fallback to mock filtered by context
+                newsList = getNewsForContext(assetCtx)
             }
         } catch (e: Exception) {
             android.util.Log.e("AscNews", "Error fetching news: ${e.message}", e)
+            newsList = getNewsForContext(assetCtx)
         }
         isLoading = false
     }

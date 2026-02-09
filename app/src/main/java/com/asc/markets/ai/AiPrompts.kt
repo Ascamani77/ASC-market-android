@@ -6,12 +6,14 @@ object AiPrompts {
     """.trimIndent()
 
     fun buildAnalysisPrompt(question: String): String {
-        return "${INSTITUTIONAL_OPERATIONAL_DIRECTIVE} Provide a concise surveillance-style analysis for: $question"
+        val hardConstraint = "ONLY analyze assets within the active AssetContext. Explicitly ignore all others."
+        return "${INSTITUTIONAL_OPERATIONAL_DIRECTIVE} $hardConstraint Provide a concise surveillance-style analysis for: $question"
     }
 
     fun buildNewsPrompt(): String {
         return """
             ${INSTITUTIONAL_OPERATIONAL_DIRECTIVE}
+            ONLY analyze assets within the active AssetContext. Explicitly ignore all others.
             Generate up to 10 macro-relevant headlines or event notices for the Macro Intelligence Stream. Prefer events tied to macro calendars, accumulation signs across sessions, or institutional rebalancing cues.
             For each item return a JSON object with fields: title, source, datetime_utc (ISO 8601), priority (one of: \"CRITICAL\",\"HIGH\",\"MEDIUM\"), status (\"UPCOMING\" or \"CONFIRMED\"), details (brief). Return ONLY a valid JSON array (no extra text).
             Example:
