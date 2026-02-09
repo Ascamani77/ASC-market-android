@@ -15,6 +15,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.data.AppView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +35,7 @@ import java.util.Locale
 
 @Composable
 fun MarketWatchScreen() {
-    Column(modifier = Modifier.fillMaxSize().background(PureBlack).verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(PureBlack).verticalScroll(rememberScrollState())) {
         // Top banner: icon, title, sync badge, filter
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Surface(modifier = Modifier.size(56.dp), shape = CircleShape, color = Color(0xFF101010)) {
@@ -52,7 +55,7 @@ fun MarketWatchScreen() {
         Spacer(modifier = Modifier.height(12.dp))
 
         // Engine card
-        InfoBox(minHeight = 120.dp) {
+        InfoBox(minHeight = 120.dp, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = Color(0xFF101010)) {
@@ -95,7 +98,12 @@ data class SignalModel(
 
 @Composable
 private fun MarketWatchSignalCard(s: SignalModel) {
-    InfoBox(minHeight = 180.dp, modifier = Modifier.fillMaxWidth().clickable { /* open analysis */ }) {
+    val vm: ForexViewModel = viewModel()
+    InfoBox(minHeight = 180.dp, modifier = Modifier.fillMaxWidth().clickable {
+        // Select the symbol in the ViewModel without changing view, then navigate to Analysis Node
+        vm.selectPairBySymbolNoNavigate(s.symbol)
+        vm.navigateTo(AppView.ANALYSIS_RESULTS)
+    }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

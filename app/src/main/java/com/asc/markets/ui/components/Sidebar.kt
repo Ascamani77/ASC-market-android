@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.asc.markets.ui.components
 
 import androidx.compose.animation.core.spring
@@ -13,6 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +36,9 @@ import com.asc.markets.ui.theme.*
 
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import kotlinx.coroutines.delay
 import android.content.Context
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -111,6 +119,17 @@ fun AscSidebar(
             
 
             // Groups
+            // Map of bring-into-view requesters for each nav item so we can auto-scroll
+            val bringMap = remember { mutableMapOf<com.asc.markets.data.AppView, BringIntoViewRequester>() }
+
+            // When the currentView changes (or the sidebar composes), bring the active item into view
+            LaunchedEffect(currentView) {
+                // small delay to allow layout
+                delay(80)
+                try {
+                    bringMap[currentView]?.bringIntoView()
+                } catch (_: Exception) { }
+            }
             // Pre-Move Surveillance group (arranged per design)
             SidebarGroup("PRE-MOVE SURVEILLANCE", isCollapsed, listOf(
                 NavItem(AppView.MARKET_WATCH, "Market Watch", Icons.Default.Visibility),
@@ -120,24 +139,24 @@ fun AscSidebar(
                 NavItem(AppView.MULTI_TIMEFRAME, "Order Flow Delta", Icons.Default.GridView),
                 NavItem(AppView.MARKETS, "Markets Scanner", Icons.Default.BarChart),
                 NavItem(AppView.DIAGNOSTICS, "Micro-Jitter Monitor", Icons.Default.Shield)
-            ), currentView, onViewChange)
+            ), bringMap, currentView, onViewChange)
 
             SidebarGroup("INTELLIGENCE", isCollapsed, listOf(
                 NavItem(AppView.CHAT, "AI Intel", Icons.Default.Memory),
                 NavItem(AppView.ALERTS, "Vigilance Nodes", Icons.Default.Notifications),
                 NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History)
-            ), currentView, onViewChange)
+            ), bringMap, currentView, onViewChange)
 
             SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
                 NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
                 NavItem(AppView.POST_MOVE_AUDIT, "Post-Move Audit", Icons.Default.List),
                 NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
-            ), currentView, onViewChange)
+            ), bringMap, currentView, onViewChange)
 
             SidebarGroup("KNOWLEDGE", isCollapsed, listOf(
                 NavItem(AppView.NEWS, "Macro Intel", Icons.Default.Public),
                 NavItem(AppView.CALENDAR, "Scheduling", Icons.Default.CalendarToday)
-            ), currentView, onViewChange)
+            ), bringMap, currentView, onViewChange)
 
             // Insert LEGAL section directly below Scheduling to keep legal items near knowledge
             if (!isCollapsed) {
@@ -189,23 +208,42 @@ fun AscSidebar(
 }
 
 @Composable
-private fun SidebarGroup(title: String, isCollapsed: Boolean, items: List<NavItem>, currentView: AppView, onViewChange: (AppView) -> Unit) {
+private fun SidebarGroup(
+    title: String,
+    isCollapsed: Boolean,
+    items: List<NavItem>,
+    bringMap: MutableMap<AppView, BringIntoViewRequester>,
+    currentView: AppView,
+    onViewChange: (AppView) -> Unit
+) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
         if (!isCollapsed) {
             Text(title, color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
         }
         items.forEach { item ->
             val active = currentView == item.view
+            val requester = remember { BringIntoViewRequester() }
+            // register requester so parent can bring active item into view
+            bringMap[item.view] = requester
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp)
                     .height(44.dp)
+                    .bringIntoViewRequester(requester)
                     .clickable { onViewChange(item.view) },
                 color = if (active) ActiveHighlight else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // Persistent active indicator (left edge) so user always sees current page
+                    Box(modifier = Modifier
+                        .width(6.dp)
+                        .fillMaxHeight()
+                        .background(if (active) ActiveHighlight else Color.Transparent, shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)))
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Icon(item.icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(16.dp))
