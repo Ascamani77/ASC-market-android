@@ -216,6 +216,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.EDUCATION -> EducationScreen()
                                         AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
                                         AppView.DIAGNOSTICS -> DiagnosticsScreen()
+                                        AppView.MARKET_WATCH -> MarketWatchScreen()
                                         AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
                                         AppView.PROFILE -> ProfileScreen()
                                         AppView.SETTINGS -> SettingsScreen(viewModel)

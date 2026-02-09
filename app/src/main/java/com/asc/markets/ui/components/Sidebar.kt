@@ -108,9 +108,12 @@ fun AscSidebar(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            
+
             // Groups
             // Pre-Move Surveillance group (arranged per design)
             SidebarGroup("PRE-MOVE SURVEILLANCE", isCollapsed, listOf(
+                NavItem(AppView.MARKET_WATCH, "Market Watch", Icons.Default.Visibility),
                 NavItem(AppView.ANALYSIS_RESULTS, "Analysis Node", Icons.Default.LineAxis),
                 NavItem(AppView.MACRO_STREAM, "Macro Intelligence Stream", Icons.Default.Public),
                 NavItem(AppView.LIQUIDITY_HUB, "Liquidity Maps", Icons.Default.AccountTree),
