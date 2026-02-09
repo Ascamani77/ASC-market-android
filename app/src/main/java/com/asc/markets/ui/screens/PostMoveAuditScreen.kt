@@ -44,6 +44,14 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.res.painterResource
+import com.asc.markets.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -170,10 +178,10 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                     .fillMaxWidth()
                     .onGloballyPositioned { mainHeaderHeightPx = it.size.height }) {
                     Row(modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = animatedHeaderTopPad), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("POST-MOVE AUDIT", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("POST-MOVE AUDIT", color = Color.White, style = TerminalTypography.bodyLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold))
                         }
                         Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
@@ -199,7 +207,7 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                     .onGloballyPositioned { submenuHeightPx = it.size.height }) {
                     pills.forEach { p ->
                         val active = p == filterState.value
-                        Surface(color = if (active) DeepBlack else Color.Transparent, shape = RoundedCornerShape(18.dp), modifier = Modifier.padding(end = 6.dp)) {
+                            Surface(color = if (active) DeepBlack else Color.Transparent, shape = RoundedCornerShape(18.dp), modifier = Modifier.padding(end = 6.dp)) {
                             Text(p, color = if (active) Color.White else SlateText, modifier = Modifier
                                 .clickable { filterState.value = p }
                                 .padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Black)
@@ -208,85 +216,90 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                 }
             }
         }, bottomBar = {
-            Surface(color = Color(0xFF08121A), modifier = Modifier.fillMaxWidth()) {
+            Surface(color = PureBlack, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "THE NOTIFICATION LEDGER IS READ-ONLY. ANALYTICAL STATE ADJUSTMENTS AND EXECUTION COMMANDS MUST BE ROUTED THROUGH THE PRIMARY TERMINAL NODES.",
                     color = SlateText,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(12.dp),
+                    fontSize = 9.sp,
+                    modifier = Modifier.padding(10.dp),
                     fontFamily = FontFamily.Monospace
                 )
             }
         }, content = { paddingValues ->
             // Ledger list (Safe Set)
-            LazyColumn(state = listState, modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp)
-                .padding(paddingValues)) {
+                LazyColumn(state = listState, modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)) {
                 items(auditsForDisplay, key = { it.id }) { entry ->
                     val isExpanded = expanded[entry.id] ?: false
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        color = Color(0xFF071017),
-                        shape = RoundedCornerShape(12.dp)
+                            .padding(vertical = 4.dp),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(0.dp)
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
+                        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                                 // Left icon
-                                Box(modifier = Modifier.size(56.dp).background(Color(0xFF08121A), shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Notifications, contentDescription = null, tint = IndigoAccent)
+                                Box(modifier = Modifier.size(56.dp).background(PureBlack, shape = RoundedCornerShape(0.dp)), contentAlignment = Alignment.Center) {
+                                    Icon(painter = painterResource(id = R.drawable.lucide_binary), contentDescription = "AI icon", tint = IndigoAccent, modifier = Modifier.size(28.dp))
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
 
-                                Column(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     // Tag pills row (pair, impact, status)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(color = Color(0xFF0F2630), shape = RoundedCornerShape(8.dp)) {
-                                            Text(entry.assets, color = SlateText, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp)
-                                        }
+                                        Text(entry.assets, color = SlateText, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Surface(color = when (entry.impact) { "CRITICAL" -> RoseError; "INFO" -> Color(0xFF142737); else -> IndigoAccent }, shape = RoundedCornerShape(8.dp)) {
-                                            Text(entry.impact, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp)
-                                        }
+                                        Text(entry.impact, color = when (entry.impact) { "CRITICAL" -> RoseError; "INFO" -> SlateText; else -> IndigoAccent }, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Black)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Surface(color = if (entry.status.equals("UPCOMING", true)) Color(0xFFB06A00) else Color(0xFF0F6F52), shape = RoundedCornerShape(8.dp)) {
-                                            Text(entry.status.uppercase(), color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp)
-                                        }
+                                        Text(entry.status.uppercase(), color = if (entry.status.equals("UPCOMING", true)) Color(0xFFB06A00) else Color(0xFF0F6F52), modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
 
-                                    // Confidence large
-                                    Text("${entry.confidence}% CONFIDENCE", color = SlateText.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                                    // Confidence small (reduced)
+                                    Text("${entry.confidence}% confidence", color = SlateText.copy(alpha = 0.9f), style = TerminalTypography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.ExtraBold))
                                     Spacer(modifier = Modifier.height(6.dp))
 
-                                    // Headline
-                                    Text(entry.headline, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    // Headline (smaller + lowercase to match MacroStream)
+                                    Text(entry.headline.lowercase(Locale.getDefault()), color = Color.White, style = TerminalTypography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold), maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
 
-                                // Time + activity dot
+                                // Time with blinking indicator directly under the time
                                 Column(horizontalAlignment = Alignment.End) {
                                     val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (entry.status.equals("ACTIVE", true)) {
-                                            Box(modifier = Modifier.size(8.dp).background(Color(0xFFFF3B30), shape = RoundedCornerShape(4.dp)))
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                    // Center the time and dot together, but keep the whole block right-aligned
+                                    Box(modifier = Modifier.wrapContentWidth()) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp)
+                                            if (entry.status.equals("ACTIVE", true)) {
+                                                val infiniteTransition = rememberInfiniteTransition()
+                                                val blinkAlpha by infiniteTransition.animateFloat(
+                                                    initialValue = 1f,
+                                                    targetValue = 0.3f,
+                                                    animationSpec = infiniteRepeatable(
+                                                        animation = tween(durationMillis = 1000, easing = LinearEasing),
+                                                        repeatMode = RepeatMode.Reverse
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Box(modifier = Modifier.size(8.dp).background(Color(0xFFFF3B30).copy(alpha = blinkAlpha), shape = CircleShape))
+                                            }
                                         }
-                                        Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp)
                                     }
                                 }
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.04f), modifier = Modifier.padding(vertical = 12.dp))
+                            Divider(color = Color.White.copy(alpha = 0.04f), modifier = Modifier.padding(top = 44.dp, bottom = 2.dp))
 
                             // Bottom row: log id left, view context right
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("LOG::${entry.id.take(3).uppercase()}", color = SlateText.copy(alpha = 0.6f), fontSize = 11.sp)
+                                Text("LOG::${entry.id.take(3).uppercase()}", color = SlateText.copy(alpha = 0.6f), style = TerminalTypography.labelSmall.copy(fontSize = 11.sp))
                                 if (!isExpanded) {
                                     TextButton(onClick = { expanded[entry.id] = true }) {
-                                        Text("VIEW CONTEXT ›", color = IndigoAccent, fontWeight = FontWeight.Black)
+                                        Text("VIEW CONTEXT ›", color = IndigoAccent, style = TerminalTypography.labelSmall.copy(fontWeight = FontWeight.Black))
                                     }
                                 } else {
                                     Column(horizontalAlignment = Alignment.End) {
