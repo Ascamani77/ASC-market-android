@@ -122,7 +122,7 @@ private fun sharePdf(context: Context, file: File) {
     }
 }
 
-private fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditRecord): String {
+private fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditRecord, displayedNode: String): String {
     val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timeUtc))
     return buildString {
         append(entry.reasoning.trim())
@@ -130,7 +130,7 @@ private fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditReco
         append("Headline: ${entry.headline}\n")
         append("Assets: ${entry.assets}\n")
         append("Impact: ${entry.impact} — Confidence: ${entry.confidence}%\n")
-        append("Node: ${entry.nodeId} — Integrity: ${entry.integrityHash}\n")
+        append("Node: $displayedNode — Integrity: ${entry.integrityHash}\n")
         append("Time: $timeText")
     }
 }
@@ -290,8 +290,8 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                                     Spacer(modifier = Modifier.height(35.dp))
 
                                     // Headline (use Inter font parity with MacroIntel)
-                                    val headlineText = entry.headline.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                    Text(headlineText, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    // Preserve original headline casing exactly as stored in the data
+                                    Text(entry.headline, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
 
                                 // Time with blinking indicator directly under the time (aligned with EUR/USD padding)
@@ -333,8 +333,8 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                                             Text("ANALYTICAL REASONING", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily))
                                             Spacer(modifier = Modifier.height(8.dp))
                                             // Big reasoning text (use Inter font to match pre-expansion)
-                                            val reasoningText = entry.reasoning.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                                            Text(reasoningText, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily))
+                                            // Preserve analytical context casing exactly as stored
+                                            Text(entry.reasoning, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily))
 
                                             Spacer(modifier = Modifier.height(12.dp))
                                             // Audit trace log header
@@ -348,11 +348,14 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
 
                                             // Source node + Integrity check boxes
                                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                // ARCH_RULE: Use the label "Insight Node" here because this UI element
+                                                // represents an explanatory/read-only source. Do NOT reuse "Insight Node"
+                                                // for authoritative or execution nodes elsewhere in the system.
                                                 Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF070707), modifier = Modifier.weight(1f)) {
                                                         Column(modifier = Modifier.padding(6.dp)) {
-                                                            Text("SOURCE NODE", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                                                            Text("Insight Node", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                                             Spacer(modifier = Modifier.height(2.dp))
-                                                            Text("L14-UK-SECURE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                                                            Text("Insight Node", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                                                         }
                                                     }
 
@@ -372,7 +375,8 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                                                 Column(modifier = Modifier.padding(12.dp)) {
                                                     Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                                                     Spacer(modifier = Modifier.height(6.dp))
-                                                    Text(buildExpandedAnalyticalContext(entry), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily), fontStyle = FontStyle.Italic)
+                                                    // Use the same displayed node label as the UI (Insight Node)
+                                                    Text(buildExpandedAnalyticalContext(entry, "Insight Node"), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily), fontStyle = FontStyle.Italic)
                                                 }
                                             }
 
