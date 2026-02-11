@@ -143,8 +143,8 @@ fun NotchedBottomNav(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onNavigate(AppView.ANALYSIS_RESULTS)
                     },
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = Color(0xFF2B2B2B),
+                    contentColor = Color.White,
                     shape = CircleShape,
                     interactionSource = interactionSource,
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 10.dp),

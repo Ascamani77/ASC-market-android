@@ -114,8 +114,8 @@ fun DisclaimerOverlay(onAccept: () -> Unit) {
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black
+                            containerColor = Color(0xFF2B2B2B),
+                            contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(12.dp),
                         elevation = ButtonDefaults.buttonElevation(0.dp)

@@ -36,6 +36,8 @@ import com.asc.markets.ui.theme.*
 
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import kotlinx.coroutines.delay
@@ -56,6 +58,7 @@ fun AscSidebar(
     onClose: () -> Unit = {}
 ) {
     Log.d("ASC", "AscSidebar composed: isCollapsed=$isCollapsed, currentView=$currentView")
+    val context = LocalContext.current
     val targetWidth = if (isCollapsed) 80.dp else 260.dp
     val sidebarWidth by animateDpAsState(
         targetValue = targetWidth,
@@ -185,13 +188,23 @@ fun AscSidebar(
                             verticalArrangement = Arrangement.Bottom
                         ) {
                     if (!isCollapsed) {
-                                        Column {
+                                            Column {
                                             Spacer(modifier = Modifier.height(2.dp))
-                                            FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) { }
+                                            FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) {
+                                                val uri = Uri.parse("asc://settings?section=system_configuration")
+                                                val intent = Intent(Intent.ACTION_VIEW, uri)
+                                                    .setPackage(context.packageName)
+                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                try {
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {
+                                                    Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
 
                                             Spacer(modifier = Modifier.height(8.dp))
-                                                                    // Remote status moved to sidebar footer to avoid compressing main dashboard
-                                                                    SidebarRemoteStatus(isCollapsed = isCollapsed, promoteMacro = promoteMacro, onViewChange = onViewChange)
+                                            // Remote status moved to sidebar footer to avoid compressing main dashboard
+                                            SidebarRemoteStatus(isCollapsed = isCollapsed, promoteMacro = promoteMacro, onViewChange = onViewChange)
                                                 }
 
                             // profile box removed — avatar now shown in remote status row

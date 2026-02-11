@@ -257,17 +257,17 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp).focusable().semantics { contentDescription = "Initiate audit" },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     if (running) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 3.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 3.dp)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("RUNNING SIMULATION", color = Color.Black, fontWeight = FontWeight.Black)
+                        Text("RUNNING SIMULATION", color = Color.White, fontWeight = FontWeight.Black)
                     } else {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black)
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("INITIATE AUDIT", color = Color.Black, fontWeight = FontWeight.Black)
+                        Text("INITIATE AUDIT", color = Color.White, fontWeight = FontWeight.Black)
                     }
                 }
             }

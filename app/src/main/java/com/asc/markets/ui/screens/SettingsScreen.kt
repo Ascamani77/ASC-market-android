@@ -100,11 +100,11 @@ fun SettingsScreen(_viewModel: ForexViewModel) {
                     onClick = { /* Save */ },
                     modifier = Modifier.width(200.dp).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
                 ) {
-                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Save, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("SAVE CONFIG", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                    Text("SAVE CONFIG", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 InfoBox(minHeight = 60.dp) {

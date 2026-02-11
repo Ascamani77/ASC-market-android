@@ -1224,9 +1224,9 @@ private fun NewsFlowRow(meta: String, title: String, iconChar: String) {
         Text(
             text = title,
             color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            lineHeight = 22.sp,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 24.sp,
             fontFamily = InterFontFamily
         )
     }

@@ -783,11 +783,11 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("◇", fontSize = 16.sp, color = Color.Black)
-                        Text("DEPLOY SURVEILLANCE NODE", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
+                        Text("◇", fontSize = 16.sp, color = Color.White)
+                        Text("DEPLOY SURVEILLANCE NODE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
                     }
                 }
                 
@@ -943,9 +943,9 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
             ) {
-                Text("DEPLOY SIMPLE NODE", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
+                Text("DEPLOY SIMPLE NODE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
             }
         }
     }

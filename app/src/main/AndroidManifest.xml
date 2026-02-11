@@ -28,6 +28,18 @@
             </intent-filter>
         </activity>
 
+        <!-- In-app Settings activity (deep-link target for asc://settings?section=... ) -->
+        <activity
+            android:name=".ui.screens.SettingsActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="asc" android:host="settings" />
+            </intent-filter>
+        </activity>
+
         <!-- FileProvider for sharing generated PDFs from cache -->
         <provider
             android:name="androidx.core.content.FileProvider"

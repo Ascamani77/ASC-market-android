@@ -203,7 +203,21 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                         }
                         Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
-                            IconButton(onClick = { /* navigate to settings */ Toast.makeText(context, "Settings", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White) }
+                            IconButton(onClick = {
+                                // Attempt to open the app's settings deep-link for Post-Move Audit.
+                                // Scope the intent to this package and add NEW_TASK to improve reliability when called from composables.
+                                try {
+                                    val uri = Uri.parse("asc://settings?section=post_move_audit")
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        `package` = context.packageName
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (t: Throwable) {
+                                    t.printStackTrace()
+                                    Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
+                                }
+                            }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White) }
                             var moreOpen by remember { mutableStateOf(false) }
                             Box {
                                 IconButton(onClick = { moreOpen = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White) }

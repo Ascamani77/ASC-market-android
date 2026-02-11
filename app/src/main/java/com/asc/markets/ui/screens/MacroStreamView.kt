@@ -115,7 +115,14 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
                                         Text(ev.currency, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(end = 10.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                         // Use the consistent display title helper (Full name followed by abbreviation in brackets)
-                                        Text(ev.displayTitle(), color = Color.White, style = TerminalTypography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold))
+                                        Text(
+                                            ev.displayTitle(),
+                                            color = Color.White,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            lineHeight = 24.sp,
+                                            fontFamily = InterFontFamily
+                                        )
                                     }
                                     
                                     Spacer(modifier = Modifier.height(10.dp))
