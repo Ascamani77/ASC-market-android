@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -72,7 +73,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import com.asc.markets.data.AuditRecord
 
-private fun exportAuditPdf(context: Context, entry: AuditRecord): File? {
+fun exportAuditPdf(context: Context, entry: AuditRecord): File? {
     return try {
         val doc = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
@@ -107,7 +108,7 @@ private fun exportAuditPdf(context: Context, entry: AuditRecord): File? {
     }
 }
 
-private fun sharePdf(context: Context, file: File) {
+fun sharePdf(context: Context, file: File) {
     try {
         val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val share = Intent(Intent.ACTION_SEND).apply {
@@ -122,7 +123,7 @@ private fun sharePdf(context: Context, file: File) {
     }
 }
 
-private fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditRecord, displayedNode: String): String {
+fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditRecord, displayedNode: String): String {
     val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timeUtc))
     return buildString {
         append(entry.reasoning.trim())
@@ -179,75 +180,8 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
-            topBar = {
-            // We animate the combined header+submenu together to produce a smooth collapse
-            var mainHeaderHeightPx by remember { mutableStateOf(0) }
-            var submenuHeightPx by remember { mutableStateOf(0) }
-
-            // When hidden we slide the header up; additionally we shrink the internal header top padding
-            val targetOffset = if (showMainHeader.value) 0 else -mainHeaderHeightPx
-            val animatedOffset by animateIntAsState(targetValue = targetOffset, animationSpec = tween(180))
-
-            val animatedHeaderTopPad by animateDpAsState(targetValue = if (showMainHeader.value) headerTopPad else 6.dp, animationSpec = tween(180))
-
-            Column(modifier = Modifier.offset { IntOffset(0, animatedOffset) }) {
-                // Main local header (measured)
-                Surface(color = PureBlack, modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { mainHeaderHeightPx = it.size.height }) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = animatedHeaderTopPad), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("POST-MOVE AUDIT", color = Color.White, style = TerminalTypography.bodyLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily))
-                        }
-                        Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
-                            IconButton(onClick = {
-                                // Attempt to open the app's settings deep-link for Post-Move Audit.
-                                // Scope the intent to this package and add NEW_TASK to improve reliability when called from composables.
-                                try {
-                                    val uri = Uri.parse("asc://settings?section=post_move_audit")
-                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                        `package` = context.packageName
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (t: Throwable) {
-                                    t.printStackTrace()
-                                    Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
-                                }
-                            }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White) }
-                            var moreOpen by remember { mutableStateOf(false) }
-                            Box {
-                                IconButton(onClick = { moreOpen = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.White) }
-                                DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
-                                    DropdownMenuItem(text = { Text("Clear Ledger") }, onClick = { viewModel.clearAuditLedger(); moreOpen = false })
-                                    DropdownMenuItem(text = { Text("Mark All Audited") }, onClick = { viewModel.markAllAuditRecordsAudited(); moreOpen = false })
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Sticky Sub-Menu (moves together with header for smooth transition)
-                val pills = listOf("ALL", "SIMPLE ALERTS", "SMART ALERTS", "NEWS", "STRATEGY", "SYSTEM", "ACCOUNT")
-                Row(modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(start = 8.dp)
-                    .onGloballyPositioned { submenuHeightPx = it.size.height }) {
-                        pills.forEach { p ->
-                        val active = p == filterState.value
-                            Surface(color = if (active) DeepBlack else Color.Transparent, shape = RoundedCornerShape(18.dp), modifier = Modifier.padding(end = 6.dp)) {
-                            Text(p, color = if (active) Color.White else SlateText, modifier = Modifier
-                                .clickable { filterState.value = p }
-                                .padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-        }, bottomBar = {
+            topBar = { PostMoveAuditHeader(showMainHeader, filterState, viewModel) },
+            bottomBar = {
             Surface(color = PureBlack, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "THE NOTIFICATION LEDGER IS READ-ONLY. ANALYTICAL STATE ADJUSTMENTS AND EXECUTION COMMANDS MUST BE ROUTED THROUGH THE PRIMARY TERMINAL NODES.",
@@ -259,191 +193,38 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
             }
         }, content = { paddingValues ->
             // Ledger list (Safe Set)
+                // If there are no audit records, show a helpful message and a button to add a sample for testing
+                if (auditsForDisplay.isEmpty()) {
+                    Column(modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center) {
+                        Text("No audit records to display.", color = Color.Gray, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = {
+                            // add a sample audit record for debugging/verification
+                            val sample = com.asc.markets.data.AuditRecord(
+                                headline = "Sample Audit: Price Spike Detected",
+                                impact = "INFO",
+                                confidence = 72,
+                                assets = assetCtx.name,
+                                status = "ACTIVE",
+                                reasoning = "This is a generated sample record for UI verification."
+                            )
+                            viewModel.appendAuditRecord(sample)
+                        }) {
+                            Text("Add sample audit")
+                        }
+                    }
+                } else {
                 LazyColumn(state = listState, modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)) {
                 items(auditsForDisplay, key = { it.id }) { entry ->
-                    val isExpanded = expanded[entry.id] ?: false
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(14.dp)),
-                        color = PureBlack,
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                                // Removed left icon; keep small horizontal gap for visual breathing
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    // Tag pills row (pair, impact, status)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(entry.assets, color = SlateText, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(entry.impact, color = when (entry.impact) { "CRITICAL" -> RoseError; "INFO" -> SlateText.copy(alpha = 0.7f); else -> IndigoAccent }, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(entry.status.uppercase(), color = if (entry.status.equals("UPCOMING", true)) Color(0xFFB06A00) else Color(0xFF0F6F52), modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    // Confidence small (reduced)
-                                    // Color confidence by range: >=60 green, <=40 red, else yellow
-                                    val confidenceColor = when {
-                                        try { entry.confidence.toInt() } catch (e: Throwable) { null }?.let { it >= 60 } == true -> EmeraldSuccess
-                                        try { entry.confidence.toInt() } catch (e: Throwable) { null }?.let { it <= 40 } == true -> RoseError
-                                        else -> Color(0xFFFFC107)
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("[ ", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
-                                        Text("${entry.confidence}%", color = confidenceColor, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-                                        Text(" ] confidence", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
-                                    }
-                                    Spacer(modifier = Modifier.height(35.dp))
-
-                                    // Headline (use Inter font parity with MacroIntel)
-                                    // Preserve original headline casing exactly as stored in the data
-                                    Text(entry.headline, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                }
-
-                                // Time with blinking indicator directly under the time (aligned with EUR/USD padding)
-                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 8.dp)) {
-                                    val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
-                                    // Center the time and dot together, but keep the whole block right-aligned
-                                    Box(modifier = Modifier.wrapContentWidth()) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-                                            if (entry.status.equals("ACTIVE", true)) {
-                                                val infiniteTransition = rememberInfiniteTransition()
-                                                val blinkAlpha by infiniteTransition.animateFloat(
-                                                    initialValue = 1f,
-                                                    targetValue = 0.3f,
-                                                    animationSpec = infiniteRepeatable(
-                                                        animation = tween(durationMillis = 1000, easing = LinearEasing),
-                                                        repeatMode = RepeatMode.Reverse
-                                                    )
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Box(modifier = Modifier.size(8.dp).background(Color(0xFFFF3B30).copy(alpha = blinkAlpha), shape = CircleShape))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Divider(color = Color.White.copy(alpha = 0.04f), modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
-
-                            // Bottom row: view context right; simplified expansion block aligned with main content
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                if (!isExpanded) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    TextButton(onClick = { expanded[entry.id] = true }) {
-                                        Text("VIEW CONTEXT ›", color = IndigoAccent, style = TerminalTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily, letterSpacing = 0.08.em))
-                                    }
-                                } else {
-                                    Column(modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)) {
-                                            Text("ANALYTICAL REASONING", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily))
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            // Big reasoning text (use Inter font to match pre-expansion)
-                                            // Preserve analytical context casing exactly as stored
-                                            Text(entry.reasoning, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily))
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            // Audit trace log header
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.History, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("AUDIT TRACE LOG", color = SlateText, style = TerminalTypography.labelSmall.copy(fontFamily = InterFontFamily))
-                                            }
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-
-                                            // Source node + Integrity check boxes
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                                // ARCH_RULE: Use the label "Insight Node" here because this UI element
-                                                // represents an explanatory/read-only source. Do NOT reuse "Insight Node"
-                                                // for authoritative or execution nodes elsewhere in the system.
-                                                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF070707), modifier = Modifier.weight(1f)) {
-                                                        Column(modifier = Modifier.padding(6.dp)) {
-                                                            Text("Insight Node", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
-                                                            Spacer(modifier = Modifier.height(2.dp))
-                                                            Text("Insight Node", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                                                        }
-                                                    }
-
-                                                    Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF070707), modifier = Modifier.weight(1f)) {
-                                                        Column(modifier = Modifier.padding(6.dp)) {
-                                                            Text("INTEGRITY CHECK", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
-                                                            Spacer(modifier = Modifier.height(2.dp))
-                                                            Text("VERIFIED", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
-                                                        }
-                                                    }
-                                            }
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-
-                                            // Analytical context box (InfoBox) inside the shared curved outer Surface
-                                            InfoBox(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                                Column(modifier = Modifier.padding(12.dp)) {
-                                                    Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
-                                                    Spacer(modifier = Modifier.height(6.dp))
-                                                    // Use the same displayed node label as the UI (Insight Node)
-                                                    Text(buildExpandedAnalyticalContext(entry, "Insight Node"), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily), fontStyle = FontStyle.Italic)
-                                                }
-                                            }
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-
-                                            // Action buttons: Export, Mark Audited, External
-                                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                                Button(onClick = {
-                                                    coroutineScope.launch(Dispatchers.IO) {
-                                                        val pdf = exportAuditPdf(context, entry)
-                                                        if (pdf != null) {
-                                                            withContext(Dispatchers.Main) { sharePdf(context, pdf) }
-                                                        } else {
-                                                            withContext(Dispatchers.Main) { Toast.makeText(context, "PDF export failed", Toast.LENGTH_SHORT).show() }
-                                                        }
-                                                    }
-                                                }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
-                                                    Icon(Icons.Default.FileCopy, contentDescription = null, tint = Color.White)
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("EXPORT AUDIT PDF", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
-                                                }
-
-                                                Button(onClick = { viewModel.markAuditRecordAudited(entry.id); Toast.makeText(context, "Marked audited", Toast.LENGTH_SHORT).show() }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
-                                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("MARK AUDITED", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
-                                                }
-
-                                                Button(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))) }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
-                                                    Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Color.White)
-                                                }
-                                            }
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-
-                                            // Footer: TS_MICRO and SEQ_ID
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                Text("TS_MICRO: ${entry.timeUtc}", color = SlateText, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-                                                Text("SEQ_ID: ${entry.id.take(3).uppercase()}", color = SlateText, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-                                            }
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            Divider(color = Color.White.copy(alpha = 0.04f))
-
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text("LOG::${entry.id.take(3).uppercase()}", color = SlateText.copy(alpha = 0.6f), style = TerminalTypography.labelSmall.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium))
-                                                TextButton(onClick = { expanded[entry.id] = false }) { Text("MINIMIZE CONTEXT", color = IndigoAccent, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold) }
-                                            }
-                                        }
-                                }
-                            }
-                        }
-                    }
+                    PostMoveAuditItem(entry = entry, expanded = expanded, viewModel = viewModel, context = context)
+                }
                 }
             }
 

@@ -36,7 +36,7 @@ fun InfoBox(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val borderColor = if (isPressed) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.18f)
+    val borderColor = if (isPressed) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f)
 
     // Do not force fillMaxWidth here. Let the caller decide sizing so
     // InfoBox can be used inside horizontal LazyRow items without
