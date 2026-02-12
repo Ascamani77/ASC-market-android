@@ -141,20 +141,27 @@ fun AscSidebar(
                 NavItem(AppView.LIQUIDITY_HUB, "Liquidity Maps", Icons.Default.AccountTree),
                 NavItem(AppView.MULTI_TIMEFRAME, "Order Flow Delta", Icons.Default.GridView),
                 NavItem(AppView.MARKETS, "Markets Scanner", Icons.Default.BarChart),
-                NavItem(AppView.DIAGNOSTICS, "Micro-Jitter Monitor", Icons.Default.Shield)
+                NavItem(AppView.DIAGNOSTICS, "Micro-Jitter Monitor", Icons.Default.Shield),
+                NavItem(AppView.DATA_HUB, "Market Data Bus", Icons.Default.Storage)
             ), bringMap, currentView, onViewChange)
 
             SidebarGroup("INTELLIGENCE", isCollapsed, listOf(
                 NavItem(AppView.CHAT, "AI Intel", Icons.Default.Memory),
                 NavItem(AppView.ALERTS, "Vigilance Nodes", Icons.Default.Notifications),
                 NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History),
-                NavItem(AppView.INTELLIGENCE_STREAM, "Intelligence Stream", Icons.Default.Public)
+                NavItem(AppView.INTELLIGENCE_STREAM, "Intelligence Stream", Icons.Default.Public),
+                NavItem(AppView.DATA_VAULT, "Node Data Vault", Icons.Default.Lock)
+            ), bringMap, currentView, onViewChange)
+
+            SidebarGroup("OPERATIONS", isCollapsed, listOf(
+                NavItem(AppView.PORTFOLIO_MANAGER, "Active Inventory", Icons.Default.AttachMoney)
             ), bringMap, currentView, onViewChange)
 
             SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
                 NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
                 NavItem(AppView.POST_MOVE_AUDIT, "Post-Move Audit", Icons.Default.List),
-                NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
+                NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal),
+                NavItem(AppView.TRADE_RECONSTRUCTION, "Deep Audit", Icons.Default.AssignmentReturned)
             ), bringMap, currentView, onViewChange)
 
             SidebarGroup("KNOWLEDGE", isCollapsed, listOf(

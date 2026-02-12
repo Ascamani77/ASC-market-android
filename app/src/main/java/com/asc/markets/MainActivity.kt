@@ -221,6 +221,10 @@ class MainActivity : ComponentActivity() {
                                         AppView.DIAGNOSTICS -> DiagnosticsScreen()
                                         AppView.MARKET_WATCH -> MarketWatchScreen()
                                         AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
+                                        AppView.DATA_HUB -> DataHubScreen()
+                                        AppView.DATA_VAULT -> DataVaultScreen()
+                                        AppView.PORTFOLIO_MANAGER -> PortfolioManagerScreen()
+                                        AppView.TRADE_RECONSTRUCTION -> TradeReconstructionScreen()
                                         AppView.PROFILE -> ProfileScreen()
                                         AppView.SETTINGS -> SettingsScreen(viewModel)
                                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
