@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -48,9 +49,10 @@ fun PostMoveAuditHeader(
     val targetOffset = if (showMainHeader.value) 0 else -mainHeaderHeightPx
     val animatedOffset by animateIntAsState(targetValue = targetOffset, animationSpec = tween(180))
 
-    val animatedHeaderTopPad by animateDpAsState(targetValue = if (showMainHeader.value) headerTopPad else 6.dp, animationSpec = tween(180))
+    // Use a fixed top padding so the header background does not resize when showing/hiding
+    val animatedHeaderTopPad = headerTopPad
 
-    Column(modifier = Modifier.offset { IntOffset(0, animatedOffset) }) {
+    Column(modifier = Modifier.offset { IntOffset(0, animatedOffset) }.background(DeepBlack)) {
         // Main local header (measured)
         Surface(color = PureBlack, modifier = Modifier
             .fillMaxWidth()
@@ -64,16 +66,12 @@ fun PostMoveAuditHeader(
                 Row(modifier = Modifier.wrapContentWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = { /* toggle search modal */ Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) }
                     IconButton(onClick = {
+                        // Navigate in-app to the Notifications view instead of opening Settings
                         try {
-                            val uri = Uri.parse("asc://settings?section=post_move_audit")
-                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                `package` = context.packageName
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
+                            viewModel.navigateTo(com.asc.markets.data.AppView.NOTIFICATIONS)
                         } catch (t: Throwable) {
                             t.printStackTrace()
-                            Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Unable to open notifications", Toast.LENGTH_SHORT).show()
                         }
                     }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White) }
                     var moreOpen by remember { mutableStateOf(false) }

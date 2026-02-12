@@ -176,13 +176,13 @@ class MainActivity : ComponentActivity() {
                                                 selectedPair = selectedPair,
                                                 onOpenDrawer = { viewModel.openDrawer() },
                                                 onSearch = { viewModel.openCommandPalette() },
-                                                onNotifications = { viewModel.navigateTo(AppView.DIAGNOSTICS) }
+                                                onNotifications = { viewModel.navigateTo(AppView.INTELLIGENCE_STREAM) }
                                             )
                                         }
                                     }
-                                    // Let the Post-Move Audit screen render its own top controls
-                                    AppView.POST_MOVE_AUDIT -> {
-                                        /* Intentionally no header here. PostMoveAuditScreen provides its own top control bar which should replace the app header. */
+                                    // Let screens that provide their own header render without the global NavHeader
+                                    AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS -> {
+                                        /* Intentionally no header here. The screen provides its own top control bar which should replace the app header. */
                                     }
                                     else -> {
                                             NavHeader(
@@ -199,6 +199,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.MARKETS -> MarketsScreen { viewModel.selectPair(it) }
                                         AppView.CHAT -> ChatScreen(viewModel)
                                         AppView.ALERTS -> AlertsScreen(viewModel)
+                                        AppView.NOTIFICATIONS -> NotificationsScreen()
                                         AppView.BACKTEST -> BacktestScreen(viewModel)
                                         AppView.TRADING_ASSISTANT -> TerminalScreen(viewModel)
                                         AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(selectedPair.symbol)
@@ -211,6 +212,8 @@ class MainActivity : ComponentActivity() {
                                                 MacroStreamView(events = events, viewModel = viewModel)
                                             }
                                         }
+                                        AppView.HOME_ALERTS -> HomeAlertsScreen()
+                                        AppView.INTELLIGENCE_STREAM -> IntelligenceStreamScreen()
                                         AppView.CALENDAR -> EconomicCalendarScreen()
                                         AppView.SENTIMENT -> SentimentScreen()
                                         AppView.EDUCATION -> EducationScreen()

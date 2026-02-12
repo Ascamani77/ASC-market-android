@@ -147,7 +147,8 @@ fun AscSidebar(
             SidebarGroup("INTELLIGENCE", isCollapsed, listOf(
                 NavItem(AppView.CHAT, "AI Intel", Icons.Default.Memory),
                 NavItem(AppView.ALERTS, "Vigilance Nodes", Icons.Default.Notifications),
-                NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History)
+                NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History),
+                NavItem(AppView.INTELLIGENCE_STREAM, "Intelligence Stream", Icons.Default.Public)
             ), bringMap, currentView, onViewChange)
 
             SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(

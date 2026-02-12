@@ -121,11 +121,8 @@ fun SettingsScreen(targetSection: String? = null) {
                         // if deep-link targets a specific panel, open it
                         val label = rows.getOrNull(idx)?.first
                         if (label != null) {
-                            // map label to panel
-                            when (label) {
-                                "Intelligence Dispatch" -> currentScreen.value = "notifications"
-                                else -> currentScreen.value = label
-                            }
+                            // open the panel matching the label (Intelligence Dispatch opens its own panel)
+                            currentScreen.value = label
                         }
                     }
                 }
@@ -145,10 +142,7 @@ fun SettingsScreen(targetSection: String? = null) {
                         val index = rows.indexOf(pair)
                         SettingRow(label = label, highlighted = (highlightedIndex.value == index), icon = icon) {
                             // navigate on click
-                            when (label) {
-                                "Intelligence Dispatch" -> currentScreen.value = "notifications"
-                                else -> currentScreen.value = label
-                            }
+                            currentScreen.value = label
                         }
                         Divider(color = Color.White.copy(alpha = 0.03f))
                     }

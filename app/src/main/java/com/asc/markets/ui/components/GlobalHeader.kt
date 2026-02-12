@@ -63,21 +63,8 @@ fun GlobalHeader(
                     Icon(Icons.Default.Search, contentDescription = "Search", tint = SlateText)
                 }
 
-                Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                    IconButton(onClick = onNotifications) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = SlateText)
-                    }
-                    Surface(
-                        color = Color(0xFFE11D48),
-                        shape = CircleShape,
-                        modifier = Modifier.align(Alignment.TopEnd).offset(x = (-4).dp, y = 4.dp).size(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(2.dp, PureBlack)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("3", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                }
+                // Use dedicated HomeAlertIcon component; clicking opens the Home Alerts page.
+                HomeAlertIcon(count = 3, onClick = onNotifications)
             }
         }
     }

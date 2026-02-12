@@ -1,6 +1,11 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,43 +24,128 @@ import com.asc.markets.ui.theme.*
 
 @Composable
 fun NotificationsScreen() {
-    var activeCategory by remember { mutableStateOf("ALL") }
-    val categories = listOf("ALL", "ALERTS", "NEWS", "STRATEGY", "SYSTEM")
-    
-    val logs = listOf(
-        NotificationItem("SIGNAL", "High confidence BUY setup detected on EUR/USD.", "2m ago", "CRITICAL"),
-        NotificationItem("NEWS", "NFP data release in 30 minutes. USD VOLATILITY EXPECTED.", "15m ago", "WARNING"),
-        NotificationItem("SYSTEM", "Local node identity verified via biometrics.", "1h ago", "INFO"),
-        NotificationItem("ALERT", "Target level 1.0850 breached on H1.", "3h ago", "INFO")
-    )
+    // Local toggle row composable for this screen
+    @Composable
+    fun ToggleSetting(label: String, sub: String = "", checkedInitial: Boolean = true) {
+        var checked by remember { mutableStateOf(checkedInitial) }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    if (sub.isNotEmpty()) Text(sub, color = SlateText, fontSize = 12.sp)
+                }
+                Switch(checked = checked, onCheckedChange = { checked = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
+            }
+            Divider(color = Color.White.copy(alpha = 0.03f))
+        }
+    }
 
-    Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-        // Category Pill Bar Parity
-        LazyRow(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(categories) { cat ->
-                Surface(
-                    color = if (activeCategory == cat) IndigoAccent else Color.White.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.height(32.dp).clickable { activeCategory = cat },
-                    border = if (activeCategory != cat) androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder) else null
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(cat, fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+    Column(modifier = Modifier.fillMaxSize().background(DeepBlack).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        // Push Notifications Section
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Smartphone, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("PUSH NOTIFICATIONS", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                ToggleSetting("ENABLE PUSH", "GLOBAL MASTER TOGGLE FOR DEVICE ALERTS", true)
+                ToggleSetting("MARKET ALERTS", "PRICE, STRUCTURE, AND TECHNICAL INDICATOR TRIGGERS", true)
+                ToggleSetting("NEWS ALERTS", "HIGH-IMPACT MACRO AND ASSET-SPECIFIC NEWS", true)
+                ToggleSetting("ORDER EXECUTION", "TRADE FILLS, STATUS CHANGES, AND EXECUTION LOGS", true)
+                // Critical with red disclaimer
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("CRITICAL RISK ALERTS", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text("SECURITY, SYSTEM STATUS, AND LIQUIDATION RISK", color = SlateText, fontSize = 12.sp)
+                        }
+                        var critical by remember { mutableStateOf(true) }
+                        Switch(checked = critical, onCheckedChange = { critical = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
                     }
+                    Text("SYSTEM CRITICAL: MAY BYPASS QUIET MODE", color = RoseError, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+                    Divider(color = Color.White.copy(alpha = 0.03f))
                 }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(bottom = 120.dp)
-        ) {
-            items(logs.filter { activeCategory == "ALL" || it.type.contains(activeCategory.take(3)) }) { log ->
-                NotificationCard(log)
+        Spacer(Modifier.height(12.dp))
+
+        // Delivery Control: Quiet / Sleep Mode
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.NightsStay, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("DELIVERY CONTROL", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                ToggleSetting("SLEEP MODE", "SILENCE NON-CRITICAL PUSH NOTIFICATIONS ON SCHEDULE", false)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // News Logic Filter
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Article, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("NEWS LOGIC FILTER", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("AFFECTS BOTH PUSH NOTIFICATIONS AND IN-APP NEWS ALERTS", color = IndigoAccent.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                ToggleSetting("HIGH-IMPACT ONLY", "ONLY NOTIFY FOR HIGH-VOLATILITY MARKET EVENTS", true)
+                ToggleSetting("ASSET-RELATED", "NEWS AFFECTING YOUR ACTIVE WATCHLIST ASSETS ONLY", true)
+                ToggleSetting("MACRO SENTIMENT", "CENTRAL BANK POLICY, CPI, AND ECONOMIC FORECASTS", true)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // In-app messages
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Notifications, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("IN-APP MESSAGES", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                ToggleSetting("LATEST EVENTS", "SESSION OPENINGS, CLOSINGS, AND HOURLY RECAPS", true)
+                ToggleSetting("ANNOUNCEMENTS", "PLATFORM UPDATES AND FEATURE DEPLOYMENTS", true)
+                ToggleSetting("STRATEGY SIGNALS", "STANDARD ALGORITHMIC ENTRY AND EXIT ALERTS", true)
+                ToggleSetting("SMART ALERTS", "HIGH-CONFLUENCE INSTITUTIONAL STRUCTURE MONITORING", true)
+                ToggleSetting("SIMPLE ALERTS", "THRESHOLD-BASED PRICE AND RSI LEVEL TRIGGERS", true)
+                ToggleSetting("SYSTEM NOTIFICATIONS", "LOCAL NODE STATUS AND ANALYTICAL ENGINE LOGS", true)
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Sample in-app notification list (visual preview)
+        val sampleNotifications = listOf(
+            NotificationItem("SYSTEM", "Analytical engine updated — new model deployed.", "2m ago", "INFO"),
+            NotificationItem("TRADE", "Order #4521 executed: 100 BTC @ 42,100.", "12m ago", "WARNING"),
+            NotificationItem("SECURITY", "Login from new device — location: Berlin.", "1h ago", "CRITICAL")
+        )
+
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("RECENT ALERTS", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+            for (item in sampleNotifications) {
+                NotificationCard(item)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        // Security override disclaimer
+        Surface(modifier = Modifier.fillMaxWidth(), color = Color(0xFF0B0B0B), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
+            Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.Shield, contentDescription = null, tint = SlateText)
+                Spacer(Modifier.height(8.dp))
+                Text("SECURITY OVERRIDES: IDENTITY VERIFICATION REQUESTS AND ACCOUNT SECURITY COMPROMISES WILL ALWAYS BYPASS NOTIFICATION LOGIC TO ENSURE SYSTEM INTEGRITY.", color = SlateText, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
     }
