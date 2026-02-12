@@ -1,12 +1,12 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,144 +29,470 @@ import com.asc.markets.ui.theme.SlateText
 fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-            // Header
-            Surface(color = PureBlack, modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 6.dp, end = 6.dp, top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = { viewModel.navigateBack() },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                    Text(
-                        "NODE DATA VAULT",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.width(36.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Content: Code-block aesthetics with Intelligence Packets
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Header Card
                 item {
-                    Text("INTELLIGENCE PACKETS", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                // Feature Sets
-                listOf(
-                    Triple("SIGNAL_SET", listOf("RSI_14", "MACD", "VWAP"), 78),
-                    Triple("MACRO_CONTEXT", listOf("INFLATION", "GDP_TREND", "SENTIMENT"), 85),
-                    Triple("OUTCOME_SET", listOf("ENTRY_PROFIT", "EXIT_TIME", "CORRELATION"), 92)
-                ).forEach { (featureName, features, vectorization) ->
-                    item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF0B0B0B), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
-                                .padding(8.dp)
+                                .padding(16.dp)
                         ) {
-                            Text(
-                                "{\n  \"feature_set\": \"$featureName\",",
-                                color = Color(0xFF2EE08A),
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            features.forEach { feature ->
-                                Text(
-                                    "    \"field\": \"$feature\",",
-                                    color = Color(0xFF90CAF9),
-                                    fontSize = 10.sp,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    // Database icon
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .background(
+                                                color = Color(0xFF0F3A7D),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "🗄️",
+                                            fontSize = 28.sp,
+                                            modifier = Modifier.align(Alignment.Center)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Text(
+                                        "NODE DATA VAULT",
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        "INTELLIGENCE INDEX &\nAI TRAINING SETS",
+                                        color = SlateText,
+                                        fontSize = 11.sp,
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Force Vector Sync Button
+                            Button(
+                                onClick = { },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    "  \"vectorization\": ",
-                                    color = Color(0xFFFFC700),
-                                    fontSize = 10.sp,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                                LinearProgressIndicator(
-                                    progress = vectorization / 100f,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(3.dp)
-                                        .padding(horizontal = 4.dp),
-                                    color = Color(0xFF2EE08A),
-                                    trackColor = Color(0xFF1B1B1B)
-                                )
-                                Text(
-                                    "$vectorization%",
-                                    color = SlateText,
-                                    fontSize = 9.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    "⚖️ FORCE VECTOR SYNC",
+                                    color = Color.Black,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                            Text(
-                                "}",
-                                color = Color(0xFF2EE08A),
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
                         }
                     }
                 }
 
+                // Stats Cards
                 item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("LEARNING WEIGHTS", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                item {
-                    Column(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF0B0B0B), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
-                            .padding(8.dp)
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        listOf(
-                            Pair("train_loss", 0.0234f),
-                            Pair("val_loss", 0.0312f),
-                            Pair("accuracy", 0.9467f)
-                        ).forEach { (metric, value) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(metric, color = Color.White, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                                Text(String.format("%.4f", value), color = Color(0xFF2EE08A), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                            }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                ">_",
+                                color = IndigoAccent,
+                                fontSize = 14.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                "42,401",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                "INDEXED RECORDS",
+                                color = SlateText,
+                                fontSize = 11.sp
+                            )
                         }
                     }
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "ϕ",
+                                color = Color(0xFF2EE08A),
+                                fontSize = 16.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                "0.942",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                "TRAINING WEIGHT",
+                                color = SlateText,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "⏱️",
+                                fontSize = 16.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                "PKT-942",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                "LAST VECTOR",
+                                color = SlateText,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+
+                // Live Ingestion Stream
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            // Header with status
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        "LIVE INGESTION\nSTREAM",
+                                        color = SlateText,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        lineHeight = 13.sp
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = Color(0xFF2EE08A),
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                    )
+                                    Text(
+                                        "NODE HARVESTING\nACTIVE",
+                                        color = Color(0xFF2EE08A),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        lineHeight = 12.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Divider line above table header
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(color = Color.White.copy(alpha = 0.3f))
+                            )
+
+                            Spacer(modifier = Modifier.height(3.dp))
+
+                            // Table Header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "PACKET\nID",
+                                    color = SlateText,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 11.sp,
+                                    modifier = Modifier.width(70.dp)
+                                )
+                                Text(
+                                    "EVENT\nFEATURE",
+                                    color = SlateText,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 11.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    "CONFIDENCE",
+                                    color = SlateText,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(80.dp)
+                                )
+                                Text(
+                                    "TRAIN\nSTA",
+                                    color = SlateText,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 11.sp,
+                                    modifier = Modifier.width(60.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(3.dp))
+
+                            // Divider line
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(color = Color.White.copy(alpha = 0.3f))
+                            )
+
+                            Spacer(modifier = Modifier.height(3.dp))
+
+                            // Table Rows
+                            listOf(
+                                TableRow("PKT-942", "SMC_BOS\n:: EUR/USD", "92%", "VERIFIED", Color(0xFF2EE08A)),
+                                TableRow("PKT-941", "LIQ_SWEEP\n:: XAU/USD", "84%", "PENDING", Color(0xFFFFC700)),
+                                TableRow("PKT-940", "FVG_GAP\n:: GBP/USD", "71%", "REJECT", Color(0xFF5E7A9E))
+                            ).forEach { row ->
+                                StreamTableRow(row)
+                            }
+                        }
+                    }
+                }
+
+                // Vectorization Disclosure
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = PureBlack,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        color = PureBlack,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "🛡️",
+                                    fontSize = 18.sp
+                                )
+                                Text(
+                                    "VECTORIZATION DISCLOSURE",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                "THE NODE DATA VAULT ARCHIVES CROSS-ASSET TECHNICAL AND FUNDAMENTAL FEATURE SETS. THESE PACKETS SERVE AS THE PRIMARY TRUTH SOURCE FOR LOCAL MODEL REFINEMENT. NO PERSONALLY IDENTIFIABLE TRADING DATA IS VECTORIZED; THE SYSTEM STRICTLY PROCESSES ANONYMIZED STRUCTURAL FOOTPRINTS TO ENHANCE PREDICTIVE ALIGNMENT.",
+                                color = SlateText,
+                                fontSize = 10.sp,
+                                lineHeight = 13.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
+    }
+}
+
+data class TableRow(
+    val packetId: String,
+    val eventFeature: String,
+    val confidence: String,
+    val status: String,
+    val statusColor: Color
+)
+
+@Composable
+fun StreamTableRow(row: TableRow) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            row.packetId,
+            color = IndigoAccent,
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(70.dp)
+        )
+
+        Text(
+            row.eventFeature,
+            color = Color.White,
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            lineHeight = 12.sp,
+            modifier = Modifier.weight(1f)
+        )
+
+        Text(
+            row.confidence,
+            color = Color.White,
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(80.dp)
+        )
+
+        Text(
+            row.status,
+            color = row.statusColor,
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(60.dp)
+        )
     }
 }
