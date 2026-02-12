@@ -111,12 +111,12 @@ fun NotchedBottomNav(
                 }
 
                 NavItem(
-                    icon = Icons.Default.Person,
-                    label = "Profile",
-                    isActive = currentView == AppView.PROFILE
+                    icon = Icons.Default.BarChart,
+                    label = "Market View",
+                    isActive = currentView == AppView.MARKET_VIEW
                 ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigate(AppView.PROFILE)
+                    onNavigate(AppView.MARKET_VIEW)
                 }
             }
         }

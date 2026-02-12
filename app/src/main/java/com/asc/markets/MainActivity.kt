@@ -226,6 +226,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.PORTFOLIO_MANAGER -> PortfolioManagerScreen()
                                         AppView.TRADE_RECONSTRUCTION -> TradeReconstructionScreen()
                                         AppView.PROFILE -> ProfileScreen()
+                                        AppView.MARKET_VIEW -> MarketViewScreen()
                                         AppView.SETTINGS -> SettingsScreen(viewModel)
                                         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                             Text("NODE_ACCESS_RESTRICED: ${currentView.name}", color = Color.DarkGray)

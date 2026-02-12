@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -135,9 +136,9 @@ fun AscSidebar(
             }
             // Pre-Move Surveillance group (arranged per design)
             SidebarGroup("PRE-MOVE SURVEILLANCE", isCollapsed, listOf(
+                NavItem(AppView.MACRO_STREAM, "Macro Intelligence Stream", Icons.Default.Public),
                 NavItem(AppView.MARKET_WATCH, "Market Watch", Icons.Default.Visibility),
                 NavItem(AppView.ANALYSIS_RESULTS, "Analysis Node", Icons.Default.LineAxis),
-                NavItem(AppView.MACRO_STREAM, "Macro Intelligence Stream", Icons.Default.Public),
                 NavItem(AppView.LIQUIDITY_HUB, "Liquidity Maps", Icons.Default.AccountTree),
                 NavItem(AppView.MULTI_TIMEFRAME, "Order Flow Delta", Icons.Default.GridView),
                 NavItem(AppView.MARKETS, "Markets Scanner", Icons.Default.BarChart),
@@ -173,8 +174,28 @@ fun AscSidebar(
             if (!isCollapsed) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text("LEGAL", color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
-                Box(modifier = Modifier.padding(start = if (isCollapsed) 12.dp else 16.dp)) {
-                    FooterRow("RISK DISCLOSURE", Icons.Default.Security) { onViewChange(AppView.NEWS) }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(44.dp)
+                        .clickable { onViewChange(AppView.NEWS) },
+                    color = Color.Transparent,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // Persistent active indicator (left edge) for alignment consistency
+                        Box(modifier = Modifier
+                            .width(6.dp)
+                            .fillMaxHeight()
+                            .background(Color.Transparent, shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)))
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Icon(Icons.Default.Security, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("RISK DISCLOSURE".uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    }
                 }
             }
 
@@ -186,36 +207,33 @@ fun AscSidebar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomStart)
-                    .background(PureBlack)
-                    .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = if (isCollapsed) 6.dp else 6.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, Color.White.copy(alpha = 0.2f))
+                    .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = 0.dp)
                     .onGloballyPositioned { footerHeightPx.value = it.size.height }
             ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            verticalArrangement = Arrangement.Bottom
-                        ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Bottom
+                ) {
                     if (!isCollapsed) {
-                                            Column {
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) {
-                                                val uri = Uri.parse("asc://settings?section=system_configuration")
-                                                val intent = Intent(Intent.ACTION_VIEW, uri)
-                                                    .setPackage(context.packageName)
-                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                try {
-                                                    context.startActivity(intent)
-                                                } catch (_: Exception) {
-                                                    Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
+                        Box(modifier = Modifier.padding(start = 0.dp)) {
+                            FooterRow("SYSTEM CONFIGURATION", Icons.Default.Settings) {
+                                val uri = Uri.parse("asc://settings?section=system_configuration")
+                                val intent = Intent(Intent.ACTION_VIEW, uri)
+                                    .setPackage(context.packageName)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                try {
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
 
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            // Remote status moved to sidebar footer to avoid compressing main dashboard
-                                            SidebarRemoteStatus(isCollapsed = isCollapsed, promoteMacro = promoteMacro, onViewChange = onViewChange)
-                                                }
-
-                            // profile box removed — avatar now shown in remote status row
+                        Spacer(modifier = Modifier.height(4.dp))
+                        SidebarRemoteStatus(isCollapsed = isCollapsed, promoteMacro = promoteMacro, onViewChange = onViewChange)
                     } else {
                         // Collapsed: only the small avatar centered
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -242,7 +260,7 @@ private fun SidebarGroup(
             Text(title, color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
         }
         items.forEach { item ->
-            val active = currentView == item.view
+            val active = (currentView == item.view) || (currentView == AppView.DASHBOARD && item.view == AppView.MACRO_STREAM)
             val requester = remember { BringIntoViewRequester() }
             // register requester so parent can bring active item into view
             bringMap[item.view] = requester
@@ -281,10 +299,10 @@ private fun FooterRow(label: String, icon: ImageVector, onClick: () -> Unit) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .clickable { onClick() }
-        .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        .padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = SlateText, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
     }
 }
 
@@ -344,12 +362,12 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
     val lastFetch = RemoteConfigManager.lastFetchMillis
     val lastOk = RemoteConfigManager.lastFetchSuccess
 
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Text("REMOTE STATUS", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black)
-        Spacer(modifier = Modifier.height(6.dp))
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Text("REMOTE STATUS", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+        Spacer(modifier = Modifier.height(3.dp))
 
         // First row: remote mode and interval on left (avatar moved to Macro row)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 0.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = if (force) "Remote: FORCE" else "Remote: RESPECT",
@@ -358,7 +376,7 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
                         val txt = if (force) "remote_mode:FORCE" else "remote_mode:RESPECT"
                         clipboard.setText(AnnotatedString(txt))
                         Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
-                    }.padding(horizontal = 6.dp, vertical = 4.dp),
+                    }.padding(horizontal = 3.dp, vertical = 2.dp),
                     fontSize = 11.sp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -375,30 +393,31 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
                         val toCopy = if (!remoteUrl.isNullOrBlank()) remoteUrl else "poll_interval_ms:${interval}"
                         clipboard.setText(AnnotatedString(toCopy))
                         Toast.makeText(context, "Copied: ${if (toCopy.length > 80) toCopy.take(80) + "..." else toCopy}", Toast.LENGTH_SHORT).show()
-                    }.padding(horizontal = 6.dp, vertical = 4.dp),
+                    }.padding(horizontal = 3.dp, vertical = 2.dp),
                     fontSize = 11.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 0.dp)) {
             Text(
                 text = if (promoteMacro) "Macro Promoted" else "Macro Normal",
                 color = if (promoteMacro) Color(0xFF10B981) else SlateText,
                 modifier = Modifier
-                    .weight(1f)
                     .clickable {
                         val txt = "promote_macro_stream:${promoteMacro}"
                         clipboard.setText(AnnotatedString(txt))
                         Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
                     }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                    .padding(horizontal = 3.dp, vertical = 2.dp),
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             // last fetch small
             val now = System.currentTimeMillis()
@@ -414,10 +433,10 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
             Spacer(modifier = Modifier.width(6.dp))
             Text("last: $ageText", color = SlateText, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterVertically))
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             // Avatar moved here: right aligned on same row as Macro Normal
-            Box(modifier = Modifier.size(36.dp).align(Alignment.CenterVertically).clickable { onViewChange(AppView.PROFILE) }.background(IndigoAccent, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(36.dp).align(Alignment.CenterVertically).padding(end = 4.dp, top = 4.dp, bottom = 8.dp).clickable { onViewChange(AppView.PROFILE) }.background(IndigoAccent, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                 Text("JD", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
             }
         }
