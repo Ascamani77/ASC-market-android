@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -36,13 +37,13 @@ fun DashboardOverviewTab(symbol: String) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ACTIVE SESSION", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("ACTIVE SESSION", color = Color.White, fontSize = DashboardFontSizes.dashboardActiveSession, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("LONDON HUB", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text("ACTIVE", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                            Text("LONDON HUB", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("ACTIVE", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                         }
                         Box(modifier = Modifier.background(GhostWhite, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text("65% COMPLETE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("65% COMPLETE", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
                     SessionProgressGauge(65)
@@ -70,13 +71,13 @@ fun DashboardOverviewTab(symbol: String) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(modifier = Modifier.size(16.dp).background(IndigoAccent.copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
-                        Text("GLOBAL REGIME", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Text("GLOBAL REGIME", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         "Current environment is defined by MACRO-DRIVEN COMPRESSION. Equities and Forex are displaying high levels of institutional rebalancing ahead of NY open.",
                         color = SlateText,
-                        fontSize = 12.sp,
+                        fontSize = DashboardFontSizes.labelMedium,
                         lineHeight = 18.sp,
                         fontWeight = FontWeight.Medium,
                         fontFamily = InterFontFamily
@@ -116,7 +117,7 @@ private fun SessionProgressGauge(progress: Int) {
         Text(
             text = "$progress%",
             color = Color.White,
-            fontSize = 20.sp,
+            fontSize = DashboardFontSizes.valueLarge,
             fontWeight = FontWeight.Black,
             fontFamily = InterFontFamily
         )
@@ -127,10 +128,10 @@ private fun SessionProgressGauge(progress: Int) {
 private fun VitalMiniBox(label: String, value: String, sub: String, modifier: Modifier) {
     InfoBox(modifier = modifier, height = 120.dp) {
         Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            Text(label, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
             Column {
-                Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text(sub, color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                Text(value, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text(sub, color = Color.Gray, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
             }
         }
     }

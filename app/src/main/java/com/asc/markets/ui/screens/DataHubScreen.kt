@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.DeepBlack
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.SlateText
@@ -260,7 +261,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 color = SlateText,
                                 fontSize = 9.sp,
                                 lineHeight = 11.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = InterFontFamily,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
@@ -410,7 +411,7 @@ fun RelayCard(relay: RelayData) {
                     "ID  ${relay.id}",
                     color = SlateText,
                     fontSize = 9.sp,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
 
                 Text(
@@ -433,7 +434,7 @@ fun LogLine(tag: String, message: String, tagColor: Color) {
             tag,
             color = tagColor,
             fontSize = 9.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(48.dp)
         )
@@ -442,7 +443,7 @@ fun LogLine(tag: String, message: String, tagColor: Color) {
             message,
             color = SlateText,
             fontSize = 9.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 8.dp)

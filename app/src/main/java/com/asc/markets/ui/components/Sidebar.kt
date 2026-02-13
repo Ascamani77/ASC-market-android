@@ -89,14 +89,14 @@ fun AscSidebar(
                 .fillMaxWidth()
                 .padding(horizontal = if (isCollapsed) 0.dp else 16.dp), contentAlignment = Alignment.CenterStart) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("∧", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black)
+                    Text("∧", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("ASC", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("MARKET", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, fontFamily = InterFontFamily)
+                                Text("MARKET", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, fontFamily = InterFontFamily)
                             }
                         }
                     }
@@ -112,7 +112,7 @@ fun AscSidebar(
                 if (!isCollapsed && promoteMacro) {
                     Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
                         Surface(color = Color(0xFF081A2B), shape = RoundedCornerShape(8.dp)) {
-                            Text("PRE-EVENT MODE", color = IndigoAccent, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                            Text("PRE-EVENT MODE", color = IndigoAccent, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
                 }
@@ -173,7 +173,7 @@ fun AscSidebar(
             // Insert LEGAL section directly below Scheduling to keep legal items near knowledge
             if (!isCollapsed) {
                 Spacer(modifier = Modifier.height(6.dp))
-                Text("LEGAL", color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Text("LEGAL", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -194,7 +194,7 @@ fun AscSidebar(
 
                         Icon(Icons.Default.Security, null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("RISK DISCLOSURE".uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Text("RISK DISCLOSURE".uppercase(), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
@@ -257,7 +257,7 @@ private fun SidebarGroup(
 ) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
         if (!isCollapsed) {
-            Text(title, color = Color.White.copy(alpha = 0.4f), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
+            Text(title, color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
         }
         items.forEach { item ->
             val active = (currentView == item.view) || (currentView == AppView.DASHBOARD && item.view == AppView.MACRO_STREAM)
@@ -286,7 +286,7 @@ private fun SidebarGroup(
                     Icon(item.icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(item.label.uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Text(item.label.uppercase(), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
@@ -302,7 +302,7 @@ private fun FooterRow(label: String, icon: ImageVector, onClick: () -> Unit) {
         .padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = SlateText, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+        Text(label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
     }
 }
 
@@ -320,21 +320,21 @@ private fun FooterUserCard(name: String, node: String, initials: String, version
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(44.dp).background(GhostWhite, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                Text(initials, color = Color.Black, fontWeight = FontWeight.Black)
+                Text(initials, color = Color.Black, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                    Text(name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.size(8.dp).background(EmeraldSuccess, RoundedCornerShape(4.dp))) {}
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("LIVE", color = EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    Text("LIVE", color = EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-                Text("NODE: $node", color = SlateText, fontSize = 11.sp)
+                Text("NODE: $node", color = SlateText, fontSize = 13.sp, fontFamily = InterFontFamily)
             }
 
             Surface(
@@ -342,7 +342,7 @@ private fun FooterUserCard(name: String, node: String, initials: String, version
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(version, color = Color(0xFF3EA6FF), modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontWeight = FontWeight.Bold)
+                Text(version, color = Color(0xFF3EA6FF), modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
             }
         }
     }
@@ -363,7 +363,7 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
     val lastOk = RemoteConfigManager.lastFetchSuccess
 
     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text("REMOTE STATUS", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+        Text("REMOTE STATUS", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(3.dp))
 
         // First row: remote mode and interval on left (avatar moved to Macro row)
@@ -377,7 +377,8 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
                         clipboard.setText(AnnotatedString(txt))
                         Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
                     }.padding(horizontal = 3.dp, vertical = 2.dp),
-                    fontSize = 11.sp
+                    fontSize = 13.sp,
+                    fontFamily = InterFontFamily
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -394,7 +395,8 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
                         clipboard.setText(AnnotatedString(toCopy))
                         Toast.makeText(context, "Copied: ${if (toCopy.length > 80) toCopy.take(80) + "..." else toCopy}", Toast.LENGTH_SHORT).show()
                     }.padding(horizontal = 3.dp, vertical = 2.dp),
-                    fontSize = 11.sp
+                    fontSize = 13.sp,
+                    fontFamily = InterFontFamily
                 )
             }
         }
@@ -412,9 +414,10 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
                         Toast.makeText(context, "Copied: $txt", Toast.LENGTH_SHORT).show()
                     }
                     .padding(horizontal = 3.dp, vertical = 2.dp),
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontFamily = InterFontFamily
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -431,13 +434,13 @@ fun SidebarRemoteStatus(isCollapsed: Boolean, promoteMacro: Boolean, onViewChang
             val dot = if (lastOk) Color(0xFF10B981) else Color(0xFFEF4444)
             Box(modifier = Modifier.size(8.dp).align(Alignment.CenterVertically).background(dot, shape = RoundedCornerShape(6.dp)))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("last: $ageText", color = SlateText, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterVertically))
+            Text("last: $ageText", color = SlateText, fontSize = 13.sp, fontFamily = InterFontFamily, modifier = Modifier.align(Alignment.CenterVertically))
 
             Spacer(modifier = Modifier.weight(1f))
 
             // Avatar moved here: right aligned on same row as Macro Normal
             Box(modifier = Modifier.size(36.dp).align(Alignment.CenterVertically).padding(end = 4.dp, top = 4.dp, bottom = 8.dp).clickable { onViewChange(AppView.PROFILE) }.background(IndigoAccent, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                Text("JD", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                Text("JD", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp, fontFamily = InterFontFamily)
             }
         }
     }

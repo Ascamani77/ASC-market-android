@@ -322,7 +322,7 @@ fun SliderRow(label: String, value: Float, min: Float, max: Float, suffix: Strin
     Column(modifier = Modifier.padding(vertical = 16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label.uppercase(), color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-            Text("${String.format(java.util.Locale.US, "%.1f", value)}$suffix", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text("${String.format(java.util.Locale.US, "%.1f", value)}$suffix", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         }
         Slider(
             value = value,

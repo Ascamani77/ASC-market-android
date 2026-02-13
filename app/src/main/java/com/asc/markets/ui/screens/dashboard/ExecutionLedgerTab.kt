@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.data.MOCK_TRADES
 import com.asc.markets.data.AutomatedTrade
 import com.asc.markets.ui.components.InfoBox
@@ -33,8 +34,8 @@ fun ExecutionLedgerTab() {
         InfoBox(minHeight = 60.dp) {
             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text("Post-Move Audit", color = IndigoAccent, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    Text("Slippage & Fill Latency — Post-Move Audit", color = SlateText, fontSize = 11.sp)
+                    Text("Post-Move Audit", color = IndigoAccent, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                    Text("Slippage & Fill Latency — Post-Move Audit", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
                 }
             }
         }

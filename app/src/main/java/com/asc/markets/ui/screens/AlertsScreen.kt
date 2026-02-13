@@ -736,7 +736,7 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                     Column {
                         Text("PROBABILITY LOGIC COMPOSITION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("$score%", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text("$score%", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(modifier = Modifier.fillMaxWidth(0.6f).height(2.dp).background(IndigoAccent))
                     }
@@ -1061,7 +1061,7 @@ fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
             breakdown.forEach { (factor, points) ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(factor, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
-                    Text("+$points pts", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text("+$points pts", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -1070,7 +1070,7 @@ fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("TOTAL SCORE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("${breakdown.values.sum()}%", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Text("${breakdown.values.sum()}%", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
         }
     }

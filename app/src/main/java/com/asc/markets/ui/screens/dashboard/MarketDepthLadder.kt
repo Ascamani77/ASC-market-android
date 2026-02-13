@@ -16,10 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.DeepBlack
 import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.RoseError
 import com.asc.markets.ui.theme.SlateText
+import com.asc.markets.ui.theme.InterFontFamily
 
 // Data class representing a single price level in the market depth
 data class DepthItem(
@@ -102,7 +104,7 @@ fun MarketDepthLadder(
         Text(
             text = "Market Depth - ${selectedPair.symbol}",
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = DashboardFontSizes.emojiIcon,
             fontWeight = FontWeight.Black,
             modifier = Modifier.padding(bottom = 12.dp)
         )
@@ -212,7 +214,7 @@ private fun DepthLadderRow(
             Text(
                 text = depthItem.volume.toString(),
                 color = textColor,
-                fontSize = 12.sp,
+                fontSize = DashboardFontSizes.gridHeaderSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(60.dp)
             )
@@ -225,15 +227,15 @@ private fun DepthLadderRow(
                 Text(
                     text = formatPrice(depthItem.price),
                     color = textColor,
-                    fontSize = 13.sp,
+                    fontSize = DashboardFontSizes.valueSmall,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 if (isMid && spreadInfo.isNotEmpty()) {
                     Text(
                         text = spreadInfo,
                         color = SlateText,
-                        fontSize = 9.sp,
+                        fontSize = DashboardFontSizes.labelSmall,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -243,7 +245,7 @@ private fun DepthLadderRow(
             Text(
                 text = marketValue.toString(),
                 color = textColor,
-                fontSize = 12.sp,
+                fontSize = DashboardFontSizes.gridHeaderSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(60.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.End

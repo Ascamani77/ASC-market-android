@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.backend.SurveillanceStateManager
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -100,12 +101,12 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 1.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = InterFontFamily
                             )
                         }
                     }
-                    Text("ALGO:", color = Color.DarkGray, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
-                    Text(activeAlgo, color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                    Text("ALGO:", color = Color.DarkGray, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text(activeAlgo, color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
                 
                 Surface(
@@ -120,7 +121,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                 }
             }
@@ -150,7 +151,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 // timestamp aligned to the same side as the bubble content
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
-                                    Text(ts, color = SlateText, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                                    Text(ts, color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                 }
 
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -162,7 +163,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                                         text = log.content,
                                         color = Color.White,
                                         fontSize = 12.sp,
-                                        fontFamily = FontFamily.Monospace,
+                                        fontFamily = InterFontFamily,
                                         fontWeight = FontWeight.Normal,
                                         lineHeight = 18.sp
                                     )
@@ -193,7 +194,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                 .bringIntoViewRequester(bringRequester), verticalAlignment = Alignment.CenterVertically) {
                 // SYS_CMD with blinking cursor
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("SYS_CMD >", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                    Text("SYS_CMD >", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     val cursorTransition = rememberInfiniteTransition()
                     val cursorAlpha by cursorTransition.animateFloat(
                         initialValue = 0f,
@@ -201,7 +202,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         animationSpec = infiniteRepeatable(animation = keyframes { durationMillis = 800 }, repeatMode = RepeatMode.Reverse)
                     )
                     Box(modifier = Modifier.padding(start = 6.dp)) {
-                        Text("|", color = EmeraldSuccess.copy(alpha = cursorAlpha), fontFamily = FontFamily.Monospace)
+                        Text("|", color = EmeraldSuccess.copy(alpha = cursorAlpha), fontFamily = InterFontFamily)
                     }
                 }
 
@@ -225,7 +226,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                     modifier = Modifier
                         .weight(1f)
                         .onFocusChanged { state -> inputFocused = state.isFocused },
-                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = InterFontFamily, fontSize = 13.sp)
                 )
                 if (pasteBlocked) {
                     Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
@@ -258,7 +259,7 @@ fun TypewriterText(text: String) {
         text = displayed,
         color = Color.White,
         fontSize = 12.sp,
-        fontFamily = FontFamily.Monospace,
+        fontFamily = InterFontFamily,
         lineHeight = 18.sp
     )
 }

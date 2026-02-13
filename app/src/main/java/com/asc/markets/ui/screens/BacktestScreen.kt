@@ -337,13 +337,13 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(modifier = Modifier.size(8.dp).background(EmeraldSuccess, RoundedCornerShape(4.dp))) {}
-                        Text("SIM_ENGINE_NODE_L14", color = Color(0xFF2EF28C), fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("SIM_ENGINE_NODE_L14", color = Color(0xFF2EF28C), fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                     }
                     Text(
                         "APPLYING CALIBRATION: MA($fastMa/$slowMa) RSI($rsiPeriod [$rsiLow/$rsiHigh]) @ $timeframe...",
                         color = Color(0xFF2EF28C),
                         fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                 }
             }
@@ -355,7 +355,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
             Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = Color.Black, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     terminalLogs.forEach { line ->
-                        Text(line, color = Color(0xFF2EF28C), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp)
+                        Text(line, color = Color(0xFF2EF28C), fontFamily = InterFontFamily, fontSize = 12.sp)
                     }
                 }
             }

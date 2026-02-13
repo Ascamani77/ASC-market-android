@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 import kotlin.random.Random
 import java.util.Locale
@@ -162,14 +163,14 @@ private fun VitalsSmall(
                         Spacer(modifier = Modifier.width(10.dp))
                     }
                     Column {
-                        Text(title.uppercase(Locale.getDefault()), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                        Text(title.uppercase(Locale.getDefault()), color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(subtitle.uppercase(Locale.getDefault()), color = SlateText, fontSize = 11.sp)
+                        Text(subtitle.uppercase(Locale.getDefault()), color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                     }
                 }
 
                 // value large on the right of header for compact look
-                Text(value, color = EmeraldSuccess, fontSize = 42.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Text(value, color = EmeraldSuccess, fontSize = DashboardFontSizes.qualityScore, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
 
             Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
@@ -185,7 +186,7 @@ private fun VitalsSmall(
                     else -> "Clinical explanation for $title."
                 },
                 color = SlateText,
-                fontSize = 12.sp
+                fontSize = DashboardFontSizes.gridHeaderSmall
             )
         }
     }
@@ -214,19 +215,19 @@ private fun AreaChartBox(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Column {
-                        Text(title, color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        Text("$100,000 theoretical start — 7-day lookback", color = SlateText, fontSize = 10.sp)
+                        Text(title, color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                        Text("$100,000 theoretical start — 7-day lookback", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                     }
                 }
-                Text("7d", color = SlateText, fontSize = 11.sp)
+                Text("7d", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
             }
             // Placeholder for area chart: simple gradient block and summary
             Box(modifier = Modifier.fillMaxWidth().height(140.dp).background(tint.copy(alpha = 0.08f))) {
                 // simulated spark/value
-                Text("▲ 3.4%", color = EmeraldSuccess, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Text("▲ 3.4%", color = EmeraldSuccess, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp), fontFamily = InterFontFamily)
             }
             Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
-            Text("Interactive area chart (emerald / indigo gradients)", color = SlateText, fontSize = 11.sp)
+            Text("Interactive area chart (emerald / indigo gradients)", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
         }
     }
 }
@@ -247,8 +248,8 @@ private fun NewsSafetyBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Column {
-                    Text("NEWS SAFETY GATE", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("BLOCKED PERIOD OUTCOMES", color = SlateText, fontSize = 10.sp)
+                    Text("NEWS SAFETY GATE", color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text("BLOCKED PERIOD OUTCOMES", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                 }
             }
 
@@ -263,8 +264,8 @@ private fun NewsSafetyBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
                 items.forEach { (label, pct, colorFill) ->
                     Column {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(label.uppercase(Locale.getDefault()), color = Color.White, fontSize = 12.sp)
-                            Text("${pct.toInt()}%", color = Color.White, fontSize = 12.sp)
+                            Text(label.uppercase(Locale.getDefault()), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall)
+                            Text("${pct.toInt()}%", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         // track
@@ -280,7 +281,7 @@ private fun NewsSafetyBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
             Spacer(modifier = Modifier.height(8.dp))
             Card(modifier = Modifier.fillMaxWidth().background(Color.Black)) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("WAITING DURING HIGH-IMPACT NEWS CYCLES PRESERVED DECISION QUALITY BY 96.4% IN LAST 30 INTERVALS.", color = Color.White, fontSize = 12.sp)
+                    Text("WAITING DURING HIGH-IMPACT NEWS CYCLES PRESERVED DECISION QUALITY BY 96.4% IN LAST 30 INTERVALS.", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall)
                 }
             }
         }
@@ -301,16 +302,16 @@ private fun ProofBadgeBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
                 )
             } else {
                 Box(modifier = Modifier.size(64.dp).background(IndigoAccent.copy(alpha = 0.06f))) {
-                    Text("✔", color = IndigoAccent, modifier = Modifier.align(Alignment.Center), fontSize = 26.sp)
+                    Text("✔", color = IndigoAccent, modifier = Modifier.align(Alignment.Center), fontSize = DashboardFontSizes.verificationCheckmark)
                 }
             }
-            Text("Proof of Analysis Badge", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-            Text("Institutional Proof of Analysis — Deterministic & Auditable", color = SlateText, fontSize = 11.sp)
+            Text("Proof of Analysis Badge", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+            Text("Institutional Proof of Analysis — Deterministic & Auditable", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
             Spacer(modifier = Modifier.height(8.dp))
             Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Digital Signature Verified", color = SlateText, fontSize = 10.sp)
-                Text("●", color = EmeraldSuccess, fontSize = 12.sp)
+                Text("Digital Signature Verified", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                Text("•", color = EmeraldSuccess, fontSize = DashboardFontSizes.gridHeaderSmall)
             }
         }
     }
@@ -324,24 +325,24 @@ private fun VerificationModal(title: String, onClose: () -> Unit) {
             Card(modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.86f)) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // watermark
-                    Text("ASC", color = Color.White.copy(alpha = 0.03f), fontSize = 96.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.Center))
+                    Text("ASC", color = Color.White.copy(alpha = 0.03f), fontSize = DashboardFontSizes.watermarkText, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.Center))
 
                     Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                            Text(title, color = Color.White, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
                             Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
                         }
 
-                        Text("The Why:", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        Text(why, color = Color.White, fontSize = 13.sp)
+                        Text("The Why:", color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                        Text(why, color = Color.White, fontSize = DashboardFontSizes.valueSmall)
 
-                        Text("Verification Dataset:", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Text("Verification Dataset:", color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
                         Column {
                             dataset.forEach { d -> Text("• $d", color = SlateText) }
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
-                        Text("Digital Signature: All calculations deterministic and auditable.", color = SlateText, fontSize = 10.sp)
+                        Text("Digital Signature: All calculations deterministic and auditable.", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                     }
                 }
             }

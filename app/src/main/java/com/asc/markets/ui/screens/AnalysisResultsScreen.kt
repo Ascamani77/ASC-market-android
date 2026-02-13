@@ -140,7 +140,7 @@ fun FactorRow(label: String, percentage: Int) {
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            Text("$percentage%", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text("$percentage%", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         }
         Spacer(modifier = Modifier.height(6.dp))
         Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(1.dp))) {

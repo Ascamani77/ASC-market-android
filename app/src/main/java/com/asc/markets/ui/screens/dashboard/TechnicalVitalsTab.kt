@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.CandlestickChart
 import androidx.compose.foundation.lazy.LazyColumn
@@ -79,12 +80,12 @@ fun TechnicalVitalsScreen() {
             InfoBox(modifier = Modifier.width(160.dp), minHeight = 160.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Header
-                    Text("GLOBAL REGIME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text("Risk-Off: USD Strength & Tightening", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = 11.sp)
+                    Text("GLOBAL REGIME", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("Risk-Off: USD Strength & Tightening", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                     Spacer(modifier = Modifier.weight(1f))
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
                 }
             }
 
@@ -92,9 +93,9 @@ fun TechnicalVitalsScreen() {
             InfoBox(modifier = Modifier.weight(1f), minHeight = 160.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         val safety = isSafetyGateClosed()
-                        Text(if (safety) "BLOCKED" else "ARMED", color = if (safety) RoseError else EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        Text(if (safety) "BLOCKED" else "ARMED", color = if (safety) RoseError else EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
                     }
 
                     // scrolling stream
@@ -102,14 +103,14 @@ fun TechnicalVitalsScreen() {
                     Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
                         events.forEach { ev ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(ev.time, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text(ev.text, color = Color.White, fontSize = 12.sp)
+                                Text(ev.time, color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold)
+                                Text(ev.text, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
                             }
                         }
                     }
 
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
                 }
             }
         }
@@ -140,7 +141,7 @@ private fun VitalsKpiCard(label: String, value: String, sub: String, size: andro
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // Header row
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(label, color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Box(modifier = Modifier
                     .size(10.dp)
                     .clip(RoundedCornerShape(6.dp))
@@ -149,13 +150,13 @@ private fun VitalsKpiCard(label: String, value: String, sub: String, size: andro
             }
 
             // Primary value
-            Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-            Text(sub, color = SlateText, fontSize = 10.sp)
+            Text(value, color = Color.White, fontSize = DashboardFontSizes.vitalsKpiValue, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text(sub, color = SlateText, fontSize = DashboardFontSizes.labelMedium)
 
             Spacer(modifier = Modifier.weight(1f))
 
             Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-            Text("Audit • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+            Text("Audit • ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
         }
     }
 }
@@ -190,20 +191,20 @@ private fun SessionProgressNode() {
                         drawArc(IndigoAccent, startAngle, 360f * pct, false, topLeft = Offset.Zero, size = size, style = stroke)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(String.format("%d%%", (pct * 100).toInt()), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                    Text(timeStrFromSeconds(remaining), color = SlateText, fontSize = 11.sp)
+                    Text(String.format("%d%%", (pct * 100).toInt()), color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+                    Text(timeStrFromSeconds(remaining), color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
                 }
             }
 
             // Narrative & context
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Session Progress", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    Text(sessionNameFor(now), color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    Text("Session Progress", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                    Text(sessionNameFor(now), color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
                 }
 
-                Text("${sessionNameFor(now)} ${start.toLocalTime()}–${end.toLocalTime()} UTC", color = SlateText, fontSize = 10.sp)
-                Text("Global Regime: ${regimeSummary()}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text("${sessionNameFor(now)} ${start.toLocalTime()}–${end.toLocalTime()} UTC", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                Text("Global Regime: ${regimeSummary()}", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -286,19 +287,19 @@ fun TechnicalVitalsTab() {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 200.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("GLOBAL REGIME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text(regimeSummary(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = 11.sp)
+                    Text("GLOBAL REGIME", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(regimeSummary(), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                     Spacer(modifier = Modifier.weight(1f))
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                    Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                 }
             }
 
             InfoBox(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(tapeRequester), minHeight = 260.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         val safety = isSafetyGateClosed()
                         Box(modifier = Modifier
                             .size(8.dp)
@@ -311,21 +312,20 @@ fun TechnicalVitalsTab() {
                     Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                         events.forEach { ev ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(ev.time, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text(ev.text, color = Color.White, fontSize = 12.sp)
+                                Text(ev.time, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(ev.text, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
                             }
                         }
                     }
 
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = 9.sp)
+                    Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                 }
             }
         }
         LaunchedEffect(Unit) {
-            // give layout a moment then bring the stream into view
-            delay(200)
-            try { tapeRequester.bringIntoView() } catch (_: Exception) { }
+            // scroll to top when page opens
+            scrollState.scrollTo(0)
         }
     }
 }
@@ -337,7 +337,7 @@ fun MarketDepthLadder() {
 
     InfoBox {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("MARKET DEPTH (L2)", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+            Text("MARKET DEPTH (L2)", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
             Spacer(modifier = Modifier.height(16.dp))
             
             repeat(5) { i ->
@@ -357,9 +357,9 @@ private fun DepthRow(price: String, size: String, color: Color) {
         modifier = Modifier.fillMaxWidth().height(24.dp).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(size, color = Color.Gray, fontSize = 10.sp, modifier = Modifier.width(40.dp))
+        Text(size, color = Color.Gray, fontSize = DashboardFontSizes.gridLabelTiny, modifier = Modifier.width(40.dp))
         Box(modifier = Modifier.weight(1f).height(16.dp).background(color, RoundedCornerShape(2.dp)))
-        Text(price, color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(start = 12.dp), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        Text(price, color = Color.White, fontSize = DashboardFontSizes.vitalsKpiLabel, modifier = Modifier.padding(start = 12.dp), fontFamily = InterFontFamily)
     }
 }
 
@@ -367,8 +367,8 @@ private fun DepthRow(price: String, size: String, color: Color) {
 private fun VitalsBox(label: String, value: String, color: Color, modifier: Modifier) {
     InfoBox(modifier = modifier, height = 100.dp) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black)
-            Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Black)
+            Text(label, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+            Text(value, color = color, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
         }
     }
 }

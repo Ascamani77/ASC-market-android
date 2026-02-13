@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 // FOREX_PAIRS moved to centralized providers to avoid direct references across UI
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.ui.components.InfoBox
@@ -277,121 +278,121 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         InfoBox(minHeight = 220.dp) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Overview — What matters before the market moves", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                Text("Overview — What matters before the market moves", color = IndigoAccent, fontSize = DashboardFontSizes.sectionHeaderMedium, fontWeight = FontWeight.Black)
 
                 // 1. Market Regime Snapshot
                 Column {
-                    Text("1. Market Regime Snapshot", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("1. Market Regime Snapshot", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Asset Class:", color = SlateText, fontSize = 11.sp)
-                            Text(ctx.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("Asset Class:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(ctx.name, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Market State:", color = SlateText, fontSize = 11.sp)
-                            Text(marketState, color = Color.White, fontSize = 12.sp)
+                            Text("Market State:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(marketState, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Volatility:", color = SlateText, fontSize = 11.sp)
-                            Text(volatilityState, color = Color.White, fontSize = 12.sp)
+                            Text("Volatility:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(volatilityState, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Liquidity:", color = SlateText, fontSize = 11.sp)
-                            Text(liquidityCondition, color = Color.White, fontSize = 12.sp)
+                            Text("Liquidity:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(liquidityCondition, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Session Sensitivity:", color = SlateText, fontSize = 11.sp)
-                            Text(sessionSensitivity, color = Color.White, fontSize = 12.sp)
+                            Text("Session Sensitivity:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(sessionSensitivity, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                         }
                     }
                 }
 
                 // 2. Dominant Bias Engine
                 Column {
-                    Text("2. Dominant Bias Engine", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("2. Dominant Bias Engine", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Bias:", color = SlateText, fontSize = 11.sp)
-                            Text(biasLabel, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("Bias:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text(biasLabel, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Confidence:", color = SlateText, fontSize = 11.sp)
-                            Text("$confidence%", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("Confidence:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                            Text("$confidence%", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Reason:", color = SlateText, fontSize = 11.sp)
-                    Text("${pair.symbol} ${if (biasLabel.contains("Bull")) "momentum and liquidity bias" else if (biasLabel.contains("Bear")) "selling pressure and flow" else "mixed signals"}", color = Color.White, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("Reason:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                    Text("${pair.symbol} ${if (biasLabel.contains("Bull")) "momentum and liquidity bias" else if (biasLabel.contains("Bear")) "selling pressure and flow" else "mixed signals"}", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
 
                 // 3. Key Levels That Matter
                 Column {
-                    Text("3. Key Levels That Matter", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("3. Key Levels That Matter", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("• Level 1: $level1 — liquidity high / prior session high", color = Color.White, fontSize = 11.sp)
-                    Text("• Level 2: $level2 — prior session low", color = Color.White, fontSize = 11.sp)
-                    Text("• Level 3: $level3 — weekly equilibrium", color = Color.White, fontSize = 11.sp)
+                    Text("• Level 1: $level1 — liquidity high / prior session high", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Level 2: $level2 — prior session low", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Level 3: $level3 — weekly equilibrium", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                 }
 
                 // 4. Invalidation & Risk Flags
                 Column {
-                    Text("4. Invalidation & Risk Flags", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("4. Invalidation & Risk Flags", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("• Bias invalidated if: price re-enters value below $invalidation", color = Color.White, fontSize = 11.sp)
-                    Text("• High-risk windows: check upcoming macro and expiries", color = Color.White, fontSize = 11.sp)
-                    Text("• Liquidity traps: equal highs/lows near key levels", color = Color.White, fontSize = 11.sp)
+                    Text("• Bias invalidated if: price re-enters value below $invalidation", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• High-risk windows: check upcoming macro and expiries", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Liquidity traps: equal highs/lows near key levels", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                 }
 
                 // 5. Macro Pressure Index
                 Column {
-                    Text("5. Macro Pressure Index", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("5. Macro Pressure Index", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("• Macro Alignment: $macroAlignment", color = Color.White, fontSize = 11.sp)
-                    Text("• Key Drivers: Rates / Inflation / Growth", color = SlateText, fontSize = 11.sp)
-                    Text("• Event Sensitivity: Medium", color = Color.White, fontSize = 11.sp)
+                    Text("• Macro Alignment: $macroAlignment", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Key Drivers: Rates / Inflation / Growth", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Event Sensitivity: Medium", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                 }
 
                 // 6. Playbook Readiness
                 Column {
-                    Text("6. Playbook Readiness", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("6. Playbook Readiness", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("• Setup Quality: ${if (confidence > 60) "Clean" else "Developing"}", color = Color.White, fontSize = 11.sp)
-                    Text("• Liquidity Availability: $liquidityCondition", color = Color.White, fontSize = 11.sp)
-                    Text("• Best Strategy Type: $playbook", color = Color.White, fontSize = 11.sp)
+                    Text("• Setup Quality: ${if (confidence > 60) "Clean" else "Developing"}", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Liquidity Availability: $liquidityCondition", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("• Best Strategy Type: $playbook", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                 }
 
                 // 7. Post-Market Micro Review (collapsed by default)
                 Column {
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("7. Post-Market Micro Review", color = SlateText, fontSize = 12.sp)
+                        Text("7. Post-Market Micro Review", color = SlateText, fontSize = DashboardFontSizes.sectionHeaderSmall)
                         Text(if (showPostMarket) "Hide" else "Show", color = IndigoAccent, modifier = Modifier.clickable { showPostMarket = !showPostMarket })
                     }
                     if (showPostMarket) {
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("Did bias play out? —", color = Color.White, fontSize = 11.sp)
-                        Text("Liquidity behavior: —", color = Color.White, fontSize = 11.sp)
-                        Text("Learning: —", color = Color.White, fontSize = 11.sp)
+                        Text("Did bias play out? —", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                        Text("Liquidity behavior: —", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                        Text("Learning: —", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                     }
                 }
 
                 // Asset-specific note (small)
                 Spacer(modifier = Modifier.height(6.dp))
                 when (ctx) {
-                    AssetContext.FOREX -> Text("Focus: Central bank divergence / Dominant Currency / Session in control", color = SlateText, fontSize = 11.sp)
-                    AssetContext.COMMODITIES -> Text("Focus: Supply/demand / Inventory pressure / Physical vs paper", color = SlateText, fontSize = 11.sp)
-                    AssetContext.CRYPTO -> Text("Focus: Liquidity cycles / BTC dominance / Funding pressure", color = SlateText, fontSize = 11.sp)
-                    AssetContext.INDICES -> Text("Focus: Risk appetite / Sector leadership / Yield pressure", color = SlateText, fontSize = 11.sp)
-                    AssetContext.STOCKS -> Text("Focus: Earnings / Sector movers / Company-specific risk", color = SlateText, fontSize = 11.sp)
-                    AssetContext.FUTURES -> Text("Focus: Contract rolls / Liquidity across maturities / Curve structure", color = SlateText, fontSize = 11.sp)
-                    AssetContext.BONDS -> Text("Focus: Yield curve / Inflation expectations / Duration risk", color = SlateText, fontSize = 11.sp)
-                    AssetContext.ALL -> Text("Focus: Cross-asset pressure and correlation regime", color = SlateText, fontSize = 11.sp)
+                    AssetContext.FOREX -> Text("Focus: Central bank divergence / Dominant Currency / Session in control", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.COMMODITIES -> Text("Focus: Supply/demand / Inventory pressure / Physical vs paper", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.CRYPTO -> Text("Focus: Liquidity cycles / BTC dominance / Funding pressure", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.INDICES -> Text("Focus: Risk appetite / Sector leadership / Yield pressure", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.STOCKS -> Text("Focus: Earnings / Sector movers / Company-specific risk", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.FUTURES -> Text("Focus: Contract rolls / Liquidity across maturities / Curve structure", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.BONDS -> Text("Focus: Yield curve / Inflation expectations / Duration risk", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
+                    AssetContext.ALL -> Text("Focus: Cross-asset pressure and correlation regime", color = SlateText, fontSize = DashboardFontSizes.bodyMedium)
                 }
             }
         }
@@ -453,74 +454,59 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
         InfoBox(minHeight = 160.dp) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Overview — ${ctx.name} summary", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                Text("Overview — ${ctx.name} summary", color = IndigoAccent, fontSize = DashboardFontSizes.sectionHeaderMedium, fontWeight = FontWeight.Black)
 
                 // Macro Alignment Summary (tiny mirror)
-                Text("Macro Alignment:", color = SlateText, fontSize = 11.sp)
-                Text(topEvent, color = Color.White, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("Macro Alignment:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                Text(topEvent, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
                 // Institutional Bias
-                Text("Institutional Bias:", color = SlateText, fontSize = 11.sp)
-                Text(bias, color = Color.White, fontSize = 12.sp)
+                Text("Institutional Bias:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                Text(bias, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
 
                 // Structure / Liquidity / Volatility row
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Structure:", color = SlateText, fontSize = 10.sp)
-                        Text(structure, color = Color.White, fontSize = 12.sp)
+                        Text("Structure:", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                        Text(structure, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Liquidity:", color = SlateText, fontSize = 10.sp)
-                        Text(liquidity, color = Color.White, fontSize = 12.sp)
+                        Text("Liquidity:", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                        Text(liquidity, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Volatility:", color = SlateText, fontSize = 10.sp)
-                        Text(volatility, color = Color.White, fontSize = 12.sp)
+                        Text("Volatility:", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                        Text(volatility, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                     }
                 }
 
                 // Playbook
-                Text("Scenario Playbook:", color = SlateText, fontSize = 11.sp)
-                Text("Primary: $primaryPlay | Alternative: $altPlay | Failure: $failurePlan", color = Color.White, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("Scenario Playbook:", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                Text("Primary: $primaryPlay | Alternative: $altPlay | Failure: $failurePlan", color = Color.White, fontSize = DashboardFontSizes.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
                 // Execution permission
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text("Execution Permission:", color = SlateText, fontSize = 10.sp)
-                        Text(execPermission, color = Color.White, fontSize = 12.sp)
+                        Text("Execution Permission:", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                        Text(execPermission, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge)
                     }
-                    Text("Confidence: $confidence%", color = SlateText, fontSize = 10.sp)
+                    Text("Confidence: $confidence%", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                 }
 
                 // Post-Event Analysis (collapsed by default)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Post-Event Analysis", color = SlateText, fontSize = 11.sp)
+                    Text("Post-Event Analysis", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
                     Text(if (showPostAnalysis) "Hide" else "Show", color = IndigoAccent, modifier = Modifier.clickable { showPostAnalysis = !showPostAnalysis })
                 }
                 if (showPostAnalysis) {
-                    Text("Outcome: —", color = Color.White, fontSize = 11.sp)
-                    Text("Execution notes: —", color = Color.White, fontSize = 11.sp)
+                    Text("Outcome: —", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
+                    Text("Execution notes: —", color = Color.White, fontSize = DashboardFontSizes.bodyMedium)
                 }
 
                 // AI reasoning scope note (ensures prompts include active asset)
-                Text("AI scope: ${AssetContextStore.aiPromptPrefix()}", color = SlateText, fontSize = 9.sp)
+                Text("AI scope: ${AssetContextStore.aiPromptPrefix()}", color = SlateText, fontSize = DashboardFontSizes.aiScopeNote)
             }
-        }
-    }
-
-    // Derive the selected chip from the global AssetContext so this composable
-    // won't overwrite the app-wide context on initial composition.
-    val selectedCatName = remember(assetCtxForNews) {
-        when (assetCtxForNews) {
-            AssetContext.FOREX -> "Forex"
-            AssetContext.CRYPTO -> "Crypto"
-            AssetContext.COMMODITIES -> "Commodities"
-            AssetContext.INDICES -> "Indices"
-            AssetContext.STOCKS -> "Stocks"
-            AssetContext.FUTURES -> "Futures"
-            AssetContext.BONDS -> "Bonds"
-            AssetContext.ALL -> "Markets"
         }
     }
 
@@ -562,7 +548,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                                     text = cat,
                                     color = if (isSelected) Color.White else Color(0xFF94a3b8),
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    fontSize = 14.sp,
+                                    fontSize = DashboardFontSizes.valueMediumLarge,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -590,20 +576,20 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                 val cfg = MarketOverviewConfigs.configs[assetCtx] ?: MarketOverviewConfigs.default
 
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Market Overview", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                    Text("Market Overview", color = IndigoAccent, fontSize = DashboardFontSizes.sectionHeaderMedium, fontWeight = FontWeight.Black)
 
                     // Primary sentiment label
-                    Text(cfg.primarySentimentLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(cfg.primarySentimentLabel, color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
 
                     // Metrics rendered generically from the config (loop-based)
                     Column(modifier = Modifier.fillMaxWidth()) {
                         cfg.metrics.forEach { metric ->
                             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(metric.label, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(metric.label, color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                                 }
                                 // Placeholder value rendering; actual sources should map to metric.valueSource in data layer
-                                Text(text = "—", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                Text(text = "—", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
                             }
                         }
                     }
@@ -611,7 +597,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     // Explanatory bullets sourced from config
                     Column(modifier = Modifier.fillMaxWidth()) {
                         cfg.explanatoryText.forEach { line ->
-                            Text("• ${line}", color = Color(0xFF94a3b8), fontSize = 11.sp)
+                            Text("• ${line}", color = Color(0xFF94a3b8), fontSize = DashboardFontSizes.bodyTiny)
                         }
                     }
                 }
@@ -642,29 +628,29 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("🕐", fontSize = 18.sp)
-                            Text("Session Progress", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("🕐", fontSize = DashboardFontSizes.emojiIcon)
+                            Text("Session Progress", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
                         Surface(
                             color = EmeraldSuccess.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(6.dp)
                         ) {
-                            Text("LONDON OPEN", color = EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            Text("LONDON OPEN", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
                     }
                     
                     // Circular gauge representation
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Current Time (UTC)", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("08:42:15", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("Current Time (UTC)", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
+                            Text("08:42:15", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                         Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.05f)), contentAlignment = Alignment.Center) {
-                            Text("64%", color = IndigoAccent, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("64%", color = IndigoAccent, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
                         }
                     }
                     
-                    Text("London 08:00–16:00 UTC | New York 13:00–21:00 UTC | Tokyo 00:00–08:00 UTC", color = SlateText, fontSize = 10.sp, lineHeight = 12.sp)
+                    Text("London 08:00–16:00 UTC | New York 13:00–21:00 UTC | Tokyo 00:00–08:00 UTC", color = SlateText, fontSize = DashboardFontSizes.labelMedium, lineHeight = 12.sp)
                 }
             }
         }
@@ -674,24 +660,24 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         // 2. OPERATIONAL VITALS GRID (KPI)
         item {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                Text("Operational Vitals", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
+                Text("Operational Vitals", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Spread
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 100.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Spread", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("0.18 Pips", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            Text("Below avg", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Spread", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("0.18 Pips", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                            Text("Below avg", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     // Volatility
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 100.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Volatility", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("12.3 Pips/Hr", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            Text("20-day avg", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Volatility", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
+                            Text("12.3 Pips/Hr", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                            Text("20-day avg", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -706,20 +692,20 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 100.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("🛡️", fontSize = 14.sp)
-                                Text("Safety Gate", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text("🛡️", fontSize = DashboardFontSizes.valueMedium)
+                                Text("Safety Gate", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                             }
-                            Text("ARMED", color = EmeraldSuccess, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            Text("+47 min safe", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("ARMED", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                            Text("+47 min safe", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     // Node Latency
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 100.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Node Latency", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("8.2 ms", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            Text("Optimal ping", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Node Latency", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("8.2 ms", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                            Text("Optimal ping", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -738,15 +724,15 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("💰", fontSize = 18.sp)
-                            Text("Net Exposure", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("💰", fontSize = DashboardFontSizes.emojiIcon)
+                            Text("Net Exposure", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
                         Surface(color = IndigoAccent.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
-                            Text("BALANCED", color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            Text("BALANCED", color = IndigoAccent, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
                     }
                     
-                    Text("Net USD Direction", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("Net USD Direction", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(modifier = Modifier.weight(0.4f).height(8.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))) {
                             Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.6f).background(RoseError, RoundedCornerShape(4.dp)))
@@ -755,7 +741,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                             Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.5f).background(EmeraldSuccess, RoundedCornerShape(4.dp)))
                         }
                     }
-                    Text("Short 2.3M USD | Long 2.1M USD | Net: 0.2M Short", color = Color.White, fontSize = 10.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text("Short 2.3M USD | Long 2.1M USD | Net: 0.2M Short", color = Color.White, fontSize = DashboardFontSizes.labelSmall, fontFamily = InterFontFamily)
                 }
             }
         }
@@ -767,24 +753,24 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             InfoBox(minHeight = 120.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("🌍", fontSize = 18.sp)
-                        Text("Macro Regime", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("🌍", fontSize = DashboardFontSizes.emojiIcon)
+                        Text("Macro Regime", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("VIX Index:", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp))
-                            Text("16.8", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                            Text("RISK_ON", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("VIX Index:", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp))
+                            Text("16.8", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
+                            Text("RISK_ON", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("DXY 24h:", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp))
-                            Text("+0.34%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                            Text("USD_DOMINANT", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("DXY 24h:", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.width(70.dp))
+                            Text("+0.34%", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
+                            Text("USD_DOMINANT", color = IndigoAccent, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
                         }
                     }
                     
-                    Text("Environment: Equities & Growth Assets Favored | USD Strength Persists", color = Color.White, fontSize = 11.sp, lineHeight = 13.sp, fontWeight = FontWeight.Medium)
+                    Text("Environment: Equities & Growth Assets Favored | USD Strength Persists", color = Color.White, fontSize = DashboardFontSizes.labelSmall, lineHeight = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -799,15 +785,15 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("📊", fontSize = 18.sp)
-                        Text("Macro Intelligence Stream", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("📊", fontSize = DashboardFontSizes.emojiIcon)
+                        Text("Macro Intelligence Stream", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                     }
 
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         events.forEach { (time, text) ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(time, color = SlateText, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                                Text(text, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(time, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontFamily = InterFontFamily)
+                                Text(text, color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -822,11 +808,11 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             InfoBox(minHeight = 110.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("🔍", fontSize = 18.sp)
-                        Text("Structural Context", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("🔍", fontSize = DashboardFontSizes.emojiIcon)
+                        Text("Structural Context", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                     }
                     
-                    Text("Last 4 Swings: Higher High & Higher Low sequence detected (Bullish Structure). Price closed above swing high on M15 → BOS (Break of Structure) confirmed.", color = Color.White, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Last 4 Swings: Higher High & Higher Low sequence detected (Bullish Structure). Price closed above swing high on M15 → BOS (Break of Structure) confirmed.", color = Color.White, fontSize = DashboardFontSizes.bodyTiny, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -836,22 +822,22 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         // 7. INSTITUTIONAL LEVELS GRID (S/R, Daily High/Low)
         item {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                Text("Institutional Levels", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
+                Text("Institutional Levels", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 90.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Support", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("1.0845", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("SL: 1.0835", color = RoseError, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Support", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("1.0845", color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("SL: 1.0835", color = RoseError, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 90.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Resistance", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("1.0915", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("TP: 1.0925", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Resistance", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("1.0915", color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("TP: 1.0925", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -864,17 +850,17 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                 ) {
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 90.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Daily High", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("1.0928", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("+0.8% from open", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Daily High", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("1.0928", color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("+0.8% from open", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     InfoBox(modifier = Modifier.weight(1f), minHeight = 90.dp) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Daily Low", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("1.0812", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            Text("-0.65% from open", color = RoseError, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("Daily Low", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("1.0812", color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("-0.65% from open", color = RoseError, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -898,7 +884,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             Text(
                 exploreTitle,
                 color = Color.White,
-                fontSize = 14.sp,
+                fontSize = DashboardFontSizes.sectionHeaderSmall,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
@@ -933,7 +919,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("News Flow >", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text("News Flow >", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
         }
 
@@ -956,7 +942,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.Newspaper, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
-                            Text("Market Flow", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("Market Flow", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                         }
                         Surface(
                             color = EmeraldSuccess.copy(alpha = 0.15f),
@@ -966,7 +952,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                             Text(
                                 "ACTIVE",
                                 color = EmeraldSuccess,
-                                fontSize = 10.sp,
+                                fontSize = DashboardFontSizes.labelMedium,
                                 fontWeight = FontWeight.Black,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
@@ -975,28 +961,28 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     
                     // Impact headline metric
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("High-Impact Headlines", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text("4 critical news events in last 2 hours", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Text("High-Impact Headlines", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
+                        Text("4 critical news events in last 2 hours", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
                     }
                     
                     // Source distribution progress bars
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         // Reuters
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Reuters", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+                            Text("Reuters", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
                             Box(modifier = Modifier.weight(1f).height(4.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(2.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.65f).background(RoseError, RoundedCornerShape(2.dp)))
                             }
-                            Text("65%", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("65%", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                         }
                         
                         // Bloomberg
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Bloomberg", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+                            Text("Bloomberg", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
                             Box(modifier = Modifier.weight(1f).height(4.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(2.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.35f).background(IndigoAccent, RoundedCornerShape(2.dp)))
                             }
-                            Text("35%", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("35%", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1012,45 +998,40 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     // Header with title and icon
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Filled.Share, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
-                        Text("LP Routing Flow", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text("LP Routing Flow", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                     }
                     
                     // Venue liquidity distribution
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         // JPM-NODE
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("JPM-NODE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
+                            Text("JPM-NODE", color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
                             Box(modifier = Modifier.weight(1f).height(6.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.78f).background(EmeraldSuccess, RoundedCornerShape(3.dp)))
                             }
-                            Text("0.01MS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
-                        
-                        // LMAX-UK
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("LMAX-UK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
+                            Text("0.01MS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                             Box(modifier = Modifier.weight(1f).height(6.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.56f).background(EmeraldSuccess, RoundedCornerShape(3.dp)))
                             }
-                            Text("0.02MS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("0.02MS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                             
                         // CITADEL
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("CITADEL", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
+                            Text("CITADEL", color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
                             Box(modifier = Modifier.weight(1f).height(6.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.45f).background(EmeraldSuccess, RoundedCornerShape(3.dp)))
                             }
-                            Text("0.01MS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("0.01MS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                         
                         // BARC-L7
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("BARC-L7", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
+                            Text("BARC-L7", color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, modifier = Modifier.width(80.dp))
                             Box(modifier = Modifier.weight(1f).height(6.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.32f).background(EmeraldSuccess, RoundedCornerShape(3.dp)))
                             }
-                            Text("0.04MS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("0.04MS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1070,8 +1051,8 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("↑", color = IndigoAccent, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                            Text("Volatility Pulse", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("↑", color = IndigoAccent, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
+                            Text("Volatility Pulse", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                         }
                         Surface(
                             color = EmeraldSuccess.copy(alpha = 0.15f),
@@ -1080,7 +1061,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                             Text(
                                 "STABLE",
                                 color = EmeraldSuccess,
-                                fontSize = 10.sp,
+                                fontSize = DashboardFontSizes.labelMedium,
                                 fontWeight = FontWeight.Black,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
@@ -1089,26 +1070,26 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                     
                     // Standard Deviation metric
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Standard Deviation", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("Standard Deviation", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(modifier = Modifier.weight(1f).height(8.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))) {
                                 Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.683f).background(Color(0xFFFFA500), RoundedCornerShape(4.dp)))
                             }
-                            Text("68.3%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("68.3%", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
                         }
                     }
                     
                     // Market context insight
                     Text(
                         "Market compression detected. Expansion phase expected within the next 45 minutes of NY session.",
-                        color = Color.White, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium
+                        color = Color.White, fontSize = DashboardFontSizes.bodyTiny, lineHeight = 14.sp, fontWeight = FontWeight.Medium
                     )
                     
                     // Large metric display
                     Text(
                         "1.4",
                         color = IndigoAccent,
-                        fontSize = 36.sp,
+                        fontSize = DashboardFontSizes.valueLarge,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.align(Alignment.End)
                     )
@@ -1171,30 +1152,28 @@ private fun ExploreMiniCard(pair: ForexPair, modifier: Modifier, onClick: () -> 
                         ForexIcon(pair.symbol, size = 20)
                     } else {
                         Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(Color.White.copy(0.05f)), contentAlignment = Alignment.Center) {
-                            Text(pair.symbol.take(1), color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                            Text(pair.symbol.take(1), color = Color.Gray, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
                         }
                     }
                     Column {
-                        Text(pair.symbol, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                        Text(pair.name.take(8).uppercase() + "...", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text(pair.symbol, color = Color.White, fontSize = DashboardFontSizes.valueSmall, fontWeight = FontWeight.Black)
+                        Text(pair.name.take(8).uppercase() + "...", color = Color.Gray, fontSize = DashboardFontSizes.tinyCaption, fontWeight = FontWeight.Bold)
                     }
                 }
-                Text("D —", color = Color.DarkGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("D —", color = Color.DarkGray, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
             }
 
             Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                 Text(
                     text = String.format(Locale.US, "%.2f", pair.price) + if (pair.symbol.contains("/")) "" else " INR",
                     color = Color.White,
-                    fontSize = 15.sp,
+                    fontSize = DashboardFontSizes.valueMediumLarge,
                     fontWeight = FontWeight.Black,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 Text(
                     text = "${if (isUp) "+" else ""}${String.format(Locale.US, "%.2f", pair.changePercent)}% today",
-                    color = color,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = DashboardFontSizes.labelMedium,
                 )
             }
 
@@ -1216,15 +1195,15 @@ private fun NewsFlowRow(meta: String, title: String, iconChar: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                Text(iconChar, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Text(iconChar, color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
             }
-            Text(meta, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(meta, color = Color.Gray, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Medium)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = title,
             color = Color.White,
-            fontSize = 17.sp,
+            fontSize = DashboardFontSizes.valueMediumLarge,
             fontWeight = FontWeight.SemiBold,
             lineHeight = 24.sp,
             fontFamily = InterFontFamily
@@ -1245,7 +1224,7 @@ fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
             com.asc.markets.state.AssetContext.ALL -> "Crypto Gainers"
             else -> "Crypto"
         }
-        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
         
         val cryptoList = provideCryptoExplore()
@@ -1266,18 +1245,18 @@ private fun CryptoCard(name: String, symbol: String, price: String, onClick: () 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Crypto badge with emoji icon
                 Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                    Text("₿", color = Color(0xFFF7931A), fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Text("₿", color = Color(0xFFF7931A), fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
                 }
                 Column {
-                    Text(name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text(symbol, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(name, color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text(symbol, color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
             
             Spacer(modifier = Modifier.weight(1f))
             
-            Text(price + " USD", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-            Text("+20.59% today", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(price + " USD", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+            Text("+20.59% today", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -1302,14 +1281,8 @@ fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
             com.asc.markets.state.AssetContext.ALL -> "Stocks Gainers"
             else -> "Stocks"
         }
-        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
-        
-        val stocks = listOf(
-            Pair("United Foods", "217.44 INR"),
-            Pair("Creative Dynamics", "615.65 INR"),
-            Pair("Gas Holdings", "1.8308 USD")
-        )
         
         val stockList = provideStocksExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
@@ -1329,15 +1302,15 @@ private fun StockCard(name: String, price: String, onClick: () -> Unit = {}) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Stock badge
                 Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                    Text("📈", fontSize = 16.sp)
+                    Text("📈", fontSize = DashboardFontSizes.emojiIcon)
                 }
-                Text(name.take(6), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                Text(name.take(6), color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, maxLines = 1)
             }
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            Text(price, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-            Text("+20.0% today", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(price, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+            Text("+20.0% today", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
             
             Spacer(modifier = Modifier.weight(1f))
             
@@ -1362,14 +1335,8 @@ fun IndicesCardsSection(onAssetClick: (ForexPair) -> Unit) {
             com.asc.markets.state.AssetContext.ALL -> "Major Indices"
             else -> "Indices"
         }
-        Text(header, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         Spacer(modifier = Modifier.height(12.dp))
-        
-        val indices = listOf(
-            Triple("S&P 500", "SPX", "6,939.02"),
-            Triple("Nasdaq 100", "NDX", "25,552.39"),
-            Triple("DAX", "DAX", "24,538.81")
-        )
         
         val indicesList = provideIndicesExplore()
         indicesList.forEach { fp ->
@@ -1389,12 +1356,12 @@ private fun IndexCard(name: String, symbol: String, price: String, onClick: () -
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Index badge
                     Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                        Text(symbol.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(symbol.take(3), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
                     }
-                    Text(name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    Text(name, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                 }
-                Text(price, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
-                Text("-0.43%", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(price, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                Text("-0.43%", color = RoseError, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
             }
             
                         if (symbol == "SPX" || name.contains("S&P")) {
@@ -1464,7 +1431,7 @@ fun MajorIndicesSection(onAssetClick: (ForexPair) -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("All Major Markets", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text("All Major Markets", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         }
         
         // majorMarkets inline list removed; use centralized provider instead
@@ -1480,7 +1447,7 @@ fun MajorIndicesSection(onAssetClick: (ForexPair) -> Unit) {
         Text(
             "See all markets >",
             color = IndigoAccent,
-            fontSize = 14.sp,
+            fontSize = DashboardFontSizes.sectionHeaderSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 12.dp)
         )
@@ -1502,18 +1469,18 @@ private fun MajorIndexRow(index: MajorIndex, onClick: () -> Unit = {}) {
                 ForexIcon(index.code, size = 40)
             } else {
                 Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(IndigoAccent), contentAlignment = Alignment.Center) {
-                    Text(index.code.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text(index.code.take(3), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
                 }
             }
             Column {
-                Text(index.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                Text(index.code, color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(index.name, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+                Text(index.code, color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
             }
         }
         
         Column(horizontalAlignment = Alignment.End) {
-            Text(index.value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-            Text(index.change, color = index.changeColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(index.value, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+            Text(index.change, color = index.changeColor, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1552,7 +1519,7 @@ fun AscNewsSection() {
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         // Header
-        Text("ASC News >", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Text("ASC News >", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
     }
 
     // Display news items
@@ -1575,16 +1542,16 @@ fun AscNewsItemRow(newsItem: NewsItem) {
                         "indices" -> "📊"
                         else -> "📰"
                     },
-                    fontSize = 11.sp
+                    fontSize = DashboardFontSizes.bodyTiny
                 )
             }
-            Text("${newsItem.source} • ${newsItem.timestamp}", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("${newsItem.source} • ${newsItem.timestamp}", color = Color.Gray, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Medium)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = newsItem.headline,
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = DashboardFontSizes.valueMediumLarge,
             fontWeight = FontWeight.Bold,
             lineHeight = 22.sp,
             fontFamily = InterFontFamily,

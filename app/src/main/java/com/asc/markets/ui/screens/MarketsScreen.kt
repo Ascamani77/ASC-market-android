@@ -232,7 +232,7 @@ fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                     Text(
                         text = "${if (isUp) "+" else ""}${String.format(java.util.Locale.US, "%.2f", pair.changePercent)}%",
@@ -244,7 +244,7 @@ fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("SPREAD", color = Color.DarkGray, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                    Text("0.4", color = SlateText, fontSize = 10.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text("0.4", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                 }
             }
 
@@ -257,13 +257,13 @@ fun MarketCard(pair: ForexPair, onClick: (ForexPair) -> Unit) {
                 Box(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(4.dp)).padding(6.dp)) {
                     Column {
                         Text("DAY HIGH", color = Color.DarkGray, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 1.002), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 1.002), color = Color.Gray, fontSize = 9.sp, fontFamily = InterFontFamily)
                     }
                 }
                 Box(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(4.dp)).padding(6.dp)) {
                     Column {
                         Text("DAY LOW", color = Color.DarkGray, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 0.998), color = Color.Gray, fontSize = 9.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(String.format(java.util.Locale.US, "%.5f", pair.price * 0.998), color = Color.Gray, fontSize = 9.sp, fontFamily = InterFontFamily)
                     }
                 }
             }

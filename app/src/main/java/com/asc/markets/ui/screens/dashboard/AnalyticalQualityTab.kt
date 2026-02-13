@@ -27,10 +27,10 @@ fun AnalyticalQualityTab() {
 private fun QualityMetricCard(label: String, value: String, sub: String, modifier: Modifier) {
     InfoBox(modifier = modifier, height = 110.dp) {
         Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            Text(label, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
             Column {
-                Text(value, color = IndigoAccent, fontSize = 22.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text(sub, color = Color.DarkGray, fontSize = 7.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text(value, color = IndigoAccent, fontSize = DashboardFontSizes.dashboardActiveSession, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text(sub, color = Color.DarkGray, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
         }
     }
@@ -40,8 +40,8 @@ private fun QualityMetricCard(label: String, value: String, sub: String, modifie
 private fun OutcomeRow(label: String, value: Int, color: Color) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-            Text("$value%", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text(label, color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+            Text("$value%", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
         }
         Spacer(modifier = Modifier.height(6.dp))
         Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(1.dp))) {

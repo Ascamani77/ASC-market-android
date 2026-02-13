@@ -191,7 +191,7 @@ private fun ProfileInput(label: String, value: String, icon: ImageVector) {
 private fun StatusMiniRow(label: String, value: String, color: Color) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = SlateMuted, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-        Text(value, color = color, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        Text(value, color = color, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
     }
 }
 

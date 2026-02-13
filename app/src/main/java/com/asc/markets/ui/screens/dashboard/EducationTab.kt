@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
 
@@ -46,18 +47,18 @@ fun EducationTab() {
                                 Icon(androidx.compose.material.icons.autoMirrored.outlined.AutoGraph, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("INTELLIGENCE FRAMEWORK", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("INTELLIGENCE FRAMEWORK", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             "Understanding the institutional logic and rule-based engines driving situational awareness.",
-                            color = SlateText, fontSize = 13.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily
+                            color = SlateText, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             "This framework explains why the system identifies conditions, not how to execute trades.",
                             color = SlateText,
-                            fontSize = 13.sp,
+                            fontSize = DashboardFontSizes.labelLarge,
                             lineHeight = 20.sp,
                             fontWeight = FontWeight.Medium,
                             fontFamily = InterFontFamily
@@ -79,18 +80,18 @@ fun EducationTab() {
                     // Rule-based Engines
                     InfoBox(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("RULE-BASED ENGINES", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Text("RULE-BASED ENGINES", color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("The core identifies market structure, liquidity sweeps, and supply/demand zones through strict mathematical rules, removing all subjective interpretation.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                            Text("The core identifies market structure, liquidity sweeps, and supply/demand zones through strict mathematical rules, removing all subjective interpretation.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
                     // Safety Gate
                     InfoBox(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("SAFETY GATE", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Text("SAFETY GATE", color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("An automated news engine that blocks all signals during high-impact structural disruptions to prevent exposure to extreme volatility.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                            Text("An automated news engine that blocks all signals during high-impact structural disruptions to prevent exposure to extreme volatility.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
@@ -98,22 +99,22 @@ fun EducationTab() {
                     InfoBox(modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("CONFIDENCE SCORE COMPOSITION", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                Text("CONFIDENCE SCORE COMPOSITION", color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Scores are derived strictly from a 60% Technical Confluence and 40% Fundamental Safety weighting.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                                Text("Scores are derived strictly from a 60% Technical Confluence and 40% Fundamental Safety weighting.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(horizontalAlignment = Alignment.End) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("60%", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                    Text("60%", color = Color.White, fontSize = DashboardFontSizes.dashboardActiveSession, fontWeight = FontWeight.Black)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("TECHNICAL", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                    Text("TECHNICAL", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("40%", color = EmeraldSuccess, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                    Text("40%", color = EmeraldSuccess, fontSize = DashboardFontSizes.dashboardActiveSession, fontWeight = FontWeight.Black)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("SAFETY", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                    Text("SAFETY", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
                                 }
                             }
                         }
@@ -165,7 +166,7 @@ fun EducationTab() {
         item {
             InfoBox {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("OPPORTUNITY STATE GUIDE", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                    Text("OPPORTUNITY STATE GUIDE", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // WAIT card
@@ -173,10 +174,10 @@ fun EducationTab() {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Box(modifier = Modifier.padding(bottom = 8.dp)) {
                                 Box(modifier = Modifier.background(RoseError.copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("WAIT", color = RoseError, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                    Text("WAIT", color = RoseError, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
                                 }
                             }
-                            Text("No valid high-quality structural alignment detected. Professional discipline is currently in focus.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                            Text("No valid high-quality structural alignment detected. Professional discipline is currently in focus.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
@@ -187,10 +188,10 @@ fun EducationTab() {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Box(modifier = Modifier.padding(bottom = 8.dp)) {
                                 Box(modifier = Modifier.background(Color(0xFFF59E0B).copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("OBSERVE", color = Color(0xFFF59E0B), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                    Text("OBSERVE", color = Color(0xFFF59E0B), fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
                                 }
                             }
-                            Text("Pre-conditions are forming. The system is monitoring for a final liquidity sweep or displacement.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                            Text("Pre-conditions are forming. The system is monitoring for a final liquidity sweep or displacement.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
@@ -201,10 +202,10 @@ fun EducationTab() {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Box(modifier = Modifier.padding(bottom = 8.dp)) {
                                 Box(modifier = Modifier.background(EmeraldSuccess.copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("FOCUS", color = EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                    Text("FOCUS", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
                                 }
                             }
-                            Text("A high-confluence window is open. Mathematical probability is at its highest state for the current session.", color = Color.White, fontSize = 13.sp, lineHeight = 20.sp)
+                            Text("A high-confluence window is open. Mathematical probability is at its highest state for the current session.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
@@ -216,9 +217,9 @@ fun EducationTab() {
                             Icon(androidx.compose.material.icons.autoMirrored.outlined.Info, null, tint = IndigoAccent, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("BIAS ≠ DECISION", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                                Text("BIAS ≠ DECISION", color = Color.White, fontSize = DashboardFontSizes.labelLarge, fontWeight = FontWeight.Black)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text("A Bullish or Bearish bias identifies the dominant institutional flow. It is a contextual anchor, not a direction to immediately execute. High-timeframe alignment is required for quality confirmation.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, lineHeight = 18.sp)
+                                Text("A Bullish or Bearish bias identifies the dominant institutional flow. It is a contextual anchor, not a direction to immediately execute. High-timeframe alignment is required for quality confirmation.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, lineHeight = 18.sp)
                             }
                         }
                     }
@@ -236,14 +237,14 @@ fun EducationTab() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Warning, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("RISK PROTOCOL", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("RISK PROTOCOL", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("NEWS VOLATILITY LOGIC", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("The system blocks automated dispatches during High-Impact news because price action in these windows is often driven by algorithm-rebalancing rather than logical technical structure.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Text("NEWS VOLATILITY LOGIC", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+                        Text("The system blocks automated dispatches during High-Impact news because price action in these windows is often driven by algorithm-rebalancing rather than logical technical structure.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 8.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("THE WAITING EDGE", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("Professional analysts view waiting as a decision of equal importance to executing. If the Safety Gate is active, no technical pattern is valid.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Text("THE WAITING EDGE", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+                        Text("Professional analysts view waiting as a decision of equal importance to executing. If the Safety Gate is active, no technical pattern is valid.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 8.dp))
                     }
                 }
 
@@ -252,20 +253,20 @@ fun EducationTab() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(androidx.compose.material.icons.autoMirrored.outlined.ShowChart, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("QUALITY METRICS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("QUALITY METRICS", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("BIAS ACCURACY", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("Correlation between bias and price direction.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                        Text("BIAS ACCURACY", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+                        Text("Correlation between bias and price direction.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("WAIT EFFECTIVENESS", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("Noise avoidance in blocked zones.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                        Text("WAIT EFFECTIVENESS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+                        Text("Noise avoidance in blocked zones.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("SAFETY SUCCESS", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("Preservation of logic during news events.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                        Text("SAFETY SUCCESS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+                        Text("Preservation of logic during news events.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF0D0D0D), RoundedCornerShape(8.dp)).padding(12.dp), contentAlignment = Alignment.Center) {
-                            Text("\"ALIGNMENT INDICATORS MEASURE SYSTEM INTEGRITY, NOT FINANCIAL OUTCOME.\"", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                            Text("\"ALIGNMENT INDICATORS MEASURE SYSTEM INTEGRITY, NOT FINANCIAL OUTCOME.\"", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium)
                         }
                     }
                 }
@@ -275,7 +276,7 @@ fun EducationTab() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Info, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("MYTH BUSTER", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("MYTH BUSTER", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         // Bullet points
@@ -283,17 +284,17 @@ fun EducationTab() {
                             Row(verticalAlignment = Alignment.Top) {
                                 Box(modifier = Modifier.size(6.dp).background(IndigoAccent, RoundedCornerShape(3.dp)))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("High confidence (90%+) does not guarantee an outcome; it merely indicates high alignment with historical institutional patterns.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                                Text("High confidence (90%+) does not guarantee an outcome; it merely indicates high alignment with historical institutional patterns.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium)
                             }
                             Row(verticalAlignment = Alignment.Top) {
                                 Box(modifier = Modifier.size(6.dp).background(IndigoAccent, RoundedCornerShape(3.dp)))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("A 'Wait' state is not a missed opportunity; it is an active protection of capital from directionless market phases.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                                Text("A 'Wait' state is not a missed opportunity; it is an active protection of capital from directionless market phases.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium)
                             }
                             Row(verticalAlignment = Alignment.Top) {
                                 Box(modifier = Modifier.size(6.dp).background(IndigoAccent, RoundedCornerShape(3.dp)))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("The AI advisor provides risk framing and market context, but it does not replace human final decision-making.", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                                Text("The AI advisor provides risk framing and market context, but it does not replace human final decision-making.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium)
                             }
                         }
                     }
@@ -311,7 +312,7 @@ fun EducationTab() {
                             Text(
                                 "The analytical node provides risk framing based on historical alignment. Final decision authority resides with the operator.",
                                 color = Color.Gray,
-                                fontSize = 11.sp,
+                                fontSize = DashboardFontSizes.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = InterFontFamily
                             )
@@ -340,7 +341,7 @@ private fun EducationCollapseItem(id: String, title: String, icon: ImageVector, 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(icon, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(title.uppercase(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Text(title.uppercase(), color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 }
                 // Show FILLED icon for the active/open state, OUTLINED for the inactive state
                 Icon(if (isOpen) androidx.compose.material.icons.autoMirrored.filled.ExpandLess else androidx.compose.material.icons.autoMirrored.outlined.ExpandMore, null, tint = Color.Gray)
@@ -357,27 +358,27 @@ private fun EducationCollapseItem(id: String, title: String, icon: ImageVector, 
 @Composable
 private fun ConceptItem(title: String, desc: String) {
     Column {
-        Text(title, color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-        Text(desc, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
+        Text(title, color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        Text(desc, color = Color.White.copy(alpha = 0.7f), fontSize = DashboardFontSizes.labelMedium, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
 private fun DetailedConcept(title: String, what: String, institutionalContext: String, systemDetection: String) {
     Column(modifier = Modifier.fillMaxWidth().background(Color.Transparent)) {
-        Text(title.uppercase(), color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        Text(title.uppercase(), color = IndigoAccent, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text("WHAT IT IS", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-        Text(what, color = Color.White, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 6.dp))
+        Text("WHAT IT IS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+        Text(what, color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp, modifier = Modifier.padding(top = 6.dp))
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text("INSTITUTIONAL CONTEXT", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-        Text(institutionalContext, color = Color.White.copy(alpha = 0.95f), fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 6.dp))
+        Text("INSTITUTIONAL CONTEXT", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+        Text(institutionalContext, color = Color.White.copy(alpha = 0.95f), fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp, modifier = Modifier.padding(top = 6.dp))
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text("SYSTEM DETECTION", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-        Text(systemDetection, color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, lineHeight = 18.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(top = 6.dp))
+        Text("SYSTEM DETECTION", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
+        Text(systemDetection, color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, lineHeight = 18.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
@@ -385,9 +386,9 @@ private fun DetailedConcept(title: String, what: String, institutionalContext: S
 private fun InterpretationRow(label: String, desc: String, color: Color) {
     Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
         Box(modifier = Modifier.background(color.copy(alpha = 0.1f), RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
-            Text(label, color = color, fontSize = 9.sp, fontWeight = FontWeight.Black)
+            Text(label, color = color, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(desc, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(desc, color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Medium)
     }
 }

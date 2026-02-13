@@ -32,6 +32,7 @@ import androidx.compose.foundation.BorderStroke
 import com.asc.markets.R
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -67,25 +68,25 @@ internal fun ExecutionLedgerRealTimeHeader() {
 			Row(verticalAlignment = Alignment.CenterVertically) {
 				Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.03f), modifier = Modifier.size(36.dp)) {
 					Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-						Text("↔", color = Color.White, fontSize = 14.sp)
+						Text("\u2194", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall)
 					}
 				}
 				Spacer(modifier = Modifier.width(8.dp))
 				Column {
-					Text("REAL-TIME", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
-					Text("NODE", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+					Text("REAL-TIME", color = Color.White, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
+					Text("NODE", color = Color.White, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
 					Spacer(modifier = Modifier.height(4.dp))
-					Text("AUTONOMOUS AUDIT STREAM", color = SlateText, fontSize = 11.sp)
+					Text("AUTONOMOUS AUDIT STREAM", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
 				}
 			}
 
 			Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 8.dp)) {
 				// State integrity label above the SMC badge (no background)
-				Text("STATE INTEGRITY", color = SlateText, fontSize = 9.sp)
+				Text("STATE INTEGRITY", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
 				Spacer(modifier = Modifier.height(4.dp))
 				Surface(color = IndigoAccent.copy(alpha = 0.0f), shape = RoundedCornerShape(6.dp), border = BorderStroke(0.dp, Color.Transparent)) {
 					// SMC-L4 badge (visible text on transparent surface)
-					Text("SMC-L4 SECURE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+					Text("SMC-L4 SECURE", color = Color.White, fontWeight = FontWeight.Black, fontSize = DashboardFontSizes.gridHeaderSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
 				}
 
 				Spacer(modifier = Modifier.height(8.dp))
@@ -94,8 +95,8 @@ internal fun ExecutionLedgerRealTimeHeader() {
 					Box(modifier = Modifier.size(6.dp).background(EmeraldSuccess, CircleShape))
 					Spacer(modifier = Modifier.width(6.dp))
 					Column(horizontalAlignment = Alignment.End) {
-						Text("NODE PIPELINE", color = SlateText, fontSize = 9.sp)
-						Text("PROTOCOL\nLOCKED", color = EmeraldSuccess, fontWeight = FontWeight.Black, fontSize = 12.sp)
+						Text("NODE PIPELINE", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
+						Text("PROTOCOL\nLOCKED", color = EmeraldSuccess, fontWeight = FontWeight.Black, fontSize = DashboardFontSizes.gridHeaderSmall)
 					}
 				}
 			}
@@ -107,9 +108,9 @@ internal fun ExecutionLedgerRealTimeHeader() {
 internal fun ExecutionLedgerProtocolIntegrityFooter() {
 	Surface(color = IndigoAccent.copy(alpha = 0.06f), modifier = Modifier.fillMaxWidth()) {
 		Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-			Text("🔐", fontSize = 18.sp)
+			Text("🔐", fontSize = DashboardFontSizes.emojiIcon)
 			Spacer(modifier = Modifier.width(8.dp))
-			Text("Protocol Integrity: Ledger is immutable and engine-driven.", color = Color.White, fontSize = 12.sp)
+			Text("Protocol Integrity: Ledger is immutable and engine-driven.", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall)
 		}
 	}
 }
@@ -229,32 +230,32 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
 				PairFlags(tx.pair, 36)
 				Spacer(modifier = Modifier.width(12.dp))
 				Column(modifier = Modifier.weight(1f)) {
-					Text(tx.pair, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-					Text("${tx.side.uppercase(Locale.getDefault())} DISPATCH", color = if (tx.side.equals("BUY", ignoreCase = true)) EmeraldSuccess else RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black)
+					Text(tx.pair, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+					Text("${tx.side.uppercase(Locale.getDefault())} DISPATCH", color = if (tx.side.equals("BUY", ignoreCase = true)) EmeraldSuccess else RoseError, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
 				}
-				Text("#${tx.id.takeLast(4)}", color = SlateText, fontSize = 11.sp)
+				Text("#${tx.id.takeLast(4)}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
 			}
 
 			// Layer 2: Results & Performance (Middle)
 			Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				// Row: Audit Result label (left) and result badge (right)
 				Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-					Text("AUDIT RESULT", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+					Text("AUDIT RESULT", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
 					Spacer(modifier = Modifier.weight(1f))
 					Surface(
 						color = if (tx.result == "WON") EmeraldSuccess.copy(alpha = 0.12f) else RoseError.copy(alpha = 0.12f),
 						shape = RoundedCornerShape(8.dp),
 						border = BorderStroke(1.dp, if (tx.result == "WON") EmeraldSuccess else RoseError)
 					) {
-						Text(tx.result, color = if (tx.result == "WON") EmeraldSuccess else RoseError, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
+						Text(tx.result, color = if (tx.result == "WON") EmeraldSuccess else RoseError, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontFamily = InterFontFamily, fontWeight = FontWeight.Black)
 					}
 				}
 
 				// Row: Realized Delta label and PnL on same line
 				Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-					Text("REALIZED DELTA", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+					Text("REALIZED DELTA", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
 					Spacer(modifier = Modifier.weight(1f))
-					Text(tx.pnl, color = if (tx.pnl.startsWith("+")) EmeraldSuccess else RoseError, fontSize = 18.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
+					Text(tx.pnl, color = if (tx.pnl.startsWith("+")) EmeraldSuccess else RoseError, fontSize = DashboardFontSizes.valueLarge, fontFamily = InterFontFamily, fontWeight = FontWeight.Black)
 				}
 
 				Button(onClick = onGenerateCompliance, colors = ButtonDefaults.buttonColors(containerColor = Color.Black), modifier = Modifier.fillMaxWidth()) {
@@ -266,14 +267,14 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
 
 			// Layer 3: Rationale & Telemetry (Bottom)
 			Column(modifier = Modifier.fillMaxWidth()) {
-				Text("INSTITUTIONAL REASONING", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+				Text("INSTITUTIONAL REASONING", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
 				Spacer(modifier = Modifier.height(6.dp))
 				Surface(color = Color.White.copy(alpha = 0.02f), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
 					Text(
 						"\"${tx.rationale}. Node detected institutional buy program following Asian low sweep. CHoCH confirmed on M15. Strategy validated by HTF bias and news gate; position managed via adaptive risk filters.\"",
 						color = Color.White,
 						modifier = Modifier.padding(14.dp),
-						fontSize = 14.sp,
+						fontSize = DashboardFontSizes.sectionHeaderSmall,
 						lineHeight = 20.sp,
 						fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
 					)
@@ -283,17 +284,17 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
 				Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
 					InfoBox(modifier = Modifier.weight(1f)) {
 						Column(modifier = Modifier.padding(8.dp)) {
-							Text("INTERNAL CONTEXT", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black)
-							Spacer(modifier = Modifier.height(6.dp))
-							Text(tx.internalContext.uppercase(Locale.getDefault()), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+						Text("INTERNAL CONTEXT", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
+						Spacer(modifier = Modifier.height(6.dp))
+						Text(tx.internalContext.uppercase(Locale.getDefault()), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
 						}
 					}
 
 					InfoBox(modifier = Modifier.weight(1f)) {
 						Column(modifier = Modifier.padding(8.dp)) {
-							Text("OUTCOME PROFILE", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black)
-							Spacer(modifier = Modifier.height(6.dp))
-							Text(tx.outcomeProfile.uppercase(Locale.getDefault()), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+						Text("OUTCOME PROFILE", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
+						Spacer(modifier = Modifier.height(6.dp))
+						Text(tx.outcomeProfile.uppercase(Locale.getDefault()), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
 						}
 					}
 				}
@@ -301,19 +302,19 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
 				Spacer(modifier = Modifier.height(8.dp))
 				// Relay node block (label, node, time, latency)
 				Column(modifier = Modifier.fillMaxWidth()) {
-					Text("RELAY NODE", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+					Text("RELAY NODE", color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
 					Spacer(modifier = Modifier.height(6.dp))
-					Text(tx.relayNode, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+					Text(tx.relayNode, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
 					Spacer(modifier = Modifier.height(8.dp))
 					Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-						Text("🕒", fontSize = 14.sp)
-						val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-						Text(sdf.format(Date(tx.timestamp)), color = Color.White, fontSize = 12.sp)
+					Text("🕒", fontSize = DashboardFontSizes.sectionHeaderSmall)
+					val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+					Text(sdf.format(Date(tx.timestamp)), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall)
 					}
 
 					Spacer(modifier = Modifier.height(8.dp))
 					Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.03f)) {
-						Text("LATENCY: ${String.format("%.2f", tx.latencyMs)}MS", color = SlateText, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontFamily = FontFamily.Monospace)
+							Text("LATENCY: ${String.format("%.2f", tx.latencyMs)}MS", color = SlateText, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontFamily = InterFontFamily)
 					}
 				}
 			}
@@ -328,15 +329,15 @@ internal fun DeepAuditModal(tx: ExecutionTx, onClose: () -> Unit) {
 			Card(modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.86f)) {
 				Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 					Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-						Text("Compliance Report — ${tx.id}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+						Text("Compliance Report — ${tx.id}", color = Color.White, fontSize = DashboardFontSizes.emojiIcon, fontWeight = FontWeight.Black)
 						Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
 					}
 
 					// Transaction Identity
-					Text("Transaction Identity", color = SlateText, fontSize = 12.sp)
+					Text("Transaction Identity", color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall)
 					val nodeHash = "NODE-${tx.id.takeLast(6)}-${(tx.timestamp % 100000).toString().padStart(5, '0')}"
-					Text("Hash: $nodeHash", color = Color.White, fontFamily = FontFamily.Monospace)
-					Text("Transaction ID: ${tx.id}", color = SlateText, fontSize = 11.sp)
+					Text("Hash: $nodeHash", color = Color.White, fontFamily = InterFontFamily)
+					Text("Transaction ID: ${tx.id}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
 
 					// Snapshot of the World: 4 mini-boxes
 					Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -344,21 +345,21 @@ internal fun DeepAuditModal(tx: ExecutionTx, onClose: () -> Unit) {
 							val (k, v) = pair
 							Card(modifier = Modifier.weight(1f)) {
 								Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-									Text(k, color = SlateText, fontSize = 11.sp)
-									Spacer(modifier = Modifier.height(6.dp))
-									Text(v, color = Color.White, fontSize = 13.sp)
+								Text(k, color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+								Spacer(modifier = Modifier.height(6.dp))
+								Text(v, color = Color.White, fontSize = DashboardFontSizes.valueSmall)
 								}
 							}
 						}
 					}
 
 					// Audit Trail table
-					Text("Audit Trail", color = SlateText, fontSize = 12.sp)
+					Text("Audit Trail", color = SlateText, fontSize = DashboardFontSizes.gridHeaderSmall)
 					Column(modifier = Modifier.fillMaxWidth()) {
 						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-							Text("Fill Price", color = SlateText, fontSize = 11.sp)
-							Text("Side", color = SlateText, fontSize = 11.sp)
-							Text("Exec Type", color = SlateText, fontSize = 11.sp)
+						Text("Fill Price", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("Side", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("Exec Type", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
 						}
 						Divider(color = Color.White.copy(alpha = 0.06f))
 						tx.fills.forEach { f: FillRow ->
@@ -388,7 +389,7 @@ internal fun DeepAuditModal(tx: ExecutionTx, onClose: () -> Unit) {
 							Spacer(modifier = Modifier.width(8.dp))
 							Column {
 								Text("Digital Signature", color = Color.White, fontWeight = FontWeight.Black)
-								Text("Verified (deterministic)", color = SlateText, fontSize = 11.sp)
+								Text("Verified (deterministic)", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
 							}
 						}
 						Button(onClick = { /* stub: download PDF */ }, colors = ButtonDefaults.buttonColors(containerColor = IndigoAccent)) {

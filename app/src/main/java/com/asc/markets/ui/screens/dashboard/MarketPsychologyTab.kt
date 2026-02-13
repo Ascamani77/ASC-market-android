@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
 import com.asc.markets.state.AssetContext
 import com.asc.markets.state.AssetContextStore
@@ -41,7 +42,7 @@ fun MarketPsychologyTab() {
             item {
                 InfoBox(height = 320.dp) {
                     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("GLOBAL PSYCHOLOGY METER", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                        Text("GLOBAL PSYCHOLOGY METER", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.weight(1f))
                         PsychologyGauge(72)
                         Spacer(modifier = Modifier.weight(1f))
@@ -57,16 +58,16 @@ fun MarketPsychologyTab() {
             item {
                 InfoBox(height = 160.dp) {
                     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${ctx.name} Psychology Summary", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        Text("${ctx.name} Psychology Summary", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black)
                         val events = getMacroEventsForContext(ctx)
                         events.take(3).forEach { (t, txt) ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(t, color = SlateText, fontSize = 10.sp)
-                                Text(txt, color = Color.White, fontSize = 12.sp)
+                                Text(t, color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                                Text(txt, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Institutional bias and flow summary available for ${ctx.name}.", color = SlateText, fontSize = 11.sp)
+                        Text("Institutional bias and flow summary available for ${ctx.name}.", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
                     }
                 }
             }
@@ -79,22 +80,22 @@ fun MarketPsychologyTab() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(painter = painterResource(id = com.asc.markets.R.drawable.lucide_binary), contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("GLOBAL SENTIMENT INDEX", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("GLOBAL SENTIMENT INDEX", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Surface(shape = RoundedCornerShape(999.dp), color = EmeraldSuccess.copy(alpha = 0.06f), modifier = Modifier.padding(end = 4.dp)) {
                                 Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("SMART MONEY", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Text("SMART MONEY", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("BULLISH", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Text("BULLISH", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                                 }
                             }
                             Surface(shape = RoundedCornerShape(999.dp), color = RoseError.copy(alpha = 0.06f)) {
                                 Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("RETAIL FLOW", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Text("RETAIL FLOW", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("BEARISH", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Text("BEARISH", color = RoseError, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                                 }
                             }
                         }
@@ -107,7 +108,7 @@ fun MarketPsychologyTab() {
         item {
             InfoBox {
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                    Text("7-Day Momentum", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text("7-Day Momentum", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(modifier = Modifier.fillMaxWidth().height(120.dp).background(Color.Transparent)) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -132,7 +133,7 @@ fun MarketPsychologyTab() {
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("SENTIMENT REGISTRY", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Text("SENTIMENT REGISTRY", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                 var selectedPair by remember { mutableStateOf<com.asc.markets.data.ForexPair?>(null) }
                 if (ctx == AssetContext.FOREX) {
                     val list = getExploreItemsForContext(ctx)
@@ -145,7 +146,7 @@ fun MarketPsychologyTab() {
                     }
                 } else {
                     // Per-asset sentiment placeholder when specific registry is unavailable
-                    Text("Sentiment registry not available for ${ctx.name}. See Overview for concise bias and flow.", color = SlateText, fontSize = 11.sp)
+                    Text("Sentiment registry not available for ${ctx.name}. See Overview for concise bias and flow.", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
                 }
             }
         }
@@ -163,19 +164,19 @@ private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair, onOpenContex
                 PairFlags(pair.symbol, 28)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(pair.symbol, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    Text(String.format("%.2f", pair.price), color = SlateText, fontSize = 12.sp)
+                Text(pair.symbol, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text(String.format("%.2f", pair.price), color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(String.format("%+.2f%%", pair.changePercent), color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text(String.format("%+.2f%%", pair.changePercent), color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
             }
 
             // Layer 2: Split bar with labels
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${bullishVal}% Long", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                    Text("${100 - bullishVal}% Short", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                    Text("${bullishVal}% Long", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
+                    Text("${100 - bullishVal}% Short", color = RoseError, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black)
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(4.dp))) {
                     Box(modifier = Modifier.fillMaxWidth(bullishVal / 100f).fillMaxHeight().background(EmeraldSuccess, RoundedCornerShape(4.dp)))
@@ -200,7 +201,7 @@ private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair, onOpenContex
                 Surface(shape = RoundedCornerShape(6.dp), color = badgeBg) {
                     Text(if (bullishVal > 60) "BULLISH" else if (bullishVal < 40) "BEARISH" else "NEUTRAL", color = badgeTextColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontWeight = FontWeight.Black)
                 }
-                Text(if (bullishVal > 70) "Aggressive Buying" else if (bullishVal < 30) "Capitulation" else "Mixed Flow", color = SlateText, fontSize = 11.sp)
+                Text(if (bullishVal > 70) "Aggressive Buying" else if (bullishVal < 30) "Capitulation" else "Mixed Flow", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
             }
         }
     }
@@ -213,26 +214,26 @@ private fun InstitutionalContextModal(pair: com.asc.markets.data.ForexPair, onCl
             Card(modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.86f)) {
                 Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Institutional Context — ${pair.symbol}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
+                        Text("Institutional Context — ${pair.symbol}", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
                         Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
                     }
 
-                    Text("Why", color = SlateText, fontSize = 12.sp)
+                    Text("Why", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                     Text("High Greed derived from decreasing VIX premiums and concentrated flows into larger lot sizes. Retail proxies decoupled from volume on delta.", color = Color.White)
 
-                    Text("Supporting Data", color = SlateText, fontSize = 12.sp)
+                    Text("Supporting Data", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Volume Divergence", color = SlateText)
-                            Text("+12%", color = Color.White, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("+12%", color = Color.White, fontFamily = InterFontFamily)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Positioning Multiplier", color = SlateText)
-                            Text("2.4x", color = Color.White, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("2.4x", color = Color.White, fontFamily = InterFontFamily)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Retail Alignment", color = SlateText)
-                            Text("Extreme", color = RoseError, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("Extreme", color = RoseError, fontFamily = InterFontFamily)
                         }
                     }
                 }
@@ -264,8 +265,8 @@ private fun PsychologyGauge(value: Int) {
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$value", color = Color.White, fontSize = 56.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            Text("SCORE", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontFamily = InterFontFamily)
+            Text("$value", color = Color.White, fontSize = DashboardFontSizes.sentimentScore, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text("SCORE", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontFamily = InterFontFamily)
         }
     }
 }
@@ -273,7 +274,7 @@ private fun PsychologyGauge(value: Int) {
 @Composable
 private fun SentimentStateBox(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = Color.DarkGray, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-        Text(value, color = color, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Text(label, color = Color.DarkGray, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+        Text(value, color = color, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
     }
 }

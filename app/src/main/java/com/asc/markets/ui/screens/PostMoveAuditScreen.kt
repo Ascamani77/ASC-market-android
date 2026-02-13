@@ -188,7 +188,7 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                     color = SlateText,
                     fontSize = 9.sp,
                     modifier = Modifier.padding(10.dp),
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
             }
         }, content = { paddingValues ->

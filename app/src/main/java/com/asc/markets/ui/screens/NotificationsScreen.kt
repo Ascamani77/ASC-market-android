@@ -184,7 +184,7 @@ fun NotificationCard(item: NotificationItem) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(item.msg, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, lineHeight = 18.sp, fontFamily = InterFontFamily)
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(item.time, color = Color.Gray, fontSize = 10.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Text(item.time, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
             }
         }
     }

@@ -131,12 +131,12 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
                     shape = RoundedCornerShape(6.dp),
                     border = BorderStroke(1.dp, if (tx.result == "WON") EmeraldSuccess.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.03f))
                 ) {
-                    Text(tx.result, color = if (tx.result == "WON") EmeraldSuccess else Color.White, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
+                    Text(tx.result, color = if (tx.result == "WON") EmeraldSuccess else Color.White, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontFamily = InterFontFamily, fontWeight = FontWeight.Black)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(tx.pnl, color = if (tx.pnl.startsWith("+")) EmeraldSuccess else RoseError, fontSize = 20.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
+                Text(tx.pnl, color = if (tx.pnl.startsWith("+")) EmeraldSuccess else RoseError, fontSize = 20.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Black)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -191,7 +191,7 @@ internal fun ExecutionLedgerRow(tx: ExecutionTx, onGenerateCompliance: () -> Uni
             // Column C: Transmission Metadata (Right ~17%)
             Column(modifier = Modifier.weight(0.17f), horizontalAlignment = Alignment.End) {
                 Text("RELAY", color = SlateText, fontSize = 9.sp)
-                Text(tx.relayNode, color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Text(tx.relayNode, color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontFamily = InterFontFamily)
 
                 Spacer(modifier = Modifier.height(6.dp))
 

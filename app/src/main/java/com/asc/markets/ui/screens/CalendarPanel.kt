@@ -70,7 +70,7 @@ fun EventCard(event: EconomicEvent) {
                         }
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(event.time, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(event.time, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                         Text(if (isHigh) "CRITICAL" else "MEDIUM", color = if (isHigh) RoseError else SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     }
                 }
@@ -91,6 +91,6 @@ fun EventCard(event: EconomicEvent) {
 private fun MetricColumn(label: String, value: String, color: Color) {
     Column {
         Text(label, color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-        Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
     }
 }

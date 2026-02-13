@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
+import com.asc.markets.ui.theme.InterFontFamily
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.asc.markets.logic.*
@@ -34,8 +35,8 @@ private fun KpiBoxComposable(label: String, value: String, valueColor: Color, ac
         modifier = modifier.height(64.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.Center) {
-            Text(label, color = accent.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-            Text(value, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text(label, color = accent.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = InterFontFamily)
+            Text(value, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
         }
     }
 }
@@ -49,9 +50,9 @@ fun FeedTile(symbol: String, statusColor: Color, modifier: Modifier = Modifier, 
         modifier = modifier.height(80.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(symbol, color = statusColor, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(symbol, color = statusColor, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (isFresh) "FRESH" else "STALE", color = statusColor, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                Text(if (isFresh) "FRESH" else "STALE", color = statusColor, fontFamily = InterFontFamily, fontSize = 10.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(modifier = Modifier.size(6.dp).background(statusColor, RoundedCornerShape(3.dp)))
             }
@@ -61,7 +62,7 @@ fun FeedTile(symbol: String, statusColor: Color, modifier: Modifier = Modifier, 
 
 @Composable
 fun TextRowLabel(text: String) {
-    Text(text, color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, modifier = Modifier.padding(bottom = 6.dp)
+    Text(text, color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, modifier = Modifier.padding(bottom = 6.dp)
     )
 }
 
@@ -126,10 +127,10 @@ fun DiagnosticsScreen() {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("REAL-TIME INGESTION", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("BUFFER", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("POLLING EVERY", color = terminalGreen.copy(alpha = 0.6f), fontFamily = FontFamily.Monospace, fontSize = 9.sp)
-                        Text("250MS", color = terminalGreen.copy(alpha = 0.6f), fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+                        Text("REAL-TIME INGESTION", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("BUFFER", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("POLLING EVERY", color = terminalGreen.copy(alpha = 0.6f), fontFamily = InterFontFamily, fontSize = 9.sp)
+                        Text("250MS", color = terminalGreen.copy(alpha = 0.6f), fontFamily = InterFontFamily, fontSize = 9.sp)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     // 2x2 Grid of feed tiles (show first 4 feeds with dynamic freshness)
@@ -182,7 +183,7 @@ fun DiagnosticsScreen() {
                     // Header with lock icon
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                         Text("🔒", fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
-                        Text("SAFETY_INTERLOCK_LAYER", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("SAFETY_INTERLOCK_LAYER", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     
                     Divider(color = terminalGreen.copy(alpha = 0.12f), thickness = 1.dp, modifier = Modifier.padding(bottom = 12.dp))
@@ -190,8 +191,8 @@ fun DiagnosticsScreen() {
                     // Intel Interlock Row
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("INTEL INTERLOCK", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text("DISABLE DISPATCHES IF RTT > 50MS", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                            Text("INTEL INTERLOCK", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("DISABLE DISPATCHES IF RTT > 50MS", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 10.sp)
                         }
                         Switch(checked = interlock, onCheckedChange = {
                             interlock = it
@@ -211,7 +212,7 @@ fun DiagnosticsScreen() {
                         ) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text("🛡️", fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
-                                Text("INTERLOCK_ENGAGED", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("INTERLOCK_ENGAGED", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
@@ -232,7 +233,7 @@ fun DiagnosticsScreen() {
                         colors = ButtonDefaults.buttonColors(containerColor = terminalGreen.copy(alpha = 0.15f)),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, terminalGreen)
                     ) {
-                        Text("↻ FORCE RECONNECT", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("↻ FORCE RECONNECT", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -257,8 +258,8 @@ fun DiagnosticsScreen() {
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(10.dp).background(if (fresh) terminalGreen else Color(0xFFFFA500), RoundedCornerShape(3.dp)))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(feed.symbol, color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                            Text(if (fresh) "FRESH" else "STALE", color = if (fresh) terminalGreen else Color(0xFFFFA500), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                            Text(feed.symbol, color = terminalGreen, fontFamily = InterFontFamily, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Text(if (fresh) "FRESH" else "STALE", color = if (fresh) terminalGreen else Color(0xFFFFA500), fontFamily = InterFontFamily, fontSize = 11.sp)
                         }
                     }
                 }
@@ -283,7 +284,7 @@ fun DiagnosticsScreen() {
                             text = "> $log",
                             color = terminalGreen,
                             fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = InterFontFamily,
                             modifier = Modifier.padding(vertical = 2.dp)
                         )
                     }
@@ -302,36 +303,36 @@ fun DiagnosticsScreen() {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     // Header with divider
-                    Text("🔧 ENVIRONMENT_PROFILER", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("🔧 ENVIRONMENT_PROFILER", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Divider(color = terminalGreen.copy(alpha = 0.3f), thickness = 1.dp)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Visibility Status row
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("VISIBILITY STATUS", color = terminalGreen.copy(alpha = 0.8f), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                        Text("⊙ ${metrics.visibilityStatus}", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("VISIBILITY STATUS", color = terminalGreen.copy(alpha = 0.8f), fontFamily = InterFontFamily, fontSize = 11.sp)
+                        Text("⊙ ${metrics.visibilityStatus}", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // System Throttling row
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("SYSTEM THROTTLING", color = terminalGreen.copy(alpha = 0.8f), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                        Text("NONE", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("SYSTEM THROTTLING", color = terminalGreen.copy(alpha = 0.8f), fontFamily = InterFontFamily, fontSize = 11.sp)
+                        Text("NONE", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Timer Accuracy row
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("TIMER ACCURACY", color = terminalGreen.copy(alpha = 0.8f), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                        Text("NOMINAL", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("TIMER ACCURACY", color = terminalGreen.copy(alpha = 0.8f), fontFamily = InterFontFamily, fontSize = 11.sp)
+                        Text("NOMINAL", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // JS Heap Utilization label and value
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("JS HEAP UTILIZATION", color = terminalGreen.copy(alpha = 0.8f), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                        Text("${metrics.memoryUsageMb} / 21 MB", color = terminalGreen, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("JS HEAP UTILIZATION", color = terminalGreen.copy(alpha = 0.8f), fontFamily = InterFontFamily, fontSize = 11.sp)
+                        Text("${metrics.memoryUsageMb} / 21 MB", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -374,11 +375,11 @@ fun DiagnosticsScreen() {
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("⚠", color = Color(0xFFFFA500), fontFamily = FontFamily.Monospace, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("⚠", color = Color(0xFFFFA500), fontFamily = InterFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(
                         "HIGH TIMER DRIFT DETECTED DURING BACKGROUND\nPERIODS. INSTITUTIONAL DISPATCHES MAY BE DELAYED\nIF SURVEILLANCE MODE IS MINIMIZED ON VPS.",
                         color = Color(0xFFFFA500),
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = InterFontFamily,
                         fontSize = 10.sp,
                         lineHeight = 14.sp
                     )
@@ -397,8 +398,8 @@ fun KpiBox(label: String, value: String, valueColor: Color, accent: Color, modif
         modifier = modifier.height(64.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.Center) {
-            Text(label, color = accent.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-            Text(value, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text(label, color = accent.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = InterFontFamily)
+            Text(value, color = valueColor, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
         }
     }
 }

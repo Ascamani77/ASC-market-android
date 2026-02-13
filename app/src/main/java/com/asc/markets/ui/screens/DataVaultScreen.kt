@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.DeepBlack
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.SlateText
@@ -143,7 +144,7 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
                                 ">_",
                                 color = IndigoAccent,
                                 fontSize = 14.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = InterFontFamily
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -188,7 +189,7 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
                                 "ϕ",
                                 color = Color(0xFF2EE08A),
                                 fontSize = 16.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Bold
                             )
 
@@ -428,7 +429,7 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
                                 color = SlateText,
                                 fontSize = 10.sp,
                                 lineHeight = 13.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = InterFontFamily
                             )
                         }
                     }
@@ -463,7 +464,7 @@ fun StreamTableRow(row: TableRow) {
             row.packetId,
             color = IndigoAccent,
             fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(70.dp)
         )
@@ -472,7 +473,7 @@ fun StreamTableRow(row: TableRow) {
             row.eventFeature,
             color = Color.White,
             fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             lineHeight = 12.sp,
             modifier = Modifier.weight(1f)
         )
@@ -481,7 +482,7 @@ fun StreamTableRow(row: TableRow) {
             row.confidence,
             color = Color.White,
             fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(80.dp)
         )
@@ -490,7 +491,7 @@ fun StreamTableRow(row: TableRow) {
             row.status,
             color = row.statusColor,
             fontSize = 9.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(60.dp)
         )

@@ -89,7 +89,7 @@ fun PostMoveAuditItem(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("[ ", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
-                        Text("${entry.confidence}%", color = confidenceColor, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
+                        Text("${entry.confidence}%", color = confidenceColor, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
                         Text(" ] confidence", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
                     }
                     Spacer(modifier = Modifier.height(35.dp))
@@ -101,7 +101,7 @@ fun PostMoveAuditItem(
                     val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
                     Box(modifier = Modifier.wrapContentWidth()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
+                            Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                             if (entry.status.equals("ACTIVE", true)) {
                                 val infiniteTransition = rememberInfiniteTransition()
                                 val blinkAlpha by infiniteTransition.animateFloat(
@@ -213,15 +213,15 @@ fun PostMoveAuditItem(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("TS_MICRO: ${entry.timeUtc}", color = SlateText, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
-                            Text("SEQ_ID: ${entry.id.take(3).uppercase()}", color = SlateText, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
+                            Text("TS_MICRO: ${entry.timeUtc}", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
+                            Text("SEQ_ID: ${entry.id.take(3).uppercase()}", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
                         Divider(color = Color.White.copy(alpha = 0.04f))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("LOG::${entry.id.take(3).uppercase()}", color = SlateText.copy(alpha = 0.6f), style = TerminalTypography.labelSmall.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium))
+                            Text("LOG::${entry.id.take(3).uppercase()}", color = SlateText.copy(alpha = 0.6f), style = TerminalTypography.labelSmall.copy(fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium))
                             TextButton(onClick = { expanded[entry.id] = false }) { Text("MINIMIZE CONTEXT", color = IndigoAccent, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold) }
                         }
                     }

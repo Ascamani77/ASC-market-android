@@ -160,7 +160,7 @@ fun LiquidityHubScreen() {
                     // Global VIX Proxy display
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Global Fear Index:", color = SlateText, fontSize = 10.sp)
-                        Text("23.45", color = EmeraldSuccess, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text("23.45", color = EmeraldSuccess, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
@@ -284,7 +284,7 @@ fun ExpandedNetDeltaRow(data: NetDeltaData) {
                         "SHORT" -> RoseError
                         else -> Color.White
                     },
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontFamily = InterFontFamily,
                     fontWeight = FontWeight.Black,
                     fontSize = 14.sp
                 )
@@ -349,7 +349,7 @@ fun NetDeltaRow(currency: String, delta: Int) {
             Text(
                 text = "${if (delta >= 0) "+" else ""}${String.format("%,d", delta)}",
                 color = if (delta >= 0) EmeraldSuccess else RoseError,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Black,
                 fontSize = 14.sp
             )
@@ -428,7 +428,7 @@ private fun CorrelationMatrixTable() {
                             color = Color.White,
                             fontSize = 7.sp,
                             fontWeight = FontWeight.Black,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            fontFamily = InterFontFamily
                         )
                     }
 
@@ -468,7 +468,7 @@ private fun CorrelationHeatmapCard(pair: String, coeff: Double) {
                 color = Color.White,
                 fontSize = 16.sp, 
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                fontFamily = InterFontFamily
             )
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -28,7 +29,7 @@ fun FullAssetHeader(pair: ForexPair) {
                 Text(
                     text = pair.symbol, 
                     color = Color.White, 
-                    fontSize = 22.sp,
+                    fontSize = DashboardFontSizes.dashboardActiveSession,
                     fontWeight = FontWeight.Black,
                     fontFamily = InterFontFamily,
                     letterSpacing = (-1).sp
@@ -38,7 +39,7 @@ fun FullAssetHeader(pair: ForexPair) {
                     Text(
                         text = "NY4 EQUINIX / FEED: TOP-OF-BOOK", 
                         color = SlateText, 
-                        fontSize = 8.sp, 
+                        fontSize = DashboardFontSizes.microCaption, 
                         fontWeight = FontWeight.Black, 
                         fontFamily = InterFontFamily,
                         letterSpacing = 1.sp
@@ -50,14 +51,14 @@ fun FullAssetHeader(pair: ForexPair) {
                 Text(
                     text = "14ms", 
                     color = IndigoAccent, 
-                    fontSize = 10.sp,
+                    fontSize = DashboardFontSizes.labelMedium,
                     fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 Text(
                     text = "LMAX DIRECT", 
                     color = Color.DarkGray, 
-                    fontSize = 7.sp, 
+                    fontSize = DashboardFontSizes.microCaption, 
                     fontWeight = FontWeight.Black, 
                     fontFamily = InterFontFamily
                 )
@@ -68,15 +69,15 @@ fun FullAssetHeader(pair: ForexPair) {
             Text(
                 text = String.format(java.util.Locale.US, "%.${precision}f", pair.price),
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = DashboardFontSizes.emojiIcon,
                 fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = InterFontFamily,
                 letterSpacing = (-0.5).sp
             )
             Text(
                 text = "${if (pair.change >= 0) "+" else ""}${String.format(java.util.Locale.US, "%.2f", pair.changePercent)}%",
                 color = if (pair.change >= 0) EmeraldSuccess else RoseError,
-                fontSize = 11.sp,
+                fontSize = DashboardFontSizes.bodyTiny,
                 fontWeight = FontWeight.Black,
                 fontFamily = InterFontFamily
             )

@@ -66,7 +66,7 @@ fun TradingAssistantScreen(viewModel: ForexViewModel) {
                     text = if (log.role == "user") "> ${log.content}" else log.content,
                     color = if (log.role == "user") Color.White else SlateText,
                     fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = InterFontFamily,
                     lineHeight = 18.sp
                 )
             }
@@ -80,7 +80,7 @@ fun TradingAssistantScreen(viewModel: ForexViewModel) {
             border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder)
         ) {
             Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("SYS_CMD:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                Text("SYS_CMD:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 TextField(
                     value = input,
                     onValueChange = {
@@ -99,7 +99,7 @@ fun TradingAssistantScreen(viewModel: ForexViewModel) {
                         focusedTextColor = Color.White
                     ),
                     modifier = Modifier.weight(1f),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = InterFontFamily, fontSize = 13.sp)
                 )
                 if (pasteBlocked) {
                     Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.MiniChart
 import com.asc.markets.ui.components.ForexIcon
@@ -45,8 +46,8 @@ fun MarketWatchScreen() {
             }
 
             Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-                Text("PROACTIVE MARKET WATCH", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                Text("AI‑POWERED PATTERN DISCOVERY & BIAS WEIGHTING", color = SlateText, fontSize = 11.sp)
+                Text("PROACTIVE MARKET WATCH", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
+                Text("AI‑POWERED PATTERN DISCOVERY & BIAS WEIGHTING", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
             }
 
             Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = Color.White)
@@ -63,8 +64,8 @@ fun MarketWatchScreen() {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("GLOBAL SCAN ENGINE ACTIVE", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("SCANNING FOR MOMENTUM INFLOW AND STRUCTURAL FAILURE. CURRENT FOCUS IS ON IDENTIFYING LEAD-TIME ADVANTAGES.", color = SlateText, fontSize = 12.sp)
+                        Text("GLOBAL SCAN ENGINE ACTIVE", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
+                        Text("SCANNING FOR MOMENTUM INFLOW AND STRUCTURAL FAILURE. CURRENT FOCUS IS ON IDENTIFYING LEAD-TIME ADVANTAGES.", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
@@ -113,9 +114,9 @@ private fun MarketWatchSignalCard(s: SignalModel) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(s.symbol, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(s.symbol, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                         Surface(color = s.tagColor, shape = RoundedCornerShape(6.dp)) {
-                            Text(s.tag.uppercase(Locale.getDefault()), color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp)
+                            Text(s.tag.uppercase(Locale.getDefault()), color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, fontFamily = InterFontFamily)
                         }
                     }
                 }
@@ -123,14 +124,14 @@ private fun MarketWatchSignalCard(s: SignalModel) {
                 Spacer(modifier = Modifier.weight(1f))
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${s.confidence}%", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("AI CONFIDENCE", color = SlateText, fontSize = 11.sp)
+                    Text("${s.confidence}%", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
+                    Text("AI CONFIDENCE", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
                 }
             }
 
             // Quote box
             Surface(color = Color(0xFF080808), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Text("\"${s.quote}\"", color = Color.White, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
+                Text("\"${s.quote}\"", color = Color.White, modifier = Modifier.padding(12.dp), fontSize = 14.sp, fontFamily = InterFontFamily)
             }
 
             // Metrics row
@@ -141,29 +142,29 @@ private fun MarketWatchSignalCard(s: SignalModel) {
                         Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(s.momentumPct).background(EmeraldSuccess, RoundedCornerShape(4.dp)))
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("MOMENTUM", color = SlateText, fontSize = 10.sp)
-                        Text(s.volatility.uppercase(Locale.getDefault()), color = Color.White, fontSize = 10.sp)
+                        Text("MOMENTUM", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                        Text(s.volatility.uppercase(Locale.getDefault()), color = Color.White, fontSize = 10.sp, fontFamily = InterFontFamily)
                     }
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("ATR (H1)", color = SlateText, fontSize = 10.sp)
-                    Text(s.atr, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("ATR (H1)", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                    Text(s.atr, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("IN STRUCTURE", color = SlateText, fontSize = 10.sp)
-                    Text(s.inStructure, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("IN STRUCTURE", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                    Text(s.inStructure, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                 }
             }
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(s.price, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                Text(s.price, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(s.changeText, color = if (s.changeText.startsWith("+")) EmeraldSuccess else RoseError, fontSize = 12.sp)
+                Text(s.changeText, color = if (s.changeText.startsWith("+")) EmeraldSuccess else RoseError, fontSize = 12.sp, fontFamily = InterFontFamily)
 
                 Spacer(modifier = Modifier.weight(1f))
-                Text("OPEN ANALYSIS →", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                Text("OPEN ANALYSIS →", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
         }
     }

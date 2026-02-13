@@ -86,6 +86,6 @@ fun NewsEventCard(event: EventDisplay, surprise: com.asc.markets.logic.SurpriseM
 private fun MetricColumn(label: String, value: String, color: Color) {
     Column {
         Text(label, color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
     }
 }
