@@ -31,6 +31,7 @@ import com.asc.markets.ui.theme.*
 @Composable
 fun MarketPsychologyTab() {
     val ctx by AssetContextStore.context.collectAsState()
+    val psychologyData = rememberPsychologyData()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -44,12 +45,12 @@ fun MarketPsychologyTab() {
                     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("GLOBAL PSYCHOLOGY METER", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.weight(1f))
-                        PsychologyGauge(72)
+                        PsychologyGauge(psychologyData.psychologyScore)
                         Spacer(modifier = Modifier.weight(1f))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            SentimentStateBox("STATE", "GREED REGIME", EmeraldSuccess)
-                            SentimentStateBox("VOLATILITY", "STABLE", Color.White)
-                            SentimentStateBox("DXY BETA", "0.82 HIGH", Color.White)
+                            SentimentStateBox("STATE", psychologyData.sentimentState, psychologyData.sentimentColor)
+                            SentimentStateBox("VOLATILITY", psychologyData.volatilityState, Color.White)
+                            SentimentStateBox("DXY BETA", psychologyData.dxyBeta, Color.White)
                         }
                     }
                 }

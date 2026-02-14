@@ -23,7 +23,7 @@ data class ForexPair(
 )
 
 enum class MarketCategory {
-    FOREX, CRYPTO, COMMODITIES, INDICES, STOCK
+    FOREX, CRYPTO, COMMODITIES, INDICES, STOCK, BONDS, FUTURES
 }
 
 // Infer category from symbol heuristics

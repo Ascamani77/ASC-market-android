@@ -23,6 +23,8 @@ import com.asc.markets.ui.theme.*
 
 @Composable
 fun DashboardOverviewTab(symbol: String) {
+    val sessionData = rememberSessionData()
+    
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -39,14 +41,14 @@ fun DashboardOverviewTab(symbol: String) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("ACTIVE SESSION", color = Color.White, fontSize = DashboardFontSizes.dashboardActiveSession, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("LONDON HUB", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text("ACTIVE", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                            Text(sessionData.hubName, color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text(if (sessionData.isActive) "ACTIVE" else "INACTIVE", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                         }
                         Box(modifier = Modifier.background(GhostWhite, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text("65% COMPLETE", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("${sessionData.completionPercent}% COMPLETE", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
-                    SessionProgressGauge(65)
+                    SessionProgressGauge(sessionData.completionPercent)
                 }
             }
         }
@@ -55,12 +57,12 @@ fun DashboardOverviewTab(symbol: String) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    VitalMiniBox("AVG SPREAD", "0.4 pips", "INSTITUTIONAL", Modifier.weight(1f))
-                    VitalMiniBox("VOLATILITY", "24 p/h", "STANDARD", Modifier.weight(1f))
+                    VitalMiniBox("AVG SPREAD", sessionData.avgSpread, "INSTITUTIONAL", Modifier.weight(1f))
+                    VitalMiniBox("VOLATILITY", sessionData.volatility, "STANDARD", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    VitalMiniBox("NEXT EVENT", "13:30", "UTC WINDOW", Modifier.weight(1f))
-                    VitalMiniBox("SAFETY GATE", "ARMED", "PROP GUARD", Modifier.weight(1f))
+                    VitalMiniBox("NEXT EVENT", sessionData.nextEventTime, sessionData.nextEventLabel, Modifier.weight(1f))
+                    VitalMiniBox("SAFETY GATE", sessionData.safetyGateStatus, "PROP GUARD", Modifier.weight(1f))
                 }
             }
         }
@@ -75,7 +77,7 @@ fun DashboardOverviewTab(symbol: String) {
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "Current environment is defined by MACRO-DRIVEN COMPRESSION. Equities and Forex are displaying high levels of institutional rebalancing ahead of NY open.",
+                        sessionData.globalRegimeText,
                         color = SlateText,
                         fontSize = DashboardFontSizes.labelMedium,
                         lineHeight = 18.sp,
@@ -84,6 +86,11 @@ fun DashboardOverviewTab(symbol: String) {
                     )
                 }
             }
+        }
+
+        // 4. Dynamic Additional Metrics (Flexible for any injected data)
+        items(sessionData.additionalMetrics.size) { index ->
+            RenderDynamicInfoBox(sessionData.additionalMetrics[index])
         }
     }
 }

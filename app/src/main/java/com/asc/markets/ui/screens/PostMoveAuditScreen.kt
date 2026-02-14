@@ -198,7 +198,7 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                     Column(modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .padding(24.dp),
+                        .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center) {
                         Text("No audit records to display.", color = Color.Gray, fontSize = 14.sp)
@@ -219,11 +219,14 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                         }
                     }
                 } else {
-                LazyColumn(state = listState, modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(),
+                    contentPadding = paddingValues) {
                 items(auditsForDisplay, key = { it.id }) { entry ->
+                    Spacer(modifier = Modifier.height(4.dp))
                     PostMoveAuditItem(entry = entry, expanded = expanded, viewModel = viewModel, context = context)
+                }
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
                 }
             }

@@ -40,7 +40,7 @@ fun DashboardQuality() {
             .fillMaxSize()
             .background(DeepBlack)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Tactical Vitals: one per row (vertical list)

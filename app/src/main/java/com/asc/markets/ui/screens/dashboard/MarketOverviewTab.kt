@@ -1109,27 +1109,47 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         // 6. MARKET DEPTH LADDER
         if (assetCtxForNews == AssetContext.ALL || assetCtxForNews == selectedPairCtx) {
             item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 16.dp)) {
+                InfoBox(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), minHeight = 0.dp) {
                     MarketDepthLadder(selectedPair = selectedPair)
                 }
             }
         }
 
         // NEW SECTIONS: show cards only for matching AssetContext (or ALL)
+        if (assetCtxForNews == AssetContext.FOREX || assetCtxForNews == AssetContext.ALL) {
+            item { ForexCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
         if (assetCtxForNews == AssetContext.CRYPTO || assetCtxForNews == AssetContext.ALL) {
             item { CryptoCardsSection(onAssetClick) }
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
 
-        if (assetCtxForNews == AssetContext.INDICES || assetCtxForNews == AssetContext.ALL) {
-            item { StockCardsSection(onAssetClick) }
-            item { Spacer(modifier = Modifier.height(12.dp)) }
-            item { IndicesCardsSection(onAssetClick) }
-            item { Spacer(modifier = Modifier.height(12.dp)) }
-            item { MajorIndicesSection(onAssetClick) }
+        if (assetCtxForNews == AssetContext.COMMODITIES || assetCtxForNews == AssetContext.ALL) {
+            item { CommoditiesCardsSection(onAssetClick) }
             item { Spacer(modifier = Modifier.height(12.dp)) }
         }
-        // Crypto market cap removed per request
+
+        if (assetCtxForNews == AssetContext.STOCKS || assetCtxForNews == AssetContext.ALL) {
+            item { StockCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
+        if (assetCtxForNews == AssetContext.INDICES || assetCtxForNews == AssetContext.ALL) {
+            item { IndicesCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
+        if (assetCtxForNews == AssetContext.BONDS || assetCtxForNews == AssetContext.ALL) {
+            item { BondsCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
+
+        if (assetCtxForNews == AssetContext.FUTURES || assetCtxForNews == AssetContext.ALL) {
+            item { FuturesCardsSection(onAssetClick) }
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+        }
     }
 }
 
@@ -1214,6 +1234,145 @@ private fun NewsFlowRow(meta: String, title: String, iconChar: String) {
 // ============= NEW SECTIONS: Crypto, Stocks, Indices Cards =============
 
 @Composable
+fun ForexCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.FOREX) return
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.FOREX -> "Forex Pairs"
+            com.asc.markets.state.AssetContext.ALL -> "Forex Pairs"
+            else -> "Forex"
+        }
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        val forexList = provideForexExplore()
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
+            items(forexList) { fp ->
+                AssetCard(fp.name, fp.symbol, String.format(Locale.US, "%.4f", fp.price), fp.changePercent, "🔄") {
+                    onAssetClick(fp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CommoditiesCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.COMMODITIES) return
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.COMMODITIES -> "Commodities"
+            com.asc.markets.state.AssetContext.ALL -> "Commodities"
+            else -> "Commodities"
+        }
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        val commoditiesList = provideCommoditiesExplore()
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
+            items(commoditiesList) { fp ->
+                AssetCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent, "⛽") {
+                    onAssetClick(fp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BondsCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.BONDS) return
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.BONDS -> "Bonds"
+            com.asc.markets.state.AssetContext.ALL -> "Bonds"
+            else -> "Bonds"
+        }
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        val bondsList = provideBondsExplore()
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
+            items(bondsList) { fp ->
+                AssetCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent, "📊") {
+                    onAssetClick(fp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FuturesCardsSection(onAssetClick: (ForexPair) -> Unit) {
+    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.FUTURES) return
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+        val header = when (ctx) {
+            com.asc.markets.state.AssetContext.FUTURES -> "Futures"
+            com.asc.markets.state.AssetContext.ALL -> "Futures"
+            else -> "Futures"
+        }
+        Text(header, color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        val futuresList = provideFuturesExplore()
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
+            items(futuresList) { fp ->
+                AssetCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent, "📈") {
+                    onAssetClick(fp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AssetCard(name: String, symbol: String, price: String, changePercent: Double, emoji: String, onClick: () -> Unit = {}) {
+    val isUp = changePercent >= 0
+    val color = if (isUp) EmeraldSuccess else RoseError
+    
+    InfoBox(modifier = Modifier.width(160.dp).clickable { onClick() }, height = 200.dp) {
+        Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Show flags for forex pairs, badge for others
+                if (symbol.contains("/")) {
+                    ForexIcon(symbol, size = 32)
+                } else {
+                    Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
+                        Text(emoji, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+                    }
+                }
+                Column {
+                    Text(symbol.take(6), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text(name.take(5), color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
+                }
+            }
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Text(price, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+            Text("${if (isUp) "+" else ""}${String.format(Locale.US, "%.2f", changePercent)}% today", color = color, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(modifier = Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(6.dp))) {
+                MiniChart(
+                    values = List(20) { 100.0 + kotlin.random.Random.nextDouble(-10.0, 10.0) },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
     val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
     if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.CRYPTO) return
@@ -1230,7 +1389,7 @@ fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
         val cryptoList = provideCryptoExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
             items(cryptoList) { fp ->
-                CryptoCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price)) {
+                CryptoCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent) {
                     onAssetClick(fp)
                 }
             }
@@ -1239,13 +1398,20 @@ fun CryptoCardsSection(onAssetClick: (ForexPair) -> Unit) {
 }
 
 @Composable
-private fun CryptoCard(name: String, symbol: String, price: String, onClick: () -> Unit = {}) {
+private fun CryptoCard(name: String, symbol: String, price: String, changePercent: Double, onClick: () -> Unit = {}) {
+    val isUp = changePercent >= 0
+    val color = if (isUp) EmeraldSuccess else RoseError
+    
     InfoBox(modifier = Modifier.width(160.dp).clickable { onClick() }, height = 200.dp) {
         Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Crypto badge with emoji icon
-                Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                    Text("₿", color = Color(0xFFF7931A), fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+                // Show flags for forex-style pairs, crypto badge for others
+                if (symbol.contains("/")) {
+                    ForexIcon(symbol, size = 32)
+                } else {
+                    Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
+                        Text("₿", color = Color(0xFFF7931A), fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+                    }
                 }
                 Column {
                     Text(name, color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
@@ -1256,7 +1422,7 @@ private fun CryptoCard(name: String, symbol: String, price: String, onClick: () 
             Spacer(modifier = Modifier.weight(1f))
             
             Text(price + " USD", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
-            Text("+20.59% today", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
+            Text("${if (isUp) "+" else ""}${String.format(Locale.US, "%.2f", changePercent)}% today", color = color, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -1287,7 +1453,7 @@ fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
         val stockList = provideStocksExplore()
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
             items(stockList) { fp ->
-                StockCard(fp.name, String.format(Locale.US, "%.2f", fp.price)) {
+                StockCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent) {
                     onAssetClick(fp)
                 }
             }
@@ -1296,21 +1462,31 @@ fun StockCardsSection(onAssetClick: (ForexPair) -> Unit) {
 }
 
 @Composable
-private fun StockCard(name: String, price: String, onClick: () -> Unit = {}) {
+private fun StockCard(name: String, symbol: String, price: String, changePercent: Double, onClick: () -> Unit = {}) {
+    val isUp = changePercent >= 0
+    val color = if (isUp) EmeraldSuccess else RoseError
+    
     InfoBox(modifier = Modifier.width(160.dp).clickable { onClick() }, height = 200.dp) {
         Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Stock badge
-                Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                    Text("📈", fontSize = DashboardFontSizes.emojiIcon)
+                // Show flags for forex-style pairs, stock badge for others
+                if (symbol.contains("/")) {
+                    ForexIcon(symbol, size = 28)
+                } else {
+                    Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
+                        Text("📈", fontSize = DashboardFontSizes.emojiIcon)
+                    }
                 }
-                Text(name.take(6), color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, maxLines = 1)
+                Column {
+                    Text(symbol.take(6), color = Color.White, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Black, maxLines = 1)
+                    Text(name.take(4), color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(price, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
-            Text("+20.0% today", color = EmeraldSuccess, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
+            Text("${if (isUp) "+" else ""}${String.format(Locale.US, "%.2f", changePercent)}% today", color = color, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
             
             Spacer(modifier = Modifier.weight(1f))
             
@@ -1339,151 +1515,56 @@ fun IndicesCardsSection(onAssetClick: (ForexPair) -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
         
         val indicesList = provideIndicesExplore()
-        indicesList.forEach { fp ->
-            IndexCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price)) {
-                onAssetClick(fp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(0.dp)) {
+            items(indicesList) { fp ->
+                IndexCard(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), fp.changePercent) {
+                    onAssetClick(fp)
+                }
             }
-            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun IndexCard(name: String, symbol: String, price: String, onClick: () -> Unit = {}) {
-    InfoBox(modifier = Modifier.fillMaxWidth().clickable { onClick() }, height = 150.dp) {
-        Row(modifier = Modifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Index badge
-                    Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
-                        Text(symbol.take(3), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
+private fun IndexCard(name: String, symbol: String, price: String, changePercent: Double, onClick: () -> Unit = {}) {
+    val isUp = changePercent >= 0
+    val color = if (isUp) EmeraldSuccess else RoseError
+    
+    InfoBox(modifier = Modifier.width(160.dp).clickable { onClick() }, height = 200.dp) {
+        Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Show flags for forex-style pairs, index badge for others
+                if (symbol.contains("/")) {
+                    ForexIcon(symbol, size = 28)
+                } else {
+                    Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF2d2d2d)), contentAlignment = Alignment.Center) {
+                        Text("📊", fontSize = DashboardFontSizes.emojiIcon)
                     }
-                    Text(name, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
                 }
-                Text(price, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
-                Text("-0.43%", color = RoseError, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
+                Column {
+                    Text(symbol.take(6), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text(name.take(6), color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Bold)
+                }
             }
             
-                        if (symbol == "SPX" || name.contains("S&P")) {
-                                AndroidView(
-                                        factory = { ctx ->
-                                                WebView(ctx).apply {
-                                                        settings.javaScriptEnabled = true
-                                                        settings.domStorageEnabled = true
-                                                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                                                        val html = """
-                                                                <!doctype html>
-                                                                <html>
-                                                                <head>
-                                                                    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-                                                                    <script type=\"text/javascript\" src=\"https://s3.tradingview.com/tv.js\"></script>
-                                                                </head>
-                                                                <body style=\"margin:0;background-color:#0b0b0b;\">
-                                                                    <div id=\"tv_chart_container\"></div>
-                                                                    <script type=\"text/javascript\">(function() {
-                                                                        new TradingView.widget({
-                                                                            \"autosize\": true,
-                                                                            \"symbol\": \"INDEX:SPX\",
-                                                                            \"interval\": \"D\",
-                                                                            \"timezone\": \"Etc/UTC\",
-                                                                            \"theme\": \"Dark\",
-                                                                            \"style\": \"1\",
-                                                                            \"locale\": \"en\",
-                                                                            \"container_id\": \"tv_chart_container\",
-                                                                            \"hide_legend\": true,
-                                                                            \"allow_symbol_change\": false,
-                                                                            \"hide_side_toolbar\": true,
-                                                                            \"withdateranges\": false,
-                                                                            \"details\": false,
-                                                                            \"toolbar_bg\": \"#0b0b0b\",
-                                                                            \"width\": \"100%\",
-                                                                            \"height\": 120
-                                                                        });
-                                                                    })();</script>
-                                                                </body>
-                                                                </html>
-                                                        """.trimIndent()
-                                                        loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
-                                                }
-                                        },
-                                        modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(8.dp))
-                                )
-                        } else {
-                                Box(modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(8.dp))) {
-                                        MiniChart(
-                                                values = List(25) { 6900.0 + kotlin.random.Random.nextDouble(-50.0, 50.0) },
-                                                modifier = Modifier.fillMaxSize()
-                                        )
-                                }
-                        }
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Text(price, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
+            Text("${if (isUp) "+" else ""}${String.format(Locale.US, "%.2f", changePercent)}% today", color = color, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(modifier = Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(6.dp))) {
+                MiniChart(
+                    values = List(20) { 5200.0 + kotlin.random.Random.nextDouble(-50.0, 50.0) },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
 
-@Composable
-fun MajorIndicesSection(onAssetClick: (ForexPair) -> Unit) {
-    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
-    if (ctx != com.asc.markets.state.AssetContext.ALL && ctx != com.asc.markets.state.AssetContext.INDICES) return
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("All Major Markets", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-        }
-        
-        // majorMarkets inline list removed; use centralized provider instead
-        
-        val majorMarketsList = provideIndicesExplore()
-        majorMarketsList.forEach { fp ->
-            val market = MajorIndex(fp.name, fp.symbol, String.format(Locale.US, "%.2f", fp.price), "", if (fp.changePercent >= 0) EmeraldSuccess else RoseError)
-            MajorIndexRow(market) {
-                onAssetClick(fp)
-            }
-        }
-        
-        Text(
-            "See all markets >",
-            color = IndigoAccent,
-            fontSize = DashboardFontSizes.sectionHeaderSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 12.dp)
-        )
-    }
-}
-
-data class MajorIndex(val name: String, val code: String, val value: String, val change: String, val changeColor: Color)
-
-@Composable
-private fun MajorIndexRow(index: MajorIndex, onClick: () -> Unit = {}) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).clickable { onClick() },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.weight(1f)) {
-            // Show flags for forex pairs, badges for others
-            if (index.code.contains("/")) {
-                ForexIcon(index.code, size = 40)
-            } else {
-                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(IndigoAccent), contentAlignment = Alignment.Center) {
-                    Text(index.code.take(3), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
-                }
-            }
-            Column {
-                Text(index.name, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
-                Text(index.code, color = SlateText, fontSize = DashboardFontSizes.bodyTiny, fontWeight = FontWeight.Bold)
-            }
-        }
-        
-        Column(horizontalAlignment = Alignment.End) {
-            Text(index.value, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderSmall, fontWeight = FontWeight.Black)
-            Text(index.change, color = index.changeColor, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Bold)
-        }
-    }
-}
 
 // Crypto market cap section removed per user request
 

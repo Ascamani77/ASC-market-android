@@ -134,9 +134,11 @@ fun AscSidebar(
                     bringMap[currentView]?.bringIntoView()
                 } catch (_: Exception) { }
             }
+            
+            // ========== PRE-MOVE SURVEILLANCE (90% FOCUS) ==========
             // Pre-Move Surveillance group (arranged per design)
             SidebarGroup("PRE-MOVE SURVEILLANCE", isCollapsed, listOf(
-                NavItem(AppView.MACRO_STREAM, "Macro Intelligence Stream", Icons.Default.Public),
+                NavItem(AppView.MACRO_STREAM, "Macro Stream", Icons.Default.Public),
                 NavItem(AppView.MARKET_WATCH, "Market Watch", Icons.Default.Visibility),
                 NavItem(AppView.ANALYSIS_RESULTS, "Analysis Node", Icons.Default.LineAxis),
                 NavItem(AppView.LIQUIDITY_HUB, "Liquidity Maps", Icons.Default.AccountTree),
@@ -146,7 +148,7 @@ fun AscSidebar(
                 NavItem(AppView.DATA_HUB, "Market Data Bus", Icons.Default.Storage)
             ), bringMap, currentView, onViewChange)
 
-            SidebarGroup("INTELLIGENCE", isCollapsed, listOf(
+            SidebarGroup("INTELLIGENCE & DECISION", isCollapsed, listOf(
                 NavItem(AppView.CHAT, "AI Intel", Icons.Default.Memory),
                 NavItem(AppView.ALERTS, "Vigilance Nodes", Icons.Default.Notifications),
                 NavItem(AppView.BACKTEST, "Logic Simulation", Icons.Default.History),
@@ -154,23 +156,22 @@ fun AscSidebar(
                 NavItem(AppView.DATA_VAULT, "Node Data Vault", Icons.Default.Lock)
             ), bringMap, currentView, onViewChange)
 
-            SidebarGroup("OPERATIONS", isCollapsed, listOf(
-                NavItem(AppView.PORTFOLIO_MANAGER, "Active Inventory", Icons.Default.AttachMoney)
+            SidebarGroup("PORTFOLIO & OPERATIONS", isCollapsed, listOf(
+                NavItem(AppView.PORTFOLIO_MANAGER, "Active Inventory", Icons.Default.AttachMoney),
+                NavItem(AppView.NEWS, "Macro Intelligence", Icons.Default.Public),
+                NavItem(AppView.CALENDAR, "Event Calendar", Icons.Default.CalendarToday),
+                NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal)
             ), bringMap, currentView, onViewChange)
 
-            SidebarGroup("POST-MOVE AUDIT", isCollapsed, listOf(
+            // ========== POST-MOVE AUDIT (10% FOCUS) ==========
+            Spacer(modifier = Modifier.height(12.dp))
+            SidebarGroup("EXECUTION POST REVIEW", isCollapsed, listOf(
                 NavItem(AppView.TRADE, "Trade Ledger", Icons.Default.ReceiptLong),
                 NavItem(AppView.POST_MOVE_AUDIT, "Post-Move Audit", Icons.Default.List),
-                NavItem(AppView.TRADING_ASSISTANT, "Terminal Desk", Icons.Default.Terminal),
                 NavItem(AppView.TRADE_RECONSTRUCTION, "Deep Audit", Icons.Default.AssignmentReturned)
             ), bringMap, currentView, onViewChange)
 
-            SidebarGroup("KNOWLEDGE", isCollapsed, listOf(
-                NavItem(AppView.NEWS, "Macro Intel", Icons.Default.Public),
-                NavItem(AppView.CALENDAR, "Scheduling", Icons.Default.CalendarToday)
-            ), bringMap, currentView, onViewChange)
-
-            // Insert LEGAL section directly below Scheduling to keep legal items near knowledge
+            // Insert LEGAL section directly below
             if (!isCollapsed) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text("LEGAL", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp), letterSpacing = 2.sp, fontFamily = InterFontFamily)
@@ -286,7 +287,7 @@ private fun SidebarGroup(
                     Icon(item.icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     if (!isCollapsed) {
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(item.label.uppercase(), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Text(item.label.uppercase(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
@@ -302,7 +303,7 @@ private fun FooterRow(label: String, icon: ImageVector, onClick: () -> Unit) {
         .padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = SlateText, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+        Text(label, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
     }
 }
 

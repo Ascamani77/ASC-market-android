@@ -117,6 +117,7 @@ internal fun ExecutionLedgerProtocolIntegrityFooter() {
 
 @Composable
 internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
+	val executionMetrics = rememberExecutionMetrics()
 	val sample = remember {
 		listOf(
 			ExecutionTx(
@@ -208,6 +209,30 @@ internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
 
 	Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
 		ExecutionLedgerRealTimeHeader()
+		Spacer(modifier = Modifier.height(8.dp))
+		
+		// Execution Metrics Summary
+		InfoBox {
+			Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Total Trades", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${executionMetrics.totalTrades}", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Win Rate", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${executionMetrics.winRate}%", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Profit Factor", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${String.format("%.2f", executionMetrics.profitFactor)}", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Avg Latency", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${String.format("%.2f", executionMetrics.latencyAvg)}ms", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+			}
+		}
+		
 		Spacer(modifier = Modifier.height(8.dp))
 
 		LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {

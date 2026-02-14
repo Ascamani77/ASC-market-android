@@ -55,16 +55,13 @@ fun PostMoveAuditItem(
 
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .fillMaxWidth(),
         color = PureBlack,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(0.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Spacer(modifier = Modifier.width(8.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(entry.assets, color = SlateText, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
@@ -97,7 +94,7 @@ fun PostMoveAuditItem(
                     Text(entry.headline, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
 
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 8.dp)) {
+                Column(horizontalAlignment = Alignment.End) {
                     val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
                     Box(modifier = Modifier.wrapContentWidth()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -122,20 +119,20 @@ fun PostMoveAuditItem(
 
             Divider(color = Color.White.copy(alpha = 0.04f), modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!isExpanded) {
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { expanded[entry.id] = true }) {
                         Text("VIEW CONTEXT ›", color = IndigoAccent, style = TerminalTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily, letterSpacing = 0.08.em))
                     }
                 } else {
-                    Column(modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)) {
-                        Text("ANALYTICAL REASONING", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily))
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                        Text("ANALYTICAL REASONING", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(entry.reasoning, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily))
+                        Text(entry.reasoning, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
                             Icon(Icons.Default.History, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("AUDIT TRACE LOG", color = SlateText, style = TerminalTypography.labelSmall.copy(fontFamily = InterFontFamily))
@@ -143,7 +140,7 @@ fun PostMoveAuditItem(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Card(
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(16.dp),
@@ -173,7 +170,7 @@ fun PostMoveAuditItem(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        InfoBox(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        InfoBox(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -183,7 +180,7 @@ fun PostMoveAuditItem(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val pdf = exportAuditPdf(context, entry)

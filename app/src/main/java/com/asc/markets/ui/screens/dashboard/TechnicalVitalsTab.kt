@@ -40,24 +40,27 @@ import kotlin.random.Random
 
 @Composable
 fun TechnicalVitalsScreen() {
+    val vitals = rememberTechnicalVitals()
+    
     Column(modifier = Modifier
         .fillMaxSize()
         .background(DeepBlack)
         .padding(vertical = 12.dp)
     ) {
         // Primary Node: Session Progress (full width)
-        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             SessionProgressNode()
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         // KPI Grid: 4 square cards in a single row (scrollable if needed)
-        Box(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp)) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             val scroll = rememberScrollState()
             Row(modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scroll), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                .horizontalScroll(scroll)
+                .padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val cfg = LocalConfiguration.current
                 val screenDp = cfg.screenWidthDp
                 val padding = 32 // 16 left + 16 right approximate
@@ -65,24 +68,24 @@ fun TechnicalVitalsScreen() {
                 val cardDp = ((screenDp - padding - gap) / 4f).coerceAtLeast(72f)
                 val cardSize = with(LocalDensity.current) { cardDp.dp }
 
-                VitalsKpiCard("NODE_HEALTH", "0.98", "Institutional Feed", cardSize, status = VitalsStatus.Active)
-                VitalsKpiCard("AVG_SPREAD", String.format("%.2f pips", avgSpreadSample()), "Bid/Ask spread", cardSize, status = VitalsStatus.Active)
-                VitalsKpiCard("VOL_P/H", String.format("%.1f P/H", volatilitySample()), "20-candle range", cardSize, status = VitalsStatus.Processing)
-                VitalsKpiCard("LATENCY", String.format("%.2f ms", nodeLatencySample()), "Direct LMAX Uplink", cardSize, status = VitalsStatus.Active)
+                VitalsKpiCard("NODE_HEALTH", String.format("%.2f", vitals.nodeHealth), "Institutional Feed", cardSize, status = VitalsStatus.Active)
+                VitalsKpiCard("AVG_SPREAD", String.format("%.2f pips", vitals.avgSpread), "Bid/Ask spread", cardSize, status = VitalsStatus.Active)
+                VitalsKpiCard("VOL_P/H", String.format("%.1f P/H", vitals.volatilityPerHour), "20-candle range", cardSize, status = VitalsStatus.Processing)
+                VitalsKpiCard("LATENCY", String.format("%.2f ms", vitals.latencyMs), "Direct LMAX Uplink", cardSize, status = VitalsStatus.Active)
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         // Contextual Nodes: Global Regime (narrow) + Macro Intelligence Stream (wide)
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // Global Regime (narrow)
             InfoBox(modifier = Modifier.width(160.dp), minHeight = 160.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Header
                     Text("GLOBAL REGIME", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text("Risk-Off: USD Strength & Tightening", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
-                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+                    Text(vitals.globalRegime, color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                    Text("VIX: ${String.format("%.1f", vitals.vixValue)} • DXY: ${String.format("+%.2f%%", vitals.dxyChange)}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                     Spacer(modifier = Modifier.weight(1f))
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
                     Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
@@ -94,19 +97,12 @@ fun TechnicalVitalsScreen() {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         Text("MACRO INTELLIGENCE STREAM", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        val safety = isSafetyGateClosed()
-                        Text(if (safety) "BLOCKED" else "ARMED", color = if (safety) RoseError else EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
+                        Text(if (vitals.safetyGateClosed) "BLOCKED" else "ARMED", color = if (vitals.safetyGateClosed) RoseError else EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
                     }
 
-                    // scrolling stream
-                    val events = remember { sampleStreamEvents() }
-                    Column(modifier = Modifier.fillMaxWidth().height(96.dp)) {
-                        events.forEach { ev ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(ev.time, color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold)
-                                Text(ev.text, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
-                            }
-                        }
+                    // Display macro comment
+                    Column(modifier = Modifier.fillMaxWidth().height(60.dp)) {
+                        Text(vitals.macroComment, color = Color.White, fontSize = DashboardFontSizes.labelMedium, lineHeight = 16.sp)
                     }
 
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
@@ -180,7 +176,7 @@ private fun SessionProgressNode() {
     val pct = elapsed.toFloat() / total.toFloat()
     val remaining = Duration.between(now, end).seconds.coerceAtLeast(0)
 
-    InfoBox(minHeight = 140.dp) {
+    InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 140.dp) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Gauge
             Box(modifier = Modifier.size(100.dp), contentAlignment = Alignment.Center) {
@@ -259,7 +255,7 @@ fun TechnicalVitalsTab() {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .background(DeepBlack)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+            .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Primary Node: full-width session progress
@@ -273,12 +269,12 @@ fun TechnicalVitalsTab() {
         val cardDp = ((screenDp - padding - gap) / 2f).coerceAtLeast(72f)
         val cardSize = with(LocalDensity.current) { cardDp.dp }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             VitalsKpiCard(label = "AVG_SPREAD", value = String.format("%.2f pips", avgSpreadSample()), sub = "Institutional Bid/Ask", size = cardSize, status = VitalsStatus.Active)
             VitalsKpiCard(label = "VOL_P/H", value = String.format("%.1f P/H", volatilitySample()), sub = "20-candle range", size = cardSize, status = VitalsStatus.Processing)
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             VitalsKpiCard(label = "SAFETY_GATE", value = if (isSafetyGateClosed()) "BLOCKED" else "ARMED", sub = "High-impact window", size = cardSize, status = if (isSafetyGateClosed()) VitalsStatus.Blocked else VitalsStatus.Active)
             VitalsKpiCard(label = "NODE_LATENCY", value = String.format("%.2f ms", nodeLatencySample()), sub = "Direct LMAX Uplink", size = cardSize, status = VitalsStatus.Active)
         }
@@ -327,6 +323,12 @@ fun TechnicalVitalsTab() {
             // scroll to top when page opens
             scrollState.scrollTo(0)
         }
+
+        // Dynamic Additional Metrics (Flexible for any injected data)
+        val vitals = rememberTechnicalVitals()
+        vitals.additionalMetrics.forEach { infoBox ->
+            RenderDynamicInfoBox(infoBox)
+        }
     }
 }
 
@@ -335,7 +337,7 @@ fun MarketDepthLadder() {
     val showMicro = com.asc.markets.ui.components.LocalShowMicrostructure.current
     if (!showMicro) return
 
-    InfoBox {
+    InfoBox(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text("MARKET DEPTH (L2)", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
             Spacer(modifier = Modifier.height(16.dp))

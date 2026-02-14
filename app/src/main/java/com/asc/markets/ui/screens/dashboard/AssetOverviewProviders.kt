@@ -101,46 +101,18 @@ fun getExploreItemsForContext(ctx: com.asc.markets.state.AssetContext): List<For
 
 // Concrete explore providers (previously located in MarketOverviewTab.kt).
 // These are kept lightweight and deterministic; replace with live data later.
-fun provideForexExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS
+fun provideForexExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.FOREX }
 
-fun provideCryptoExplore(): List<ForexPair> = listOf(
-    ForexPair("BTC/USD", "Bitcoin", 76762.0, 1200.0, 1.59, category = com.asc.markets.data.MarketCategory.CRYPTO),
-    ForexPair("ETH/USD", "Ethereum", 3000.0, 150.0, 5.26, category = com.asc.markets.data.MarketCategory.CRYPTO),
-    ForexPair("SOL/USD", "Solana", 120.0, 8.0, 7.14, category = com.asc.markets.data.MarketCategory.CRYPTO),
-    ForexPair("BNB/USD", "BNB", 420.0, -5.0, -1.17, category = com.asc.markets.data.MarketCategory.CRYPTO),
-    ForexPair("ADA/USD", "Cardano", 0.45, 0.02, 4.65, category = com.asc.markets.data.MarketCategory.CRYPTO),
-    ForexPair("XRP/USD", "XRP", 0.62, -0.01, -1.59, category = com.asc.markets.data.MarketCategory.CRYPTO)
-)
+fun provideCryptoExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.CRYPTO }
 
-fun provideCommoditiesExplore(): List<ForexPair> = listOf(
-    ForexPair("XAU/USD", "Gold", 2087.5, 38.0, 1.85, category = com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("WTI", "Crude WTI", 76.45, -1.02, -1.32, category = com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("NG", "Natural Gas", 2.856, 0.09, 3.21, category = com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("XAG/USD", "Silver", 25.3, 0.4, 1.61, category = com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("COPPER", "Copper", 4.32, 0.05, 1.17, category = com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("PLAT", "Platinum", 980.0, -10.0, -1.01, category = com.asc.markets.data.MarketCategory.COMMODITIES)
-)
+fun provideCommoditiesExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.COMMODITIES }
 
-fun provideIndicesExplore(): List<ForexPair> = listOf(
-    ForexPair("SPX", "S&P 500", 6939.02, 60.0, 0.87, category = com.asc.markets.data.MarketCategory.INDICES),
-    ForexPair("NDX", "Nasdaq 100", 25552.39, 358.0, 1.42, category = com.asc.markets.data.MarketCategory.INDICES),
-    ForexPair("DAX", "DAX", 24538.81, 229.0, 0.94, category = com.asc.markets.data.MarketCategory.INDICES),
-    ForexPair("FTSE", "FTSE 100", 10223.54, 52.0, 0.51, category = com.asc.markets.data.MarketCategory.INDICES),
-    ForexPair("NI225", "Japan 225", 53322.8, 1100.0, 2.10, category = com.asc.markets.data.MarketCategory.INDICES),
-    ForexPair("SSE", "SSE Comp", 4117.95, -40.0, -0.96, category = com.asc.markets.data.MarketCategory.INDICES)
-)
+fun provideIndicesExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.INDICES }
 
-fun provideBondsExplore(): List<ForexPair> = listOf(
-    ForexPair("US10Y", "US 10Y", 102.5, 0.2, 0.20, category = com.asc.markets.data.MarketCategory.STOCK),
-    ForexPair("US2Y", "US 2Y", 98.3, -0.1, -0.10, category = com.asc.markets.data.MarketCategory.STOCK),
-    ForexPair("UK10Y", "UK 10Y", 101.2, 0.3, 0.30, category = com.asc.markets.data.MarketCategory.STOCK),
-    ForexPair("GER10Y", "Germany 10Y", 89.7, 0.4, 0.45, category = com.asc.markets.data.MarketCategory.STOCK),
-    ForexPair("JPN10Y", "Japan 10Y", 26.5, 0.0, 0.00, category = com.asc.markets.data.MarketCategory.STOCK),
-    ForexPair("AUS10Y", "Australia 10Y", 105.4, 0.5, 0.48, category = com.asc.markets.data.MarketCategory.STOCK)
-)
+fun provideBondsExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.BONDS }
 
 fun provideStocksExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.STOCK }
 
-fun provideFuturesExplore(): List<ForexPair> = provideIndicesExplore()
+fun provideFuturesExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.FUTURES }
 
 

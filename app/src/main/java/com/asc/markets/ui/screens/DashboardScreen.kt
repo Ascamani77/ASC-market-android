@@ -43,7 +43,19 @@ import com.asc.markets.BuildConfig
 import android.os.Vibrator
 import android.os.VibrationEffect
 
-enum class DashboardTab { MACRO_STREAM, MARKET_OVERVIEW, TECHNICAL_VITALS, STRATEGY_SIGNALS, ANALYTICAL_QUALITY, EXECUTION_LEDGER, MARKET_PSYCHOLOGY, METHODOLOGY }
+enum class DashboardTab { 
+    // ===== PRE-MOVE SURVEILLANCE (90%) =====
+    MACRO_STREAM, 
+    MARKET_OVERVIEW, 
+    TECHNICAL_VITALS, 
+    STRATEGY_SIGNALS, 
+    ANALYTICAL_QUALITY, 
+    MARKET_PSYCHOLOGY, 
+    METHODOLOGY,
+    
+    // ===== POST-MOVE AUDIT (10%) =====
+    EXECUTION_LEDGER
+}
 
 @Composable
 fun DashboardScreen(viewModel: ForexViewModel) {
@@ -142,15 +154,16 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                     )
                                     if (active) {
                                         Spacer(modifier = Modifier.width(8.dp))
+                                        val isPostMove = tab == DashboardTab.EXECUTION_LEDGER
                                         Text(
-                                            text = when(tab) {
+                                            text = (when(tab) {
                                                 DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
                                                 DashboardTab.EXECUTION_LEDGER -> "Post-Move Audit"
                                                 else -> tab.name.replace("_", " ").toLowerCase().capitalize()
-                                            },
+                                            }) + (if (isPostMove) " (10%)" else ""),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Black,
-                                            color = Color.Black
+                                            color = if (isPostMove) Color(0xFFF59E0B) else Color.Black
                                         )
                                     }
                                 }

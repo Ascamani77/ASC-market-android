@@ -122,7 +122,7 @@ fun DashboardSignals() {
         .fillMaxSize()
         .background(Color(0xFF0D0D0D))
         .verticalScroll(rememberScrollState())
-        .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        .padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // Global Matrix Header (auto-height)
         InfoBox {

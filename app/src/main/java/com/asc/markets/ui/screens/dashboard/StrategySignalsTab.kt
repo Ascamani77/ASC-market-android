@@ -27,14 +27,16 @@ data class SignalData(val pair: String, val dir: String, val conf: Int, val stat
 
 @Composable
 private fun SignalCard(data: SignalData) {
+    val signalData = rememberStrategySignal()
+    
     // use centralized SignalCardView
     com.asc.markets.ui.components.dashboard.SignalCardView(
-        pair = data.pair,
-        status = data.status,
-        conf = data.conf,
-        mainValue = "1.08420",
+        pair = signalData.pair,
+        status = signalData.status,
+        conf = signalData.confidence,
+        mainValue = signalData.entryPrice,
         delta = null,
-        entryZone = "1.08420",
-        rr = "RR 1:2.4"
+        entryZone = signalData.entryPrice,
+        rr = signalData.riskReward
     )
 }
