@@ -30,7 +30,8 @@ fun GlobalHeader(
     selectedPair: ForexPair,
     onOpenDrawer: () -> Unit,
     onSearch: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    unreadCount: Int = 0
 ) {
     Surface(
         color = Color.Transparent,
@@ -64,7 +65,7 @@ fun GlobalHeader(
                 }
 
                 // Use dedicated HomeAlertIcon component; clicking opens the Home Alerts page.
-                HomeAlertIcon(count = 3, onClick = onNotifications)
+                HomeAlertIcon(count = unreadCount, onClick = onNotifications)
             }
         }
     }

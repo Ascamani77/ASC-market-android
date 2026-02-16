@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.theme.*
 
 @Composable
-fun NotificationsScreen() {
+fun NotificationsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
     // Local toggle row composable for this screen
     @Composable
     fun ToggleSetting(label: String, sub: String = "", checkedInitial: Boolean = true) {
@@ -125,17 +125,15 @@ fun NotificationsScreen() {
 
         Spacer(Modifier.height(20.dp))
 
-        // Sample in-app notification list (visual preview)
-        val sampleNotifications = listOf(
-            NotificationItem("SYSTEM", "Analytical engine updated — new model deployed.", "2m ago", "INFO"),
-            NotificationItem("TRADE", "Order #4521 executed: 100 BTC @ 42,100.", "12m ago", "WARNING"),
-            NotificationItem("SECURITY", "Login from new device — location: Berlin.", "1h ago", "CRITICAL")
-        )
+        // Use notifications from ViewModel; mark only when tapped
+        val notifications by viewModel.inAppNotifications.collectAsState()
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text("RECENT ALERTS", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-            for (item in sampleNotifications) {
-                NotificationCard(item)
+            for (item in notifications) {
+                NotificationCard(item = NotificationItem(item.type, item.msg, item.time, item.severity), onClick = {
+                    viewModel.markNotificationSeen(item.id)
+                }, seen = item.seen)
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -154,7 +152,7 @@ fun NotificationsScreen() {
 data class NotificationItem(val type: String, val msg: String, val time: String, val severity: String)
 
 @Composable
-fun NotificationCard(item: NotificationItem) {
+fun NotificationCard(item: NotificationItem, onClick: () -> Unit = {}, seen: Boolean = false) {
     val indicatorColor = when(item.severity) {
         "CRITICAL" -> RoseError
         "WARNING" -> Color(0xFFF59E0B)
@@ -165,7 +163,7 @@ fun NotificationCard(item: NotificationItem) {
         color = PureBlack,
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
             Box(
@@ -182,7 +180,7 @@ fun NotificationCard(item: NotificationItem) {
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(item.msg, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, lineHeight = 18.sp, fontFamily = InterFontFamily)
+                Text(item.msg, color = if (seen) Color.White.copy(alpha = 0.6f) else Color.White, fontSize = 13.sp, fontWeight = if (seen) FontWeight.Normal else FontWeight.Medium, lineHeight = 18.sp, fontFamily = InterFontFamily)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(item.time, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
             }

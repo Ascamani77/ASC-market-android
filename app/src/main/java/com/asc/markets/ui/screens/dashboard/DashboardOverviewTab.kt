@@ -88,9 +88,34 @@ fun DashboardOverviewTab(symbol: String) {
             }
         }
 
-        // 4. Dynamic Additional Metrics (Flexible for any injected data)
-        items(sessionData.additionalMetrics.size) { index ->
-            RenderDynamicInfoBox(sessionData.additionalMetrics[index])
+        // 4. Gap Analysis Box
+        item {
+            GapAnalysisBox(sessionData.gapAnalysis)
+        }
+
+        // 5. Volume Analysis Box
+        item {
+            VolumeAnalysisBox(sessionData.volumeAnalysis)
+        }
+
+        // 6. AI Sentiment Box
+        item {
+            AISentimentBox(sessionData.aiSentiment)
+        }
+
+        // 7. Risk Level Box
+        item {
+            RiskLevelBox(sessionData.riskLevel)
+        }
+
+        // 8. News Catalyst Box
+        item {
+            NewsCatalystBox(sessionData.newsCatalyst)
+        }
+
+        // 9. Probability Score Box
+        item {
+            ProbabilityScoreBox(sessionData.probabilityScore)
         }
     }
 }
@@ -139,6 +164,187 @@ private fun VitalMiniBox(label: String, value: String, sub: String, modifier: Mo
             Column {
                 Text(value, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 Text(sub, color = Color.Gray, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+// ===== STRUCTURED ANALYSIS BOXES =====
+
+@Composable
+private fun GapAnalysisBox(gap: GapAnalysis) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(IndigoAccent.copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("GAP ANALYSIS", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Gap Size", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(gap.gapSize, color = if (gap.direction == "UP") EmeraldSuccess else Color(0xFFFF6B6B), fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("Change %", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(gap.gapPercent, color = if (gap.direction == "UP") EmeraldSuccess else Color(0xFFFF6B6B), fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Direction: ${gap.direction}", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+@Composable
+private fun VolumeAnalysisBox(volume: VolumeAnalysis) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFFFF9500).copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("VOLUME ANALYSIS", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Volume Level", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(volume.volumeLevel, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("Trend", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(volume.trend, color = Color(0xFFFF9500), fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Strength: ${volume.strength}", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AISentimentBox(sentiment: AISentiment) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFF7C3AED).copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("AI SENTIMENT", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Score", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text("${sentiment.sentimentScore}/100", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("State", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(sentiment.sentimentState, color = when(sentiment.sentimentState) {
+                            "BULLISH" -> EmeraldSuccess
+                            "BEARISH" -> Color(0xFFFF6B6B)
+                            else -> Color.Yellow
+                        }, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Confidence: ${sentiment.confidence}%", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RiskLevelBox(risk: RiskLevel) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFFEF4444).copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("RISK LEVEL", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Score", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(risk.riskScore, color = when(risk.status) {
+                            "SAFE" -> EmeraldSuccess
+                            "CAUTION" -> Color(0xFFFF9500)
+                            "DANGER" -> Color(0xFFFF6B6B)
+                            else -> Color.White
+                        }, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("Value", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(risk.riskValue, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Status: ${risk.status}", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewsCatalystBox(catalyst: NewsCatalyst) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFF0EA5E9).copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("NEWS CATALYST", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(catalyst.catalystName, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Impact", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(catalyst.impactLevel, color = when(catalyst.impactLevel) {
+                            "LOW" -> Color.Gray
+                            "MEDIUM" -> Color(0xFFFF9500)
+                            "HIGH" -> Color(0xFFFF6B6B)
+                            else -> Color.White
+                        }, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("Time to Event", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(catalyst.timeToEvent, color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Status: ${if (catalyst.isActive) "LIVE" else "SCHEDULED"}", color = if (catalyst.isActive) EmeraldSuccess else Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProbabilityScoreBox(probability: ProbabilityScore) {
+    InfoBox(minHeight = 140.dp) {
+        Column(modifier = Modifier.padding(24.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFF06B6D4).copy(alpha = 0.1f), RoundedCornerShape(4.dp)))
+                Text("PROBABILITY SCORE", color = Color.White, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LinearProgressIndicator(
+                    progress = probability.scoreValue / 100f,
+                    modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp)),
+                    trackColor = Color.White.copy(alpha = 0.1f),
+                    color = when {
+                        probability.scoreValue >= 70 -> EmeraldSuccess
+                        probability.scoreValue >= 50 -> Color(0xFFFF9500)
+                        else -> Color(0xFFFF6B6B)
+                    }
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text("Score", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text("${probability.scoreValue}%", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Column {
+                        Text("Prediction", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(probability.prediction, color = when(probability.prediction) {
+                            "BULLISH" -> EmeraldSuccess
+                            "BEARISH" -> Color(0xFFFF6B6B)
+                            else -> Color.Yellow
+                        }, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+                Text("Confidence: ${probability.confidenceLevel}", color = Color.Gray, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
             }
         }
     }

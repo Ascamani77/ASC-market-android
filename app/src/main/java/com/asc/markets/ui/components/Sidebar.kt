@@ -208,8 +208,8 @@ fun AscSidebar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomStart)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, Color.White.copy(alpha = 0.2f))
+                    .background(DeepBlack)
+                    .border(1.dp, Color.White.copy(alpha = 0.06f))
                     .padding(horizontal = if (isCollapsed) 12.dp else 16.dp, vertical = 0.dp)
                     .onGloballyPositioned { footerHeightPx.value = it.size.height }
             ) {

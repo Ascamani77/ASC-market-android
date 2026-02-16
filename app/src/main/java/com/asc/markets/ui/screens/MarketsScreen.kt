@@ -30,15 +30,86 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.snapshotFlow
 
 @Composable
 fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
     var activeCategory by remember { mutableStateOf("ALL") }
     var searchQuery by remember { mutableStateOf("") }
     val categories = listOf("ALL", "FOREX", "CRYPTO", "INDICES", "COMMODITIES", "STOCKS")
+    val listState = rememberLazyListState()
+
+    // Scroll-based header visibility for Bloomberg-style behavior
+    var showMainHeader by remember { mutableStateOf(true) }
+    LaunchedEffect(listState) {
+        var previousAbsolutePosition = 0
+        snapshotFlow { 
+            // Calculate absolute scroll position
+            listState.firstVisibleItemIndex * 200 + listState.firstVisibleItemScrollOffset // 200dp approx item height
+        }.collect { absolutePosition ->
+            if (absolutePosition > previousAbsolutePosition && previousAbsolutePosition > 0) {
+                // Scrolling down (content moving up) -> hide header
+                showMainHeader = false
+            } else if (absolutePosition < previousAbsolutePosition) {
+                // Scrolling up (content moving down) -> show header
+                showMainHeader = true
+            }
+            previousAbsolutePosition = absolutePosition
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-        // Categories Bar Parity
+        // Main header - hides/shows based on scroll direction
+        if (showMainHeader) {
+            Surface(
+                color = Color(0xFF080808),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+            ) {
+                LazyRow(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(categories) { cat ->
+                        val active = activeCategory == cat
+                        val catIcon = when (cat) {
+                            "ALL" -> Icons.Default.BarChart
+                            "FOREX" -> Icons.Default.LineAxis
+                            "CRYPTO" -> Icons.Default.Bolt
+                            "INDICES" -> Icons.Default.GridView
+                            "COMMODITIES" -> Icons.Default.AccountTree
+                            "STOCKS" -> Icons.Default.BarChart
+                            else -> Icons.Default.BarChart
+                        }
+
+                        Surface(
+                            color = if (active) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.height(32.dp).clickable { activeCategory = cat }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            ) {
+                                Icon(catIcon, contentDescription = cat, tint = if (active) Color.Black else Color.Gray, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = cat,
+                                    color = if (active) Color.Black else Color.Gray,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = InterFontFamily,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sticky Categories Bar - always visible (becomes primary header when main header hides)
         Surface(
             color = Color(0xFF080808),
             modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -156,19 +227,17 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             }
         }
 
-            val listState = rememberLazyListState()
+        LaunchedEffect(activeCategory) {
+            // when the active category changes, scroll the list to top
+            listState.animateScrollToItem(0)
+        }
 
-            LaunchedEffect(activeCategory) {
-                // when the active category changes, scroll the list to top
-                listState.animateScrollToItem(0)
-            }
-
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 120.dp)
-            ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 120.dp)
+        ) {
             val base = getExploreItemsForContext(mapCategoryToAssetContext(activeCategory))
             val filtered = base.filter {
                 val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)

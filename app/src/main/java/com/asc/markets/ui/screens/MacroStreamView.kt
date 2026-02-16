@@ -53,9 +53,6 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("MACRO-WEIGHTED", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp), fontSize = 10.sp)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Surface(color = Color(0xFF0B0B0B), shape = RoundedCornerShape(12.dp)) {
-                                IconButton(onClick = { showCatalystsPanel = !showCatalystsPanel }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White) }
-                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -108,21 +105,6 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
         Row(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.weight(0.9f).fillMaxHeight()) {
                         val listState = rememberLazyListState()
-                        // hide/show global header based on scroll direction
-                        LaunchedEffect(listState) {
-                            var previous = 0L
-                            snapshotFlow { listState.firstVisibleItemIndex.toLong() * 100000L + listState.firstVisibleItemScrollOffset }
-                                .collect { cur ->
-                                    if (cur > previous) {
-                                        // scrolled forward (user swiped up) -> hide header
-                                        viewModel?.setGlobalHeaderVisible(false)
-                                    } else if (cur < previous) {
-                                        // scrolled backward (user swiped down) -> show header
-                                        viewModel?.setGlobalHeaderVisible(true)
-                                    }
-                                    previous = cur
-                                }
-                        }
 
                         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     val allEvents = events  // Show all events (both UPCOMING and CONFIRMED)

@@ -142,22 +142,28 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                             containerColor = PureBlack,
                             bottomBar = {
-                                if (currentView != AppView.TRADING_ASSISTANT) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(65.dp),
-                                        color = PureBlack,
-                                        tonalElevation = 0.dp
-                                    ) {
-                                        NotchedBottomNav(
-                                            currentView = currentView,
-                                            onNavigate = { viewModel.navigateTo(it) },
-                                            onHomeSelected = {
-                                                viewModel.navigateTo(AppView.DASHBOARD)
-                                                viewModel.setDashboardTab("MACRO_STREAM")
-                                            }
-                                        )
+                                when {
+                                    currentView == AppView.TRADING_ASSISTANT || currentView == AppView.INTELLIGENCE_STREAM || currentView == AppView.CHAT || (currentView == AppView.DASHBOARD && promoteMacro) -> {
+                                        // No bottom bar for trading assistant, intelligence stream,
+                                        // or when the dashboard is promoting the Macro Intelligence Stream.
+                                    }
+                                    else -> {
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(65.dp),
+                                            color = PureBlack,
+                                            tonalElevation = 0.dp
+                                        ) {
+                                            NotchedBottomNav(
+                                                currentView = currentView,
+                                                onNavigate = { viewModel.navigateTo(it) },
+                                                onHomeSelected = {
+                                                    viewModel.navigateTo(AppView.DASHBOARD)
+                                                    viewModel.setDashboardTab("MACRO_STREAM")
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -170,15 +176,15 @@ class MainActivity : ComponentActivity() {
                                 // THE TRICK: Swap header based on state
                                 when (currentView) {
                                     AppView.DASHBOARD -> {
-                                        if (isHeaderVisible) {
-                                            GlobalHeader(
-                                                currentView = currentView,
-                                                selectedPair = selectedPair,
-                                                onOpenDrawer = { viewModel.openDrawer() },
-                                                onSearch = { viewModel.openCommandPalette() },
-                                                onNotifications = { viewModel.navigateTo(AppView.INTELLIGENCE_STREAM) }
-                                            )
-                                        }
+                                        val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
+                                        GlobalHeader(
+                                            currentView = currentView,
+                                            selectedPair = selectedPair,
+                                            onOpenDrawer = { viewModel.openDrawer() },
+                                            onSearch = { viewModel.openCommandPalette() },
+                                            onNotifications = { viewModel.navigateTo(AppView.NOTIFICATIONS) },
+                                            unreadCount = unread
+                                        )
                                     }
                                     // Let screens that provide their own header render without the global NavHeader
                                     AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS -> {
@@ -199,7 +205,7 @@ class MainActivity : ComponentActivity() {
                                         AppView.MARKETS -> MarketsScreen { viewModel.selectPair(it) }
                                         AppView.CHAT -> ChatScreen(viewModel)
                                         AppView.ALERTS -> AlertsScreen(viewModel)
-                                        AppView.NOTIFICATIONS -> NotificationsScreen()
+                                        AppView.NOTIFICATIONS -> NotificationsScreen(viewModel)
                                         AppView.BACKTEST -> BacktestScreen(viewModel)
                                         AppView.TRADING_ASSISTANT -> TerminalScreen(viewModel)
                                         AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(selectedPair.symbol)

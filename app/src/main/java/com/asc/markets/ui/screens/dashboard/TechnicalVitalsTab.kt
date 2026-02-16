@@ -323,12 +323,6 @@ fun TechnicalVitalsTab() {
             // scroll to top when page opens
             scrollState.scrollTo(0)
         }
-
-        // Dynamic Additional Metrics (Flexible for any injected data)
-        val vitals = rememberTechnicalVitals()
-        vitals.additionalMetrics.forEach { infoBox ->
-            RenderDynamicInfoBox(infoBox)
-        }
     }
 }
 

@@ -94,6 +94,19 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _allMacroEvents = MutableStateFlow<List<MacroEvent>>(com.asc.markets.data.sampleMacroEvents())
     val allMacroEvents = _allMacroEvents.asStateFlow()
 
+    // In-app notifications (persisted elsewhere later). Track seen/unseen state here.
+    private val _inAppNotifications = MutableStateFlow<List<com.asc.markets.data.NotificationModel>>(
+        listOf(
+            com.asc.markets.data.NotificationModel(id = "n1", type = "SYSTEM", msg = "Analytical engine updated — new model deployed.", time = "2m ago", severity = "INFO", seen = false),
+            com.asc.markets.data.NotificationModel(id = "n2", type = "TRADE", msg = "Order #4521 executed: 100 BTC @ 42,100.", time = "12m ago", severity = "WARNING", seen = false),
+            com.asc.markets.data.NotificationModel(id = "n3", type = "SECURITY", msg = "Login from new device — location: Berlin.", time = "1h ago", severity = "CRITICAL", seen = false)
+        )
+    )
+    val inAppNotifications = _inAppNotifications.asStateFlow()
+
+    private val _unreadCount = MutableStateFlow( _inAppNotifications.value.count { !it.seen } )
+    val unreadCount = _unreadCount.asStateFlow()
+
     // Filtered list intended for the MacroStream view — ensure ~90% UPCOMING vs CONFIRMED
     private val _macroStreamEvents = MutableStateFlow<List<MacroEvent>>(computeMacroStreamList(_allMacroEvents.value))
     val macroStreamEvents = _macroStreamEvents.asStateFlow()
@@ -280,6 +293,23 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (_: Exception) { }
         }
+    }
+
+    // Mark a single notification as seen (reduces unread count)
+    fun markNotificationSeen(id: String) {
+        val current = _inAppNotifications.value.toMutableList()
+        val idx = current.indexOfFirst { it.id == id }
+        if (idx >= 0 && !current[idx].seen) {
+            current[idx] = current[idx].copy(seen = true)
+            _inAppNotifications.value = current
+            _unreadCount.value = current.count { !it.seen }
+        }
+    }
+
+    fun markAllNotificationsSeen() {
+        val updated = _inAppNotifications.value.map { it.copy(seen = true) }
+        _inAppNotifications.value = updated
+        _unreadCount.value = 0
     }
 
     // Audit ledger state

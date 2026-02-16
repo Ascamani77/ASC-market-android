@@ -71,7 +71,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
         } catch (_: Exception) { /* ignore invalid names */ }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
                 // Remote status moved to sidebar to avoid compressing dashboard content
 
@@ -107,65 +107,73 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                 }
             }
             
-            // Fixed Top Tab Switcher (Floating style)
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 18.dp), contentAlignment = Alignment.Center) {
-                val context = LocalContext.current
-                Surface(
-                    color = Color.Black.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.wrapContentWidth().height(44.dp).padding(horizontal = 16.dp)
+            // (Tab switcher moved to overlay so it visually floats over content)
+        }
+        // Floating Bottom Tab Switcher (overlaid, remains at bottom but visually floats)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp)
+                .offset(y = (-8).dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            val context = LocalContext.current
+            Surface(
+                color = Color.Black.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.wrapContentWidth().height(44.dp).padding(horizontal = 16.dp),
+                shadowElevation = 8.dp
+            ) {
+                LazyRow(
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LazyRow(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        items(DashboardTab.values()) { tab ->
-                            val active = activeTab == tab
-                            Surface(
-                                color = if (active) Color.White else Color.Transparent,
-                                shape = RoundedCornerShape(20.dp),
-                                modifier = Modifier
-                                    .height(34.dp)
-                                    .padding(horizontal = 2.dp)
-                                    .clickable {
-                                        val vib = context.getSystemService(Vibrator::class.java)
-                                        vib?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-                                        activeTab = tab
-                                        // persist selection back to ViewModel so Home can reflect it
-                                        viewModel.setDashboardTab(tab.name)
-                                    }
-                            ) {
-                                Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    val resId = when (tab) {
-                                        DashboardTab.MACRO_STREAM -> R.drawable.lucide_line_chart
-                                        DashboardTab.MARKET_OVERVIEW -> R.drawable.lucide_pie_chart
-                                        DashboardTab.TECHNICAL_VITALS -> R.drawable.lucide_activity
-                                        DashboardTab.STRATEGY_SIGNALS -> R.drawable.lucide_list_filter
-                                        DashboardTab.ANALYTICAL_QUALITY -> R.drawable.lucide_pie_chart
-                                        DashboardTab.EXECUTION_LEDGER -> R.drawable.lucide_arrow_left_right
-                                        DashboardTab.MARKET_PSYCHOLOGY -> R.drawable.lucide_binary
-                                        DashboardTab.METHODOLOGY -> R.drawable.lucide_book_open
-                                    }
-                                    Icon(
-                                        painter = painterResource(id = resId), 
-                                        contentDescription = null, 
-                                        tint = if (active) Color.Black else Color.Gray, 
-                                        modifier = Modifier.size(16.dp)
+                    items(DashboardTab.values()) { tab ->
+                        val active = activeTab == tab
+                        Surface(
+                            color = if (active) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier
+                                .height(34.dp)
+                                .padding(horizontal = 2.dp)
+                                .clickable {
+                                    val vib = context.getSystemService(Vibrator::class.java)
+                                    vib?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                                    activeTab = tab
+                                    viewModel.setDashboardTab(tab.name)
+                                }
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                val resId = when (tab) {
+                                    DashboardTab.MACRO_STREAM -> R.drawable.lucide_line_chart
+                                    DashboardTab.MARKET_OVERVIEW -> R.drawable.lucide_pie_chart
+                                    DashboardTab.TECHNICAL_VITALS -> R.drawable.lucide_activity
+                                    DashboardTab.STRATEGY_SIGNALS -> R.drawable.lucide_list_filter
+                                    DashboardTab.ANALYTICAL_QUALITY -> R.drawable.lucide_pie_chart
+                                    DashboardTab.EXECUTION_LEDGER -> R.drawable.lucide_arrow_left_right
+                                    DashboardTab.MARKET_PSYCHOLOGY -> R.drawable.lucide_binary
+                                    DashboardTab.METHODOLOGY -> R.drawable.lucide_book_open
+                                }
+                                Icon(
+                                    painter = painterResource(id = resId),
+                                    contentDescription = null,
+                                    tint = if (active) Color.Black else Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                if (active) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    val isPostMove = tab == DashboardTab.EXECUTION_LEDGER
+                                    Text(
+                                        text = (when(tab) {
+                                            DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
+                                            DashboardTab.EXECUTION_LEDGER -> "Post-Move Audit"
+                                            else -> tab.name.replace("_", " ").toLowerCase().capitalize()
+                                        }) + (if (isPostMove) " (10%)" else ""),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isPostMove) Color(0xFFF59E0B) else Color.Black
                                     )
-                                    if (active) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        val isPostMove = tab == DashboardTab.EXECUTION_LEDGER
-                                        Text(
-                                            text = (when(tab) {
-                                                DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
-                                                DashboardTab.EXECUTION_LEDGER -> "Post-Move Audit"
-                                                else -> tab.name.replace("_", " ").toLowerCase().capitalize()
-                                            }) + (if (isPostMove) " (10%)" else ""),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = if (isPostMove) Color(0xFFF59E0B) else Color.Black
-                                        )
-                                    }
                                 }
                             }
                         }

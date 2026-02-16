@@ -161,22 +161,6 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
         val showMainHeader = rememberSaveable { mutableStateOf(true) }
         val listState = rememberLazyListState()
 
-        // watch scroll direction to toggle main header visibility
-        LaunchedEffect(listState) {
-            var previous = 0L
-            snapshotFlow { listState.firstVisibleItemIndex.toLong() * 100000L + listState.firstVisibleItemScrollOffset }
-                .collect { cur ->
-                    if (cur > previous) {
-                        // scrolling down -> hide main header
-                        showMainHeader.value = false
-                    } else if (cur < previous) {
-                        // scrolling up -> show main header
-                        showMainHeader.value = true
-                    }
-                    previous = cur
-                }
-        }
-
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
