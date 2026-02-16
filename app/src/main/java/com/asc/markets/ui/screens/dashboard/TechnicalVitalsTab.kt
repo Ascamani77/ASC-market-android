@@ -255,7 +255,7 @@ fun TechnicalVitalsTab() {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .background(DeepBlack)
-            .padding(vertical = 12.dp),
+            .padding(top = 12.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Primary Node: full-width session progress

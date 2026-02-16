@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -246,7 +248,7 @@ fun getMacroEventsForContext(ctx: com.asc.markets.state.AssetContext): List<Pair
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit = {}) {
+fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit = {}, viewModel: ForexViewModel = viewModel()) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -258,6 +260,20 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
     val assetCtxForNews by AssetContextStore.context.collectAsState()
     val selectedPairCtx = mapCategoryToAssetContext(selectedPair.category.name)
     val newsItemsForCtx = remember(assetCtxForNews) { getNewsForContext(assetCtxForNews) }
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f  // pixels to scroll before header fully collapses
+    val collapseProgress by remember {
+        derivedStateOf {
+            // Calculate absolute scroll position (works across item boundaries)
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+    
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
 
     @Composable

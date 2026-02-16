@@ -116,6 +116,32 @@ internal fun ExecutionLedgerProtocolIntegrityFooter() {
 }
 
 @Composable
+internal fun ExecutionMetricsSubheader(metrics: ExecutionMetrics) {
+	Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+		InfoBox {
+			Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Total Trades", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${metrics.totalTrades}", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Win Rate", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${metrics.winRate}%", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Profit Factor", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${String.format("%.2f", metrics.profitFactor)}", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+				Column(modifier = Modifier.weight(1f)) {
+					Text("Avg Latency", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+					Text("${String.format("%.2f", metrics.latencyAvg)}ms", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				}
+			}
+		}
+	}
+}
+
+@Composable
 internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
 	val executionMetrics = rememberExecutionMetrics()
 	val sample = remember {
@@ -207,41 +233,25 @@ internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
 		)
 	}
 
-	Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-		ExecutionLedgerRealTimeHeader()
-		Spacer(modifier = Modifier.height(8.dp))
-		
-		// Execution Metrics Summary
-		InfoBox {
-			Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Total Trades", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${executionMetrics.totalTrades}", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Win Rate", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${executionMetrics.winRate}%", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Profit Factor", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${String.format("%.2f", executionMetrics.profitFactor)}", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Avg Latency", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${String.format("%.2f", executionMetrics.latencyAvg)}ms", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-			}
+	// Scrollable LazyColumn with trading records and footer only (metrics are static above)
+	LazyColumn(
+		modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+		verticalArrangement = Arrangement.spacedBy(10.dp),
+		contentPadding = PaddingValues(bottom = 120.dp)
+	) {
+		// Trading records
+		items(sample) { tx ->
+			ExecutionLedgerRow(tx = tx, onGenerateCompliance = { onOpenCompliance(tx) })
 		}
 		
-		Spacer(modifier = Modifier.height(8.dp))
-
-		LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-			items(sample) { tx ->
-				ExecutionLedgerRow(tx = tx, onGenerateCompliance = { onOpenCompliance(tx) })
-			}
+		// Footer
+		item {
+			ExecutionLedgerProtocolIntegrityFooter()
 		}
-		Spacer(modifier = Modifier.height(12.dp))
-		ExecutionLedgerProtocolIntegrityFooter()
+		
+		item {
+			Spacer(modifier = Modifier.height(12.dp))
+		}
 	}
 }
 

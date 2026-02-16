@@ -28,20 +28,29 @@ import com.asc.markets.ui.theme.*
 @Composable
 fun ExecutionLedgerTab() {
     var selectedTx by remember { mutableStateOf<ExecutionTx?>(null) }
+    val executionMetrics = rememberExecutionMetrics()
 
-    Column(modifier = Modifier.fillMaxSize().background(DeepBlack).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 0.dp)) {
-        // Header for Post-Move Audit (Post-Move Efficiency Ledger)
-        InfoBox(minHeight = 60.dp) {
-            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Post-Move Audit", color = IndigoAccent, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
-                    Text("Slippage & Fill Latency — Post-Move Audit", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
+    Column(modifier = Modifier.fillMaxSize()) {
+        // System Audit page header (static at top)
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 60.dp) {
+                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("System Audit", color = IndigoAccent, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                        Text("Slippage & Fill Latency — System Audit", color = SlateText, fontSize = DashboardFontSizes.labelSmall)
+                    }
                 }
             }
         }
-
+        
         Spacer(modifier = Modifier.height(12.dp))
-
+        
+        // Metrics subheader (static)
+        ExecutionMetricsSubheader(executionMetrics)
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Scrollable execution ledger content
         ExecutionLedgerSection(onOpenCompliance = { selectedTx = it })
     }
 

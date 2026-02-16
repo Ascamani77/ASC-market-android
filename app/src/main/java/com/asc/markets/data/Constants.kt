@@ -1,10 +1,12 @@
 package com.asc.markets.data
 
 val FOREX_PAIRS = listOf(
-    // FOREX (3)
+    // FOREX (5)
     ForexPair("EUR/USD", "Euro / US Dollar", 1.0845, 0.0012, 0.11, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("GBP/USD", "British Pound / US Dollar", 1.2634, -0.0021, -0.17, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("USD/JPY", "US Dollar / Japanese Yen", 151.42, 0.34, 0.23, com.asc.markets.data.MarketCategory.FOREX),
+    ForexPair("USD/CHF", "US Dollar / Swiss Franc", 0.8812, 0.0008, 0.09, com.asc.markets.data.MarketCategory.FOREX),
+    ForexPair("AUD/USD", "Australian Dollar / US Dollar", 0.6542, -0.0015, -0.23, com.asc.markets.data.MarketCategory.FOREX),
 
     // STOCKS (5)
     ForexPair("NVDA", "NVIDIA Corp.", 890.15, 23.80, 2.83, com.asc.markets.data.MarketCategory.STOCK),

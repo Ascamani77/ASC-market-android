@@ -31,202 +31,33 @@ import com.asc.markets.ui.theme.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
+fun MarketsScreen(onSelectPair: (ForexPair) -> Unit, viewModel: ForexViewModel = viewModel()) {
     var activeCategory by remember { mutableStateOf("ALL") }
     var searchQuery by remember { mutableStateOf("") }
     val categories = listOf("ALL", "FOREX", "CRYPTO", "INDICES", "COMMODITIES", "STOCKS")
     val listState = rememberLazyListState()
 
-    // Scroll-based header visibility for Bloomberg-style behavior
-    var showMainHeader by remember { mutableStateOf(true) }
-    LaunchedEffect(listState) {
-        var previousAbsolutePosition = 0
-        snapshotFlow { 
-            // Calculate absolute scroll position
-            listState.firstVisibleItemIndex * 200 + listState.firstVisibleItemScrollOffset // 200dp approx item height
-        }.collect { absolutePosition ->
-            if (absolutePosition > previousAbsolutePosition && previousAbsolutePosition > 0) {
-                // Scrolling down (content moving up) -> hide header
-                showMainHeader = false
-            } else if (absolutePosition < previousAbsolutePosition) {
-                // Scrolling up (content moving down) -> show header
-                showMainHeader = true
-            }
-            previousAbsolutePosition = absolutePosition
+    // Scroll detection to hide/show global header with smooth height animation
+    val collapseRange = 150f  // pixels to scroll before header fully collapses
+    val collapseProgress by remember {
+        derivedStateOf {
+            // Calculate absolute scroll position (works across item boundaries)
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
         }
+    }
+    
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-        // Main header - hides/shows based on scroll direction
-        if (showMainHeader) {
-            Surface(
-                color = Color(0xFF080808),
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-            ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(categories) { cat ->
-                        val active = activeCategory == cat
-                        val catIcon = when (cat) {
-                            "ALL" -> Icons.Default.BarChart
-                            "FOREX" -> Icons.Default.LineAxis
-                            "CRYPTO" -> Icons.Default.Bolt
-                            "INDICES" -> Icons.Default.GridView
-                            "COMMODITIES" -> Icons.Default.AccountTree
-                            "STOCKS" -> Icons.Default.BarChart
-                            else -> Icons.Default.BarChart
-                        }
-
-                        Surface(
-                            color = if (active) Color.White else Color.Transparent,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.height(32.dp).clickable { activeCategory = cat }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            ) {
-                                Icon(catIcon, contentDescription = cat, tint = if (active) Color.Black else Color.Gray, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = cat,
-                                    color = if (active) Color.Black else Color.Gray,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    fontFamily = InterFontFamily,
-                                    letterSpacing = 1.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Sticky Categories Bar - always visible (becomes primary header when main header hides)
-        Surface(
-            color = Color(0xFF080808),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-        ) {
-            LazyRow(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(categories) { cat ->
-                    val active = activeCategory == cat
-                    val catIcon = when (cat) {
-                        "ALL" -> Icons.Default.BarChart
-                        "FOREX" -> Icons.Default.LineAxis
-                        "CRYPTO" -> Icons.Default.Bolt
-                        "INDICES" -> Icons.Default.GridView
-                        "COMMODITIES" -> Icons.Default.AccountTree
-                        "STOCKS" -> Icons.Default.BarChart
-                        else -> Icons.Default.BarChart
-                    }
-
-                    Surface(
-                        color = if (active) Color.White else Color.Transparent,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(32.dp).clickable { activeCategory = cat }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        ) {
-                            Icon(catIcon, contentDescription = cat, tint = if (active) Color.Black else Color.Gray, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = cat,
-                                color = if (active) Color.Black else Color.Gray,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Black,
-                                fontFamily = InterFontFamily,
-                                letterSpacing = 1.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Search Input Parity (zero internal padding)
-        Box(modifier = Modifier.padding(16.dp)) {
-            var isFocused by remember { mutableStateOf(false) }
-            
-            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(40.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.Transparent,
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        singleLine = true,
-                        textStyle = TextStyle(fontSize = 13.sp, color = Color.White, lineHeight = 13.sp, fontWeight = FontWeight.SemiBold),
-                        cursorBrush = SolidColor(Color.White),
-                        modifier = Modifier
-                            .weight(1f)
-                            .onFocusEvent { focusState ->
-                                isFocused = focusState.isFocused
-                            }
-                    ) { inner ->
-                        if (searchQuery.isEmpty() && !isFocused) {
-                            Text("FILTER SYMBOLS...", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        }
-                        inner()
-                    }
-                    // show clear icon when focused or when there's input
-                    if (isFocused || searchQuery.isNotEmpty()) {
-                        IconButton(onClick = {
-                            searchQuery = ""
-                            focusManager.clearFocus()
-                        }, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Markets screen overview / feature writeup (so operators understand what this view provides)
-        // NOTE: This features/info box should be controlled by backend flags. Set to false to hide.
-        val showMarketFeatures = false
-        if (showMarketFeatures) {
-            InfoBox(minHeight = 100.dp) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Markets View - Features", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("• Category chips for quick filtering by asset class (ALL / FOREX / CRYPTO / INDICES / COMMODITIES).", color = Color.White, fontSize = 12.sp)
-                    Text("• Integrated search for rapid symbol discovery.", color = Color.White, fontSize = 12.sp)
-                    Text("• Live price surveillance with color-coded percent changes (Emerald = gain, Rose = loss).", color = Color.White, fontSize = 12.sp)
-                    Text("• Edge-to-edge sparklines on each asset card provide immediate trend context.", color = Color.White, fontSize = 12.sp)
-                    Text("• Tap any asset card to open the full terminal / detail view for deep analysis.", color = Color.White, fontSize = 12.sp)
-                }
-            }
-        }
-
         LaunchedEffect(activeCategory) {
             // when the active category changes, scroll the list to top
             listState.animateScrollToItem(0)
@@ -238,6 +69,103 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
+            // Sticky Categories header
+            stickyHeader {
+                Surface(
+                    color = DeepBlack,
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                ) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(categories) { cat ->
+                            val active = activeCategory == cat
+                            
+                            Surface(
+                                color = if (active) Color.White else Color.Transparent,
+                                shape = RoundedCornerShape(16.dp),
+                                border = if (!active) BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null,
+                                modifier = Modifier.height(32.dp).clickable { activeCategory = cat }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                ) {
+                                    Text(
+                                        text = cat,
+                                        color = if (active) Color.Black else Color(0xFF94a3b8),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = InterFontFamily,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Search box as first content item
+            item {
+                Box(modifier = Modifier.padding(16.dp)) {
+                    var isFocused by remember { mutableStateOf(false) }
+                    
+                    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        color = Color.Transparent,
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(androidx.compose.material.icons.autoMirrored.outlined.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                singleLine = true,
+                                textStyle = TextStyle(fontSize = 13.sp, color = Color.White, lineHeight = 13.sp, fontWeight = FontWeight.SemiBold),
+                                cursorBrush = SolidColor(Color.White),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onFocusEvent { focusState ->
+                                        isFocused = focusState.isFocused
+                                    }
+                            ) { inner ->
+                                if (searchQuery.isEmpty() && !isFocused) {
+                                    Text("FILTER SYMBOLS...", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                                }
+                                inner()
+                            }
+                            // show clear icon when focused or when there's input
+                            if (isFocused || searchQuery.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    searchQuery = ""
+                                    focusManager.clearFocus()
+                                }, modifier = Modifier.size(36.dp)) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Render market cards
             val base = getExploreItemsForContext(mapCategoryToAssetContext(activeCategory))
             val filtered = base.filter {
                 val matchesSearch = it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)

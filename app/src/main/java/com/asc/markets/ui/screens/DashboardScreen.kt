@@ -92,10 +92,14 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                     MacroStreamView(events = events, viewModel = viewModel)
                                 }
                             }
-                            DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(selectedPair) { pair ->
-                                viewModel.selectPair(pair)
-                                viewModel.navigateTo(AppView.TRADING_ASSISTANT)
-                            }
+                            DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(
+                                selectedPair = selectedPair,
+                                onAssetClick = { pair ->
+                                    viewModel.selectPair(pair)
+                                    viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                                },
+                                viewModel = viewModel
+                            )
                             DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab()
                             DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab()
                             DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab()
@@ -120,7 +124,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
         ) {
             val context = LocalContext.current
             Surface(
-                color = Color.Black.copy(alpha = 0.8f),
+                color = PureBlack.copy(alpha = 0.6f),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.wrapContentWidth().height(44.dp).padding(horizontal = 16.dp),
                 shadowElevation = 8.dp
@@ -159,7 +163,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                     painter = painterResource(id = resId),
                                     contentDescription = null,
                                     tint = if (active) Color.Black else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 if (active) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -167,7 +171,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                                     Text(
                                         text = (when(tab) {
                                             DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
-                                            DashboardTab.EXECUTION_LEDGER -> "Post-Move Audit"
+                                            DashboardTab.EXECUTION_LEDGER -> "System Audit"
                                             else -> tab.name.replace("_", " ").toLowerCase().capitalize()
                                         }) + (if (isPostMove) " (10%)" else ""),
                                         fontSize = 12.sp,

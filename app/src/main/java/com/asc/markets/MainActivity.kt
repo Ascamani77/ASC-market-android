@@ -31,7 +31,6 @@ import com.asc.markets.logic.IntegrityWatchdog
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
 import androidx.compose.runtime.CompositionLocalProvider
-import com.asc.markets.ui.components.LocalShowMicrostructure
 import com.asc.markets.ui.theme.*
 import android.util.Log
 
@@ -175,16 +174,25 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 // THE TRICK: Swap header based on state
                                 when (currentView) {
-                                    AppView.DASHBOARD -> {
+                                    AppView.DASHBOARD, AppView.MARKETS -> {
                                         val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
-                                        GlobalHeader(
-                                            currentView = currentView,
-                                            selectedPair = selectedPair,
-                                            onOpenDrawer = { viewModel.openDrawer() },
-                                            onSearch = { viewModel.openCommandPalette() },
-                                            onNotifications = { viewModel.navigateTo(AppView.NOTIFICATIONS) },
-                                            unreadCount = unread
-                                        )
+                                        val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState(initial = true)
+                                        val collapseProgress by viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+
+                                        // Animate header height (72.dp -> 0.dp) based on collapse progress
+                                        val targetHeight = if (headerVisible) (72.dp * (1f - collapseProgress)) else 0.dp
+                                        val headerHeight by animateDpAsState(targetValue = targetHeight)
+
+                                        Box(modifier = Modifier.fillMaxWidth().height(headerHeight)) {
+                                            GlobalHeader(
+                                                currentView = currentView,
+                                                selectedPair = selectedPair,
+                                                onOpenDrawer = { viewModel.openDrawer() },
+                                                onSearch = { viewModel.openCommandPalette() },
+                                                onNotifications = { viewModel.navigateTo(AppView.INTELLIGENCE_STREAM) },
+                                                unreadCount = unread
+                                            )
+                                        }
                                     }
                                     // Let screens that provide their own header render without the global NavHeader
                                     AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS -> {
@@ -202,7 +210,7 @@ class MainActivity : ComponentActivity() {
                                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                     when (currentView) {
                                         AppView.DASHBOARD -> DashboardScreen(viewModel)
-                                        AppView.MARKETS -> MarketsScreen { viewModel.selectPair(it) }
+                                        AppView.MARKETS -> MarketsScreen({ viewModel.selectPair(it) }, viewModel)
                                         AppView.CHAT -> ChatScreen(viewModel)
                                         AppView.ALERTS -> AlertsScreen(viewModel)
                                         AppView.NOTIFICATIONS -> NotificationsScreen(viewModel)

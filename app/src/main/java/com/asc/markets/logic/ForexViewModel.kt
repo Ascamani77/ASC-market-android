@@ -58,6 +58,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _isGlobalHeaderVisible.value = visible
     }
 
+    // Continuous collapse progress for the global header (0f = expanded, 1f = fully collapsed)
+    private val _globalHeaderCollapse = MutableStateFlow(0f)
+    val globalHeaderCollapse = _globalHeaderCollapse.asStateFlow()
+
+    fun setGlobalHeaderCollapse(progress: Float) {
+        _globalHeaderCollapse.value = progress.coerceIn(0f, 1f)
+    }
+
     private val _marketState = MutableStateFlow<MarketState?>(null)
     val marketState = _marketState.asStateFlow()
 
