@@ -19,12 +19,7 @@ data class TradingStatus(
 )
 
 object CalendarService {
-    // Parity: Mocking the same critical events as the TS version
-    val mockEvents = listOf(
-        EconomicEvent("Non-Farm Payrolls", "USD", "HIGH", "2024-12-01", "13:30", "UTC", "ForexFactory"),
-        EconomicEvent("CPI YoY", "USD", "HIGH", "2024-12-01", "12:30", "UTC", "ForexFactory"),
-        EconomicEvent("FOMC Rate Decision", "USD", "HIGH", "2024-12-01", "19:00", "UTC", "ForexFactory")
-    )
+    // All data comes from the API - no mock events
 
     /**
      * Surprise Magnitude Engine: Calculates deviation magnitude.
@@ -47,29 +42,11 @@ object CalendarService {
     }
 
     /**
-     * Safety Gate Logic: Blocks dispatches in a 30-minute window of High-Impact news.
+     * Safety Gate Logic: All trading status checks are now handled via the API
+     * Real data flows from the backend - no local trading status evaluation
      */
     fun getTradingStatus(pair: String): TradingStatus {
-        val now = System.currentTimeMillis()
-        val currencies = pair.split("/")
-        
-        // Check for 30m proximity to High Impact news
-        mockEvents.forEach { event ->
-            if (currencies.contains(event.currency) && event.impact == "HIGH") {
-                // Simplified time parsing for mock purposes
-                val eventTime = System.currentTimeMillis() + (15 * 60 * 1000) // Mocked as 15 mins away
-                val diffMins = (eventTime - now) / (1000 * 60)
-                
-                if (diffMins in -30..30) {
-                    return TradingStatus(
-                        pair = pair,
-                        isBlocked = true,
-                        reason = "SAFETY GATE: ${event.event} release window active (±30m).",
-                        countdownMinutes = diffMins.toInt()
-                    )
-                }
-            }
-        }
-        return TradingStatus(pair, false) 
+        // Trading status now comes from API-provided ebc_status and unlock_state
+        return TradingStatus(pair, false)
     }
 }

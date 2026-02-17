@@ -92,14 +92,57 @@ data class ChatMessage(
 )
 
 data class EconomicEvent(
-    val event: String,
-    val currency: String,
-    val impact: String,
-    val date: String,
-    val time: String,
-    val actual: String? = null,
-    val estimate: String? = null,
-    val previous: String? = null
+    val id: String? = null,
+    val title: String = "",
+    val date: String = "",
+    val asset_class: String = "",
+    val event_type: String = "",
+    val assets_affected: List<String> = emptyList(),
+    val severity: String = "",
+    val timestamp_utc: Long = 0,
+    val source: String = "",
+    val source_type: String = "",
+    val actual: Any? = null,
+    val estimate: Any? = null,
+    val previous: Any? = null,
+    val unit: String? = null,
+    val surprise_level: String? = null,
+    val surprise_delta: Double? = null,
+    val execution_regime: String = "",
+    val visual_state: String = "",
+    val persistence_count: Int = 0,
+    val transition_status: String = "",
+    val volatility_confirmed: Boolean = false,
+    val safety_gate: Boolean = false,
+    val unlock_state: String = "",
+    val gate_release_time: Long? = null,
+    val hard_unlock_time: Long? = null,
+    val narrative_summary: String? = null,
+    val confidence_score: Int = 0,
+    val base_confidence: Int = 0,
+    val conviction_tier: String = "",
+    val correlation_heat: Int = 0,
+    val liquidity_depth: Int = 0,
+    val sentiment_divergence: Boolean = false,
+    val neutral_drivers: List<String> = emptyList(),
+    val transition_triggers: List<TransitionTrigger> = emptyList(),
+    val allowed_tactics: List<String> = emptyList(),
+    val ebc_status: String = "",
+    val friction_coefficient: Double = 0.0,
+    val alpha_erosion: Double = 0.0,
+    // Legacy fields for backward compatibility
+    val event: String? = null,
+    val currency: String? = null,
+    val impact: String? = null,
+    val time: String? = null,
+    val type: String? = null,
+    val asset: String? = null,
+    val narrative: String? = null
+)
+
+data class TransitionTrigger(
+    val label: String = "",
+    val status: String = ""
 )
 
 enum class MacroEventStatus { UPCOMING, CONFIRMED }

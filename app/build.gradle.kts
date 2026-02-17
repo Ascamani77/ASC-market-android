@@ -83,6 +83,11 @@ dependencies {
     // Kotlinx serialization JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
+    // Retrofit and OkHttp for HTTP client
+    implementation("com.squareup.retrofit2:retrofit:2.10.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.10.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+
     // TradingView Lightweight Charts Android wrapper
     implementation("com.tradingview:lightweightcharts:3.8.0")
 
