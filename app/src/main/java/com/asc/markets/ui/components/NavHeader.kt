@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.asc.markets.ui.theme.PureBlack
 
 @Composable
@@ -28,22 +31,61 @@ fun NavHeader(
             .fillMaxWidth()
             .height(64.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Branded Logo and Name matching the reference image
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.wrapContentWidth()
+            ) {
+                // The Logo: A clean geometric chevron pointing up
+                Text(
+                    "Λ", 
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Text(
+                    text = buildAnnotatedString {
+                        // ASC: Large, Bold, White
+                        withStyle(style = SpanStyle(
+                            fontSize = 18.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = Color.White
+                        )) {
+                            append("ASC ")
+                        }
+                        // MARKET: Smaller, medium weight, bluish-slate color
+                        withStyle(style = SpanStyle(
+                            fontSize = 14.sp, 
+                            fontWeight = FontWeight.Medium, 
+                            color = Color(0xFF94A3B8)
+                        )) {
+                            append("MARKET")
+                        }
+                    },
+                    letterSpacing = 1.sp
+                )
             }
+
+            Spacer(modifier = Modifier.weight(1f))
 
             Text(
                 text = title.replace("_", " "),
-                modifier = Modifier.align(Alignment.Center),
                 textAlign = TextAlign.Center,
-                color = Color.White,
-                fontSize = 14.4.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-0.5).sp
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
             )
 
-            IconButton(onClick = onSearch, modifier = Modifier.align(Alignment.CenterEnd)) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(onClick = onSearch) {
                 Icon(Icons.Rounded.Search, contentDescription = "Search", tint = Color.White)
             }
         }

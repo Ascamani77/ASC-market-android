@@ -21,5 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "ASC"
 include(":app")
-include(":app")
- 

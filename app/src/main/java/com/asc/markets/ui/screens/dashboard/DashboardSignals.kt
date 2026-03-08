@@ -29,6 +29,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 data class Signal(
     val symbol: String,
@@ -41,7 +43,7 @@ data class Signal(
 )
 
 @Composable
-fun DashboardSignals() {
+fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
     val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
 
     // sample signals — 25 items: 5 Forex majors, 5 Commodities, 5 Crypto, 5 Stocks, 5 Indexes
@@ -117,11 +119,24 @@ fun DashboardSignals() {
     }
 
     var selected by remember { mutableStateOf<Signal?>(null) }
+    val scrollState = rememberScrollState()
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            (scrollState.value.toFloat() / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .background(Color(0xFF0D0D0D))
-        .verticalScroll(rememberScrollState())
+        .background(PureBlack)
+        .verticalScroll(scrollState)
         .padding(top = 16.dp, bottom = 120.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // Global Matrix Header (auto-height)

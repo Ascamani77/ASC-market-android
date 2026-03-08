@@ -1,0 +1,42 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:clean FAILED
+./gradlew.bat : 
+At line:1 char:1
++ ./gradlew.bat clean build 2>&1 | Out-File -FilePath build_full.log -E ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:clean'.
+> java.io.IOException: Unable to delete directory 
+'C:\Users\HP\Downloads\folder\app\build'
+    Failed to delete some children. This might happen because a process has 
+files open or has its working directory set in the target directory.
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\debug\processDebugResources\R.jar
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\debug\processDebugResources
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\debug
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\release\processReleaseResources\R.jar
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\release\processReleaseResources
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar\release
+    - C:\Users\HP\Downloads\folder\app\build\intermediates\compile_and_runtime_
+not_namespaced_r_class_jar
+    - C:\Users\HP\Downloads\folder\app\build\intermediates
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 2s
+1 actionable task: 1 executed

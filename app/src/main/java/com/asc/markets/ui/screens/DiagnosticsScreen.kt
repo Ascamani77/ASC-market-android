@@ -16,15 +16,56 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
-import com.asc.markets.ui.theme.InterFontFamily
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.*
+import com.asc.markets.risk.DiagnosticsReport
+import com.asc.markets.risk.RiskDiagnosticsEngine
+import com.asc.markets.risk.SurfaceStats
+import com.asc.markets.risk.TradeResult
+import com.asc.markets.ui.components.DiagnosticsPanel
+import com.asc.markets.ui.theme.InterFontFamily
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+@Composable
+fun DiagnosticsReportScreen(viewModel: ForexViewModel = viewModel()) {
+    val engine = remember { RiskDiagnosticsEngine() }
+    val repo = viewModel.tradeHistoryRepository
+
+    var report by remember { mutableStateOf<com.asc.markets.risk.DiagnosticsReport?>(null) }
+
+    LaunchedEffect(repo) {
+        if (repo != null) {
+            // surfaceStats / volatility / correlation should be provided by the system; placeholder for now
+            val surfaceStats = SurfaceStats(winRate = 0.55, volatility = 0.015, tail05 = -0.02, regimeFrequency = 0.3)
+            val realizedVolatility = 0.02
+            val rollingCorrelation = 0.4
+
+            val r = engine.generateReportFromRepository(repo, surfaceStats, realizedVolatility, rollingCorrelation)
+            report = r
+        } else {
+            // no repo available — show empty report
+            report = engine.generateReport(emptyList(), SurfaceStats(0.0, 0.0, 0.0, 0.0), 0.0, 0.0)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        report?.let {
+            DiagnosticsPanel(report = it, modifier = Modifier.fillMaxWidth())
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Diagnostics are observational only. No sizing or signals are changed.", color = androidx.compose.ui.graphics.Color.LightGray)
+    }
+}
 
 @Composable
 private fun KpiBoxComposable(label: String, value: String, valueColor: Color, accent: Color, modifier: Modifier = Modifier) {

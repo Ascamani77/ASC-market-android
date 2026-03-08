@@ -3,57 +3,47 @@ package com.asc.markets.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import android.util.Log
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
 import com.asc.markets.R
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Timer
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.text.style.TextOverflow
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.dashboard.*
 import com.asc.markets.ui.theme.*
-import com.asc.markets.data.ForexPair
 import com.asc.markets.ui.components.LocalShowMicrostructure
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import android.widget.Toast
-import com.asc.markets.BuildConfig
 import android.os.Vibrator
 import android.os.VibrationEffect
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Timer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.ui.text.style.TextOverflow
 
 enum class DashboardTab { 
-    // ===== PRE-MOVE SURVEILLANCE (90%) =====
     MACRO_STREAM, 
-    MARKET_OVERVIEW, 
     TECHNICAL_VITALS, 
     STRATEGY_SIGNALS, 
     ANALYTICAL_QUALITY, 
     MARKET_PSYCHOLOGY, 
     METHODOLOGY,
-    
-    // ===== POST-MOVE AUDIT (10%) =====
     EXECUTION_LEDGER
 }
 
@@ -64,126 +54,110 @@ fun DashboardScreen(viewModel: ForexViewModel) {
     val promoteMacro by viewModel.promoteMacroStream.collectAsState()
     val dashboardTarget by viewModel.dashboardTabTarget.collectAsState()
 
-    // react to external requests to focus a specific dashboard tab
     LaunchedEffect(dashboardTarget) {
         try {
             activeTab = DashboardTab.valueOf(dashboardTarget)
-        } catch (_: Exception) { /* ignore invalid names */ }
+        } catch (_: Exception) { }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-                // Remote status moved to sidebar to avoid compressing dashboard content
+    Column(modifier = Modifier.fillMaxSize().background(PureBlack)) {
+        // 1. Top Navbar
+        DashboardTopNavbar(
+            activeTab = activeTab,
+            onTabSelected = { tab ->
+                activeTab = tab
+                viewModel.setDashboardTab(tab.name)
+            }
+        )
 
-            // Content
-            Box(modifier = Modifier.weight(1f)) {
-                if (promoteMacro) {
-                    // When promoted, show the Macro Intelligence Stream prominently (90/10 enforced by the view)
-                    val events by viewModel.macroStreamEvents.collectAsState()
-                                    CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                    MacroStreamView(events = events, viewModel = viewModel)
-                                }
-                } else {
-                    androidx.compose.animation.Crossfade(targetState = activeTab) { tab ->
-                        when (tab) {
-                            DashboardTab.MACRO_STREAM -> {
-                                    val events by viewModel.macroStreamEvents.collectAsState()
-                                CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                    MacroStreamView(events = events, viewModel = viewModel)
-                                }
+        // 2. Content Area
+        Box(modifier = Modifier.weight(1f)) {
+            if (promoteMacro) {
+                val events by viewModel.macroStreamEvents.collectAsState()
+                CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                    MacroStreamView(events = events, viewModel = viewModel)
+                }
+            } else {
+                androidx.compose.animation.Crossfade(targetState = activeTab, label = "TabTransition") { tab ->
+                    when (tab) {
+                        DashboardTab.MACRO_STREAM -> {
+                            val events by viewModel.macroStreamEvents.collectAsState()
+                            CompositionLocalProvider(LocalShowMicrostructure provides false) {
+                                MacroStreamView(events = events, viewModel = viewModel)
                             }
-                            DashboardTab.MARKET_OVERVIEW -> MarketOverviewTab(
-                                selectedPair = selectedPair,
-                                onAssetClick = { pair ->
-                                    viewModel.selectPair(pair)
-                                    viewModel.navigateTo(AppView.TRADING_ASSISTANT)
-                                },
-                                viewModel = viewModel
-                            )
-                            DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab()
-                            DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab()
-                            DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab()
-                            DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab()
-                            DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab()
-                            DashboardTab.METHODOLOGY -> EducationTab()
                         }
+                        DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab(viewModel)
+                        DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab(viewModel)
+                        DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab(viewModel)
+                        DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab(viewModel)
+                        DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab(viewModel)
+                        DashboardTab.METHODOLOGY -> EducationTab(viewModel)
                     }
                 }
             }
-            
-            // (Tab switcher moved to overlay so it visually floats over content)
         }
-        // Floating Bottom Tab Switcher (overlaid, remains at bottom but visually floats)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)
-                .offset(y = (-8).dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            val context = LocalContext.current
-            Surface(
-                color = PureBlack.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.wrapContentWidth().height(44.dp).padding(horizontal = 16.dp),
-                shadowElevation = 8.dp
+    }
+}
+
+@Composable
+fun DashboardTopNavbar(
+    activeTab: DashboardTab,
+    onTabSelected: (DashboardTab) -> Unit
+) {
+    val context = LocalContext.current
+    Surface(
+        color = Color(0xFF141414), // Dark gray background matching the image style
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(26.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(DashboardTab.values()) { tab ->
-                        val active = activeTab == tab
-                        Surface(
-                            color = if (active) Color.White else Color.Transparent,
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier
-                                .height(34.dp)
-                                .padding(horizontal = 2.dp)
-                                .clickable {
-                                    val vib = context.getSystemService(Vibrator::class.java)
-                                    vib?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-                                    activeTab = tab
-                                    viewModel.setDashboardTab(tab.name)
-                                }
-                        ) {
-                            Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                val resId = when (tab) {
-                                    DashboardTab.MACRO_STREAM -> R.drawable.lucide_line_chart
-                                    DashboardTab.MARKET_OVERVIEW -> R.drawable.lucide_pie_chart
-                                    DashboardTab.TECHNICAL_VITALS -> R.drawable.lucide_activity
-                                    DashboardTab.STRATEGY_SIGNALS -> R.drawable.lucide_list_filter
-                                    DashboardTab.ANALYTICAL_QUALITY -> R.drawable.lucide_pie_chart
-                                    DashboardTab.EXECUTION_LEDGER -> R.drawable.lucide_arrow_left_right
-                                    DashboardTab.MARKET_PSYCHOLOGY -> R.drawable.lucide_binary
-                                    DashboardTab.METHODOLOGY -> R.drawable.lucide_book_open
-                                }
-                                Icon(
-                                    painter = painterResource(id = resId),
-                                    contentDescription = null,
-                                    tint = if (active) Color.Black else Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                if (active) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    val isPostMove = tab == DashboardTab.EXECUTION_LEDGER
-                                    Text(
-                                        text = (when(tab) {
-                                            DashboardTab.MACRO_STREAM -> "Macro Intelligence Stream"
-                                            DashboardTab.EXECUTION_LEDGER -> "System Audit"
-                                            else -> tab.name.replace("_", " ").toLowerCase().capitalize()
-                                        }) + (if (isPostMove) " (10%)" else ""),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isPostMove) Color(0xFFF59E0B) else Color.Black
-                                    )
-                                }
+                items(DashboardTab.entries.toTypedArray()) { tab ->
+                    val active = activeTab == tab
+                    val label = when (tab) {
+                        DashboardTab.MACRO_STREAM -> "Top news"
+                        DashboardTab.TECHNICAL_VITALS -> "Vitals"
+                        DashboardTab.STRATEGY_SIGNALS -> "Signals"
+                        DashboardTab.ANALYTICAL_QUALITY -> "Quality"
+                        DashboardTab.MARKET_PSYCHOLOGY -> "Psychology"
+                        DashboardTab.METHODOLOGY -> "Logic"
+                        DashboardTab.EXECUTION_LEDGER -> "Audit"
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .width(IntrinsicSize.Max)
+                            .clickable {
+                                val vib = context.getSystemService(Vibrator::class.java)
+                                vib?.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                                onTabSelected(tab)
                             }
-                        }
+                            .padding(top = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (active) Color.White else Color(0xFF8E8E8E),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = InterFontFamily
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // The bold white line indicator below the active tab
+                        Box(
+                            modifier = Modifier
+                                .height(3.dp)
+                                .fillMaxWidth()
+                                .background(if (active) Color.White else Color.Transparent)
+                        )
                     }
                 }
             }
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
         }
     }
 }
@@ -200,7 +174,6 @@ fun RemoteStatusChip(viewModel: ForexViewModel) {
     val context = LocalContext.current
 
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-        // Remote mode chip
         val remoteColor = if (force) RoseError else Color(0xFFF59E0B)
         Surface(color = remoteColor, shape = RoundedCornerShape(16.dp), modifier = Modifier.wrapContentWidth().height(28.dp).clickable {
             val txt = if (force) "remote_mode:FORCE" else "remote_mode:RESPECT"
@@ -216,9 +189,7 @@ fun RemoteStatusChip(viewModel: ForexViewModel) {
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Poll interval chip
         Surface(color = Color.DarkGray.copy(alpha = 0.6f), shape = RoundedCornerShape(16.dp), modifier = Modifier.wrapContentWidth().height(28.dp).clickable {
-            // Prefer copying the configured remote URL when available, otherwise copy the numeric interval
             val remoteUrl = try {
                 val bcClass = com.asc.markets.BuildConfig::class.java
                 val f = bcClass.getDeclaredField("REMOTE_CONFIG_URL")
@@ -238,7 +209,6 @@ fun RemoteStatusChip(viewModel: ForexViewModel) {
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Health / promote status
         val promoteColor = if (promote) Color(0xFF10B981) else Color.Gray
         Surface(color = promoteColor, shape = RoundedCornerShape(16.dp), modifier = Modifier.wrapContentWidth().height(28.dp).clickable {
             val txt = "promote_macro_stream:${promote}"

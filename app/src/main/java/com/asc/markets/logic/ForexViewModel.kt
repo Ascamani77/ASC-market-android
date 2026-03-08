@@ -19,6 +19,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.coroutines.launch
+import androidx.room.Room
+import com.asc.markets.data.trade.AppDatabase
+import com.asc.markets.data.trade.TradeHistoryRepository
 import com.asc.markets.data.MacroEvent
 import com.asc.markets.data.PersistenceManager
 import com.asc.markets.data.AuditRecord
@@ -84,6 +87,62 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     // Feature flag: when true, Macro Intelligence Stream is promoted as a landing/highlight view
     private val _promoteMacroStream = MutableStateFlow(false)
     val promoteMacroStream = _promoteMacroStream.asStateFlow()
+
+    // Initialize persistent trade repository from Application single instance
+    private val app = application as? com.asc.markets.MyApp
+    val tradeHistoryRepository: TradeHistoryRepository? = app?.tradeRepository
+
+    /**
+     * Example helper to persist a confirmed trade into the persistent TradeHistoryRepository.
+     * Call this only after a confirmed fill. This method launches a coroutine on the
+     * ViewModel scope and will not block the caller.
+     *
+     * Example usage after confirmed fill:
+     * viewModel.saveConfirmedTrade(
+     *   asset = "BTCUSDT",
+     *   regimeStack = "H1_HIGH_COMP_LOW_VOL",
+     *   direction = "LONG",
+     *   entryPrice = 42000.0,
+     *   exitPrice = 42350.0,
+     *   pnl = 350.0,
+     *   win = true,
+     *   entryVolatility = 0.12,
+     *   entryCorrelation = 0.30
+     * )
+     */
+    fun saveConfirmedTrade(
+        asset: String,
+        regimeStack: String,
+        direction: String,
+        entryPrice: Double,
+        exitPrice: Double,
+        pnl: Double,
+        win: Boolean,
+        entryVolatility: Double,
+        entryCorrelation: Double,
+        timestamp: Long = System.currentTimeMillis()
+    ) {
+        val repo = tradeHistoryRepository ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val entity = com.asc.markets.data.trade.TradeEntity(
+                    asset = asset,
+                    regimeStack = regimeStack,
+                    direction = direction,
+                    entryPrice = entryPrice,
+                    exitPrice = exitPrice,
+                    pnl = pnl,
+                    win = win,
+                    entryVolatility = entryVolatility,
+                    entryCorrelation = entryCorrelation,
+                    timestamp = timestamp
+                )
+                repo.saveTrade(entity)
+            } catch (t: Throwable) {
+                android.util.Log.e("ASC", "Error saving confirmed trade: ${t.message}")
+            }
+        }
+    }
 
     // Dashboard tab target (string name of DashboardTab) allows external callers to set which
     // top-tab the Dashboard should show when navigated to (e.g., Home button -> MACRO_STREAM)
@@ -485,6 +544,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         if (_currentView.value != view) {
             _previousView.value = _currentView.value
             _previousWasDrawerOpen.value = _isDrawerOpen.value
+            
+            // Reset header collapse and visibility states when navigating to a new view
+            // to ensure the main menu is visible by default.
+            _globalHeaderCollapse.value = 0f
+            _isGlobalHeaderVisible.value = true
         }
         _currentView.value = view
     }
@@ -495,6 +559,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun navigateBack() {
         val prev = _previousView.value ?: AppView.DASHBOARD
         _currentView.value = prev
+        
+        // Reset header collapse and visibility states on back navigation as well
+        _globalHeaderCollapse.value = 0f
+        _isGlobalHeaderVisible.value = true
+
         // If navigation originated from an open drawer, reopen it to return 'where' the user clicked
         if (_previousWasDrawerOpen.value) {
             _isDrawerOpen.value = true

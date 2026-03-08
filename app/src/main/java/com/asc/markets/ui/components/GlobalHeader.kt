@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.asc.markets.data.AppView
 import com.asc.markets.data.ForexPair
 import com.asc.markets.ui.theme.*
@@ -43,21 +46,47 @@ fun GlobalHeader(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = {
-                    Log.d("ASC", "GlobalHeader: menu icon clicked")
-                    onOpenDrawer()
-                },
-                modifier = Modifier.size(40.dp)
+            // ASC MARKET branding matching the reference image
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.wrapContentWidth()
             ) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = SlateText)
+                // Top menu removed — menu is available in bottom navigation
+
+                // The Logo: A clean geometric chevron pointing up
+                Text(
+                    "Λ", 
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.width(6.dp))
+                
+                Text(
+                    text = buildAnnotatedString {
+                        // ASC: Large, Bold, White
+                        withStyle(style = SpanStyle(
+                            fontSize = 22.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = Color.White
+                        )) {
+                            append("ASC ")
+                        }
+                        // MARKET: Smaller, regular weight, bluish-slate color
+                        withStyle(style = SpanStyle(
+                            fontSize = 18.sp, 
+                            fontWeight = FontWeight.Medium, 
+                            color = Color(0xFF94A3B8)
+                        )) {
+                            append("MARKET")
+                        }
+                    },
+                    letterSpacing = 1.sp
+                )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Dashboard writeup and top LIVE indicator removed per spec.
-            // Leave center area empty to avoid duplicate dashboard title; LIVE shows in sidebar footer.
-            Box(modifier = Modifier.weight(1f)) { }
+            Spacer(modifier = Modifier.weight(1f))
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onSearch) {

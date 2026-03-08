@@ -2,6 +2,7 @@ package com.asc.markets.ui.screens.dashboard
 
 import com.asc.markets.state.AssetContext
 import com.asc.markets.data.ForexPair
+import java.util.Locale
 
 // Lightweight provider stubs for wiring the UniversalOverviewBox to a replaceable
 // data layer. These are intentionally simple and deterministic so we can
@@ -61,13 +62,13 @@ fun getConfidenceForPair(pair: ForexPair): Int {
 }
 
 fun getKeyLevelsForPair(pair: ForexPair): Triple<String, String, String> {
-    val level1 = String.format("%.4f", pair.price * (1 + 0.01))
-    val level2 = String.format("%.4f", pair.price * (1 - 0.01))
-    val level3 = String.format("%.4f", pair.price)
+    val level1 = String.format(Locale.US, "%.4f", pair.price * (1 + 0.01))
+    val level2 = String.format(Locale.US, "%.4f", pair.price * (1 - 0.01))
+    val level3 = String.format(Locale.US, "%.4f", pair.price)
     return Triple(level1, level2, level3)
 }
 
-fun getInvalidationLevelForPair(pair: ForexPair): String = String.format("%.4f", pair.price * (1 - 0.005))
+fun getInvalidationLevelForPair(pair: ForexPair): String = String.format(Locale.US, "%.4f", pair.price * (1 - 0.005))
 
 fun getMacroAlignmentForContext(ctx: AssetContext, pair: ForexPair): String = when {
     pair.changePercent > 0.0 -> "Risk-On"
@@ -84,6 +85,42 @@ fun getPlaybookReadinessForContext(ctx: AssetContext, pair: ForexPair): String {
         else -> "Mean Reversion"
     }
 }
+
+// --- NEW DATA PROVIDERS FOR ADVANCED OVERVIEW FEATURES ---
+
+data class Opportunity(val title: String, val type: String, val confidence: Int)
+fun getPreMoveOpportunities(ctx: AssetContext): List<Opportunity> = when (ctx) {
+    AssetContext.FOREX -> listOf(Opportunity("EURUSD Range Break", "BREAKOUT", 82), Opportunity("GBPUSD Pullback", "TREND", 74))
+    AssetContext.CRYPTO -> listOf(Opportunity("BTC Liquidity Sweep", "REVERSAL", 88))
+    else -> listOf(Opportunity("Potential Volatility Expansion", "MOMENTUM", 65))
+}
+
+data class VolatilityRadarItem(val asset: String, val score: Float, val trend: String)
+fun getVolatilityRadar(ctx: AssetContext): List<VolatilityRadarItem> = listOf(
+    VolatilityRadarItem("EURUSD", 0.82f, "EXPANDING"),
+    VolatilityRadarItem("BTCUSD", 0.95f, "HIGH"),
+    VolatilityRadarItem("XAUUSD", 0.45f, "COMPRESSED")
+)
+
+fun getTradeReadinessScore(ctx: AssetContext): Int = 78 // Mock score 0-100
+
+data class MarketTension(val asset: String, val tension: Float) // 0.0 to 1.0
+fun getMarketTensionMetrics(ctx: AssetContext): List<MarketTension> = listOf(
+    MarketTension("USD Index", 0.85f),
+    MarketTension("S&P 500", 0.42f),
+    MarketTension("Gold", 0.68f)
+)
+
+data class UpcomingEvent(val name: String, val timeUtc: Long)
+fun getUpcomingEvents(ctx: AssetContext): List<UpcomingEvent> {
+    val now = System.currentTimeMillis()
+    return listOf(
+        UpcomingEvent("US Core CPI", now + 3600000), // 1h
+        UpcomingEvent("ECB Press Conf", now + 7200000) // 2h
+    )
+}
+
+fun getBacktestSimulationSummary(ctx: AssetContext): String = "Win Rate: 64.2% | Profit Factor: 1.84 | Max DD: 4.2%"
 
 // Provide explore items per AssetContext. This delegates to the specific
 // providers declared in MarketOverviewTab.kt so callers elsewhere can stay
@@ -114,5 +151,3 @@ fun provideBondsExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.fi
 fun provideStocksExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.STOCK }
 
 fun provideFuturesExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.FUTURES }
-
-

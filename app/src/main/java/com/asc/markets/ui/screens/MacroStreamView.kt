@@ -39,8 +39,22 @@ import androidx.compose.ui.text.font.FontFamily
 @Composable
 fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: com.asc.markets.logic.ForexViewModel? = null) {
     var showCatalystsPanel by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel?.setGlobalHeaderCollapse(collapseProgress)
+    }
     
-    Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
+    Column(modifier = Modifier.fillMaxSize().background(PureBlack)) {
         // UI state
         // Header: full-width bar (no rounded box) with compact horizontal layout
         Box(modifier = Modifier.fillMaxWidth().background(PureBlack)) {
@@ -104,7 +118,6 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
         // Main area — removed external padding so items are full-bleed
         Row(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.weight(0.9f).fillMaxHeight()) {
-                        val listState = rememberLazyListState()
 
                         LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 120.dp)) {
                     val allEvents = events  // Show all events (both UPCOMING and CONFIRMED)
@@ -115,9 +128,9 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
                             // Full-width black event box with all content stacked vertically
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                color = PureBlack,
+                                color = DeepBlack,
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                                border = BorderStroke(1.dp, HairlineBorder),
                                 tonalElevation = 0.dp,
                                 shadowElevation = 0.dp
                             ) {
@@ -231,9 +244,9 @@ private fun MacroCatalystsPanel(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                color = PureBlack,
+                color = DeepBlack,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, HairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -275,9 +288,9 @@ private fun MacroCatalystsPanel(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                color = PureBlack,
+                color = DeepBlack,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, HairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

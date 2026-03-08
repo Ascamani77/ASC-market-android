@@ -25,7 +25,7 @@ fun LiquidityMapScreen() {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val matrix = listOf("EUR/USD" to 0.82, "USD/JPY" to -0.74, "XAU/USD" to 0.12, "BTC/USD" to 0.45)
+            val matrix = listOf("EUR/USD" to 0.82, "USD/JPY" to -0.74, "XAU/USD" to 0.12, "BTC/USDT" to 0.45)
             items(matrix) { (pair, coeff) ->
                 CorrelationUnit(pair, coeff)
             }

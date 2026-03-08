@@ -15,13 +15,19 @@ val FOREX_PAIRS = listOf(
     ForexPair("MSFT", "Microsoft Corp.", 425.40, 3.10, 0.73, com.asc.markets.data.MarketCategory.STOCK),
     ForexPair("AMZN", "Amazon.com Inc.", 180.15, 2.48, 1.38, com.asc.markets.data.MarketCategory.STOCK),
 
-    // COMMODITIES (2)
+    // COMMODITIES (4)
     ForexPair("XAU/USD", "Gold / US Dollar", 2342.50, 12.40, 0.53, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("XAG/USD", "Silver / US Dollar", 28.45, 0.65, 2.34, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("USOIL", "WTI Crude Oil", 82.14, -1.20, -1.44, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("DXY", "US Dollar Index", 104.28, 0.45, 0.43, com.asc.markets.data.MarketCategory.COMMODITIES),
 
-    // CRYPTO (2)
+    // CRYPTO (4)
+    // AI Intelligence Layer (Binance - Truth Data)
     ForexPair("BTC/USDT", "Bitcoin / Tether", 67432.50, 1240.20, 1.87, com.asc.markets.data.MarketCategory.CRYPTO),
     ForexPair("ETH/USDT", "Ethereum / Tether", 3452.15, -45.20, -1.29, com.asc.markets.data.MarketCategory.CRYPTO),
+    // Execution / Broker Layer (MetaTrader 5 - Execution & Monitoring)
+    ForexPair("BTC/USD", "Bitcoin / US Dollar", 67425.00, 1232.50, 1.85, com.asc.markets.data.MarketCategory.CRYPTO),
+    ForexPair("ETH/USD", "Ethereum / US Dollar", 3450.80, -46.50, -1.33, com.asc.markets.data.MarketCategory.CRYPTO),
 
     // INDICES (3)
     ForexPair("NAS100", "Nasdaq 100", 18240.50, 142.30, 0.79, com.asc.markets.data.MarketCategory.INDICES),
@@ -30,11 +36,7 @@ val FOREX_PAIRS = listOf(
 
     // BONDS (2)
     ForexPair("US10Y", "US 10Y Treasury Yield", 4.256, 0.012, 0.28, com.asc.markets.data.MarketCategory.BONDS),
-    ForexPair("US02Y", "US 2Y Treasury Yield", 4.624, -0.005, -0.11, com.asc.markets.data.MarketCategory.BONDS),
-
-    // FUTURES (2)
-    ForexPair("ES1!", "S&P 500 Futures", 5245.25, 15.50, 0.30, com.asc.markets.data.MarketCategory.FUTURES),
-    ForexPair("NQ1!", "Nasdaq 100 Futures", 18450.75, 119.00, 0.65, com.asc.markets.data.MarketCategory.FUTURES)
+    ForexPair("US02Y", "US 2Y Treasury Yield", 4.624, -0.005, -0.11, com.asc.markets.data.MarketCategory.BONDS)
 )
 
 val MOCK_TRADES = listOf(

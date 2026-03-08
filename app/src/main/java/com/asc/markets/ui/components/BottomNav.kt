@@ -15,8 +15,9 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
@@ -41,17 +42,19 @@ import com.asc.markets.ui.theme.SlateText
 
 /**
  * Institutional Notched Bottom Navigation
- * Replicates the JS/TS design tokens:
+ * Replicates the Bloomberg design tokens:
  * - Pure Black Background (#000000)
  * - Custom Notched Geometry for floating 56dp FAB
- * - Uppercase clinical labels with 0.2em tracking
+ * - Uppercase clinical labels matching Bloomberg font style
+ * - White/Grey color palette for icons and labels
  * - Mechanical haptic feedback on every interaction
  */
 @Composable
 fun NotchedBottomNav(
     currentView: AppView,
     onNavigate: (AppView) -> Unit,
-    onHomeSelected: (() -> Unit)? = null
+    onHomeSelected: (() -> Unit)? = null,
+    onMenuClick: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -61,7 +64,7 @@ fun NotchedBottomNav(
             .height(85.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // 1. The Notched Background Bar (65dp height per spec)
+        // 1. The Notched Background Bar (65dp height)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,7 +78,7 @@ fun NotchedBottomNav(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Navigation Slots: Home, Markets, (Spacer), Chat, Profile
+                // Navigation Slots: HOME, MARKETS, (Spacer), MARKET VIEW, MENU
                 NavItem(
                     icon = Icons.Default.Home,
                     label = "Home",
@@ -99,24 +102,24 @@ fun NotchedBottomNav(
                 }
 
                 // Central Spacer for FAB Notch Cradle
-                Spacer(modifier = Modifier.width(72.dp))
+                Spacer(modifier = Modifier.width(60.dp))
 
                 NavItem(
-                    icon = Icons.Default.Message,
-                    label = "Chat",
-                    isActive = currentView == AppView.CHAT
-                ) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigate(AppView.CHAT)
-                }
-
-                NavItem(
-                    icon = Icons.Default.BarChart,
+                    icon = Icons.Default.Visibility,
                     label = "Market View",
                     isActive = currentView == AppView.MARKET_VIEW
                 ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onNavigate(AppView.MARKET_VIEW)
+                }
+
+                NavItem(
+                    icon = Icons.Default.Menu,
+                    label = "Menu",
+                    isActive = currentView == AppView.SIDEBAR_PAGE
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onMenuClick()
                 }
             }
         }
@@ -168,7 +171,8 @@ private fun NavItem(
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val targetColor = if (isActive) IndigoAccent else SlateText
+    // Bloomberg-style colors: White for active, Grey for inactive
+    val targetColor = if (isActive) Color.White else Color(0xFF919191)
     val contentColor by animateColorAsState(targetColor)
 
     Column(
@@ -177,10 +181,10 @@ private fun NavItem(
         modifier = Modifier
             .clickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(bounded = false, color = targetColor.copy(alpha = 0.25f)),
+                indication = null, // Match Bloomberg's mechanical feel (no soft ripple)
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = 4.dp)
     ) {
         Icon(
             imageVector = icon,
@@ -190,11 +194,11 @@ private fun NavItem(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = label,
+            text = label.uppercase(),
             color = contentColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.em
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.02.em
         )
     }
 }

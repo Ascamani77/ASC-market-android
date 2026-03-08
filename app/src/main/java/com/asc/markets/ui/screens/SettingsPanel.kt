@@ -1,43 +1,40 @@
 package com.asc.markets.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import com.asc.markets.data.UserSettings
-import com.asc.markets.ui.theme.PureBlack
-import androidx.compose.material3.Text
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Info
+import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.HairlineBorder
 import com.asc.markets.ui.theme.IndigoAccent
-import com.asc.markets.ui.theme.RoseError
-import com.asc.markets.ui.theme.EmeraldSuccess
-import com.asc.markets.ui.theme.SlateText
 import com.asc.markets.ui.theme.InterFontFamily
-import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import com.asc.markets.ui.theme.PureBlack
+import com.asc.markets.ui.theme.RoseError
+import com.asc.markets.ui.theme.SlateText
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -717,6 +714,46 @@ private fun PostMoveAuditSettingsPanel(settings: UserSettings) {
                     Icon(Icons.Default.Info, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(12.dp))
                     Text("PURGE ACTIVE EXECUTION LEDGER", color = Color.White)
+                }
+
+                // Example: Save a sample confirmed trade to persistent history (for testing)
+                if (com.asc.markets.BuildConfig.DEBUG) {
+                    val ctx = LocalContext.current
+                    Button(onClick = {
+                        val repo = com.asc.markets.di.ServiceLocator.tradeRepository(ctx)
+                        if (repo != null) {
+                            // launch background save
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                try {
+                                    repo.saveTrade(com.asc.markets.data.trade.TradeEntity(
+                                        asset = "BTCUSDT",
+                                        regimeStack = "H1_HIGH_COMP_LOW_VOL",
+                                        direction = "LONG",
+                                        entryPrice = 42000.0,
+                                        exitPrice = 42350.0,
+                                        pnl = 350.0,
+                                        win = true,
+                                        entryVolatility = 0.12,
+                                        entryCorrelation = 0.30,
+                                        timestamp = System.currentTimeMillis()
+                                    ))
+                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                        android.widget.Toast.makeText(ctx, "Sample trade saved to history", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (t: Throwable) {
+                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                        android.widget.Toast.makeText(ctx, "Failed saving sample trade: ${t.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        } else {
+                            android.widget.Toast.makeText(ctx, "Trade repository not available", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15212A)), shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                        Spacer(Modifier.width(12.dp))
+                        Text("SAVE SAMPLE CONFIRMED TRADE", color = Color.White)
+                    }
                 }
             }
         }

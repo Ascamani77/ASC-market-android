@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.EquityCurveGraph
 import com.asc.markets.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun AnalyticalQualityTab() {
+fun AnalyticalQualityTab(viewModel: ForexViewModel = viewModel()) {
     // Delegate to the new DashboardQuality implementation (Institutional Audit Hub)
-    DashboardQuality()
+    DashboardQuality(viewModel)
 }
 
 @Composable

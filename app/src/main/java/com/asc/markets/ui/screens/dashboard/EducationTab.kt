@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,13 +24,30 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun EducationTab() {
+fun EducationTab(viewModel: ForexViewModel = viewModel()) {
     var openSection by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        state = listState,
+        modifier = Modifier.fillMaxSize().background(PureBlack),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
     ) {

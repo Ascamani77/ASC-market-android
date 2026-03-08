@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -37,6 +38,7 @@ import com.asc.markets.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.random.Random
+import com.asc.markets.logic.ForexViewModel
 
 // Simple data models for the ledger
 internal data class FillRow(val price: Double, val side: String, val executionType: String)
@@ -142,7 +144,7 @@ internal fun ExecutionMetricsSubheader(metrics: ExecutionMetrics) {
 }
 
 @Composable
-internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
+internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit, viewModel: ForexViewModel) {
 	val executionMetrics = rememberExecutionMetrics()
 	val sample = remember {
 		listOf(
@@ -233,8 +235,24 @@ internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit) {
 		)
 	}
 
+	val listState = rememberLazyListState()
+
+	// Watch scroll and animate header collapse smoothly
+	val collapseRange = 150f
+	val collapseProgress by remember {
+		derivedStateOf {
+			val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+			(absoluteScroll / collapseRange).coerceIn(0f, 1f)
+		}
+	}
+
+	LaunchedEffect(collapseProgress) {
+		viewModel.setGlobalHeaderCollapse(collapseProgress)
+	}
+
 	// Scrollable LazyColumn with trading records and footer only (metrics are static above)
 	LazyColumn(
+		state = listState,
 		modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
 		verticalArrangement = Arrangement.spacedBy(10.dp),
 		contentPadding = PaddingValues(bottom = 120.dp)

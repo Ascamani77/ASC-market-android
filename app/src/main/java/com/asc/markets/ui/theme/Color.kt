@@ -3,12 +3,12 @@ package com.asc.markets.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Global Body Calibration: #0d0d0d
-val DeepBlack = Color(0xFF0D0D0D)
+// Global Body Calibration: Deep Charcoal Gray (#121212)
+val DeepBlack = Color(0xFF121212)
 // Component Surface Calibration: #000000
 val PureBlack = Color(0xFF000000)
-// Active sidebar highlight (slightly brighter than DeepBlack)
-val ActiveHighlight = Color(0xFF141414)
+// Active sidebar highlight
+val ActiveHighlight = Color(0xFF222222)
 
 // TradingView / Bloomberg-like bright cyan accent
 val IndigoAccent = Color(0xFF00B8D9)

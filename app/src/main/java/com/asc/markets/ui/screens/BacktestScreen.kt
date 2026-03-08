@@ -103,7 +103,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 val stocks = listOf("AAPL","MSFT","GOOGL","AMZN","TSLA")
                 val indices = listOf("SPX/500","NAS100","DOW30")
                 val commodities = listOf("XAU/USD","XAG/USD","WTI")
-                val crypto = listOf("BTC/USD","ETH/USD","BNB/USD")
+                val crypto = listOf("BTC/USDT","ETH/USDT","BNB/USDT")
                 val grouped = listOf(
                     "Forex" to forex,
                     "Stocks" to stocks,

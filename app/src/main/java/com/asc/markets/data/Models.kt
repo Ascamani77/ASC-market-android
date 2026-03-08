@@ -11,6 +11,7 @@ enum class AppView {
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
     POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW
+    , TRADE_DASHBOARD, SIDEBAR_PAGE
 }
 
 data class ForexPair(
@@ -254,3 +255,24 @@ fun formatEventTitle(raw: String): String {
     // No mapping found — return as-is
     return title
 }
+
+data class NewsStory(
+    val title: String = "",
+    val source: String = "",
+    val time: String = "",
+    val impact: String = "MEDIUM",
+    val category: String = "",
+    val isSurprise: Boolean = false,
+    // Alternative field names some servers might use
+    val headline: String? = null,
+    val author: String? = null,
+    val publishedAt: String? = null,
+    val url: String? = null,
+    val description: String? = null
+) {
+    // Fallback to alternative field names if primary ones are empty
+    fun getTitleOrDefault(): String = title.takeIf { it.isNotEmpty() } ?: (headline ?: "")
+    fun getSourceOrDefault(): String = source.takeIf { it.isNotEmpty() } ?: (author ?: "")
+    fun getTimeOrDefault(): String = time.takeIf { it.isNotEmpty() } ?: (publishedAt ?: "")
+}
+

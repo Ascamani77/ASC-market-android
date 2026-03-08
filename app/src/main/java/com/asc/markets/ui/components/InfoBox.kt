@@ -13,7 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.asc.markets.ui.theme.PureBlack
+import com.asc.markets.ui.theme.*
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.TextStyle
@@ -21,8 +21,9 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
 
 /**
- * Institutional InfoBox: thin 1px hairline border, pure black surface, rounded corners.
+ * Institutional InfoBox: thin 1px hairline border, charcoal surface, rounded corners.
  * Matches provided design: 1.dp white border at 18% alpha, RoundedCornerShape(12.dp)
+ * Background updated to DeepBlack (#181818) per design request.
  */
 @Composable
 fun InfoBox(
@@ -36,7 +37,8 @@ fun InfoBox(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val borderColor = if (isPressed) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.15f)
+    // Surround all boxes with the white hairline border (HairlineBorder = 18% alpha white)
+    val borderColor = if (isPressed) HairlineHighlight else HairlineBorder
 
     // Do not force fillMaxWidth here. Let the caller decide sizing so
     // InfoBox can be used inside horizontal LazyRow items without
@@ -46,7 +48,7 @@ fun InfoBox(
     if (minHeight != null) boxModifier = boxModifier.heightIn(min = minHeight)
 
     Surface(
-        color = PureBlack,
+        color = DeepBlack,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
@@ -61,9 +63,9 @@ fun InfoBox(
             } else Modifier
         )
     ) {
-        // Subtle vertical highlight to give the PureBlack surface a slight "shine"
+        // Subtle vertical highlight to give the DeepBlack surface a slight "shine"
         val shineBrush = Brush.verticalGradient(
-            colors = listOf(PureBlack.copy(alpha = 0.88f), PureBlack),
+            colors = listOf(DeepBlack.copy(alpha = 0.88f), DeepBlack),
             startY = 0f,
             endY = 400f
         )

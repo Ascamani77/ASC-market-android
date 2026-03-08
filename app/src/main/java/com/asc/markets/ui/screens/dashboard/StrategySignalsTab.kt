@@ -15,12 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun StrategySignalsTab() {
+fun StrategySignalsTab(viewModel: ForexViewModel = viewModel()) {
     // Delegate to the new DashboardSignals implementation which implements
     // the Opportunity Awareness Matrix (Deterministic Weighing Engine, responsive grid, modal, footer)
-    DashboardSignals()
+    DashboardSignals(viewModel)
 }
 
 data class SignalData(val pair: String, val dir: String, val conf: Int, val status: String)

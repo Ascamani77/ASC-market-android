@@ -68,7 +68,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
             StreamItem("N1","EUR/USD","Target","POSSIBLE ENTRY","EUR/USD LONG SETUP DETECTED", now - 6_200, "INFO", "LOG::E1-L14", 84, "Confirmed"),
             StreamItem("Z1","GBP/USD","Layers","ZONE GUARDS","GBP/USD SUPPLY ZONE BREACH", now - 120_500, "WARNING", "LOG::Z1-L02", 62, "Monitoring"),
             StreamItem("01","DXY","Brain","OBSERVATIONS","DXY MOMENTUM SHIFT", now - 3600_345, "INFO", "LOG::O1-L88", 47, "Active"),
-            StreamItem("Z2","BTC/USD","Layers","ZONE GUARDS","BTC/USDT LIQUIDITY SWEEP", now - 9_500, "CRITICAL", "LOG::Z2-L99", 91, "Confirmed")
+            StreamItem("Z2","BTC/USDT","Layers","ZONE GUARDS","BTC/USDT LIQUIDITY SWEEP", now - 9_500, "CRITICAL", "LOG::Z2-L99", 91, "Confirmed")
         )
     }
 
@@ -328,7 +328,7 @@ fun StreamCard(item: StreamItem) {
                                 "EUR/USD LONG SETUP DETECTED. POTENTIAL BREAKOUT ABOVE 1.0900. WATCH FOR CONFIRMATION ON VOLUME."
                             item.pair.contains("GBP/USD") && item.category.equals("ZONE GUARDS", true) ->
                                 "GBP/USD SUPPLY ZONE BREACH. PRICE TESTING 1.2700. MONITOR FOR REVERSAL OR CONTINUATION."
-                            item.pair.contains("BTC/USD") && item.category.equals("ZONE GUARDS", true) ->
+                            item.pair.contains("BTC/USDT") && item.category.equals("ZONE GUARDS", true) ->
                                 "BTC/USDT LIQUIDITY SWEEP. LARGE ORDERS DETECTED NEAR 42000. EXPECT VOLATILITY IN THE NEXT SESSION."
                             else ->
                                 (item.headline.uppercase() + ".")

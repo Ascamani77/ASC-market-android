@@ -24,13 +24,16 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.components.DeepAuditModal
 import com.asc.markets.ui.components.DashboardTrade
 import com.asc.markets.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun ExecutionLedgerTab() {
+fun ExecutionLedgerTab(viewModel: ForexViewModel = viewModel()) {
     var selectedTx by remember { mutableStateOf<ExecutionTx?>(null) }
     val executionMetrics = rememberExecutionMetrics()
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // Background changed to PureBlack
+    Column(modifier = Modifier.fillMaxSize().background(PureBlack).padding(top = 32.dp)) {
         // System Audit page header (static at top)
         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
             InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 60.dp) {
@@ -51,7 +54,7 @@ fun ExecutionLedgerTab() {
         Spacer(modifier = Modifier.height(12.dp))
         
         // Scrollable execution ledger content
-        ExecutionLedgerSection(onOpenCompliance = { selectedTx = it })
+        ExecutionLedgerSection(onOpenCompliance = { selectedTx = it }, viewModel = viewModel)
     }
 
     if (selectedTx != null) {

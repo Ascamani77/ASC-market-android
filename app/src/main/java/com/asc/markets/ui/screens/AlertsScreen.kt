@@ -443,7 +443,7 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                 val stocks = listOf("AAPL","MSFT","GOOGL","AMZN","TSLA")
                 val indices = listOf("SPX/500","NAS100","DOW30")
                 val commodities = listOf("XAU/USD","XAG/USD","WTI")
-                val crypto = listOf("BTC/USD","ETH/USD","BNB/USD")
+                val crypto = listOf("BTC/USDT","ETH/USDT","BNB/USDT")
                 val grouped = listOf(
                     "Forex" to forex,
                     "Stocks" to stocks,
@@ -815,7 +815,7 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
         // Commodities
         "XAU/USD","XAG/USD","WTI",
         // Crypto
-        "BTC/USD","ETH/USD","BNB/USD"
+        "BTC/USDT","ETH/USDT","BNB/USDT"
     )
     val triggers = listOf("PRICE_THRESHOLD", "RSI_LEVEL", "MA_CROSS", "TRENDLINE_BREAK")
     val timeframes = listOf("M5", "M15", "H1", "H4", "D1")
@@ -834,7 +834,7 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
             val stocks = listOf("AAPL","MSFT","GOOGL","AMZN","TSLA")
             val indices = listOf("SPX/500","NAS100","DOW30")
             val commodities = listOf("XAU/USD","XAG/USD","WTI")
-            val crypto = listOf("BTC/USD","ETH/USD","BNB/USD")
+            val crypto = listOf("BTC/USDT","ETH/USDT","BNB/USDT")
             val grouped = listOf(
                 "Forex" to forex,
                 "Stocks" to stocks,

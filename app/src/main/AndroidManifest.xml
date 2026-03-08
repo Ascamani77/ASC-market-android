@@ -17,7 +17,8 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ASC">
+        android:theme="@style/Theme.ASC"
+        android:name=".MyApp">
 
         <activity
             android:name=".MainActivity"
@@ -38,6 +39,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="asc" android:host="settings" />
+            </intent-filter>
+        </activity>
+
+        <!-- Chart Activity for WebView-based charting -->
+        <activity
+            android:name=".ui.ChartActivity"
+            android:exported="true"
+            android:label="Trading Chart">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

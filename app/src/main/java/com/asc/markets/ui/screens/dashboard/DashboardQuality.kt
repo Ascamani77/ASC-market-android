@@ -25,21 +25,35 @@ import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 import kotlin.random.Random
 import java.util.Locale
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 /**
  * DashboardQuality - Analytical Quality / Institutional Audit Hub
  * Implements the 9-box matrix and tappable verification modals.
  */
 @Composable
-fun DashboardQuality() {
+fun DashboardQuality(viewModel: ForexViewModel = viewModel()) {
     var selectedBox by remember { mutableStateOf<String?>(null) }
-    
+    val scrollState = rememberScrollState()
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            (scrollState.value.toFloat() / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DeepBlack)
-            .verticalScroll(rememberScrollState())
+            .background(PureBlack)
+            .verticalScroll(scrollState)
             .padding(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

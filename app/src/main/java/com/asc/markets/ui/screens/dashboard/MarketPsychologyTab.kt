@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,13 +28,30 @@ import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun MarketPsychologyTab() {
+fun MarketPsychologyTab(viewModel: ForexViewModel = viewModel()) {
     val ctx by AssetContextStore.context.collectAsState()
     val psychologyData = rememberPsychologyData()
+    val listState = rememberLazyListState()
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)

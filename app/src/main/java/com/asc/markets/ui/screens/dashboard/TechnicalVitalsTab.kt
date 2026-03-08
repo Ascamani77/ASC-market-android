@@ -37,6 +37,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.min
 import kotlin.random.Random
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
 fun TechnicalVitalsScreen() {
@@ -44,7 +46,7 @@ fun TechnicalVitalsScreen() {
     
     Column(modifier = Modifier
         .fillMaxSize()
-        .background(DeepBlack)
+        .background(PureBlack)
         .padding(vertical = 12.dp)
     ) {
         // Primary Node: Session Progress (full width)
@@ -246,15 +248,27 @@ fun isSafetyGateClosed(): Boolean {
 }
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TechnicalVitalsTab() {
+fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val tapeRequester = remember { BringIntoViewRequester() }
+
+    // Watch scroll and animate header collapse smoothly
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            (scrollState.value.toFloat() / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .background(DeepBlack)
+            .background(PureBlack)
             .padding(top = 12.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
