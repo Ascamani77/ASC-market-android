@@ -26,10 +26,10 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +42,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -87,9 +86,14 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
 
     // lead-time mock progress (0..1)
     var leadProgress by remember { mutableStateOf(0.35f) }
-    val coroutineScope = rememberCoroutineScope()
-    // gently advance the leadProgress for demo
-    coroutineScope.launch { while (true) { delay(5_000); leadProgress = (leadProgress + 0.03f).coerceAtMost(1f) } }
+    
+    // gently advance the leadProgress for demo - wrapped in LaunchedEffect to avoid leaking coroutines on every recomposition
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5_000)
+            leadProgress = (leadProgress + 0.03f).coerceAtMost(1f)
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -418,5 +422,3 @@ fun StreamCard(item: StreamItem) {
         }
     }
 }
-
-

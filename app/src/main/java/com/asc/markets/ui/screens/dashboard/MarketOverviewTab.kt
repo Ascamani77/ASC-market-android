@@ -577,7 +577,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 158.dp)
+            contentPadding = PaddingValues(top = 16.dp, bottom = 158.dp)
         ) {
             // When `All` is selected, show the Universal Overview box below the chips
             if (assetCtxForNews == AssetContext.ALL) {

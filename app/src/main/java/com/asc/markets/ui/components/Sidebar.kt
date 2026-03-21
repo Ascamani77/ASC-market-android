@@ -191,9 +191,9 @@ fun AscSidebar(
                     Row(modifier = Modifier.fillMaxWidth()) {
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Default.TrackChanges,
-                            label = "Pre-Move\nSurveillance",
-                            onClick = { onViewChange(AppView.MACRO_STREAM) }
+                            icon = Icons.Default.Assessment,
+                            label = "Deep Audit",
+                            onClick = { onViewChange(AppView.ANALYSIS_RESULTS) }
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         QuickAccessCard(
@@ -230,6 +230,8 @@ fun AscSidebar(
                     MenuDivider()
                     MenuItem(Icons.Default.StarBorder, "Saved Items") { /* Placeholder */ }
                     MenuDivider()
+                    MenuItem(Icons.Default.PlayCircleOutline, "Simulation") { onViewChange(AppView.SIMULATION) }
+                    MenuDivider()
                     MenuItem(Icons.AutoMirrored.Filled.ShowChart, "AI Sentiment") { onViewChange(AppView.SENTIMENT) }
                 }
 
@@ -245,8 +247,8 @@ fun AscSidebar(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // PRE-MOVE SURVEILLANCE Section
-                SectionHeader("PRE-MOVE SURVEILLANCE")
+                // DEEP AUDIT Section
+                SectionHeader("DEEP AUDIT")
                 MenuGroupContainer {
                     MenuItem(Icons.Default.Language, "Macro Stream") { onViewChange(AppView.MACRO_STREAM) }
                     MenuDivider()
@@ -322,6 +324,7 @@ fun AscSidebar(
                 Surface(
                     color = DeepBlack,
                     shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -381,6 +384,7 @@ fun QuickAccessCard(
     Surface(
         color = DeepBlack,
         shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
         modifier = modifier
             .height(110.dp)
             .clickable { onClick() }
@@ -425,6 +429,7 @@ fun MenuGroupContainer(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         color = DeepBlack,
         shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)

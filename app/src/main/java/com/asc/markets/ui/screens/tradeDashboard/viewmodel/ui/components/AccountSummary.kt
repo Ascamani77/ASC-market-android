@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.tradeDashboard.model.AccountInfo
+import com.asc.markets.ui.screens.tradeDashboard.ui.theme.DeepBlack
 import java.util.Locale
 
 @Composable
@@ -29,7 +30,7 @@ fun AccountSummary(account: AccountInfo?, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(DeepBlack)
             .padding(16.dp)
     ) {
         // Header Row

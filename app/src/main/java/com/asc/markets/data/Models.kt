@@ -11,7 +11,7 @@ enum class AppView {
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
     POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW
-    , TRADE_DASHBOARD, SIDEBAR_PAGE
+    , TRADE_DASHBOARD, SIDEBAR_PAGE, WATCHLIST, SIMULATION
 }
 
 data class ForexPair(
@@ -167,7 +167,7 @@ fun MacroEvent.displayTitle(): String {
     val known = mapOf(
         "NFP" to "Non-Farm Payrolls",
         "CPI" to "Consumer Price Index",
-        "ECB" to "European Central Bank",
+        "ECB" to "European Bank",
         "PMI" to "Purchasing Managers' Index",
         "BLS" to "Bureau of Labor Statistics Employment Report",
         "PPI" to "Producer Price Index",
@@ -225,7 +225,7 @@ fun formatEventTitle(raw: String): String {
         "NFP" to "Non-Farm Payrolls",
         "CPI" to "Consumer Price Index",
         "PMI" to "Purchasing Managers' Index",
-        "ECB" to "European Central Bank",
+        "ECB" to "European Bank",
         "ISM" to "ISM Services PMI",
         "GDP" to "Gross Domestic Product",
         "BLS" to "Bureau of Labor Statistics Employment Report",
@@ -276,3 +276,16 @@ data class NewsStory(
     fun getTimeOrDefault(): String = time.takeIf { it.isNotEmpty() } ?: (publishedAt ?: "")
 }
 
+data class WatchlistItem(
+    val id: String = UUID.randomUUID().toString(),
+    val assetName: String,
+    val status: String,
+    val confidence: Int,
+    val newsRisk: String,
+    val moveProbability: Int,
+    val priority: Int,
+    val preMoveSignal: String,
+    val volatilityScore: Int,
+    val triggerEvent: String = "",
+    val timeToEvent: String = ""
+)

@@ -36,9 +36,9 @@ import java.util.Locale
 
 @Composable
 fun MarketWatchScreen() {
-    Column(modifier = Modifier.fillMaxSize().background(PureBlack).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().background(PureBlack).verticalScroll(rememberScrollState()).padding(top = 16.dp)) {
         // Top banner: icon, title, sync badge, filter
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(modifier = Modifier.size(56.dp), shape = CircleShape, color = Color(0xFF101010)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.Visibility, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
@@ -53,10 +53,10 @@ fun MarketWatchScreen() {
             Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = Color.White)
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Engine card
-        InfoBox(minHeight = 120.dp, modifier = Modifier.fillMaxWidth()) {
+        InfoBox(minHeight = 120.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = Color(0xFF101010)) {
@@ -75,11 +75,13 @@ fun MarketWatchScreen() {
 
         // Sample signals list — match images: three sample cards
         val samples = remember { sampleSignals() }
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
             samples.forEach { signal ->
                 MarketWatchSignalCard(signal)
             }
         }
+        
+        Spacer(modifier = Modifier.height(120.dp))
     }
 }
 
@@ -213,4 +215,3 @@ private fun sampleSignals(): List<SignalModel> {
         )
     )
 }
-

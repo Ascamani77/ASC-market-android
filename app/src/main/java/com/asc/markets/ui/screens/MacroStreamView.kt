@@ -119,7 +119,7 @@ fun MacroStreamView(events: List<MacroEvent> = sampleMacroEvents(), viewModel: c
         Row(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.weight(0.9f).fillMaxHeight()) {
 
-                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 120.dp)) {
+                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
                     val allEvents = events  // Show all events (both UPCOMING and CONFIRMED)
                     items(allEvents) { ev ->
                         val isUpcoming = ev.status == MacroEventStatus.UPCOMING

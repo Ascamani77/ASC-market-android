@@ -23,7 +23,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 /**
  * Institutional InfoBox: thin 1px hairline border, charcoal surface, rounded corners.
  * Matches provided design: 1.dp white border at 18% alpha, RoundedCornerShape(12.dp)
- * Background updated to DeepBlack (#181818) per design request.
+ * Background updated to DeepBlack (#121212) per design request.
  */
 @Composable
 fun InfoBox(

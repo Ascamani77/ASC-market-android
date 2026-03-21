@@ -88,6 +88,53 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _promoteMacroStream = MutableStateFlow(false)
     val promoteMacroStream = _promoteMacroStream.asStateFlow()
 
+    // Watchlist data
+    private val _watchlistItems = MutableStateFlow<List<WatchlistItem>>(listOf(
+        WatchlistItem(
+            assetName = "EURUSD", 
+            status = "Volatility Compression", 
+            confidence = 85, 
+            newsRisk = "High (CPI in 1h)", 
+            moveProbability = 76, 
+            priority = 1, 
+            preMoveSignal = "Accumulation", 
+            volatilityScore = 45,
+            triggerEvent = "US CPI",
+            timeToEvent = "42 mins"
+        ),
+        WatchlistItem(
+            assetName = "BTCUSD", 
+            status = "Liquidity Build", 
+            confidence = 72, 
+            newsRisk = "Low", 
+            moveProbability = 68, 
+            priority = 2, 
+            preMoveSignal = "Compression", 
+            volatilityScore = 84
+        ),
+        WatchlistItem(
+            assetName = "NAS100", 
+            status = "Trend Expansion", 
+            confidence = 64, 
+            newsRisk = "Medium", 
+            moveProbability = 61, 
+            priority = 3, 
+            preMoveSignal = "Expansion", 
+            volatilityScore = 92
+        ),
+        WatchlistItem(
+            assetName = "XAUUSD", 
+            status = "Trend Alignment", 
+            confidence = 78, 
+            newsRisk = "Low", 
+            moveProbability = 55, 
+            priority = 4, 
+            preMoveSignal = "Trend Alignment", 
+            volatilityScore = 67
+        )
+    ))
+    val watchlistItems = _watchlistItems.asStateFlow()
+
     // Initialize persistent trade repository from Application single instance
     private val app = application as? com.asc.markets.MyApp
     val tradeHistoryRepository: TradeHistoryRepository? = app?.tradeRepository

@@ -47,7 +47,7 @@ fun TechnicalVitalsScreen() {
     Column(modifier = Modifier
         .fillMaxSize()
         .background(PureBlack)
-        .padding(vertical = 12.dp)
+        .padding(vertical = 16.dp)
     ) {
         // Primary Node: Session Progress (full width)
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -269,7 +269,7 @@ fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .background(PureBlack)
-            .padding(top = 12.dp, bottom = 120.dp),
+            .padding(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Primary Node: full-width session progress

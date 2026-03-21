@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.tradeDashboard.model.Position
 import com.asc.markets.ui.screens.tradeDashboard.model.TradeType
+import com.asc.markets.ui.screens.tradeDashboard.ui.theme.DeepBlack
 
 @Composable
 fun PositionsTable(
@@ -41,7 +42,7 @@ fun PositionsTable(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF050505))
+            .background(DeepBlack)
             .padding(vertical = 8.dp)
     ) {
         // Main Header
@@ -134,7 +135,7 @@ private fun PositionRow(
 ) {
     Row(
         modifier = Modifier
-            .background(if (isSelected) Color(0xFF00C853).copy(alpha = 0.1f) else Color.Black)
+            .background(if (isSelected) Color(0xFF00C853).copy(alpha = 0.1f) else DeepBlack)
             .clickable { onTradeClick(position) }
             .padding(vertical = 16.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically

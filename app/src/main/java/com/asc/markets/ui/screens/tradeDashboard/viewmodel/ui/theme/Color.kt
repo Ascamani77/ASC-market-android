@@ -3,6 +3,7 @@ package com.asc.markets.ui.screens.tradeDashboard.ui.theme
 import androidx.compose.ui.graphics.Color
 
 val Black = Color(0xFF000000)
+val DeepBlack = Color(0xFF121212)
 val Zinc950 = Color(0xFF09090B)
 val Zinc900 = Color(0xFF18181B)
 val Zinc800 = Color(0xFF27272A)

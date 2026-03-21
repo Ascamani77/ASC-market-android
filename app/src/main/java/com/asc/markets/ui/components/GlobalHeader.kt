@@ -3,6 +3,7 @@ package com.asc.markets.ui.components
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,8 +52,6 @@ fun GlobalHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.wrapContentWidth()
             ) {
-                // Top menu removed — menu is available in bottom navigation
-
                 // The Logo: A clean geometric chevron pointing up
                 Text(
                     "Λ", 
@@ -88,13 +87,20 @@ fun GlobalHeader(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                // "CALENDAR" text button matching the reference image
+                Text(
+                    "CALENDAR",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = InterFontFamily,
+                    modifier = Modifier.clickable { onNotifications() }
+                )
+
                 IconButton(onClick = onSearch) {
                     Icon(Icons.Default.Search, contentDescription = "Search", tint = SlateText)
                 }
-
-                // Use dedicated HomeAlertIcon component; clicking opens the Home Alerts page.
-                HomeAlertIcon(count = unreadCount, onClick = onNotifications)
             }
         }
     }

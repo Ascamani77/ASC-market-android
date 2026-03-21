@@ -17,7 +17,7 @@ val RoseError = Color(0xFFF43F5E)
 val SlateText = Color(0xFF94A3B8)
 val SlateMuted = Color(0xFF4B5563)
 
-// Hairline Border Logic Parity: rgba(255, 255, 255, 0.18)
-val HairlineBorder = Color(0xFFFFFFFF).copy(alpha = 0.18f)
-val HairlineHighlight = Color(0xFFFFFFFF).copy(alpha = 0.35f)
+// Hairline Border Logic Parity: Reduced brightness from 18% to 8% alpha white
+val HairlineBorder = Color(0xFFFFFFFF).copy(alpha = 0.08f)
+val HairlineHighlight = Color(0xFFFFFFFF).copy(alpha = 0.20f)
 val GhostWhite = Color(0xFFFFFFFF).copy(alpha = 0.05f)

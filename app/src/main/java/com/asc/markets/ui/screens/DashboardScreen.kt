@@ -70,6 +70,9 @@ fun DashboardScreen(viewModel: ForexViewModel) {
             }
         )
 
+        // Added space between navbar and content to prevent InfoBox from touching the navbar
+        Spacer(modifier = Modifier.height(16.dp))
+
         // 2. Content Area
         Box(modifier = Modifier.weight(1f)) {
             if (promoteMacro) {

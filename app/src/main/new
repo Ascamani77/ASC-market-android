@@ -1,0 +1,77 @@
+write_file(    absolutePath='C:/Users/HP/Downloads/folder/app/src/main/java/com/asc/markets/ui/components/ChartWebView.kt',
+    text="""package com.asc.markets.ui.components
+
+import android.annotation.SuppressLint
+import android.view.MotionEvent
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import java.io.InputStreamReader
+
+@SuppressLint("ClickableViewAccessibility")
+@Composable
+fun ChartWebView(
+    modifier: Modifier = Modifier,
+    url: String = "" // Ignored
+) {
+    val context = LocalContext.current
+    val htmlContent = remember {
+        try {
+            val inputStream = context.assets.open("www/index.html")
+            InputStreamReader(inputStream).use { it.readText() }
+        } catch (e: Exception) {
+            "<!DOCTYPE html><html><body style='background:#000; color:white;'>Error loading chart.html</body></html>"
+        }
+    }
+
+    AndroidView(
+        modifier = modifier.fillMaxSize(),
+        factory = { ctx ->
+            WebView(ctx).apply {
+                // Enable interaction
+                isFocusable = true
+                isFocusableInTouchMode = true
+                isClickable = true
+                
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    allowFileAccess = true
+                    allowContentAccess = true
+                    
+                    // Critical for loading Vite/ESM from assets
+                    allowFileAccessFromFileURLs = true
+                    allowUniversalAccessFromFileURLs = true
+                    
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                }
+                
+                webViewClient = WebViewClient()
+                webChromeClient = WebChromeClient()
+
+                // Ensure the WebView gains focus on touch so it receives clicks/scrolls
+                setOnTouchListener { v, event ->
+                    if (event.action == MotionEvent.ACTION_DOWN) {
+                        v.requestFocus()
+                    }
+                    false
+                }
+
+                // Load with the 'www' directory as base so relative paths resolve
+                loadDataWithBaseURL("file:///android_asset/www/", htmlContent, "text/html", "UTF-8", null)
+            }
+        }
+    )
+}
+"""
+)

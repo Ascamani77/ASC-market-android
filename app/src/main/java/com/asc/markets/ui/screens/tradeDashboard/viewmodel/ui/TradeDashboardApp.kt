@@ -66,6 +66,9 @@ fun TradeDashboardApp(
 
                 HorizontalDivider(color = dividerColor, thickness = 1.dp)
 
+                // Added space between header and first content section
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Error Message
                 viewModel.errorMessage?.let { msg ->
                     Box(

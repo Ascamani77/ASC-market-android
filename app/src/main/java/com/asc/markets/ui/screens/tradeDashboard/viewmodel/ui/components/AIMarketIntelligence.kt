@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.tradeDashboard.model.AIMarketIntelligence as MarketIntel
+import com.asc.markets.ui.screens.tradeDashboard.ui.theme.DeepBlack
 
 @Composable
 fun AIMarketIntelligence(intel: MarketIntel?, modifier: Modifier = Modifier) {
@@ -30,7 +31,7 @@ fun AIMarketIntelligence(intel: MarketIntel?, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(DeepBlack)
             .padding(16.dp)
     ) {
         // MARKET INTELLIGENCE Header

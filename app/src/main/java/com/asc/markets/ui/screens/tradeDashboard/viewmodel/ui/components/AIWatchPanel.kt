@@ -22,13 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.tradeDashboard.model.AIAlert
 import com.asc.markets.ui.screens.tradeDashboard.model.AlertSeverity
+import com.asc.markets.ui.screens.tradeDashboard.ui.theme.DeepBlack
 
 @Composable
 fun AIWatchPanel(alerts: List<AIAlert>, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(DeepBlack)
             .padding(16.dp)
     ) {
         // Main Header

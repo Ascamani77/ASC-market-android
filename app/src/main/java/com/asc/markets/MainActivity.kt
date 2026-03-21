@@ -3,7 +3,10 @@ package com.asc.markets
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.*
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,17 +16,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.activity.compose.BackHandler
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
-import androidx.compose.runtime.snapshotFlow
-import com.asc.markets.data.AppView
 import com.asc.markets.logic.ForexViewModel
-import com.asc.markets.logic.IntegrityWatchdog
+import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
 import androidx.compose.runtime.CompositionLocalProvider
@@ -34,41 +31,26 @@ import com.researchcenter.ui.screens.MainScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Ensure system bars match app's dark background to remove gray seams
-        try {
-            window.statusBarColor = android.graphics.Color.BLACK
-            window.navigationBarColor = android.graphics.Color.BLACK
-            // Force opaque divider and ensure system bars use dark content coloring off
-            try {
-                window.navigationBarDividerColor = android.graphics.Color.BLACK
-            } catch (t: Throwable) { /* API guard */ }
-
-            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, true)
-            val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
-            controller?.isAppearanceLightStatusBars = false
-            controller?.isAppearanceLightNavigationBars = false
-        } catch (t: Throwable) {
-            // ignore on older devices
-        }
-        Log.d("ASC", "MainActivity.onCreate() called")
-        // start integrity watchdog to keep profiler metrics updated
-        IntegrityWatchdog.start()
         setContent {
             AscTheme {
-                Log.d("ASC", "AscTheme content block called")
                 val viewModel: ForexViewModel = viewModel()
+                val currentView by viewModel.currentView.collectAsState()
                 val isInitializing by viewModel.isInitializing.collectAsState()
                 val isRiskAccepted by viewModel.isRiskAccepted.collectAsState()
-                val currentView by viewModel.currentView.collectAsState()
-                val isSidebarCollapsed by viewModel.isSidebarCollapsed.collectAsState()
                 val selectedPair by viewModel.selectedPair.collectAsState()
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
-                val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
                 val promoteMacro by viewModel.promoteMacroStream.collectAsState()
-                val isHeaderVisible by viewModel.isGlobalHeaderVisible.collectAsState()
+                val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
 
                 if (isInitializing) {
-                    SecureBootScreen()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PureBlack),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = IndigoAccent)
+                    }
                 } else if (!isRiskAccepted) {
                     DisclaimerOverlay(onAccept = { viewModel.acceptRisk() })
                 } else {
@@ -81,6 +63,8 @@ class MainActivity : ComponentActivity() {
                         viewModel.navigateBack()
                     }
 
+                    val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState(initial = true)
+
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         containerColor = PureBlack,
@@ -89,6 +73,38 @@ class MainActivity : ComponentActivity() {
                                 currentView == AppView.TRADING_ASSISTANT || currentView == AppView.INTELLIGENCE_STREAM || currentView == AppView.CHAT || (currentView == AppView.DASHBOARD && promoteMacro) || currentView == AppView.NEWS -> {
                                     // No bottom bar for trading assistant, intelligence stream,
                                     // or when the dashboard is promoting the Macro Intelligence Stream.
+                                }
+                                currentView == AppView.SIMULATION -> {
+                                    // Animated bottom bar for Simulation based on header visibility
+                                    AnimatedVisibility(
+                                        visible = headerVisible,
+                                        enter = slideInVertically(
+                                            initialOffsetY = { it },
+                                            animationSpec = tween(durationMillis = 300)
+                                        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                                        exit = slideOutVertically(
+                                            targetOffsetY = { it },
+                                            animationSpec = tween(durationMillis = 300)
+                                        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(65.dp),
+                                            color = PureBlack,
+                                            tonalElevation = 0.dp
+                                        ) {
+                                            NotchedBottomNav(
+                                                currentView = currentView,
+                                                onNavigate = { viewModel.navigateTo(it) },
+                                                onHomeSelected = {
+                                                    viewModel.navigateTo(AppView.DASHBOARD)
+                                                    viewModel.setDashboardTab("MACRO_STREAM")
+                                                },
+                                                onMenuClick = { viewModel.navigateTo(AppView.SIDEBAR_PAGE) }
+                                            )
+                                        }
+                                    }
                                 }
                                 else -> {
                                     Surface(
@@ -120,9 +136,8 @@ class MainActivity : ComponentActivity() {
                         ) {
                             // THE TRICK: Swap header based on state
                             when (currentView) {
-                                AppView.DASHBOARD, AppView.MARKETS -> {
+                                AppView.DASHBOARD, AppView.MARKETS, AppView.CALENDAR -> {
                                     val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
-                                    val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState(initial = true)
                                     val collapseProgress by viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
 
                                     // Animate header height (72.dp -> 0.dp) based on collapse progress
@@ -135,13 +150,13 @@ class MainActivity : ComponentActivity() {
                                             selectedPair = selectedPair,
                                             onOpenDrawer = { viewModel.navigateTo(AppView.SIDEBAR_PAGE) },
                                             onSearch = { viewModel.openCommandPalette() },
-                                            onNotifications = { viewModel.navigateTo(AppView.INTELLIGENCE_STREAM) },
+                                            onNotifications = { viewModel.navigateTo(AppView.CALENDAR) },
                                             unreadCount = unread
                                         )
                                     }
                                 }
                                 // Let screens that provide their own header render without the global NavHeader
-                                AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS, AppView.NEWS, AppView.SIDEBAR_PAGE -> {
+                                AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS, AppView.NEWS, AppView.SIDEBAR_PAGE, AppView.SIMULATION -> {
                                     /* Intentionally no header here. The screen provides its own top control bar which should replace the app header. */
                                 }
                                 else -> {
@@ -166,6 +181,7 @@ class MainActivity : ComponentActivity() {
                                     AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
                                     AppView.TRADE -> TradeLedgerScreen()
                                     AppView.TRADE_DASHBOARD -> TradeDashboardScreen()
+                                    AppView.SIMULATION -> SimulationScreen(viewModel)
                                     AppView.NEWS -> MainScreen(onBackToApp = { viewModel.navigateTo(AppView.DASHBOARD) })
                                     AppView.MACRO_STREAM -> {
                                         val events by viewModel.macroStreamEvents.collectAsState()
@@ -175,10 +191,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                     AppView.HOME_ALERTS -> HomeAlertsScreen()
                                     AppView.INTELLIGENCE_STREAM -> IntelligenceStreamScreen()
-                                    AppView.CALENDAR -> EconomicCalendarScreen()
+                                    AppView.CALENDAR -> IntelligenceDashboardScreen()
                                     AppView.SENTIMENT -> SentimentScreen()
                                     AppView.EDUCATION -> EducationScreen()
                                     AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
+                                    AppView.WATCHLIST -> WatchlistScreen(viewModel)
                                     AppView.DIAGNOSTICS -> DiagnosticsScreen()
                                     AppView.MARKET_WATCH -> MarketWatchScreen()
                                     AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
@@ -258,34 +275,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun SecureBootScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val infiniteTransition = rememberInfiniteTransition(label = "boot")
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.2f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse),
-                label = "alpha"
-            )
-            
-            Text("▲", color = Color.White.copy(alpha = alpha), fontSize = 48.sp)
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                "INITIALIZING SECURE NODE", 
-                color = Color.White.copy(alpha = 0.4f), 
-                fontSize = 10.sp, 
-                fontWeight = FontWeight.Black, 
-                letterSpacing = 4.sp
-            )
         }
     }
 }
