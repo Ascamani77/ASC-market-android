@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.screens.dashboard.SegmentedStatusBar
+import com.asc.markets.ui.screens.dashboard.CompactGauge
+import com.asc.markets.ui.screens.dashboard.MiniBarChart
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 
@@ -187,43 +190,47 @@ fun EducationTab(viewModel: ForexViewModel = viewModel()) {
                     Text("OPPORTUNITY STATE GUIDE", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // WAIT card
-                    InfoBox(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Box(modifier = Modifier.padding(bottom = 8.dp)) {
-                                Box(modifier = Modifier.background(RoseError.copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("WAIT", color = RoseError, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                                }
+                    // Visual state flow bar
+                    SegmentedStatusBar(
+                        segments = listOf(
+                            "WAIT" to RoseError,
+                            "OBSERVE" to Color(0xFFF59E0B),
+                            "FOCUS" to EmeraldSuccess
+                        ),
+                        activeIndex = 1, // demo: OBSERVE active
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // State cards with gauges
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        InfoBox(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("WAIT", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactGauge(value = 15, color = RoseError, size = 56.dp, label = "RISK")
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("No alignment", color = SlateText, fontSize = 10.sp)
                             }
-                            Text("No valid high-quality structural alignment detected. Professional discipline is currently in focus.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // OBSERVE card
-                    InfoBox(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Box(modifier = Modifier.padding(bottom = 8.dp)) {
-                                Box(modifier = Modifier.background(Color(0xFFF59E0B).copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("OBSERVE", color = Color(0xFFF59E0B), fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                                }
+                        InfoBox(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("OBSERVE", color = Color(0xFFF59E0B), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactGauge(value = 62, color = Color(0xFFF59E0B), size = 56.dp, label = "BUILDING")
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("Pre-forming", color = SlateText, fontSize = 10.sp)
                             }
-                            Text("Pre-conditions are forming. The system is monitoring for a final liquidity sweep or displacement.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // FOCUS card
-                    InfoBox(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Box(modifier = Modifier.padding(bottom = 8.dp)) {
-                                Box(modifier = Modifier.background(EmeraldSuccess.copy(alpha = 0.12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                    Text("FOCUS", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                                }
+                        InfoBox(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("FOCUS", color = EmeraldSuccess, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactGauge(value = 91, color = EmeraldSuccess, size = 56.dp, label = "READY")
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("High confluence", color = SlateText, fontSize = 10.sp)
                             }
-                            Text("A high-confluence window is open. Mathematical probability is at its highest state for the current session.", color = Color.White, fontSize = DashboardFontSizes.labelLarge, lineHeight = 20.sp)
                         }
                     }
 
@@ -273,15 +280,16 @@ fun EducationTab(viewModel: ForexViewModel = viewModel()) {
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("QUALITY METRICS", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("BIAS ACCURACY", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                        Text("Correlation between bias and price direction.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("WAIT EFFECTIVENESS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                        Text("Noise avoidance in blocked zones.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("SAFETY SUCCESS", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Black)
-                        Text("Preservation of logic during news events.", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium, modifier = Modifier.padding(top = 6.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        MiniBarChart(
+                            items = listOf(
+                                "Bias Accuracy" to 0.76f,
+                                "Wait Effect" to 0.92f,
+                                "Safety" to 0.98f
+                            ),
+                            barColor = IndigoAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF0D0D0D), RoundedCornerShape(8.dp)).padding(12.dp), contentAlignment = Alignment.Center) {
                             Text("\"ALIGNMENT INDICATORS MEASURE SYSTEM INTEGRITY, NOT FINANCIAL OUTCOME.\"", color = Color.White.copy(alpha = 0.92f), fontSize = DashboardFontSizes.labelMedium)

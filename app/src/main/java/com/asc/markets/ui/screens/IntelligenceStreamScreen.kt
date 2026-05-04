@@ -40,7 +40,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
+import androidx.compose.runtime.collectAsState
+import com.asc.markets.data.MacroEvent
+import com.asc.markets.data.MacroEventStatus
+import com.asc.markets.data.ImpactPriority
+import com.asc.markets.data.displayTitle
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.screens.dashboard.rememberSessionData
+import com.asc.markets.ui.screens.dashboard.rememberTechnicalVitals
+import com.asc.markets.data.remote.FinalDecisionItem
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneOffset
@@ -61,15 +69,10 @@ data class StreamItem(
 
 @Composable
 fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
-    val now = System.currentTimeMillis()
-    val sample = remember {
-        listOf(
-            StreamItem("N1","EUR/USD","Target","POSSIBLE ENTRY","EUR/USD LONG SETUP DETECTED", now - 6_200, "INFO", "LOG::E1-L14", 84, "Confirmed"),
-            StreamItem("Z1","GBP/USD","Layers","ZONE GUARDS","GBP/USD SUPPLY ZONE BREACH", now - 120_500, "WARNING", "LOG::Z1-L02", 62, "Monitoring"),
-            StreamItem("01","DXY","Brain","OBSERVATIONS","DXY MOMENTUM SHIFT", now - 3600_345, "INFO", "LOG::O1-L88", 47, "Active"),
-            StreamItem("Z2","BTC/USDT","Layers","ZONE GUARDS","BTC/USDT LIQUIDITY SWEEP", now - 9_500, "CRITICAL", "LOG::Z2-L99", 91, "Confirmed")
-        )
-    }
+    val macroEvents by viewModel.macroStreamEvents.collectAsState()
+    val aiDeployments by viewModel.aiDeployments.collectAsState()
+    val sessionData = rememberSessionData()
+    val vitalsData = rememberTechnicalVitals()
 
     // UI state: search and category
     var query by remember { mutableStateOf("") }
@@ -106,7 +109,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
                                 IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
                             }
                             Text(
-                                "INTELLIGENCE STREAM",
+                                "AI SIGNALS",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -172,12 +175,21 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Stream list (apply search + category filters)
-                val filtered = remember(sample, query, selectedCategory) {
-                    sample.filter { it ->
+                // Stream list (Intelligence Stream focuses on CONFIRMED events/signals)
+                val filtered = remember(macroEvents, query, selectedCategory) {
+                    macroEvents.filter { it ->
                         val q = query.trim().lowercase()
-                        val matchesQuery = q.isEmpty() || it.pair.lowercase().contains(q) || it.headline.lowercase().contains(q) || it.refId.lowercase().contains(q) || it.category.lowercase().contains(q)
-                        val matchesCategory = selectedCategory == "ALL" || it.category.equals(selectedCategory, true)
+                        val matchesQuery = q.isEmpty() || it.currency.lowercase().contains(q) || it.title.lowercase().contains(q) || it.details.lowercase().contains(q)
+                        
+                        // Intelligence Stream shows confirmed captures only to avoid duplication with Macro Stream
+                        val isConfirmed = it.status == MacroEventStatus.CONFIRMED
+                        
+                        val matchesCategory = when(selectedCategory) {
+                            "ALL" -> isConfirmed
+                            "HIGH IMPACT" -> isConfirmed && (it.priority == ImpactPriority.HIGH || it.priority == ImpactPriority.CRITICAL)
+                            "CONFIRMED" -> isConfirmed
+                            else -> isConfirmed && it.source.equals(selectedCategory, true)
+                        }
                         matchesQuery && matchesCategory
                     }
                 }
@@ -192,22 +204,26 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 // Node heartbeat
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(shape = CircleShape, color = if (pulse > 0.8f) Color(0xFF2EE08A) else Color(0xFF1B7A49), modifier = Modifier.size((8.dp * pulse))) {}
+                                    Surface(shape = CircleShape, color = if (vitalsData.nodeHealth > 0.8) Color(0xFF2EE08A) else Color(0xFFE53935), modifier = Modifier.size((8.dp * pulse))) {}
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Node: NY4/LD4", color = SlateText, fontSize = 12.sp)
+                                    Text("Node: ${if(vitalsData.latencyMs < 50) "NY4" else "LD4"}", color = SlateText, fontSize = 12.sp)
                                 }
                                 Spacer(modifier = Modifier.weight(1f))
-                                // Lead-time
+                                // Captured Event Stats (Replacing Lead-Time to differentiate from Macro Stream)
                                 Column(modifier = Modifier.width(200.dp)) {
-                                    Text("Lead-Time: next macro in ~12m", color = SlateText, fontSize = 12.sp)
-                                    LinearProgressIndicator(progress = leadProgress, modifier = Modifier.fillMaxWidth().height(6.dp), color = IndigoAccent, trackColor = Color(0xFF0B0B0B))
+                                    val confirmedCount = macroEvents.count { it.status == MacroEventStatus.CONFIRMED }
+                                    val totalEvents = macroEvents.size
+                                    Text("Intelligence Captured: $confirmedCount events", color = SlateText, fontSize = 12.sp)
+                                    val progress = if(totalEvents > 0) confirmedCount.toFloat() / totalEvents.toFloat() else 1f
+                                    LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(6.dp), color = Color(0xFF2EE08A), trackColor = Color(0xFF0B0B0B))
                                 }
                             }
                         }
                     }
 
                     items(filtered) { item ->
-                        StreamCard(item)
+                        val decision = aiDeployments?.final_decision?.find { it.asset_1?.contains(item.currency, true) == true }
+                        MacroStreamCard(item, decision)
                     }
                 }
             }
@@ -221,7 +237,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
                     .padding(vertical = 8.dp, horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("LEDGER: ${sample.size} events captured this session.", color = SlateText, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Text("LEDGER: ${macroEvents.size} events captured this session.", color = SlateText, fontSize = 12.sp, modifier = Modifier.weight(1f))
                 Text("STREAM MAINTENANCE", color = IndigoAccent, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.navigateTo(com.asc.markets.data.AppView.NOTIFICATIONS) }.padding(start = 8.dp))
             }
         }
@@ -229,7 +245,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
 }
 
 @Composable
-fun StreamCard(item: StreamItem) {
+fun MacroStreamCard(item: MacroEvent, decision: FinalDecisionItem?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PureBlack),
@@ -249,12 +265,11 @@ fun StreamCard(item: StreamItem) {
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        when (item.tag.lowercase()) {
-                            "target" -> Icon(Icons.Filled.MyLocation, contentDescription = "Target", tint = Color.White)
-                            "layers" -> Icon(Icons.Filled.Layers, contentDescription = "Layers", tint = Color.White)
-                            "brain" -> Icon(Icons.Filled.Psychology, contentDescription = "Brain", tint = Color.White)
-                            "newspaper" -> Icon(Icons.Filled.Article, contentDescription = "News", tint = Color.White)
-                            else -> Icon(Icons.Filled.Search, contentDescription = "Other", tint = Color.White)
+                        when (item.priority) {
+                            ImpactPriority.CRITICAL -> Icon(Icons.Filled.Psychology, contentDescription = "Critical Impact", tint = RoseError)
+                            ImpactPriority.HIGH -> Icon(Icons.Filled.MyLocation, contentDescription = "High Impact", tint = Color.White)
+                            ImpactPriority.MEDIUM -> Icon(Icons.Filled.Layers, contentDescription = "Medium Impact", tint = Color.White)
+                            ImpactPriority.LOW -> Icon(Icons.Filled.Article, contentDescription = "Low Impact", tint = Color.White)
                         }
                     }
                 }
@@ -262,163 +277,153 @@ fun StreamCard(item: StreamItem) {
                 Spacer(modifier = Modifier.width(6.dp))
                 // pair and tag
                 Text(
-                    item.pair,
+                    item.currency,
                     color = Color.White,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(end = 4.dp)
                 )
-                val plainTagKinds = setOf("brain", "target", "layers")
-                if (item.tag.lowercase() in plainTagKinds) {
-                    val (tagColor, catColor) = when (item.tag.lowercase()) {
-                        "target" -> Pair(Color(0xFFE53935), Color(0xFFEF9A9A)) // Red for Target
-                        "layers" -> Pair(Color(0xFF1E88E5), Color(0xFF90CAF9)) // Blue for Layers
-                        "brain" -> Pair(Color(0xFF43A047), Color(0xFFA5D6A7)) // Green for Brain
-                        else -> Pair(SlateText, SlateText)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            item.tag,
-                            color = tagColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                        Text(
-                            item.category,
-                            color = SlateText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-                    }
-                } else {
-                    Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF111827)) {
-                        Text(item.tag, color = SlateText, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), fontSize = 11.sp)
-                    }
+                
+                val tagColor = when (item.priority) {
+                    ImpactPriority.CRITICAL -> RoseError
+                    ImpactPriority.HIGH -> Color(0xFFE53935)
+                    ImpactPriority.MEDIUM -> Color(0xFF1E88E5)
+                    ImpactPriority.LOW -> Color(0xFF43A047)
                 }
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        item.priority.name,
+                        color = tagColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(
+                        item.status.name,
+                        color = SlateText,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.weight(1f))
                 // timestamp with milliseconds UTC
                 val fmt = DateTimeFormatter.ofPattern("HH:mm:ss.SSS 'UTC'").withZone(ZoneOffset.UTC)
-                Text(fmt.format(Instant.ofEpochMilli(item.timestampMillis)), color = SlateText, fontSize = 12.sp)
+                Text(fmt.format(Instant.ofEpochMilli(item.datetimeUtc)), color = SlateText, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(item.headline, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+            Text(item.displayTitle(), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
 
             Spacer(modifier = Modifier.height(12.dp))
 
-                    var expanded by remember { mutableStateOf(false) }
+            var expanded by remember { mutableStateOf(false) }
 
-                    if (!expanded) {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = item.refId,
-                                color = SlateText,
-                                fontSize = 10.sp
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            Text("VIEW REASONING", color = IndigoAccent, fontSize = 12.sp, modifier = Modifier.clickable { expanded = true })
+            if (!expanded) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "REF: ${item.id.take(8)}",
+                        color = SlateText,
+                        fontSize = 10.sp
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text("VIEW REASONING", color = IndigoAccent, fontSize = 12.sp, modifier = Modifier.clickable { expanded = true })
+                }
+            } else {
+                // Expanded details view (detection detail + system trace + confidence + alignment)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("DETECTION DETAIL", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(item.details.ifEmpty { "NO ADDITIONAL SYSTEM CONTEXT FOR THIS EVENT." }, color = Color.White, fontSize = 14.sp, lineHeight = 20.sp)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // System trace box
+                Surface(
+                    color = Color(0xFF0B0B0B),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f)),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp)
+                ) {
+                    Row(modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // trace icon
+                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF081A2B), modifier = Modifier.size(32.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Text("🔁", fontSize = 14.sp, color = Color.White) }
                         }
-                    } else {
-                        // Expanded details view (detection detail + system trace + confidence + alignment)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("DETECTION DETAIL", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val detectionDetail = when {
-                            item.pair.contains("DXY") ->
-                                "US DOLLAR INDEX SHOWING SIGNS OF DISTRIBUTION AT 104.50. RISK-ON BIAS LIKELY FOR UPCOMING LONDON OPEN."
-                            item.pair.contains("EUR/USD") && item.category.equals("POSSIBLE ENTRY", true) ->
-                                "EUR/USD LONG SETUP DETECTED. POTENTIAL BREAKOUT ABOVE 1.0900. WATCH FOR CONFIRMATION ON VOLUME."
-                            item.pair.contains("GBP/USD") && item.category.equals("ZONE GUARDS", true) ->
-                                "GBP/USD SUPPLY ZONE BREACH. PRICE TESTING 1.2700. MONITOR FOR REVERSAL OR CONTINUATION."
-                            item.pair.contains("BTC/USDT") && item.category.equals("ZONE GUARDS", true) ->
-                                "BTC/USDT LIQUIDITY SWEEP. LARGE ORDERS DETECTED NEAR 42000. EXPECT VOLATILITY IN THE NEXT SESSION."
-                            else ->
-                                (item.headline.uppercase() + ".")
-                        }
-                        Text(detectionDetail, color = Color.White, fontSize = 14.sp, lineHeight = 20.sp)
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // System trace box
-                            Surface(
-                                color = Color(0xFF0B0B0B),
-                                shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f)),
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp)
-                            ) {
-                                Row(modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    // trace icon
-                                    Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF081A2B), modifier = Modifier.size(32.dp)) {
-                                        Box(contentAlignment = Alignment.Center) { Text("🔁", fontSize = 14.sp, color = Color.White) }
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text("SYSTEM TRACE", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        Text("RELAY_SYNC_NOMINAL", color = Color.White, fontSize = 11.sp)
-                                    }
-                                }
-                            }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // AI Confidence & Alignment
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("AI Confidence", color = SlateText, fontSize = 11.sp)
-                                LinearProgressIndicator(
-                                    progress = item.confidence / 100f,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp),
-                                    color = if (item.confidence > 75) Color(0xFF2EE08A) else if (item.confidence > 50) Color(0xFFFFC107) else Color(0xFF6B7280)
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text("${item.confidence}%", color = Color.White, fontSize = 12.sp)
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .wrapContentWidth(Alignment.End)
-                                    .align(Alignment.CenterVertically)
-                            ) {
-                                Text("Alignment", color = SlateText, fontSize = 11.sp, modifier = Modifier.align(Alignment.End))
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = when (item.alignment.lowercase()) {
-                                        "confirmed" -> Color(0xFF2EE08A)
-                                        "active" -> Color(0xFFFFC107)
-                                        else -> Color(0xFF374151)
-                                    },
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text(
-                                        item.alignment.uppercase(),
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(item.refId, color = SlateText)
-                            Spacer(modifier = Modifier.weight(1f))
-                            Text(
-                                "HIDE DETAILS",
-                                color = IndigoAccent,
-                                fontSize = 12.sp,
-                                modifier = Modifier
-                                    .clickable { expanded = false }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("SYSTEM TRACE", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("SOURCE: ${item.source.uppercase()}", color = Color.White, fontSize = 11.sp)
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // AI Confidence & Alignment
+                if (decision != null) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("AI Confidence", color = SlateText, fontSize = 11.sp)
+                            val confValue = (decision.journal_score ?: 0.0).toFloat() / 100f
+                            LinearProgressIndicator(
+                                progress = confValue,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp),
+                                color = if (confValue > 0.75) Color(0xFF2EE08A) else if (confValue > 0.50) Color(0xFFFFC107) else Color(0xFF6B7280)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("${(confValue * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .wrapContentWidth(Alignment.End)
+                                .align(Alignment.CenterVertically)
+                        ) {
+                            Text("Alignment", color = SlateText, fontSize = 11.sp, modifier = Modifier.align(Alignment.End))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = when (decision.journal_direction?.lowercase()) {
+                                    "bullish" -> Color(0xFF2EE08A)
+                                    "bearish" -> Color(0xFFE53935)
+                                    else -> Color(0xFF374151)
+                                },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text(
+                                    decision.journal_direction?.uppercase() ?: "NEUTRAL",
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text("NO AI CORRELATION AVAILABLE FOR THIS ASSET.", color = SlateText, fontSize = 12.sp)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("REF: ${item.id}", color = SlateText, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        "HIDE DETAILS",
+                        color = IndigoAccent,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .clickable { expanded = false }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
         }
     }
 }

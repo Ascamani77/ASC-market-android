@@ -64,8 +64,8 @@ fun AlertsScreen(viewModel: ForexViewModel) {
                 }
             }
             Column {
-                Text("GUARD SURVEILLANCE", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("CONTINUOUS NODE SCANNING ENGINE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Text("VIGILANCE SETUP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Text("CONFIGURE & DEPLOY VIGILANCE NODES", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
             }
         }
         
@@ -143,235 +143,37 @@ fun AlertsScreen(viewModel: ForexViewModel) {
 
         Spacer(modifier = Modifier.height(32.dp))
         
-        // ACTIVE VIGILANCE NODES SECTION
-        val allActiveNodes = activeNodes.filter { it.alertType == if (isSmartMode) "SMART" else "SIMPLE" }
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("▼", fontSize = 12.sp, color = SlateText)
-                    Text("ACTIVE VIGILANCE NODES (${allActiveNodes.size})", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                Text(
-                    "PURGE ALL TRIGGERS",
-                    color = RoseError,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = InterFontFamily,
-                    modifier = Modifier.clickable {
-                        // clear engine nodes and local activeNodes
-                        VigilanceNodeEngine.getActiveNodes().forEach { VigilanceNodeEngine.clearNode(it.id) }
-                        activeNodes.clear()
-                    }
-                )
-            }
-            
-            if (allActiveNodes.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    allActiveNodes.take(5).forEach { node ->
-                        Surface(
-                            color = Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Top header: pair, small icon, and delete
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        color = Color.White.copy(alpha = 0.05f),
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-                                        modifier = Modifier.size(48.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) { Text("⊙", fontSize = 20.sp, color = IndigoAccent) }
-                                    }
-
-                                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                                        Text(node.pair, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                        Text(node.alertType.replace("_", " "), color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
-                                    }
-
-                                    IconButton(onClick = {
-                                        VigilanceNodeEngine.clearNode(node.id)
-                                        activeNodes.removeAll { it.id == node.id }
-                                    }, modifier = Modifier.size(32.dp)) {
-                                        Icon(Icons.Default.Delete, null, tint = RoseError, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-
-                                // Strength badge + SURV_ACTIVE
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(color = if (node.strength == "STRONG") EmeraldSuccess.copy(alpha = 0.12f) else IndigoAccent.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp)) {
-                                        Text(if (node.strength == "STRONG") "STRONG ALERT" else "ALERT", color = if (node.strength == "STRONG") EmeraldSuccess else IndigoAccent, modifier = Modifier.padding(10.dp, 6.dp), fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(modifier = Modifier.size(6.dp).background(EmeraldSuccess, RoundedCornerShape(3.dp)))
-                                        Text("SURV_ACTIVE", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, modifier = Modifier.padding(start = 6.dp))
-                                    }
-                                }
-
-                                // Intelligence Audit header with confidence
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Menu, null, tint = SlateText, modifier = Modifier.size(16.dp))
-                                        Text("  INTELLIGENCE AUDIT REPORT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                    Text("CONFIDENCE ${node.confidenceScore}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                }
-
-                                // Description box
-                                Surface(color = Color.White.copy(alpha = 0.02f), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.03f)), modifier = Modifier.fillMaxWidth()) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("• ALERT WILL TRIGGER WHEN PRICE ACTION PERFORMS A ${node.trigger.replace("_", " ").uppercase()}", color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                        if (node.confirmations.isNotEmpty()) {
-                                            Text("• TRIGGER VALIDATED BY ${node.confirmations.size} INSTITUTIONAL FILTERS.", color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                        } else {
-                                            Text("• NO CONFIRMATIONS SELECTED.", color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                        }
-                                        if (!node.environmentContext.isNullOrEmpty()) {
-                                            Text("• ENVIRONMENT: ${node.environmentContext}", color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                        }
-                                        if (node.riskFilters.isEmpty()) {
-                                            Text("• NOTE: SETUP CURRENTLY LACKS VOLATILITY ALIGNMENT.", color = SlateText, fontSize = 10.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontFamily = InterFontFamily)
-                                        }
-                                    }
-                                }
-
-                                // Bottom badges
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Surface(color = Color.White.copy(alpha = 0.02f), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.15f))) {
-                                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Timer, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
-                                            Text(" ${node.cooldownMinutes}M COOLDOWN", color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                        }
-                                    }
-                                    node.riskFilters.forEach { f ->
-                                        Surface(color = IndigoAccent.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.28f))) {
-                                            Text(f.replace("_", " "), color = Color.White, modifier = Modifier.padding(6.dp), fontSize = 10.sp, fontFamily = InterFontFamily)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                Surface(
-                    color = Color.White.copy(alpha = 0.02f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("NO ACTIVE NODES", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                    }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // REJECTED PATTERNS LOG
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("⊘", fontSize = 14.sp, color = SlateText)
-                Text("REJECTED PATTERNS LOG", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            }
-            
+        // DEPLOYMENT CONFIRMATION
+        if (activeNodes.isNotEmpty()) {
             Surface(
-                color = RoseError.copy(alpha = 0.02f),
+                color = EmeraldSuccess.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.1f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldSuccess.copy(alpha = 0.2f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("GBP/USD", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("10:42 UTC", color = Color.DarkGray, fontSize = 9.sp, fontFamily = InterFontFamily)
-                    }
-                    
-                    Text("REJECTED: RESISTANCE BREAK", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    
-                    Text("REASON: PRICE TOUCHED LEVEL BUT CLOSED BACK INSIDE.", color = Color.Gray, fontSize = 10.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, lineHeight = 14.sp, fontFamily = InterFontFamily)
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("BREACHING:", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                        Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                            Text("CANDLE_CLOSE", color = SlateText, fontSize = 8.sp, fontFamily = InterFontFamily, modifier = Modifier.padding(4.dp, 2.dp))
-                        }
-                        Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                            Text("VOLATILITY_EXPANSION", color = SlateText, fontSize = 8.sp, fontFamily = InterFontFamily, modifier = Modifier.padding(4.dp, 2.dp))
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    Text("REJECTED PATTERNS HELP IDENTIFY FAILED INSTITUTIONAL ACCEPTANCE. REJECTION LOSS ARE UNAVAILABLE FOR SIMPLE ALERTS.", color = SlateText, fontSize = 9.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, lineHeight = 13.sp, fontFamily = InterFontFamily)
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // SURVEILLANCE PROTOCOL DISCLOSURE
-        Surface(
-            color = Color.White.copy(alpha = 0.02f),
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                // Left side: Version/Step indicator
-                Surface(
-                    color = Color.White.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-                    modifier = Modifier.size(56.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("01", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("10", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
-                    }
-                }
-                
-                // Right side: Content
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("SURVEILLANCE PROTOCOL DISCLOSURE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    
-                    Text(
-                        "SURVEILLANCE NODES ARE PROCESSED WITH POLICY-DRIVEN LOGIC IN THE LOCAL ANALYTICAL HUB. SMART ALERTS UTILIZE A MULTI-LAYERED CONFIDENCE WEIGHTING ALGORITHM REQUIRING INSTITUTIONAL CONFIRMATION ALIGNMENT. SIMPLE ALERTS OPERATE ON THRESHOLD-BASED RULE-SETS FOR \"ICE\"-MOMENTUM TRIGGERS WITH MINIMAL COMPUTATIONAL OVERHEAD.",
-                        color = Color.Gray,
-                        fontSize = 10.sp,
-                        lineHeight = 14.sp,
-                        fontFamily = InterFontFamily
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(EmeraldSuccess, RoundedCornerShape(4.dp))
                     )
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        Text("∆", fontSize = 20.sp, color = Color.White.copy(alpha = 0.15f))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("${activeNodes.size} VIGILANCE NODE${if (activeNodes.size > 1) "S" else ""} DEPLOYED", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("View and manage in My Alerts", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.height(24.dp))
         }
         
-        Spacer(modifier = Modifier.height(120.dp))
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
@@ -383,7 +185,10 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
     var selectedPreset by remember { mutableStateOf<String?>(null) }
     val environmentSelections = remember { mutableStateListOf<String>() }
     val riskFilterSelections = remember { mutableStateListOf<String>() }
-    
+    var selectedDirection by remember { mutableStateOf("BOTH") }
+    var selectedRegime by remember { mutableStateOf("ANY") }
+    var selectedVolatility by remember { mutableStateOf("ANY") }
+    var confluenceThreshold by remember { mutableStateOf(0) }
     
     val validations = listOf(
         "CANDLE_CLOSE_BEYOND_LEVEL" to "CANDLE (+15%)",
@@ -500,6 +305,40 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                                     )
                                 }
                                 HorizontalDivider(color = Color.White.copy(alpha = 0.03f))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Direction Selector
+        InfoBox {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = IndigoAccent,
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("D", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Text("TRADE DIRECTION", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("LONG" to EmeraldSuccess, "SHORT" to RoseError, "BOTH" to IndigoAccent).forEach { (dir, color) ->
+                        val isSelected = selectedDirection == dir
+                        Surface(
+                            modifier = Modifier.weight(1f).height(44.dp).clickable { selectedDirection = dir },
+                            color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(dir, color = if (isSelected) color else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                             }
                         }
                     }
@@ -682,7 +521,7 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                         modifier = Modifier.size(28.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("4", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("5", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                         }
                     }
                     Text("RISK FILTERING", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
@@ -700,6 +539,52 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
             }
         }
         
+        // Volatility Filter
+        InfoBox {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = IndigoAccent,
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("6", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Text("VOLATILITY STATE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
+                        Text("+5% BONUS", color = EmeraldSuccess, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(6.dp, 3.dp))
+                    }
+                }
+                
+                val volatilityOptions = listOf("ANY" to "No Filter", "EXPANDING" to "Momentum Building", "COMPRESSED" to "Pre-Expansion", "DEAD" to "Avoid Dead Markets")
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    volatilityOptions.forEach { (vol, desc) ->
+                        val isSelected = selectedVolatility == vol
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().height(44.dp).clickable { selectedVolatility = vol },
+                            color = if (isSelected) IndigoAccent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.02f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.05f))
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column {
+                                    Text(vol, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
+                                    Text(desc, color = if (isSelected) Color.White.copy(alpha = 0.7f) else SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
+                                }
+                                if (isSelected) {
+                                    Surface(color = IndigoAccent, shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
+                                        Text("✓", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         // Logic Control
         InfoBox {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -710,12 +595,34 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                         modifier = Modifier.size(28.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("5", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Text("7", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
                         }
                     }
                     Text("LOGIC CONTROL", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
                 
+                // Confluence Threshold
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("CONFLUENCE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("${confluenceThreshold}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Slider(
+                            value = confluenceThreshold.toFloat(),
+                            onValueChange = { confluenceThreshold = it.toInt() },
+                            valueRange = 0f..100f,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("0=Off", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Cooldown
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text("COOLDOWN PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -731,43 +638,6 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    Column {
-                        Text("PROBABILITY LOGIC COMPOSITION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("$score%", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(modifier = Modifier.fillMaxWidth(0.6f).height(2.dp).background(IndigoAccent))
-                    }
-                    
-                    Surface(
-                        color = if (score > 60) EmeraldSuccess.copy(alpha = 0.1f) else RoseError.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.wrapContentSize().clickable { }
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp, 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(if (score > 60) "STRONG" else "EARLY STRUCTURE", color = if (score > 60) EmeraldSuccess else RoseError, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("TAP FOR METRICS", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Surface(
-                    color = Color.White.copy(alpha = 0.02f),
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.2f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Search, null, tint = IndigoAccent, modifier = Modifier.size(16.dp))
-                        Text("POST-TRIGGER EXPLANATION PREVIEW\n\"ALERT WILL TRIGGER WHEN PRICE ACTION PERFORMS A BREAK OF PREVIOUS HIGH. THE SYSTEM WILL IMMEDIATELY SCAN FOR HTF ALIGNMENT AND VOLATILITY EXPANSION UPON STRUCTURE BREAK.\"", color = Color.Gray, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
-                    }
-                }
-                
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
@@ -777,7 +647,12 @@ fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: For
                             primaryEvent = primaryEvent,
                             confirmations = selections.toList(),
                             environmentContext = environmentSelections.joinToString(","),
-                            riskFilters = riskFilterSelections.toList()
+                            riskFilters = riskFilterSelections.toList(),
+                            direction = selectedDirection,
+                            regimeFilter = selectedRegime,
+                            volatilityFilter = selectedVolatility,
+                            confluenceThreshold = confluenceThreshold,
+                            cooldownMinutes = cooldownMinutes
                         )
                         onNodeDeployed(node)
                     },
@@ -804,6 +679,13 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
     var selectedPair by remember { mutableStateOf("EUR/USD") }
     var selectedTrigger by remember { mutableStateOf("PRICE_THRESHOLD") }
     var selectedTimeframe by remember { mutableStateOf("H1") }
+    var selectedDirection by remember { mutableStateOf("BOTH") }
+    var priceLevel by remember { mutableStateOf("1.0850") }
+    var rsiPeriod by remember { mutableStateOf("14") }
+    var rsiLevel by remember { mutableStateOf("70") }
+    var maFastPeriod by remember { mutableStateOf("9") }
+    var maSlowPeriod by remember { mutableStateOf("21") }
+    var cooldownMinutes by remember { mutableStateOf(30) }
     
     val pairs = listOf(
         // Forex majors
@@ -896,6 +778,27 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Direction Selector
+            Text("DIRECTION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("LONG" to EmeraldSuccess, "SHORT" to RoseError, "BOTH" to IndigoAccent).forEach { (dir, color) ->
+                    val isSelected = selectedDirection == dir
+                    Surface(
+                        modifier = Modifier.weight(1f).height(36.dp).clickable { selectedDirection = dir },
+                        color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(dir, color = if (isSelected) color else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Trigger selector
             Text("TRIGGER TYPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
             Spacer(modifier = Modifier.height(8.dp))
@@ -912,6 +815,134 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
                         }
                     }
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Trigger-specific configuration
+            when (selectedTrigger) {
+                "PRICE_THRESHOLD" -> {
+                    Text("PRICE LEVEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        color = Color.White.copy(alpha = 0.02f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("$", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            androidx.compose.foundation.text.BasicTextField(
+                                value = priceLevel,
+                                onValueChange = { priceLevel = it },
+                                modifier = Modifier.weight(1f),
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontFamily = InterFontFamily,
+                                    fontWeight = FontWeight.Black
+                                ),
+                                singleLine = true
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "RSI_LEVEL" -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("RSI PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("7", "14", "21").forEach { period ->
+                                val isSelected = rsiPeriod == period
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(36.dp).clickable { rsiPeriod = period },
+                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(period, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Text("RSI LEVEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("30" to "Oversold", "70" to "Overbought", "80" to "Extreme").forEach { (level, label) ->
+                                val isSelected = rsiLevel == level
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(44.dp).clickable { rsiLevel = level },
+                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                        Text(level, color = if (isSelected) Color.White else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                        Text(label, color = if (isSelected) Color.White.copy(alpha = 0.7f) else SlateText, fontSize = 8.sp, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "MA_CROSS" -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("FAST MA PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("5", "9", "12", "20").forEach { period ->
+                                val isSelected = maFastPeriod == period
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(36.dp).clickable { maFastPeriod = period },
+                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(period, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Text("SLOW MA PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("21", "50", "100", "200").forEach { period ->
+                                val isSelected = maSlowPeriod == period
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(36.dp).clickable { maSlowPeriod = period },
+                                    color = if (isSelected) EmeraldSuccess.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) EmeraldSuccess.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(period, color = if (isSelected) EmeraldSuccess else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+            
+            // Cooldown
+            Text("COOLDOWN PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Slider(
+                    value = cooldownMinutes.toFloat(),
+                    onValueChange = { cooldownMinutes = it.toInt() },
+                    valueRange = 15f..120f,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("${cooldownMinutes}m", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -938,7 +969,22 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
             
             Button(
                 onClick = {
-                    val node = VigilanceNodeEngine.createSimpleAlert(selectedPair, selectedTrigger, selectedTimeframe)
+                    val priceLevelValue = if (selectedTrigger == "PRICE_THRESHOLD" && priceLevel.isNotEmpty()) {
+                        priceLevel.toDoubleOrNull()
+                    } else null
+                    
+                    val node = VigilanceNodeEngine.createSimpleAlert(
+                        pair = selectedPair,
+                        trigger = selectedTrigger,
+                        timeframe = selectedTimeframe,
+                        direction = selectedDirection,
+                        priceLevel = priceLevelValue,
+                        rsiPeriod = rsiPeriod.toIntOrNull() ?: 14,
+                        rsiLevel = rsiLevel.toIntOrNull() ?: 70,
+                        maFastPeriod = maFastPeriod.toIntOrNull() ?: 9,
+                        maSlowPeriod = maSlowPeriod.toIntOrNull() ?: 21,
+                        cooldownMinutes = cooldownMinutes
+                    )
                     onNodeDeployed(node)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -950,7 +996,6 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
         }
     }
 }
-
 @Composable
 fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (String) -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
@@ -1058,7 +1103,7 @@ fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            breakdown.forEach { (factor, points) ->
+            for ((factor, points) in breakdown) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(factor, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
                     Text("+$points pts", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)

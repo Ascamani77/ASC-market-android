@@ -17,18 +17,40 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.ForexPair
+import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.screens.dashboard.OrderBookSplit
 import com.asc.markets.ui.theme.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 data class NetDeltaData(val currency: String, val bias: String, val delta: Int, val confidence: Int)
 
 @Composable
 fun LiquidityHubScreen() {
+    val allPairs by MarketDataStore.allPairs.collectAsState()
+    val selectedPair = allPairs.firstOrNull() ?: ForexPair("BTC/USD", "Bitcoin", 29481.3, 0.0, 0.0)
+    
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        // Order Book Section
+        item {
+            InfoBox {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("ORDER BOOK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OrderBookSplit(selectedPair = selectedPair, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
         // BOX A: Cross-Asset Correlation Matrix (table layout like image)
         item {
             InfoBox {

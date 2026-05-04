@@ -14,11 +14,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import androidx.room.Room
 import com.asc.markets.data.trade.AppDatabase
 import com.asc.markets.data.trade.TradeHistoryRepository
@@ -31,7 +34,36 @@ import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
 import com.asc.markets.BuildConfig
 
+import com.asc.markets.data.remote.LatestDeploymentsResponse
+import com.asc.markets.ui.screens.dashboard.AIAppManager
+import com.researchcenter.services.NewsService
+import kotlinx.coroutines.flow.filterNotNull
+import com.asc.markets.network.MetaApiClient
+import com.asc.markets.network.TiingoFxRestClient
+import com.asc.markets.network.TiingoFxWebSocketManager
+import com.asc.markets.network.TiingoIexRestClient
+import com.asc.markets.network.TiingoIexWebSocketManager
+
+import com.trading.app.data.FredService
+import com.trading.app.models.BondData
+import org.json.JSONObject
+
+data class CommandCenterStatus(
+    val isLoading: Boolean = false,
+    val isConnected: Boolean? = null,
+    val lastMessage: String = "Idle",
+    val lastActionAtMillis: Long = 0L
+)
+
 class ForexViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        private const val TIINGO_REST_REFRESH_MS = 60 * 60_000L
+    }
+
+    private val myApp = application as com.asc.markets.MyApp
+    private val aiRepository = myApp.aiRepository
+    val aiDeployments: StateFlow<LatestDeploymentsResponse?> = aiRepository.deployments
+
     private val _currentView = MutableStateFlow(AppView.DASHBOARD)
     val currentView = _currentView.asStateFlow()
 
@@ -44,6 +76,61 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isSidebarCollapsed = MutableStateFlow(false)
     val isSidebarCollapsed = _isSidebarCollapsed.asStateFlow()
+
+    private val _bondData = MutableStateFlow<Map<String, BondData>>(emptyMap())
+    val bondData = _bondData.asStateFlow()
+
+    private val fredService = FredService()
+
+    fun refreshBondData() {
+        val seriesToFetch = listOf(
+            Triple("DGS10", "US10Y", "US 10Y Treasury Yield"),
+            Triple("DGS2", "US02Y", "US 2Y Treasury Yield")
+        )
+        seriesToFetch.forEach { (seriesId, symbol, name) ->
+            fredService.fetchSeriesObservations(seriesId, object : FredService.FredCallback {
+                override fun onSuccess(data: JSONObject) {
+                    val observations = data.optJSONArray("observations")
+                    if (observations != null && observations.length() > 0) {
+                        val parsedObservations = mutableListOf<Pair<JSONObject, Float>>()
+                        for (index in 0 until observations.length()) {
+                            val item = observations.optJSONObject(index) ?: continue
+                            val parsed = item.optString("value").toFloatOrNull() ?: continue
+                            parsedObservations += item to parsed
+                        }
+                        val latestObservation = parsedObservations.firstOrNull()?.first ?: return
+                        val latestValue = parsedObservations.firstOrNull()?.second ?: return
+                        val date = latestObservation.optString("date")
+                        val existing = MarketDataStore.pairSnapshot(symbol)
+                        val previousPrice = existing?.price ?: latestValue.toDouble()
+                        val change = latestValue.toDouble() - previousPrice
+                        val changePercent = if (previousPrice != 0.0) (change / previousPrice) * 100.0 else 0.0
+
+                        _bondData.value = _bondData.value + (seriesId to BondData(seriesId, latestValue, date, name))
+                        android.util.Log.i("FredService", "Routing FRED bond data to MarketDataStore $symbol $latestValue")
+                        MarketDataStore.updatePair(
+                            ForexPair(
+                                symbol = symbol,
+                                name = name,
+                                price = latestValue.toDouble(),
+                                change = change,
+                                changePercent = changePercent,
+                                category = MarketCategory.BONDS
+                            )
+                        )
+                        MarketDataStore.replaceHistory(
+                            symbol = symbol,
+                            prices = parsedObservations.asReversed().map { it.second.toDouble() }
+                        )
+                    }
+                }
+
+                override fun onError(error: String) {
+                    android.util.Log.e("ForexViewModel", "Error fetching FRED bond data: $error")
+                }
+            })
+        }
+    }
     
     // Drawer state for modal (hidden-by-default) sidebar on mobile
     // Start closed by default so a single explicit open action reliably opens the drawer
@@ -75,69 +162,148 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRiskAccepted = MutableStateFlow(false)
     val isRiskAccepted = _isRiskAccepted.asStateFlow()
 
-    private val _selectedPair = MutableStateFlow(provideForexExplore().first())
+    private val _selectedPair = MutableStateFlow(
+        MarketDataStore.pairSnapshot("BTC/USDT") ?: provideForexExplore().first()
+    )
     val selectedPair = _selectedPair.asStateFlow()
+
+    private val _cryptoPairs = MutableStateFlow(
+        MarketDataStore.allPairs.value.filter { it.category == MarketCategory.CRYPTO }
+    )
+    val cryptoPairs = _cryptoPairs.asStateFlow()
 
     private val _isInitializing = MutableStateFlow(true)
     val isInitializing = _isInitializing.asStateFlow()
 
     private val _isArmed = MutableStateFlow(false)
     val isArmed = _isArmed.asStateFlow()
+    private val _commandCenterStatus = MutableStateFlow(CommandCenterStatus())
+    val commandCenterStatus = _commandCenterStatus.asStateFlow()
 
     // Feature flag: when true, Macro Intelligence Stream is promoted as a landing/highlight view
     private val _promoteMacroStream = MutableStateFlow(false)
     val promoteMacroStream = _promoteMacroStream.asStateFlow()
 
-    // Watchlist data
+    // Watchlist data (AI-curated)
     private val _watchlistItems = MutableStateFlow<List<WatchlistItem>>(listOf(
         WatchlistItem(
-            assetName = "EURUSD", 
-            status = "Volatility Compression", 
-            confidence = 85, 
-            newsRisk = "High (CPI in 1h)", 
-            moveProbability = 76, 
-            priority = 1, 
-            preMoveSignal = "Accumulation", 
+            assetName = "EURUSD",
+            status = "Volatility Compression",
+            confidence = 85,
+            newsRisk = "High (CPI in 1h)",
+            moveProbability = 76,
+            priority = 1,
+            preMoveSignal = "Accumulation",
             volatilityScore = 45,
             triggerEvent = "US CPI",
-            timeToEvent = "42 mins"
+            timeToEvent = "42 mins",
+            price = 1.0850,
+            changePercent = 0.12,
+            category = MarketCategory.FOREX,
+            rationale = "AI detects tight range compression on H1 with accumulation signature. US CPI in 42 mins expected to catalyze directional expansion.",
+            isNew = false
         ),
         WatchlistItem(
-            assetName = "BTCUSD", 
-            status = "Liquidity Build", 
-            confidence = 72, 
-            newsRisk = "Low", 
-            moveProbability = 68, 
-            priority = 2, 
-            preMoveSignal = "Compression", 
-            volatilityScore = 84
+            assetName = "BTCUSD",
+            status = "Liquidity Build",
+            confidence = 72,
+            newsRisk = "Low",
+            moveProbability = 68,
+            priority = 2,
+            preMoveSignal = "Compression",
+            volatilityScore = 84,
+            price = 64230.50,
+            changePercent = 2.45,
+            category = MarketCategory.CRYPTO,
+            rationale = "Large resting liquidity clusters identified above 64.8k and below 63.2k. Order-book depth expanding. Breakout probability rising as volume profile compresses.",
+            isNew = true
         ),
         WatchlistItem(
-            assetName = "NAS100", 
-            status = "Trend Expansion", 
-            confidence = 64, 
-            newsRisk = "Medium", 
-            moveProbability = 61, 
-            priority = 3, 
-            preMoveSignal = "Expansion", 
-            volatilityScore = 92
+            assetName = "NAS100",
+            status = "Trend Expansion",
+            confidence = 64,
+            newsRisk = "Medium",
+            moveProbability = 61,
+            priority = 3,
+            preMoveSignal = "Expansion",
+            volatilityScore = 92,
+            price = 17850.25,
+            changePercent = -0.85,
+            category = MarketCategory.INDICES,
+            rationale = "Tech sector rotation driving volatility expansion. NAS100 breaking above prior session VWAP with momentum divergence flagged by the AI regime engine.",
+            isNew = false
         ),
         WatchlistItem(
-            assetName = "XAUUSD", 
-            status = "Trend Alignment", 
-            confidence = 78, 
-            newsRisk = "Low", 
-            moveProbability = 55, 
-            priority = 4, 
-            preMoveSignal = "Trend Alignment", 
-            volatilityScore = 67
+            assetName = "XAUUSD",
+            status = "Trend Alignment",
+            confidence = 78,
+            newsRisk = "Low",
+            moveProbability = 55,
+            priority = 4,
+            preMoveSignal = "Trend Alignment",
+            volatilityScore = 67,
+            price = 2345.80,
+            changePercent = 0.45,
+            category = MarketCategory.COMMODITIES,
+            rationale = "Gold holding above 2330 structural support. DXY weakness and real-yield compression align with long-bias model. Low event risk today.",
+            isNew = false
         )
     ))
     val watchlistItems = _watchlistItems.asStateFlow()
 
+    enum class WatchlistSortMode { PROBABILITY, CONFIDENCE, VOLATILITY, TIME_TO_EVENT }
+
+    private val _watchlistSortMode = MutableStateFlow(WatchlistSortMode.PROBABILITY)
+    val watchlistSortMode = _watchlistSortMode.asStateFlow()
+
+    private val _watchlistCategoryFilter = MutableStateFlow<MarketCategory?>(null)
+    val watchlistCategoryFilter = _watchlistCategoryFilter.asStateFlow()
+
+    private val _watchlistCompactMode = MutableStateFlow(false)
+    val watchlistCompactMode = _watchlistCompactMode.asStateFlow()
+
+    private val _hiddenWatchlistIds = MutableStateFlow<Set<String>>(emptySet())
+    val hiddenWatchlistIds = _hiddenWatchlistIds.asStateFlow()
+
+    private val _isWatchlistAnalyzing = MutableStateFlow(false)
+    val isWatchlistAnalyzing = _isWatchlistAnalyzing.asStateFlow()
+
+    private val _lastWatchlistUpdate = MutableStateFlow(System.currentTimeMillis())
+    val lastWatchlistUpdate = _lastWatchlistUpdate.asStateFlow()
+
+    fun setWatchlistSort(mode: WatchlistSortMode) { _watchlistSortMode.value = mode }
+    fun setWatchlistCategoryFilter(category: MarketCategory?) { _watchlistCategoryFilter.value = category }
+    fun toggleWatchlistCompactMode() { _watchlistCompactMode.value = !_watchlistCompactMode.value }
+    fun hideWatchlistItem(id: String) { _hiddenWatchlistIds.value += id }
+    fun unhideAllWatchlistItems() { _hiddenWatchlistIds.value = emptySet() }
+    fun refreshWatchlist() {
+        _isWatchlistAnalyzing.value = true
+        viewModelScope.launch {
+            delay(1200)
+            _watchlistItems.value = _watchlistItems.value.map { it.copy(isNew = false) }
+            _lastWatchlistUpdate.value = System.currentTimeMillis()
+            _isWatchlistAnalyzing.value = false
+        }
+    }
+    fun markWatchlistItemSeen(id: String) {
+        _watchlistItems.value = _watchlistItems.value.map {
+            if (it.id == id) it.copy(isNew = false) else it
+        }
+    }
+
+    private fun syncWatchlistWithLivePrices() {
+        _watchlistItems.value = _watchlistItems.value.map { item ->
+            val livePair = MarketDataStore.pairSnapshot(item.assetName) ?: return@map item
+            item.copy(
+                price = livePair.price,
+                changePercent = livePair.changePercent,
+                category = livePair.category
+            )
+        }
+    }
+
     // Initialize persistent trade repository from Application single instance
-    private val app = application as? com.asc.markets.MyApp
-    val tradeHistoryRepository: TradeHistoryRepository? = app?.tradeRepository
+    val tradeHistoryRepository: TradeHistoryRepository? = myApp.tradeRepository
 
     /**
      * Example helper to persist a confirmed trade into the persistent TradeHistoryRepository.
@@ -192,8 +358,8 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Dashboard tab target (string name of DashboardTab) allows external callers to set which
-    // top-tab the Dashboard should show when navigated to (e.g., Home button -> MACRO_STREAM)
-    private val _dashboardTabTarget = MutableStateFlow("MACRO_STREAM")
+    // top-tab the Dashboard should show when navigated to (e.g., Home button -> COMMAND_CENTER)
+    private val _dashboardTabTarget = MutableStateFlow("COMMAND_CENTER")
     val dashboardTabTarget = _dashboardTabTarget.asStateFlow()
 
     private val _activeAlgo = MutableStateFlow("MARKET")
@@ -205,7 +371,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     val terminalLogs = _terminalLogs.asStateFlow()
 
     // Macro events source (can be updated by network or local ingestion)
-    private val _allMacroEvents = MutableStateFlow<List<MacroEvent>>(com.asc.markets.data.sampleMacroEvents())
+    private val _allMacroEvents = MutableStateFlow<List<MacroEvent>>(emptyList())
     val allMacroEvents = _allMacroEvents.asStateFlow()
 
     // In-app notifications (persisted elsewhere later). Track seen/unseen state here.
@@ -220,6 +386,8 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _unreadCount = MutableStateFlow( _inAppNotifications.value.count { !it.seen } )
     val unreadCount = _unreadCount.asStateFlow()
+    private val _alertNotificationCount = MutableStateFlow(calculateAlertNotificationCount(_inAppNotifications.value))
+    val alertNotificationCount = _alertNotificationCount.asStateFlow()
 
     // Filtered list intended for the MacroStream view — ensure ~90% UPCOMING vs CONFIRMED
     private val _macroStreamEvents = MutableStateFlow<List<MacroEvent>>(computeMacroStreamList(_allMacroEvents.value))
@@ -262,8 +430,374 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _remotePollIntervalMs = MutableStateFlow(10_000L)
     val remotePollIntervalMs = _remotePollIntervalMs.asStateFlow()
 
+    private val newsService = NewsService()
+    // Instantiate BinanceWebSocketManager with Redis configuration read from SharedPreferences so
+    // the Redis host/port can be changed at runtime (useful for testing on a phone).
+    private val binanceWsManager: com.asc.markets.network.BinanceWebSocketManager by lazy {
+        val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+        // Default to laptop LAN IP for physical-device testing. Users can override in settings.
+        val redisHost = prefs.getString("redis_host", "10.95.77.133") ?: "10.95.77.133"
+        val redisPort = prefs.getInt("redis_port", 6379)
+        val redisPassword = prefs.getString("redis_password", null)
+        val redisUseSsl = prefs.getBoolean("redis_use_ssl", false)
+        val streamName = prefs.getString("stream_name", "market.ticks.stream") ?: "market.ticks.stream"
+        val fieldName = prefs.getString("field_name", "data") ?: "data"
+        // 10.0.2.2 is emulator-only; use LAN default for real phone.
+        val backendUrl = prefs.getString("backend_url", "http://10.95.77.133:8000")
+        val publishApiKey = prefs.getString("publish_api_key", null)
+
+            com.asc.markets.network.BinanceWebSocketManager(
+            scope = viewModelScope,
+            redisHost = redisHost,
+            redisPort = redisPort,
+            redisPassword = redisPassword,
+            redisUseSsl = redisUseSsl,
+            streamName = streamName,
+            fieldName = fieldName,
+            backendUrl = backendUrl,
+            publishApiKey = publishApiKey
+        )
+    }
+
+    private val mt5BridgeClient: MT5BridgeClient by lazy {
+        val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+        val bridgeUrl = prefs.getString("mt5_bridge_url", "192.168.1.100:62100") ?: "192.168.1.100:62100"
+        MT5BridgeClient(bridgeUrl = bridgeUrl, scope = viewModelScope, brokerSuffix = "m")
+    }
+
+    private val tiingoFxManager: TiingoFxWebSocketManager? by lazy {
+        val apiKey = BuildConfig.TIINGO_API_KEY.trim()
+        android.util.Log.i(
+            "TiingoFxWS",
+            "BuildConfig Tiingo FX configured=${apiKey.isNotBlank()} threshold=${BuildConfig.TIINGO_THRESHOLD_LEVEL}"
+        )
+        apiKey
+            .takeIf { it.isNotBlank() }
+            ?.let { apiKey ->
+                TiingoFxWebSocketManager(
+                    apiKey = apiKey,
+                    scope = viewModelScope,
+                    thresholdLevel = BuildConfig.TIINGO_THRESHOLD_LEVEL
+                )
+            }
+    }
+
+    private val tiingoIexManager: TiingoIexWebSocketManager? by lazy {
+        val apiKey = BuildConfig.TIINGO_API_KEY.trim()
+        android.util.Log.i(
+            "TiingoIexWS",
+            "BuildConfig Tiingo IEX configured=${apiKey.isNotBlank()} threshold=${BuildConfig.TIINGO_THRESHOLD_LEVEL}"
+        )
+        apiKey
+            .takeIf { it.isNotBlank() }
+            ?.let { apiKey ->
+                TiingoIexWebSocketManager(
+                    apiKey = apiKey,
+                    scope = viewModelScope,
+                    thresholdLevel = BuildConfig.TIINGO_THRESHOLD_LEVEL
+                )
+            }
+    }
+
+    private val tiingoFxRestClient: TiingoFxRestClient? by lazy {
+        BuildConfig.TIINGO_API_KEY
+            .trim()
+            .takeIf { it.isNotBlank() }
+            ?.let { apiKey -> TiingoFxRestClient(apiKey, getApplication()) }
+    }
+
+    private val tiingoIexRestClient: TiingoIexRestClient? by lazy {
+        BuildConfig.TIINGO_API_KEY
+            .trim()
+            .takeIf { it.isNotBlank() }
+            ?.let { apiKey -> TiingoIexRestClient(apiKey, getApplication()) }
+    }
+
     init {
+        val tiingoFxAvailable = tiingoFxManager != null
+
+        // Binance = USDT pairs only. Tiingo is the primary live source for Forex when configured.
+        val usdtSymbols = FOREX_PAIRS
+            .filter { it.symbol.endsWith("/USDT") }
+            .map { it.symbol.replace("/", "") }
+            .distinct()
+
+        val metaManagedPairs = FOREX_PAIRS
+            .filter { pair ->
+                !pair.symbol.endsWith("/USDT") &&
+                    !(tiingoFxAvailable && pair.category == MarketCategory.FOREX)
+            }
+
+        val metaSymbols = metaManagedPairs
+            .map { it.symbol.replace("/", "") }
+            .distinct()
+
+        val tiingoForexSymbols = FOREX_PAIRS
+            .filter { it.category == MarketCategory.FOREX }
+            .map { it.symbol.replace("/", "") }
+            .distinct()
+
+        val tiingoStockSymbols = FOREX_PAIRS
+            .filter { it.category == MarketCategory.STOCK }
+            .map { it.symbol.replace("/", "") }
+            .distinct()
+
+        val mt5FallbackSymbols = metaManagedPairs
+            .map { it.symbol.replace("/", "") }
+            .distinct()
+
+        android.util.Log.i(
+            "TiingoFxWS",
+            "ForexViewModel Tiingo startup available=$tiingoFxAvailable symbols=${tiingoForexSymbols.joinToString(",")}"
+        )
+        android.util.Log.i(
+            "TiingoIexWS",
+            "ForexViewModel Tiingo IEX startup available=${tiingoIexManager != null} symbols=${tiingoStockSymbols.joinToString(",")}"
+        )
+
+        if (usdtSymbols.isNotEmpty()) {
+            binanceWsManager.connect(usdtSymbols)
+        }
+
+        refreshBondData()
+
+        if (tiingoForexSymbols.isNotEmpty()) {
+            if (tiingoFxManager != null) {
+                tiingoFxManager?.connect(tiingoForexSymbols)
+            } else {
+                android.util.Log.w("TiingoFxWS", "Tiingo FX unavailable: TIINGO_API_KEY is not configured")
+            }
+        }
+
+        if (tiingoStockSymbols.isNotEmpty()) {
+            if (tiingoIexManager != null) {
+                tiingoIexManager?.connect(tiingoStockSymbols)
+            } else {
+                android.util.Log.w("TiingoIexWS", "Tiingo IEX unavailable: TIINGO_API_KEY is not configured")
+            }
+        }
+
+        if (tiingoForexSymbols.isNotEmpty()) {
+            tiingoFxRestClient?.let { restClient ->
+                viewModelScope.launch {
+                    while (isActive) {
+                        val pairs = restClient.fetchTopPairs(tiingoForexSymbols)
+                        pairs.forEach { pair ->
+                            android.util.Log.i("TiingoFxREST", "Routing Tiingo FX REST top to MarketDataStore ${pair.symbol} ${pair.price}")
+                            MarketDataStore.updatePair(pair)
+                        }
+                        delay(TIINGO_REST_REFRESH_MS)
+                    }
+                }
+            }
+        }
+
+        if (tiingoStockSymbols.isNotEmpty()) {
+            tiingoIexRestClient?.let { restClient ->
+                viewModelScope.launch {
+                    while (isActive) {
+                        val pairs = restClient.fetchTopPairs(tiingoStockSymbols)
+                        pairs.forEach { pair ->
+                            android.util.Log.i("TiingoIexREST", "Routing Tiingo IEX REST top to MarketDataStore ${pair.symbol} ${pair.price}")
+                            MarketDataStore.updatePair(pair)
+                        }
+                        delay(TIINGO_REST_REFRESH_MS)
+                    }
+                }
+            }
+        }
+
+        // MetaAPI primary for non-USDT, non-Tiingo assets; MT5 polling remains the fallback.
+        val metaToken = BuildConfig.META_API_TOKEN.takeIf { it.isNotBlank() }
+        val metaAccountId = BuildConfig.META_API_ACCOUNT_ID.takeIf { it.isNotBlank() }
+        var fallbackActive = false
+        var mt5FallbackJob: Job? = null
+
+        fun activateGlobalFallback(reason: String) {
+            if (fallbackActive) return
+            android.util.Log.w("ASC", "Activating MetaAPI fallback routing: $reason")
+            fallbackActive = true
+
+            if (mt5FallbackSymbols.isNotEmpty()) {
+                mt5FallbackJob?.cancel()
+                mt5FallbackJob = viewModelScope.launch {
+                    while (fallbackActive && isActive) {
+                        mt5FallbackSymbols.forEach { symbol ->
+                            val tick = mt5BridgeClient.getTick(symbol) ?: return@forEach
+                            val price = (tick.bid + tick.ask) / 2.0
+                            PriceStreamManager.updatePrice(symbol, price)
+                        }
+                        delay(3000)
+                    }
+                }
+            }
+        }
+
+        fun deactivateGlobalFallback() {
+            if (!fallbackActive) return
+            fallbackActive = false
+            mt5FallbackJob?.cancel()
+            mt5FallbackJob = null
+        }
+
+        if (metaSymbols.isNotEmpty() && metaToken != null && metaAccountId != null) {
+            val metaApiClient = MetaApiClient(
+                accountId = metaAccountId,
+                token = metaToken,
+                scope = viewModelScope,
+                brokerSuffix = "m"
+            )
+            metaApiClient.connect(metaSymbols)
+
+            viewModelScope.launch {
+                metaApiClient.priceUpdates.collect { rawPair ->
+                    if (!fallbackActive) {
+                        MarketDataStore.updatePair(rawPair)
+                    }
+                }
+            }
+            viewModelScope.launch {
+                metaApiClient.connectionState.collect { state ->
+                    when (state) {
+                        MetaApiClient.ConnectionState.ERROR_UNAUTHORIZED,
+                        MetaApiClient.ConnectionState.ERROR_UNAVAILABLE,
+                        MetaApiClient.ConnectionState.TIMEOUT,
+                        MetaApiClient.ConnectionState.DISCONNECTED -> {
+                            activateGlobalFallback("MetaAPI state: $state")
+                        }
+                        MetaApiClient.ConnectionState.CONNECTED -> {
+                            if (fallbackActive) {
+                                android.util.Log.i("ASC", "MetaAPI recovered; returning forex to MetaAPI and stopping fallbacks")
+                                deactivateGlobalFallback()
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        } else if (metaSymbols.isNotEmpty() || usdtSymbols.isNotEmpty()) {
+            activateGlobalFallback("No MetaAPI credentials configured")
+        }
+
+        tiingoFxManager?.let { manager ->
+            viewModelScope.launch {
+                manager.connectionState.collect { state ->
+                    android.util.Log.i("TiingoFxWS", "Tiingo FX connection state=$state")
+                }
+            }
+            viewModelScope.launch {
+                manager.priceUpdates.collect { pair ->
+                    android.util.Log.i("TiingoFxWS", "Routing Tiingo FX update to MarketDataStore ${pair.symbol} ${pair.price}")
+                    MarketDataStore.updatePair(pair)
+                }
+            }
+        }
+
+        tiingoIexManager?.let { manager ->
+            viewModelScope.launch {
+                manager.connectionState.collect { state ->
+                    android.util.Log.i("TiingoIexWS", "Tiingo IEX connection state=$state")
+                }
+            }
+            viewModelScope.launch {
+                manager.priceUpdates.collect { pair ->
+                    android.util.Log.i("TiingoIexWS", "Routing Tiingo IEX update to MarketDataStore ${pair.symbol} ${pair.price}")
+                    MarketDataStore.updatePair(pair)
+                }
+            }
+        }
+
+        // Throttle market updates to backend every 500ms
         viewModelScope.launch {
+            while (isActive) {
+                delay(500)
+                try {
+                    val pairs = MarketDataStore.allPairs.value
+                    if (pairs.isNotEmpty()) {
+                        val assetsMap = pairs.associate { pair ->
+                            val symbol = pair.symbol.replace("/", "")
+                            symbol to com.asc.markets.data.remote.MarketAssetSnapshot(
+                                price = pair.price,
+                                timestamp = java.time.Instant.now().toString(),
+                                // For now we use price as bid/ask as ForexPair doesn't have them
+                                bid = pair.price - 0.1,
+                                ask = pair.price + 0.1,
+                                volume = 0.0
+                            )
+                        }
+                        val request = com.asc.markets.data.remote.MarketUpdateRequest(assets = assetsMap)
+                        aiRepository.updateMarketData(request)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("ASC", "Failed to push market update: ${e.message}")
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            binanceWsManager.priceUpdates.collect { pair ->
+                // Route Binance updates through PriceStreamManager for unified logic
+                PriceStreamManager.updatePrice(pair.symbol, pair.price)
+            }
+        }
+
+        viewModelScope.launch {
+            MarketDataStore.allPairs.collect { pairs ->
+                _cryptoPairs.value = pairs.filter { it.category == MarketCategory.CRYPTO }
+                MarketDataStore.pairSnapshot(_selectedPair.value.symbol)?.let { latest ->
+                    _selectedPair.value = latest
+                }
+                syncWatchlistWithLivePrices()
+            }
+        }
+
+        viewModelScope.launch {
+            binanceWsManager.accountStatus.collect { statusJson ->
+                _terminalLogs.value = listOf(ChatMessage(role = "model", content = "[BINANCE] Account Status: $statusJson")) + _terminalLogs.value
+            }
+        }
+
+        viewModelScope.launch {
+            // Start continuous polling of RSS feeds and API news for Macro Stream
+            launch(Dispatchers.IO) {
+                while (isActive) {
+                    try {
+                        val articles = newsService.fetchAllNews()
+                        if (articles.isNotEmpty()) {
+                            val newsEvents = articles.map { article ->
+                                MacroEvent(
+                                    id = article.id,
+                                    title = article.title,
+                                    currency = article.intelligence?.asset_tags?.firstOrNull() ?: "GLOBAL",
+                                    datetimeUtc = try {
+                                        java.time.OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
+                                    } catch (e: Exception) {
+                                        System.currentTimeMillis()
+                                    },
+                                    priority = when (val score = article.intelligence?.impact_score) {
+                                        null -> ImpactPriority.LOW
+                                        in 80.0..100.0 -> ImpactPriority.CRITICAL
+                                        in 60.0..80.0 -> ImpactPriority.HIGH
+                                        in 40.0..60.0 -> ImpactPriority.MEDIUM
+                                        else -> ImpactPriority.LOW
+                                    },
+                                    status = MacroEventStatus.CONFIRMED,
+                                    source = article.source,
+                                    details = article.summary
+                                )
+                            }
+                            // Ingest into the existing macro stream logic
+                            withContext(Dispatchers.Main) {
+                                ingestMacroEventsFromSources(newsEvents)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ASC", "Error polling news for Macro Stream: ${e.message}")
+                    }
+                    delay(60_000) // Poll every 60 seconds
+                }
+            }
+
             delay(1200)
             _isInitializing.value = false
             // ensure initial stream list is computed
@@ -274,10 +808,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
                 val persisted = prefs.getBoolean("promote_macro_stream", false)
                 _promoteMacroStream.value = persisted
-                if (persisted) {
-                    _currentView.value = AppView.MACRO_STREAM
-                    _sessionLandingCount.value = _sessionLandingCount.value + 1
-                }
+                // Removed auto-navigation to MACRO_STREAM on startup
+                // if (persisted) {
+                //     _currentView.value = AppView.MACRO_STREAM
+                //     _sessionLandingCount.value = _sessionLandingCount.value + 1
+                // }
                 // Load persisted pattern sensitivity (0..100)
                 val persistedPattern = prefs.getFloat("pattern_sensitivity", 50f)
                 _patternSensitivity.value = persistedPattern
@@ -388,10 +923,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                         else -> false
                     }
                     _promoteMacroStream.value = promoteDefault
-                    if (promoteDefault) {
-                        _currentView.value = AppView.MACRO_STREAM
-                        _sessionLandingCount.value = _sessionLandingCount.value + 1
-                    }
+                    // Removed auto-navigation to MACRO_STREAM on startup
+                    // if (promoteDefault) {
+                    //     _currentView.value = AppView.MACRO_STREAM
+                    //     _sessionLandingCount.value = _sessionLandingCount.value + 1
+                    // }
                 } catch (_: Exception) {
                     // no default defined; leave runtime flag as-is (false)
                 }
@@ -406,6 +942,56 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     _auditLog.value = list
                 }
             } catch (_: Exception) { }
+
+            // Initial AI deployments fetch
+            aiRepository.fetchLatestDeployments()
+
+            // Synchronize AI state with Dashboard Data Providers for legacy widget compatibility
+            viewModelScope.launch {
+                aiDeployments.filterNotNull().collect { res ->
+                    AIAppManager.updateDashboardSession(
+                        nextEventTime = res.last_updated?.takeLast(8) ?: "N/A",
+                        nextEventLabel = "AI SYNC",
+                        globalRegimeText = "AI Node active. Processing ${res.count} deployments. Monitoring for high-probability institutional liquidity sweeps."
+                    )
+                    
+                    if (res.final_decision.isNotEmpty()) {
+                        // Ingest into Audit Records
+                        res.final_decision.forEach { decision ->
+                            val record = com.asc.markets.data.AuditRecord(
+                                headline = decision.journal_label ?: "AI DEPLOYMENT",
+                                impact = decision.journal_priority ?: "INFO",
+                                confidence = (decision.journal_score ?: 0.0).toInt(),
+                                assets = decision.asset_1 ?: "GLOBAL",
+                                status = "CONFIRMED",
+                                reasoning = decision.portfolio_decision_reason ?: "",
+                                direction = decision.journal_direction,
+                                riskPct = decision.final_risk_pct,
+                                deploymentLabel = decision.portfolio_decision_label
+                            )
+                            // Avoid duplicates by headline and asset for now or ID if available
+                            if (!_auditRecords.value.any { it.headline == record.headline && it.assets == record.assets && it.timeUtc > System.currentTimeMillis() - 60000 }) {
+                                appendAuditRecord(record)
+                            }
+                        }
+
+                        // Use the highest confidence signal to drive dashboard sentiment boxes
+                        val top = res.final_decision.maxByOrNull { it.journal_score ?: 0.0 }
+                        top?.let { t ->
+                            AIAppManager.updateAISentiment(
+                                sentimentScore = (t.journal_score ?: 0.0).toInt(),
+                                sentimentState = t.journal_direction?.uppercase() ?: "NEUTRAL",
+                                confidence = (t.journal_score ?: 0.0).toInt()
+                            )
+                            AIAppManager.updateProbabilityScore(
+                                scoreValue = (t.journal_score ?: 0.0).toInt(),
+                                confidenceLevel = if ((t.journal_score ?: 0.0) >= 75) "HIGH" else "MODERATE",
+                                prediction = t.journal_direction?.uppercase() ?: "NEUTRAL"
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -417,6 +1003,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             current[idx] = current[idx].copy(seen = true)
             _inAppNotifications.value = current
             _unreadCount.value = current.count { !it.seen }
+            _alertNotificationCount.value = calculateAlertNotificationCount(current)
         }
     }
 
@@ -424,6 +1011,15 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         val updated = _inAppNotifications.value.map { it.copy(seen = true) }
         _inAppNotifications.value = updated
         _unreadCount.value = 0
+        _alertNotificationCount.value = 0
+    }
+
+    private fun calculateAlertNotificationCount(
+        notifications: List<com.asc.markets.data.NotificationModel>
+    ): Int {
+        return notifications.count { notification ->
+            !notification.seen && notification.type.equals("ALERT", ignoreCase = true)
+        }
     }
 
     // Audit ledger state
@@ -626,12 +1222,12 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun closeCommandPalette() { _isCommandPaletteOpen.value = false }
     fun acceptRisk() { _isRiskAccepted.value = true }
     fun selectPair(pair: ForexPair) { 
-        _selectedPair.value = pair 
+        _selectedPair.value = MarketDataStore.pairSnapshot(pair.symbol) ?: pair
         _currentView.value = AppView.DASHBOARD
     }
 
     fun selectPairBySymbol(symbol: String) {
-        val pair = provideForexExplore().find { it.symbol == symbol }
+        val pair = MarketDataStore.pairSnapshot(symbol)
         pair?.let {
             selectPair(it)
         }
@@ -642,7 +1238,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
      * Use this when updating selection from within a modal or settings screen.
      */
     fun selectPairBySymbolNoNavigate(symbol: String) {
-        val pair = provideForexExplore().find { it.symbol == symbol }
+        val pair = MarketDataStore.pairSnapshot(symbol)
         pair?.let {
             _selectedPair.value = it
         }
@@ -687,6 +1283,9 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             val response = if (cmd.uppercase() == "ARM") {
                 _isArmed.value = true
                 "[SECURITY] PIPELINE ARMED via Local Node."
+            } else if (cmd.uppercase() == "ACCOUNT") {
+                binanceWsManager.fetchAccountStatus()
+                "[SYSTEM] Requesting Binance account status..."
             } else {
                 ForexAnalysisEngine.getAnalystResponse(cmd, "Core_Engine")
             }
@@ -695,6 +1294,89 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleArm() { _isArmed.value = !_isArmed.value }
+
+    fun runAiPipelineNow() {
+        viewModelScope.launch {
+            _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                isLoading = true,
+                lastMessage = "Running pipeline..."
+            )
+            aiRepository.runAiPipeline()
+                .onSuccess { resp ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = true,
+                        lastMessage = if (resp.success) {
+                            "Pipeline completed: ${resp.final_decision.size} decisions"
+                        } else {
+                            "Pipeline response: ${resp.message ?: "unknown"}"
+                        },
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+                .onFailure { err ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = false,
+                        lastMessage = "Pipeline failed: ${err.message ?: "unknown error"}",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+        }
+    }
+
+    fun refreshAiDeploymentsNow() {
+        viewModelScope.launch {
+            _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                isLoading = true,
+                lastMessage = "Refreshing deployments..."
+            )
+            aiRepository.fetchLatestDeployments()
+                .onSuccess { resp ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = true,
+                        lastMessage = "Deployments updated: ${resp.count}",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+                .onFailure { err ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = false,
+                        lastMessage = "Refresh failed: ${err.message ?: "unknown error"}",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+        }
+    }
+
+    fun checkAiHealthNow() {
+        viewModelScope.launch {
+            _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                isLoading = true,
+                lastMessage = "Checking backend..."
+            )
+            aiRepository.healthCheck()
+                .onSuccess { health ->
+                    val status = health["status"]?.toString() ?: "unknown"
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = status.equals("ok", ignoreCase = true),
+                        lastMessage = "Backend health: $status",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+                .onFailure { err ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = false,
+                        lastMessage = "Health check failed: ${err.message ?: "unknown error"}",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+        }
+    }
 
     // Trigger a UI education modal requiring explicit opt-in before exposing execution controls
     fun requestExecutionOptIn(target: AppView) {
@@ -742,13 +1424,16 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // API: enable/disable promotion of MacroStream (non-destructive)
-    fun setPromoteMacroStream(enabled: Boolean) {
+    fun setPromoteMacroStream(enabled: Boolean, navigateNow: Boolean = false) {
         _promoteMacroStream.value = enabled
         try {
             val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
             prefs.edit().putBoolean("promote_macro_stream", enabled).apply()
             if (enabled) {
                 _sessionLandingCount.value = _sessionLandingCount.value + 1
+                if (navigateNow) {
+                    _currentView.value = AppView.MACRO_STREAM
+                }
             } else {
                 _userOverrideCount.value = _userOverrideCount.value + 1
             }
@@ -799,5 +1484,11 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             prefs.edit().putLong("remote_poll_ms", safe).apply()
             TelemetryManager.recordEvent("remote_poll_interval_set", mapOf("ms" to safe))
         } catch (_: Exception) { }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        binanceWsManager.disconnect()
+        tiingoFxManager?.disconnect()
     }
 }

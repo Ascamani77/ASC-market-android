@@ -174,6 +174,29 @@ fun PostMoveAuditItem(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.height(6.dp))
+                                if (entry.direction != null || entry.riskPct != null) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        if (entry.direction != null) {
+                                            Column {
+                                                Text("BIAS", color = SlateText, fontSize = 10.sp)
+                                                Text(entry.direction.uppercase(), color = if (entry.direction.contains("bull", true)) EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                            }
+                                        }
+                                        if (entry.riskPct != null) {
+                                            Column {
+                                                Text("RISK ALLOCATION", color = SlateText, fontSize = 10.sp)
+                                                Text("${entry.riskPct}%", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                            }
+                                        }
+                                        if (entry.deploymentLabel != null) {
+                                            Column {
+                                                Text("BUCKET", color = SlateText, fontSize = 10.sp)
+                                                Text(entry.deploymentLabel, color = IndigoAccent, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
                                 Text(buildExpandedAnalyticalContext(entry, "Insight Node"), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily))
                             }
                         }

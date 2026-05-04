@@ -3,6 +3,7 @@ package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +25,11 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 sealed class SettingsSection(val id: String, val title: String, val icon: ImageVector, val value: String? = null) {
     object Workspace : SettingsSection("workspace", "Workspace Interface", androidx.compose.material.icons.autoMirrored.outlined.Settings, "DARK")
@@ -222,8 +229,178 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
             SettingsSection.Intelligence -> {
                 val force by viewModel.forceRemoteOverride.collectAsState()
                 val interval by viewModel.remotePollIntervalMs.collectAsState()
+                val context = LocalContext.current
+                val prefs = remember {
+                    context.getSharedPreferences("asc_prefs", android.content.Context.MODE_PRIVATE)
+                }
+
+                var backendUrl by remember {
+                    mutableStateOf(prefs.getString("backend_url", "http://10.95.77.133:8000") ?: "http://10.95.77.133:8000")
+                }
+                var redisHost by remember {
+                    mutableStateOf(prefs.getString("redis_host", "10.95.77.133") ?: "10.95.77.133")
+                }
+                var redisPortText by remember { mutableStateOf(prefs.getInt("redis_port", 6379).toString()) }
+                var streamName by remember {
+                    mutableStateOf(prefs.getString("stream_name", "market.ticks.stream") ?: "market.ticks.stream")
+                }
+                var publishApiKey by remember {
+                    mutableStateOf(prefs.getString("publish_api_key", "") ?: "")
+                }
+                var saveMessage by remember { mutableStateOf<String?>(null) }
+                val scope = rememberCoroutineScope()
+                var isCheckingConnection by remember { mutableStateOf(false) }
+                var isConnected by remember { mutableStateOf<Boolean?>(null) }
 
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                    Text("Network / Live Data", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Update these when your hotspot/Wi-Fi IP changes.", color = SlateMuted, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = backendUrl,
+                        onValueChange = { backendUrl = it },
+                        label = { Text("Backend URL", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = redisHost,
+                        onValueChange = { redisHost = it },
+                        label = { Text("Redis Host", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = redisPortText,
+                        onValueChange = { redisPortText = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Redis Port", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = streamName,
+                        onValueChange = { streamName = it },
+                        label = { Text("Stream Name", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = publishApiKey,
+                        onValueChange = { publishApiKey = it },
+                        label = { Text("Publish API Key (optional)", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val port = redisPortText.toIntOrNull()
+                            if (port == null) {
+                                saveMessage = "Invalid Redis port"
+                            } else {
+                                prefs.edit()
+                                    .putString("backend_url", backendUrl.trim())
+                                    .putString("redis_host", redisHost.trim())
+                                    .putInt("redis_port", port)
+                                    .putString("stream_name", streamName.trim())
+                                    .putString("publish_api_key", publishApiKey.trim())
+                                    .apply()
+                                saveMessage = "Network settings saved. Reopen app to reinitialize connections."
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
+                    ) {
+                        Text("Save Network Settings", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (saveMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(saveMessage ?: "", color = SlateText, fontSize = 10.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val base = backendUrl.trim().removeSuffix("/")
+                            if (base.isBlank()) {
+                                isConnected = false
+                                saveMessage = "Backend URL is empty"
+                                return@Button
+                            }
+                            isCheckingConnection = true
+                            saveMessage = null
+                            scope.launch {
+                                val ok = withContext(Dispatchers.IO) {
+                                    try {
+                                        val client = OkHttpClient.Builder().build()
+                                        val request = Request.Builder().url("$base/health").get().build()
+                                        client.newCall(request).execute().use { it.isSuccessful }
+                                    } catch (_: Exception) {
+                                        false
+                                    }
+                                }
+                                isConnected = ok
+                                isCheckingConnection = false
+                                saveMessage = if (ok) {
+                                    "Connection active"
+                                } else {
+                                    "Disconnected (failed to reach /health)"
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
+                    ) {
+                        Text(if (isCheckingConnection) "Testing..." else "Test Connection", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val statusColor = when {
+                            isCheckingConnection -> Color(0xFFFFB020)
+                            isConnected == true -> Color(0xFF22C55E)
+                            isConnected == false -> Color(0xFFEF4444)
+                            else -> Color(0xFF6B7280)
+                        }
+                        val statusText = when {
+                            isCheckingConnection -> "Checking connection..."
+                            isConnected == true -> "Connected"
+                            isConnected == false -> "Disconnected"
+                            else -> "Not tested yet"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(statusColor, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(statusText, color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text("Remote Feature Flags", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(8.dp))
                     ToggleRowControlled(

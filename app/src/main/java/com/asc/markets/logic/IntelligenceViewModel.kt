@@ -25,8 +25,15 @@ class IntelligenceViewModel(
     private val _watchlist = MutableStateFlow<Set<String>>(emptySet())
     val watchlist: StateFlow<Set<String>> = _watchlist.asStateFlow()
 
+    private val _globalHeaderCollapse = MutableStateFlow(0f)
+    val globalHeaderCollapse: StateFlow<Float> = _globalHeaderCollapse.asStateFlow()
+
     init {
         fetchEvents()
+    }
+
+    fun setGlobalHeaderCollapse(progress: Float) {
+        _globalHeaderCollapse.value = progress.coerceIn(0f, 1f)
     }
 
     fun toggleWatchlist(id: String) {

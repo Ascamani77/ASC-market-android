@@ -14,10 +14,17 @@ object AiPrompts {
         return """
             ${INSTITUTIONAL_OPERATIONAL_DIRECTIVE}
             ONLY analyze assets within the active AssetContext. Explicitly ignore all others.
-            Generate up to 10 macro-relevant headlines or event notices for the Macro Intelligence Stream. Prefer events tied to macro calendars, accumulation signs across sessions, or institutional rebalancing cues.
-            For each item return a JSON object with fields: title, source, datetime_utc (ISO 8601), priority (one of: \"CRITICAL\",\"HIGH\",\"MEDIUM\"), status (\"UPCOMING\" or \"CONFIRMED\"), details (brief). Return ONLY a valid JSON array (no extra text).
+            Generate up to 10 macro-relevant headlines for the Market Overview raw feed. Prefer events tied to macro calendars, accumulation signs across sessions, or institutional rebalancing cues.
+            For each item return a JSON object with fields:
+            headline,
+            source,
+            timestamp (short display label like "2h ago", "45m ago", or "Upcoming"),
+            assetType (one of: "forex","crypto","commodities","indices","stocks","futures","bonds"),
+            assetSymbol (examples: "EUR/USD", "BTC/USD", "XAU/USD", "SPX", "INTC", "US10Y"),
+            imageUrl (optional, use empty string when unavailable).
+            Return ONLY a valid JSON array (no extra text).
             Example:
-            [{"title":"...","source":"...","datetime_utc":"2024-06-12T13:30:00Z","priority":"HIGH","status":"UPCOMING","details":"..."}, ...]
+            [{"headline":"Dollar elevated near multi-year highs against the yen","source":"Reuters","timestamp":"2h ago","assetType":"forex","assetSymbol":"USD/JPY","imageUrl":""}, ...]
         """.trimIndent()
     }
 }

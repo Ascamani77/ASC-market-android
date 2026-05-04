@@ -18,13 +18,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
+import com.asc.markets.logic.ForexViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.ui.theme.*
+import com.asc.markets.data.remote.LatestDeploymentsResponse
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.asc.markets.data.remote.FinalDecisionItem
 
 @Composable
-fun DashboardOverviewTab(symbol: String) {
+fun DashboardOverviewTab(symbol: String, viewModel: ForexViewModel = viewModel()) {
+    val aiResponse: LatestDeploymentsResponse? by viewModel.aiDeployments.collectAsState(initial = null)
     val sessionData = rememberSessionData()
     
+    // Derived values from backend
+    val lastUpdated = aiResponse?.last_updated ?: "N/A"
+    val signalCount = aiResponse?.count ?: 0
+    
+    // Update local state if needed (or just use derived values)
+    LaunchedEffect(aiResponse) {
+        aiResponse?.let {
+            // Update session data based on backend response if we want it to be fully reactive
+            // For now we mix repository data with existing session provider for UI stability
+        }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -45,7 +62,7 @@ fun DashboardOverviewTab(symbol: String) {
                             Text(if (sessionData.isActive) "ACTIVE" else "INACTIVE", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                         }
                         Box(modifier = Modifier.background(GhostWhite, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text("${sessionData.completionPercent}% COMPLETE", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("UPDATED: $lastUpdated", color = Color.White, fontSize = DashboardFontSizes.gridLabelTiny, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
                     SessionProgressGauge(sessionData.completionPercent)
@@ -57,14 +74,18 @@ fun DashboardOverviewTab(symbol: String) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    VitalMiniBox("AVG SPREAD", sessionData.avgSpread, "INSTITUTIONAL", Modifier.weight(1f))
+                    VitalMiniBox("AI SIGNALS", signalCount.toString(), "LIVE FEED", Modifier.weight(1f))
                     VitalMiniBox("VOLATILITY", sessionData.volatility, "STANDARD", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    VitalMiniBox("NEXT EVENT", sessionData.nextEventTime, sessionData.nextEventLabel, Modifier.weight(1f))
+                    VitalMiniBox("LAST SYNC", lastUpdated.takeLast(8), "UTC WINDOW", Modifier.weight(1f))
                     VitalMiniBox("SAFETY GATE", sessionData.safetyGateStatus, "PROP GUARD", Modifier.weight(1f))
                 }
             }
+        }
+
+        item {
+            CurrencyStrengthPanel(density = MarketCompareDensity.COMPACT)
         }
 
         // 3. Global Regime Snapshot
@@ -321,7 +342,7 @@ private fun ProbabilityScoreBox(probability: ProbabilityScore) {
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 LinearProgressIndicator(
-                    progress = probability.scoreValue / 100f,
+                    progress = { probability.scoreValue / 100f },
                     modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp)),
                     trackColor = Color.White.copy(alpha = 0.1f),
                     color = when {

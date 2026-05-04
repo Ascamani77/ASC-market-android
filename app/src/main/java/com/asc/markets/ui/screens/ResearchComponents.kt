@@ -490,7 +490,7 @@ fun IntelligencePanel(article: NewsArticle) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "The analysis suggests a ${article.intelligence.sentiment.name.lowercase()} bias for ${article.intelligence.assetTags.joinToString(", ").uppercase()}. Market volatility is expected to increase following this announcement.",
+                "The analysis suggests a ${article.intelligence.sentiment.name.lowercase(Locale.ROOT)} bias for ${article.intelligence.assetTags.joinToString(", ").uppercase(Locale.ROOT)}. Market volatility is expected to increase following this announcement.",
                 color = Color.White,
                 fontSize = 13.sp,
                 lineHeight = 20.sp

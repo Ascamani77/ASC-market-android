@@ -28,6 +28,8 @@ import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.screens.dashboard.MiniSparkline
+import com.asc.markets.ui.screens.dashboard.demoSparkline
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 
@@ -127,25 +129,17 @@ fun MarketPsychologyTab(viewModel: ForexViewModel = viewModel()) {
         item {
             InfoBox {
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                    Text("7-Day Momentum", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(modifier = Modifier.fillMaxWidth().height(120.dp).background(Color.Transparent)) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val w = size.width
-                            val h = size.height
-                            val points = listOf(0.4f, 0.45f, 0.5f, 0.6f, 0.55f, 0.7f, 0.72f)
-                            val step = w / (points.size - 1)
-                            val path = androidx.compose.ui.graphics.Path().apply {
-                                moveTo(0f, h)
-                                points.forEachIndexed { i, v ->
-                                    lineTo(i * step, h - (v * h))
-                                }
-                                lineTo(w, h)
-                                close()
-                            }
-                            drawPath(path, brush = Brush.verticalGradient(listOf(RoseError, IndigoAccent, EmeraldSuccess)))
-                        }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("7-Day Momentum", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("▲ 3.4%", color = EmeraldSuccess, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MiniSparkline(
+                        points = demoSparkline(count = 56, seed = 77, trendBias = 0.012f),
+                        modifier = Modifier.fillMaxWidth().height(120.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(10.dp)),
+                        color = EmeraldSuccess,
+                        fillColor = EmeraldSuccess.copy(alpha = 0.10f)
+                    )
                 }
             }
         }
@@ -202,6 +196,14 @@ private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair, onOpenContex
                     Box(modifier = Modifier.fillMaxWidth().offset(x = 0.dp).fillMaxHeight().background(RoseError.copy(alpha = 0.0f))) {}
                 }
             }
+
+            // Layer 2.5: Mini sparkline trend
+            MiniSparkline(
+                points = demoSparkline(count = 20, seed = pair.symbol.hashCode(), trendBias = (pair.changePercent / 50f).toFloat()),
+                modifier = Modifier.fillMaxWidth().height(40.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
+                color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError,
+                fillColor = if (pair.changePercent >= 0) EmeraldSuccess.copy(alpha = 0.08f) else RoseError.copy(alpha = 0.08f)
+            )
 
             // Layer 3: Bias badge + flow descriptor
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

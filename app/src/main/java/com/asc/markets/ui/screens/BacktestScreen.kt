@@ -90,12 +90,6 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         }
                     }
 
-                    Text(
-                        "ANALYTICAL LOOKBACK: 5000\nDYNAMIC BARS",
-                        color = SlateText,
-                        fontSize = 10.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End
-                    )
                 }
 
                 // Pair selector (styled) - grouped dropdown like AlertsScreen

@@ -20,12 +20,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.logic.IntelligenceViewModel
 import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
+import com.asc.markets.ui.ai.AiScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import com.asc.markets.ui.theme.*
 import android.util.Log
+import com.asc.markets.ui.terminal.viewmodels.ChartViewModel
 import com.researchcenter.ui.screens.MainScreen
 
 class MainActivity : ComponentActivity() {
@@ -34,13 +37,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             AscTheme {
                 val viewModel: ForexViewModel = viewModel()
+                val chartViewModel: ChartViewModel = viewModel()
                 val currentView by viewModel.currentView.collectAsState()
                 val isInitializing by viewModel.isInitializing.collectAsState()
                 val isRiskAccepted by viewModel.isRiskAccepted.collectAsState()
                 val selectedPair by viewModel.selectedPair.collectAsState()
+                val chartActiveSymbol by chartViewModel.activeSymbol.collectAsState()
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
                 val promoteMacro by viewModel.promoteMacroStream.collectAsState()
                 val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
+                val linkedOrderFlowSymbol = remember(selectedPair.symbol, chartActiveSymbol) {
+                    resolveLinkedOrderFlowSymbol(
+                        selectedPairSymbol = selectedPair.symbol,
+                        chartSymbol = chartActiveSymbol
+                    )
+                }
 
                 if (isInitializing) {
                     Box(
@@ -70,11 +81,10 @@ class MainActivity : ComponentActivity() {
                         containerColor = PureBlack,
                         bottomBar = {
                             when {
-                                currentView == AppView.TRADING_ASSISTANT || currentView == AppView.INTELLIGENCE_STREAM || currentView == AppView.CHAT || (currentView == AppView.DASHBOARD && promoteMacro) || currentView == AppView.NEWS -> {
-                                    // No bottom bar for trading assistant, intelligence stream,
-                                    // or when the dashboard is promoting the Macro Intelligence Stream.
+                                currentView == AppView.TRADING_ASSISTANT || currentView == AppView.CHAT || currentView == AppView.NEWS -> {
+                                    // No bottom bar for trading assistant, chat, or when in News view.
                                 }
-                                currentView == AppView.SIMULATION -> {
+                                currentView == AppView.SIMULATION || currentView == AppView.MY_SIMULATION -> {
                                     // Animated bottom bar for Simulation based on header visibility
                                     AnimatedVisibility(
                                         visible = headerVisible,
@@ -90,7 +100,7 @@ class MainActivity : ComponentActivity() {
                                         Surface(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(65.dp),
+                                                .height(AppBottomNavHeight),
                                             color = PureBlack,
                                             tonalElevation = 0.dp
                                         ) {
@@ -99,7 +109,7 @@ class MainActivity : ComponentActivity() {
                                                 onNavigate = { viewModel.navigateTo(it) },
                                                 onHomeSelected = {
                                                     viewModel.navigateTo(AppView.DASHBOARD)
-                                                    viewModel.setDashboardTab("MACRO_STREAM")
+                                                    viewModel.setDashboardTab("COMMAND_CENTER")
                                                 },
                                                 onMenuClick = { viewModel.navigateTo(AppView.SIDEBAR_PAGE) }
                                             )
@@ -110,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                     Surface(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(65.dp),
+                                            .height(AppBottomNavHeight),
                                         color = PureBlack,
                                         tonalElevation = 0.dp
                                     ) {
@@ -119,7 +129,7 @@ class MainActivity : ComponentActivity() {
                                             onNavigate = { viewModel.navigateTo(it) },
                                             onHomeSelected = {
                                                 viewModel.navigateTo(AppView.DASHBOARD)
-                                                viewModel.setDashboardTab("MACRO_STREAM")
+                                                viewModel.setDashboardTab("COMMAND_CENTER")
                                             },
                                             // Open the sidebar as a full page
                                             onMenuClick = { viewModel.navigateTo(AppView.SIDEBAR_PAGE) }
@@ -136,9 +146,14 @@ class MainActivity : ComponentActivity() {
                         ) {
                             // THE TRICK: Swap header based on state
                             when (currentView) {
-                                AppView.DASHBOARD, AppView.MARKETS, AppView.CALENDAR -> {
+                                AppView.DASHBOARD, AppView.MARKETS, AppView.CALENDAR, AppView.INTELLIGENCE_STREAM -> {
                                     val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
-                                    val collapseProgress by viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+                                    val collapseProgress by if (currentView == AppView.INTELLIGENCE_STREAM) {
+                                        val intelViewModel: IntelligenceViewModel = viewModel()
+                                        intelViewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+                                    } else {
+                                        viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+                                    }
 
                                     // Animate header height (72.dp -> 0.dp) based on collapse progress
                                     val targetHeight = if (headerVisible) (72.dp * (1f - collapseProgress)) else 0.dp
@@ -156,7 +171,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 // Let screens that provide their own header render without the global NavHeader
-                                AppView.POST_MOVE_AUDIT, AppView.INTELLIGENCE_STREAM, AppView.HOME_ALERTS, AppView.NEWS, AppView.SIDEBAR_PAGE, AppView.SIMULATION -> {
+                                AppView.POST_MOVE_AUDIT, AppView.HOME_ALERTS, AppView.NEWS, AppView.SIDEBAR_PAGE, AppView.SIMULATION, AppView.MY_SIMULATION, AppView.STREAM, AppView.MACRO_STREAM, AppView.PAPER_TRADING -> {
                                     /* Intentionally no header here. The screen provides its own top control bar which should replace the app header. */
                                 }
                                 else -> {
@@ -174,28 +189,40 @@ class MainActivity : ComponentActivity() {
                                     AppView.MARKETS -> MarketsScreen({ viewModel.selectPair(it) }, viewModel)
                                     AppView.CHAT -> ChatScreen(viewModel)
                                     AppView.ALERTS -> AlertsScreen(viewModel)
+                                    AppView.MY_ALERTS -> MyAlertsScreen()
                                     AppView.NOTIFICATIONS -> NotificationsScreen(viewModel)
                                     AppView.BACKTEST -> BacktestScreen(viewModel)
                                     AppView.TRADING_ASSISTANT -> TerminalScreen(viewModel)
-                                    AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(selectedPair.symbol)
+                                    AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(linkedOrderFlowSymbol)
                                     AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
                                     AppView.TRADE -> TradeLedgerScreen()
                                     AppView.TRADE_DASHBOARD -> TradeDashboardScreen()
                                     AppView.SIMULATION -> SimulationScreen(viewModel)
+                                    AppView.MY_SIMULATION -> MySimulationScreen(viewModel)
                                     AppView.NEWS -> MainScreen(onBackToApp = { viewModel.navigateTo(AppView.DASHBOARD) })
-                                    AppView.MACRO_STREAM -> {
-                                        val events by viewModel.macroStreamEvents.collectAsState()
-                                        CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                            MacroStreamView(events = events, viewModel = viewModel)
-                                        }
-                                    }
                                     AppView.HOME_ALERTS -> HomeAlertsScreen()
-                                    AppView.INTELLIGENCE_STREAM -> IntelligenceStreamScreen()
-                                    AppView.CALENDAR -> IntelligenceDashboardScreen()
+                                    AppView.INTELLIGENCE_STREAM -> IntelligenceDashboardScreen()
+                                    AppView.MACRO_STREAM -> IntelligenceStreamScreen(viewModel)
+                                    AppView.CALENDAR -> CalendarScreen()
+                                    AppView.STREAM -> StreamScreen()
                                     AppView.SENTIMENT -> SentimentScreen()
                                     AppView.EDUCATION -> EducationScreen()
                                     AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
-                                    AppView.WATCHLIST -> WatchlistScreen(viewModel)
+                                    AppView.WATCHLIST -> WatchlistScreen(
+                                        viewModel = viewModel,
+                                        onViewChart = { symbol ->
+                                            viewModel.selectPairBySymbol(symbol)
+                                            viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                                        },
+                                        onSetAlert = { symbol ->
+                                            viewModel.selectPairBySymbol(symbol)
+                                            viewModel.navigateTo(AppView.ALERTS)
+                                        },
+                                        onDeepDive = { symbol ->
+                                            viewModel.selectPairBySymbol(symbol)
+                                            viewModel.navigateTo(AppView.INTELLIGENCE_STREAM)
+                                        }
+                                    )
                                     AppView.DIAGNOSTICS -> DiagnosticsScreen()
                                     AppView.MARKET_WATCH -> MarketWatchScreen()
                                     AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
@@ -206,17 +233,25 @@ class MainActivity : ComponentActivity() {
                                     AppView.PROFILE -> ProfileScreen()
                                     AppView.MARKET_VIEW -> MarketViewScreen()
                                     AppView.SETTINGS -> SettingsScreen(viewModel)
+                                    AppView.PAPER_TRADING -> PaperTradingScreen(viewModel)
+                                    AppView.QUOTES -> QuotesScreen(viewModel)
                                     AppView.SIDEBAR_PAGE -> {
                                         // Render sidebar contents as a full page (replicates modal drawer content)
+                                        val unreadAlertNotifications by viewModel.alertNotificationCount.collectAsState(initial = 0)
+                                        val activeAlertNodes by com.asc.markets.logic.VigilanceNodeEngine.activeNodeCount.collectAsState(initial = 0)
                                         AscSidebar(
                                             currentView = currentView,
                                             isCollapsed = false,
                                             promoteMacro = promoteMacro,
+                                            alertBadgeCount = unreadAlertNotifications + activeAlertNodes,
                                             onViewChange = { view ->
                                                 viewModel.navigateTo(view)
                                             },
                                             onClose = { viewModel.navigateBack() }
                                         )
+                                    }
+                                    AppView.AI_TERMINAL -> {
+                                        AiScreen()
                                     }
                                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text("NODE_ACCESS_RESTRICED: ${currentView.name}", color = Color.DarkGray)
@@ -277,4 +312,28 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+private fun resolveLinkedOrderFlowSymbol(
+    selectedPairSymbol: String,
+    chartSymbol: String
+): String {
+    val normalizedSelected = normalizeLinkedOrderFlowSymbol(selectedPairSymbol)
+    val normalizedChart = normalizeLinkedOrderFlowSymbol(chartSymbol)
+    val defaultCrypto = "BTCUSDT"
+
+    return when {
+        normalizedSelected.isNotBlank() && normalizedSelected != defaultCrypto -> selectedPairSymbol
+        normalizedChart.isNotBlank() && normalizedChart != defaultCrypto -> chartSymbol
+        else -> selectedPairSymbol
+    }
+}
+
+private fun normalizeLinkedOrderFlowSymbol(symbol: String): String {
+    return symbol
+        .uppercase()
+        .replace("/", "")
+        .replace("-", "")
+        .replace("_", "")
+        .replace(" ", "")
 }

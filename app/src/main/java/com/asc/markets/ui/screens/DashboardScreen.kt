@@ -38,7 +38,7 @@ import java.util.Locale
 import androidx.compose.ui.text.style.TextOverflow
 
 enum class DashboardTab { 
-    MACRO_STREAM, 
+    COMMAND_CENTER,
     TECHNICAL_VITALS, 
     STRATEGY_SIGNALS, 
     ANALYTICAL_QUALITY, 
@@ -49,7 +49,7 @@ enum class DashboardTab {
 
 @Composable
 fun DashboardScreen(viewModel: ForexViewModel) {
-    var activeTab by remember { mutableStateOf(DashboardTab.MACRO_STREAM) }
+    var activeTab by remember { mutableStateOf(DashboardTab.COMMAND_CENTER) }
     val selectedPair by viewModel.selectedPair.collectAsState()
     val promoteMacro by viewModel.promoteMacroStream.collectAsState()
     val dashboardTarget by viewModel.dashboardTabTarget.collectAsState()
@@ -75,27 +75,15 @@ fun DashboardScreen(viewModel: ForexViewModel) {
 
         // 2. Content Area
         Box(modifier = Modifier.weight(1f)) {
-            if (promoteMacro) {
-                val events by viewModel.macroStreamEvents.collectAsState()
-                CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                    MacroStreamView(events = events, viewModel = viewModel)
-                }
-            } else {
-                androidx.compose.animation.Crossfade(targetState = activeTab, label = "TabTransition") { tab ->
-                    when (tab) {
-                        DashboardTab.MACRO_STREAM -> {
-                            val events by viewModel.macroStreamEvents.collectAsState()
-                            CompositionLocalProvider(LocalShowMicrostructure provides false) {
-                                MacroStreamView(events = events, viewModel = viewModel)
-                            }
-                        }
+            androidx.compose.animation.Crossfade(targetState = activeTab, label = "TabTransition") { tab ->
+                when (tab) {
+                        DashboardTab.COMMAND_CENTER -> CommandCenterTab(viewModel)
                         DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab(viewModel)
                         DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab(viewModel)
                         DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab(viewModel)
                         DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab(viewModel)
                         DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab(viewModel)
                         DashboardTab.METHODOLOGY -> EducationTab(viewModel)
-                    }
                 }
             }
         }
@@ -122,7 +110,7 @@ fun DashboardTopNavbar(
                 items(DashboardTab.entries.toTypedArray()) { tab ->
                     val active = activeTab == tab
                     val label = when (tab) {
-                        DashboardTab.MACRO_STREAM -> "Top news"
+                        DashboardTab.COMMAND_CENTER -> "Home"
                         DashboardTab.TECHNICAL_VITALS -> "Vitals"
                         DashboardTab.STRATEGY_SIGNALS -> "Signals"
                         DashboardTab.ANALYTICAL_QUALITY -> "Quality"

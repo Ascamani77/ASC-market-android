@@ -21,9 +21,12 @@ import com.asc.markets.ui.terminal.viewmodels.ChartViewModel
 
 @Composable
 fun TradingScreen(
-    viewModel: ChartViewModel = viewModel()
+    viewModel: ChartViewModel = viewModel(),
+    onSymbolSelected: (String) -> Unit = {}
 ) {
     val activeSymbol by viewModel.activeSymbol.collectAsState()
+    val currentPair by viewModel.currentPair.collectAsState()
+    val priceHistory by viewModel.priceHistory.collectAsState()
     val currentTimeframe by viewModel.timeframe.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val activeTool by viewModel.activeTool.collectAsState()
@@ -53,7 +56,7 @@ fun TradingScreen(
     Scaffold(
         topBar = {
             TradingToolbar(
-                activeSymbol = activeSymbol,
+                activeSymbol = currentPair.symbol,
                 currentTimeframe = currentTimeframe,
                 currentStyle = chartType,
                 onTimeframeChange = { viewModel.setTimeframe(it) },
@@ -117,8 +120,11 @@ fun TradingScreen(
                     
                     // Overlay Price Status Line
                     PriceStatusLine(
-                        symbol = activeSymbol,
+                        symbol = currentPair.symbol,
                         timeframe = currentTimeframe.replace("m", ""),
+                        price = currentPair.price,
+                        changePercent = currentPair.changePercent,
+                        priceHistory = priceHistory,
                         indicators = indicators,
                         onIndicatorAction = { ind, action -> viewModel.toggleIndicator(ind) },
                         onBuy = { viewModel.handleTrade("buy") },
@@ -279,7 +285,10 @@ fun TradingScreen(
         SymbolSearchModal(
             isOpen = isSymbolSearchOpen,
             onClose = { isSymbolSearchOpen = false },
-            onSelect = { viewModel.setSymbol(it) }
+            onSelect = {
+                viewModel.setSymbol(it)
+                onSymbolSelected(it)
+            }
         )
         
         IndicatorsModal(

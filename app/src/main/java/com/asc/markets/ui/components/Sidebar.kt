@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.AppView
@@ -38,6 +39,7 @@ fun AscSidebar(
     currentView: AppView,
     isCollapsed: Boolean,
     promoteMacro: Boolean = false,
+    alertBadgeCount: Int = 0,
     onViewChange: (AppView) -> Unit,
     onClose: () -> Unit = {}
 ) {
@@ -187,36 +189,94 @@ fun AscSidebar(
             ) {
                 // QUICK ACCESS Section
                 SectionHeader("Quick Access")
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Assessment,
+                            icon = Icons.Outlined.GppGood,
                             label = "Deep Audit",
                             onClick = { onViewChange(AppView.ANALYSIS_RESULTS) }
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Default.ChatBubble,
+                            icon = Icons.Outlined.Memory,
                             label = "AI Intel",
                             onClick = { onViewChange(AppView.CHAT) }
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Default.GridView,
+                            icon = Icons.Outlined.GridView,
                             label = "Trade Dashboard",
                             onClick = { onViewChange(AppView.TRADE_DASHBOARD) }
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Default.CalendarToday,
+                            icon = Icons.Outlined.CalendarMonth,
                             label = "Event Calendar",
                             onClick = { onViewChange(AppView.CALENDAR) }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.NotificationsNone,
+                            label = "Vigilance Setup",
+                            badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
+                            onClick = { onViewChange(AppView.ALERTS) }
+                        )
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.BookmarkBorder,
+                            label = "Saved Items",
+                            onClick = { }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.PlayCircleOutline,
+                            label = "AI Simulation",
+                            onClick = { onViewChange(AppView.SIMULATION) }
+                        )
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.ShowChart,
+                            label = "My Simulation",
+                            onClick = { onViewChange(AppView.MY_SIMULATION) }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Terminal,
+                            label = "AI Terminal",
+                            onClick = { onViewChange(AppView.AI_TERMINAL) }
+                        )
+                        QuickAccessCard(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.AutoMirrored.Filled.ShowChart,
+                            label = "AI Sentiment",
+                            onClick = { onViewChange(AppView.SENTIMENT) }
                         )
                     }
                 }
@@ -226,11 +286,25 @@ fun AscSidebar(
                 // TRACK Section
                 SectionHeader("TRACK")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.Notifications, "Alerts") { onViewChange(AppView.ALERTS) }
+                    MenuItem(
+                        icon = Icons.Default.Notifications,
+                        label = "Vigilance Setup",
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()
+                    ) { onViewChange(AppView.ALERTS) }
+                    MenuDivider()
+                    MenuItem(
+                        icon = Icons.Default.List,
+                        label = "My Alerts",
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()
+                    ) { onViewChange(AppView.MY_ALERTS) }
                     MenuDivider()
                     MenuItem(Icons.Default.StarBorder, "Saved Items") { /* Placeholder */ }
                     MenuDivider()
-                    MenuItem(Icons.Default.PlayCircleOutline, "Simulation") { onViewChange(AppView.SIMULATION) }
+                    MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation") { onViewChange(AppView.SIMULATION) }
+                    MenuDivider()
+                    MenuItem(Icons.Default.Timeline, "My Simulation") { onViewChange(AppView.MY_SIMULATION) }
+                    MenuDivider()
+                    MenuItem(Icons.Default.Terminal, "AI Terminal") { onViewChange(AppView.AI_TERMINAL) }
                     MenuDivider()
                     MenuItem(Icons.AutoMirrored.Filled.ShowChart, "AI Sentiment") { onViewChange(AppView.SENTIMENT) }
                 }
@@ -241,6 +315,8 @@ fun AscSidebar(
                 SectionHeader("LIVE MARKETS")
                 MenuGroupContainer {
                     MenuItem(Icons.Default.BarChart, "Markets Overview") { onViewChange(AppView.MARKETS) }
+                    MenuDivider()
+                    MenuItem(Icons.Default.List, "Quotes Feed") { onViewChange(AppView.QUOTES) }
                     MenuDivider()
                     MenuItem(Icons.AutoMirrored.Outlined.MenuBook, "Analysis & Opinion") { onViewChange(AppView.NEWS) }
                 }
@@ -288,7 +364,9 @@ fun AscSidebar(
                 MenuGroupContainer {
                     MenuItem(Icons.Default.AttachMoney, "Active Inventory") { onViewChange(AppView.PORTFOLIO_MANAGER) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Language, "Macro Intelligence") { onViewChange(AppView.NEWS) }
+                    MenuItem(Icons.Default.CurrencyExchange, "Paper Trading") { onViewChange(AppView.PAPER_TRADING) }
+                    MenuDivider()
+                    MenuItem(Icons.Default.Language, "Raw Feed") { onViewChange(AppView.NEWS) }
                     MenuDivider()
                     MenuItem(Icons.Default.CalendarToday, "Event Calendar") { onViewChange(AppView.CALENDAR) }
                     MenuDivider()
@@ -327,7 +405,6 @@ fun AscSidebar(
                     border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
@@ -379,6 +456,7 @@ fun QuickAccessCard(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     label: String,
+    badgeText: String? = null,
     onClick: () -> Unit
 ) {
     Surface(
@@ -386,39 +464,58 @@ fun QuickAccessCard(
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
         modifier = modifier
-            .height(110.dp)
+            .height(64.dp)
             .clickable { onClick() }
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = Color(0xFF555555),
-                    modifier = Modifier.size(14.dp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    label,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                if (!badgeText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF23262F), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = badgeText,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
-            Text(
-                label,
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 20.sp
+            Spacer(modifier = Modifier.width(10.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = Color(0xFF6B7280),
+                modifier = Modifier.size(14.dp)
             )
         }
     }
@@ -432,33 +529,65 @@ fun MenuGroupContainer(content: @Composable ColumnScope.() -> Unit) {
         border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = content)
     }
 }
 
 @Composable
-fun MenuItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+fun MenuItem(
+    icon: ImageVector,
+    label: String,
+    badgeText: String? = null,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                label,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (!badgeText.isNullOrBlank()) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF23262F), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
         Icon(
-            icon,
+            Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            label,
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold
+            tint = Color(0xFF6B7280),
+            modifier = Modifier.size(14.dp)
         )
     }
 }

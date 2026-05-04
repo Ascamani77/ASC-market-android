@@ -6,13 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,8 +29,11 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.data.remote.FinalDecisionItem
+import com.asc.markets.state.AssetContext
+import com.asc.markets.state.AssetContextStore
 import com.asc.markets.logic.ForexViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 data class Signal(
     val symbol: String,
@@ -44,70 +47,28 @@ data class Signal(
 
 @Composable
 fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
-    val ctx by com.asc.markets.state.AssetContextStore.context.collectAsState()
+    val ctx by AssetContextStore.context.collectAsState()
+    val aiResponse by viewModel.aiDeployments.collectAsState()
+    
+    val allSignals = aiResponse?.final_decision ?: emptyList()
 
-    // sample signals — 25 items: 5 Forex majors, 5 Commodities, 5 Crypto, 5 Stocks, 5 Indexes
-    val signals = remember {
-        listOf(
-            // Forex majors (5)
-            Signal("EUR/USD", timeframe = "H1", technicalScore = 88, rationale = listOf("Order Block Validated", "Asian Low Sweep", "Liquidity Grab"), entry = "1.0840", invalidation = "1.0790"),
-            Signal("GBP/USD", timeframe = "H4", technicalScore = 72, rationale = listOf("MSS Break", "OB Confluence"), entry = "1.2660", invalidation = "1.2580"),
-            Signal("USD/JPY", timeframe = "M30", technicalScore = 64, rationale = listOf("POC Rejection", "VWAP Deceleration"), entry = "149.20", invalidation = "150.10"),
-            Signal("AUD/USD", timeframe = "H1", technicalScore = 55, rationale = listOf("Asian Range", "Liquidity Node"), entry = "0.6450", invalidation = "0.6410"),
-            Signal("USD/CHF", timeframe = "H1", technicalScore = 60, rationale = listOf("Pivot Rejection", "Symmetry Level"), entry = "0.9120", invalidation = "0.9060"),
-
-            // Commodities (5)
-            Signal("XAU/USD", timeframe = "D1", technicalScore = 70, rationale = listOf("Long-term OB", "Inflation Flows"), entry = "1938", invalidation = "1910"),
-            Signal("XAG/USD", timeframe = "H4", technicalScore = 58, rationale = listOf("Volatility Spike", "Speculative Flow"), entry = "23.10", invalidation = "22.40"),
-            Signal("WTI/USD", timeframe = "H4", technicalScore = 66, rationale = listOf("Inventory Drawdown", "Momentum"), entry = "72.40", invalidation = "70.20"),
-            Signal("BRENT/USD", timeframe = "H4", technicalScore = 62, rationale = listOf("Refinery Cycle", "Supply Risk"), entry = "76.80", invalidation = "74.50"),
-            Signal("COPPER", timeframe = "D1", technicalScore = 54, rationale = listOf("Manufacturing PMI", "Seasonal Demand"), entry = "3.92", invalidation = "3.70"),
-
-            // Crypto majors (5)
-            Signal("BTC/USD", timeframe = "H4", technicalScore = 77, rationale = listOf("On-chain Accumulation", "Futures Roll"), entry = "48200", invalidation = "46800"),
-            Signal("ETH/USD", timeframe = "H4", technicalScore = 74, rationale = listOf("Options Flow", "DeFi Activity"), entry = "3200", invalidation = "3050"),
-            Signal("SOL/USD", timeframe = "H1", technicalScore = 61, rationale = listOf("Network Activity", "Short Squeeze"), entry = "120", invalidation = "110"),
-            Signal("ADA/USD", timeframe = "H4", technicalScore = 52, rationale = listOf("Sentiment Lag", "Developer Signals"), entry = "0.95", invalidation = "0.88"),
-            Signal("XRP/USD", timeframe = "H4", technicalScore = 50, rationale = listOf("Regulatory Watch", "On-Chain Liquidity"), entry = "0.65", invalidation = "0.60"),
-
-            // Stocks (5)
-            Signal("AAPL", timeframe = "D1", technicalScore = 79, rationale = listOf("Earnings Beat", "Option Sweep"), entry = "169.50", invalidation = "165.00"),
-            Signal("MSFT", timeframe = "D1", technicalScore = 75, rationale = listOf("Cloud Momentum", "Institutional Buying"), entry = "320.10", invalidation = "310.00"),
-            Signal("AMZN", timeframe = "H4", technicalScore = 68, rationale = listOf("Retail Strength", "Prime Cycle"), entry = "138.40", invalidation = "134.00"),
-            Signal("GOOGL", timeframe = "D1", technicalScore = 71, rationale = listOf("Ad Rev Upside", "POC Acceptance"), entry = "115.20", invalidation = "112.00"),
-            Signal("TSLA", timeframe = "H4", technicalScore = 63, rationale = listOf("Delivery Guidance", "Short Interest"), entry = "240.00", invalidation = "230.00"),
-
-            // Indexes (5)
-            Signal("SPX", timeframe = "H1", technicalScore = 69, rationale = listOf("Sector Breadth", "Macro Data"), entry = "5050", invalidation = "4980"),
-            Signal("NDX", timeframe = "H1", technicalScore = 72, rationale = listOf("Tech Strength", "Futures Premium"), entry = "17320", invalidation = "17100"),
-            Signal("DJI", timeframe = "D1", technicalScore = 58, rationale = listOf("Blue-chip Rotation", "Dividend Flow"), entry = "35500", invalidation = "35100"),
-            Signal("FTSE", timeframe = "H4", technicalScore = 51, rationale = listOf("Brexit Watch", "Commodity Link"), entry = "7700", invalidation = "7600"),
-            Signal("NIKKEI", timeframe = "H4", technicalScore = 56, rationale = listOf("Yen FX Influence", "Export Data"), entry = "35200", invalidation = "34800")
-        )
-    }
-
-    // Helper: map AssetContext -> allowed group indices
-    fun allowedGroupIndicesFor(ctx: com.asc.markets.state.AssetContext): Set<Int> {
-        return when (ctx) {
-            com.asc.markets.state.AssetContext.FOREX -> setOf(0)
-            com.asc.markets.state.AssetContext.COMMODITIES -> setOf(1)
-            com.asc.markets.state.AssetContext.CRYPTO -> setOf(2)
-            com.asc.markets.state.AssetContext.STOCKS -> setOf(3)
-            com.asc.markets.state.AssetContext.INDICES, com.asc.markets.state.AssetContext.FUTURES -> setOf(4)
-            com.asc.markets.state.AssetContext.ALL -> setOf(0,1,2,3,4)
-            else -> setOf(0,1,2,3,4)
+    // Helper: map AssetContext -> Keywords for filtering (simplified mapping)
+    fun isAssetInContext(asset: String, context: AssetContext): Boolean {
+        val a = asset.uppercase()
+        return when (context) {
+            AssetContext.FOREX -> a.contains("/") || a.length == 6 // e.g. EURUSD or EUR/USD
+            AssetContext.COMMODITIES -> a.contains("XAU") || a.contains("XAG") || a.contains("WTI") || a.contains("BRENT") || a.contains("COPPER")
+            AssetContext.CRYPTO -> a.contains("BTC") || a.contains("ETH") || a.contains("SOL") || a.contains("ADA") || a.contains("XRP")
+            AssetContext.STOCKS -> a.length < 6 && !a.contains("/") // simple heuristic
+            AssetContext.INDICES, AssetContext.FUTURES -> a.contains("SPX") || a.contains("NDX") || a.contains("DJI") || a.contains("FTSE") || a.contains("NIKKEI")
+            AssetContext.ALL -> true
+            else -> true
         }
     }
 
-    // Public provider (simple) — returns filtered signals by asset context.
-    fun provideSignalsForContext(ctx: com.asc.markets.state.AssetContext): List<Signal> {
-        val groups = signals.chunked(5)
-        val allowed = allowedGroupIndicesFor(ctx)
-        return groups.mapIndexedNotNull { idx, grp -> if (allowed.contains(idx)) grp else null }.flatten()
+    val visibleSignals = remember(allSignals, ctx) {
+        if (ctx == AssetContext.ALL) allSignals else allSignals.filter { isAssetInContext(it.asset_1 ?: "", ctx) }
     }
-
-    // Use provider to get signals for current active asset context
-    val visibleSignals = remember(ctx) { provideSignalsForContext(ctx) }
 
     var engineRefreshSeconds by remember { mutableStateOf(300) }
     LaunchedEffect(Unit) {
@@ -118,7 +79,7 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
         }
     }
 
-    var selected by remember { mutableStateOf<Signal?>(null) }
+    var selected by remember { mutableStateOf<FinalDecisionItem?>(null) }
     val scrollState = rememberScrollState()
 
     // Watch scroll and animate header collapse smoothly
@@ -145,22 +106,36 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
                 // pulse icon
                 Box(modifier = Modifier.size(14.dp).background(IndigoAccent, shape = androidx.compose.foundation.shape.RoundedCornerShape(7.dp)))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("Opportunity Awareness Matrix", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                Column {
+                    Text("Opportunity Awareness Matrix", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                    if (aiResponse != null) {
+                        Text("Last updated: ${aiResponse?.last_updated ?: "N/A"}", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    }
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 Text("Engine refresh: ${timeStr(engineRefreshSeconds)}", color = SlateText, fontSize = DashboardFontSizes.valueMedium)
             }
         }
 
-        // Group signals into categories of 5 and label each group on the deep-black background
-        val groupLabels = listOf("Forex Majors", "Commodities", "Crypto Majors", "Stocks", "Indexes")
-        val groups = visibleSignals.chunked(5)
+        // Group signals into categories based on visible signals
+        val categories = listOf("Forex Majors", "Commodities", "Crypto Majors", "Stocks", "Indexes")
+        val groups = listOf(
+            visibleSignals.filter { isAssetInContext(it.asset_1 ?: "", AssetContext.FOREX) },
+            visibleSignals.filter { isAssetInContext(it.asset_1 ?: "", AssetContext.COMMODITIES) },
+            visibleSignals.filter { isAssetInContext(it.asset_1 ?: "", AssetContext.CRYPTO) },
+            visibleSignals.filter { isAssetInContext(it.asset_1 ?: "", AssetContext.STOCKS) },
+            visibleSignals.filter { isAssetInContext(it.asset_1 ?: "", AssetContext.INDICES) }
+        )
+        
         var openGroup by remember { mutableStateOf<Int?>(null) }
 
         groups.forEachIndexed { gi, group ->
-            // category label (on deep black background, not inside InfoBox)
+            if (group.isEmpty()) return@forEachIndexed
+
+            // category label
             Row(modifier = Modifier.fillMaxWidth().clickable { openGroup = gi }.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("›", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, modifier = Modifier.padding(end = 8.dp))
-                Text(groupLabels.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                Text(categories.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
             }
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -171,7 +146,7 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
             chunked.forEach { rowSignals ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     for (s in rowSignals) {
-                        SignalCard(signal = s, modifier = Modifier.weight(1f)) { selected = it }
+                        SignalCard(item = s, modifier = Modifier.weight(1f)) { selected = it }
                     }
                     // fill remaining columns if needed
                     if (rowSignals.size < cols) {
@@ -191,7 +166,7 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
                     Card(modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.86f)) {
                         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(groupLabels.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                                Text(categories.getOrNull(gi) ?: "Group ${gi + 1}", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
                                 Text("Close", color = SlateText, modifier = Modifier.clickable { openGroup = null })
                             }
                             Spacer(modifier = Modifier.height(8.dp))
@@ -203,12 +178,12 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
                                     InfoBox {
                                         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(s.symbol, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
-                                                Text(s.rationale.joinToString(", "), color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                                                Text(s.asset_1 ?: "UNKNOWN", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                                                Text(s.portfolio_decision_reason ?: "No reason provided", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
                                             }
                                             Column(horizontalAlignment = Alignment.End) {
-                                                Text(s.timeframe, color = SlateText, fontSize = DashboardFontSizes.labelLarge)
-                                                Text(s.entry, color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
+                                                Text(s.journal_timestamp?.takeLast(8) ?: "N/A", color = SlateText, fontSize = DashboardFontSizes.labelLarge)
+                                                Text("${s.journal_score?.roundToInt() ?: 0}%", color = Color.White, fontSize = DashboardFontSizes.valueMedium, fontWeight = FontWeight.Black)
                                             }
                                         }
                                     }
@@ -235,16 +210,17 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
 
     // Modal overlay
     if (selected != null) {
-        SignalModal(signal = selected!!) { selected = null }
+        SignalModal(item = selected!!) { selected = null }
     }
 }
 
 @Composable
-private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Signal) -> Unit) {
+private fun SignalCard(item: FinalDecisionItem, modifier: Modifier = Modifier, onTap: (FinalDecisionItem) -> Unit) {
     // Deterministic weighing engine
     val safetyClosed = isSafetyGateClosed()
     val safetyScore = if (safetyClosed) 0 else 100
-    val combined = ((signal.technicalScore * 0.6) + (safetyScore * 0.4)).roundToInt()
+    val technicalScore = (item.journal_score ?: 0.0).toInt()
+    val combined = ((technicalScore * 0.6) + (safetyScore * 0.4)).roundToInt()
     val state = when {
         safetyClosed -> "WAIT"
         combined >= 75 -> "FOCUS"
@@ -253,16 +229,25 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
     }
 
     InfoBox(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxWidth().clickable { onTap(signal) }.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().clickable { onTap(item) }.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // Header
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val stateColor = when (state) { "FOCUS" -> IndigoAccent; "OBSERVE" -> IndigoAccent.copy(alpha = 0.7f); else -> RoseError }
                     Text(state, color = stateColor, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black, modifier = Modifier.padding(end = 8.dp))
-                    Text(signal.symbol, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
+                    Text(item.asset_1 ?: "UNKNOWN", color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Black)
                 }
-                Text(signal.timeframe, color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
+                Text(item.journal_label ?: "H1", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
             }
+
+            // Trend sparkline preview
+            val dirIsBuy = (item.journal_direction?.uppercase() ?: "BUY") == "BUY"
+            MiniSparkline(
+                points = demoSparkline(count = 18, seed = (item.asset_1 ?: "BTC").hashCode(), trendBias = if (dirIsBuy) 0.02f else -0.015f),
+                modifier = Modifier.fillMaxWidth().height(40.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
+                color = if (dirIsBuy) EmeraldSuccess else RoseError,
+                fillColor = if (dirIsBuy) EmeraldSuccess.copy(alpha = 0.08f) else RoseError.copy(alpha = 0.08f)
+            )
 
             // Zones (A / B / C) — condensed institutional view
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -270,20 +255,20 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
                 Column(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)).padding(8.dp)) {
                     Text("Zone A", color = IndigoAccent, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Validated 04:12 UTC", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("Validated ${item.journal_timestamp?.takeLast(8) ?: "N/A"}", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("✓ Order Block", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
-                    Text("✓ Liquidity Sweep", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("✓ ${item.portfolio_deployment_bucket ?: "Surveillance"}", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("✓ ${item.journal_priority ?: "NORMAL"} Priority", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
                 }
 
                 // Zone B: Performance & levels
                 Column(modifier = Modifier.weight(1f).background(Color.White.copy(alpha = 0.02f), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)).padding(8.dp)) {
                     Text("Zone B", color = IndigoAccent, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("ATR: 8 pips", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
-                    Text("VOLUME: ↑ 1.3x", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("RISK: ${item.final_risk_pct ?: 0.0}%", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("SCALE: ${item.final_position_scale ?: 0.0}x", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Support: 1.0835 — Resist: 1.0865", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                    Text("Allocation: $${item.final_risk_amount ?: 0.0}", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
                 }
 
                 // Zone C: Risk & audits
@@ -294,7 +279,7 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
                         Box(modifier = Modifier.size(28.dp).background(RoseError.copy(alpha = 0.06f), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
                             Text("🛡️", fontSize = DashboardFontSizes.emojiIcon)
                         }
-                        Column { Text("Shield: OK", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny); Text("BrainCircuit: Stable", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny) }
+                        Column { Text("Shield: OK", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny); Text("Circuit: ${item.portfolio_decision_label ?: "STABLE"}", color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny) }
                     }
                 }
             }
@@ -302,12 +287,12 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
             // Middle: bias & confidence
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Direction text (no background; color indicates direction)
-                val dirIsBuy = signal.technicalScore >= 60
+                val dirIsBuy = (item.journal_direction?.uppercase() ?: "BUY") == "BUY"
+                val confidence = combined / 100f
                 Text(if (dirIsBuy) "BUY" else "SELL", color = if (dirIsBuy) EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     // Confidence meter
-                    val confidence = combined / 100f
                     val animated = animateFloatAsState(targetValue = confidence, animationSpec = androidx.compose.animation.core.tween(durationMillis = 600, easing = FastOutSlowInEasing)).value
                     Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.06f), shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp))) {
                         Box(modifier = Modifier.fillMaxHeight().width((animated * 100).dp).background(IndigoAccent, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)))
@@ -315,23 +300,33 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
                     Spacer(modifier = Modifier.height(6.dp))
                     Text("Confidence: ${ (confidence * 100).roundToInt()}% — 60% Tech / 40% Safety", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        signal.rationale.forEach { r -> Text("• $r", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel) }
-                    }
+                    Text(item.portfolio_decision_reason ?: "Analyzing market structure confluence...", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
                 }
+                CompactGauge(
+                    value = (confidence * 100).roundToInt(),
+                    color = if (confidence >= 0.7f) EmeraldSuccess else if (confidence >= 0.5f) Color(0xFFF59E0B) else RoseError,
+                    size = 62.dp,
+                    label = "CONF"
+                )
+                CompactGauge(
+                    value = ((1f - confidence) * 100).roundToInt(),
+                    color = if (confidence >= 0.7f) EmeraldSuccess else RoseError,
+                    size = 62.dp,
+                    label = "RISK"
+                )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
             // Bottom: action levels and audit
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column { Text("Entry", color = SlateText, fontSize = DashboardFontSizes.labelMedium); Text(signal.entry, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black) }
-                Column { Text("Invalidation", color = SlateText, fontSize = DashboardFontSizes.labelMedium); Text(signal.invalidation, color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black) }
+                Column { Text("Decision", color = SlateText, fontSize = DashboardFontSizes.labelMedium); Text(item.portfolio_decision_label ?: "WATCH", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black) }
+                Column { Text("Weight", color = SlateText, fontSize = DashboardFontSizes.labelMedium); Text("${item.final_position_scale ?: 1.0}x", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black) }
             }
 
-            Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
+            HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Prop Guard • Intelligence Audit: Monitoring ${signal.timeframe}", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                Text("Prop Guard • Intelligence Audit: Monitoring ${item.asset_1}", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(modifier = Modifier.size(20.dp).background(IndigoAccent.copy(alpha = 0.12f), shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) { Text("🧠", fontSize = DashboardFontSizes.labelSmall) }
                     Box(modifier = Modifier.size(20.dp).background(IndigoAccent.copy(alpha = 0.12f), shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) { Text("🛡️", fontSize = DashboardFontSizes.labelSmall) }
@@ -342,7 +337,7 @@ private fun SignalCard(signal: Signal, modifier: Modifier = Modifier, onTap: (Si
 }
 
 @Composable
-private fun SignalModal(signal: Signal, onClose: () -> Unit) {
+private fun SignalModal(item: FinalDecisionItem, onClose: () -> Unit) {
     // Full-screen overlay with dim and a soft glass watermark
     Surface(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -359,16 +354,21 @@ private fun SignalModal(signal: Signal, onClose: () -> Unit) {
 
                     Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${signal.symbol} — Tactical Overlay", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
+                            Text("${item.asset_1} — Tactical Overlay", color = Color.White, fontSize = DashboardFontSizes.sectionHeaderLarge, fontWeight = FontWeight.Black)
                             Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
                         }
 
                         Text("The Why:", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
-                        Text("Institutional logic: ${signal.rationale.joinToString(", ")}. Model weighs technical confluence and safety clearing to produce actionable awareness.", color = Color.White, fontSize = DashboardFontSizes.labelLarge)
+                        Text("Institutional logic: ${item.portfolio_decision_reason}. Model weighs technical confluence and safety clearing to produce actionable awareness.", color = Color.White, fontSize = DashboardFontSizes.labelLarge)
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Post-Analysis Data", color = SlateText, fontSize = DashboardFontSizes.labelMedium, fontWeight = FontWeight.Black)
-                        Column { Text("• VIX Input: 19.8", color = SlateText); Text("• DXY Beta: +0.42%", color = SlateText); Text("• Retail Alignment: Neutral", color = SlateText) }
+                        Column { 
+                            Text("• Direction: ${item.journal_direction}", color = SlateText)
+                            Text("• Score: ${item.journal_score}", color = SlateText)
+                            Text("• Priority: ${item.journal_priority}", color = SlateText)
+                            Text("• Bucket: ${item.portfolio_deployment_bucket}", color = SlateText)
+                        }
 
                         Spacer(modifier = Modifier.weight(1f))
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {

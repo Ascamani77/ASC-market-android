@@ -35,6 +35,10 @@ import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.screens.dashboard.MiniSparkline
+import com.asc.markets.ui.screens.dashboard.demoSparkline
+import com.asc.markets.ui.screens.dashboard.WinLossDonut
+import com.asc.markets.ui.screens.dashboard.CompactGauge
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.random.Random
@@ -121,22 +125,51 @@ internal fun ExecutionLedgerProtocolIntegrityFooter() {
 internal fun ExecutionMetricsSubheader(metrics: ExecutionMetrics) {
 	Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
 		InfoBox {
-			Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Total Trades", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${metrics.totalTrades}", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+			Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+					Column(modifier = Modifier.weight(1f)) {
+						Text("Total Trades", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("${metrics.totalTrades}", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+					}
+					Column(modifier = Modifier.weight(1f)) {
+						Text("Win Rate", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("${metrics.winRate}%", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+					}
+					Column(modifier = Modifier.weight(1f)) {
+						Text("Profit Factor", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("${String.format("%.2f", metrics.profitFactor)}", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+					}
+					Column(modifier = Modifier.weight(1f)) {
+						Text("Avg Latency", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+						Text("${String.format("%.2f", metrics.latencyAvg)}ms", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+					}
 				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Win Rate", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${metrics.winRate}%", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Profit Factor", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${String.format("%.2f", metrics.profitFactor)}", color = EmeraldSuccess, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
-				}
-				Column(modifier = Modifier.weight(1f)) {
-					Text("Avg Latency", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
-					Text("${String.format("%.2f", metrics.latencyAvg)}ms", color = Color.White, fontSize = DashboardFontSizes.valueLarge, fontWeight = FontWeight.Black)
+				Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+				Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+					val won = (metrics.totalTrades * metrics.winRate / 100).coerceAtLeast(1)
+					val lost = (metrics.totalTrades - won).coerceAtLeast(0)
+					WinLossDonut(won = won, lost = lost, modifier = Modifier.size(100.dp))
+					Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+						Text("Equity Curve Snapshot", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+						MiniSparkline(
+							points = demoSparkline(count = 40, seed = metrics.totalTrades, trendBias = if (metrics.profitFactor > 1.5f) 0.02f else -0.005f),
+							modifier = Modifier.fillMaxWidth().height(70.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(10.dp)),
+							color = if (metrics.profitFactor > 1.5f) EmeraldSuccess else RoseError,
+							fillColor = if (metrics.profitFactor > 1.5f) EmeraldSuccess.copy(alpha = 0.08f) else RoseError.copy(alpha = 0.08f)
+						)
+					}
+					CompactGauge(
+						value = metrics.winRate,
+						modifier = Modifier,
+						color = if (metrics.winRate >= 60) EmeraldSuccess else if (metrics.winRate >= 40) Color(0xFFF59E0B) else RoseError,
+						label = "WIN"
+					)
+					CompactGauge(
+						value = (100 - (metrics.latencyAvg * 12f).toInt()).coerceIn(0, 100),
+						modifier = Modifier,
+						color = if (metrics.latencyAvg <= 2.0f) EmeraldSuccess else if (metrics.latencyAvg <= 5.0f) Color(0xFFF59E0B) else RoseError,
+						label = "LAT"
+					)
 				}
 			}
 		}

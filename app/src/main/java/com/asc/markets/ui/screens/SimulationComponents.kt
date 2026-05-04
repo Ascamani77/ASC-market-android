@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.Trade
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -86,7 +87,7 @@ fun TickerItemV4(pair: String, price: String, dotColor: Color) {
 @Composable
 fun StatCardV3(label: String, value: String, subValue: String? = null, color: Color, drawdownValue: String? = null, isNegativeTrend: Boolean = false) {
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E)),
         modifier = Modifier.fillMaxWidth()
@@ -178,7 +179,7 @@ fun LiveAnalysisChartSectionV3(
     onIndicatorToggle: (String) -> Unit
 ) {
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E)),
         modifier = Modifier.fillMaxWidth()
@@ -319,7 +320,7 @@ fun IndicatorTag(label: String, color: Color, isActive: Boolean = true, onClick:
 @Composable
 fun AIReasoningSectionV4(accentColor: Color) {
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E))
     ) {
@@ -352,35 +353,89 @@ fun AIReasoningSectionV4(accentColor: Color) {
 @Composable
 fun ManualTradeForm(accentColor: Color, onExecute: (type: String, entry: String, sl: String, tp: String) -> Unit) {
     var type by remember { mutableStateOf("BUY") }
+    var asset by remember { mutableStateOf("BTC/USDT") }
     var entry by remember { mutableStateOf("64209.78") }
     var sl by remember { mutableStateOf("63800.00") }
     var tp by remember { mutableStateOf("65500.00") }
+    var lotSize by remember { mutableStateOf("0.1") }
+    
+    // Calculate risk/reward
+    val entryPrice = entry.toDoubleOrNull() ?: 0.0
+    val stopLoss = sl.toDoubleOrNull() ?: 0.0
+    val takeProfit = tp.toDoubleOrNull() ?: 0.0
+    val lots = lotSize.toDoubleOrNull() ?: 0.0
+    
+    val risk = if (type == "BUY") {
+        (entryPrice - stopLoss) * lots * 100
+    } else {
+        (stopLoss - entryPrice) * lots * 100
+    }
+    
+    val reward = if (type == "BUY") {
+        (takeProfit - entryPrice) * lots * 100
+    } else {
+        (entryPrice - takeProfit) * lots * 100
+    }
+    
+    val riskRewardRatio = if (risk > 0) reward / risk else 0.0
 
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("MANUAL TRADE ENTRY", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("MANUAL TRADE ENTRY", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Surface(
+                    color = Color(0xFF18181B),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        asset,
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = { type = "BUY" },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(44.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = if(type == "BUY") Color(0xFF10B981) else Color(0xFF18181B)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("BUY", color = if(type == "BUY") Color.Black else Color.Gray)
+                    Icon(
+                        Icons.Default.TrendingUp,
+                        contentDescription = null,
+                        tint = if(type == "BUY") Color.Black else Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("BUY", color = if(type == "BUY") Color.Black else Color.Gray, fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = { type = "SELL" },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(44.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = if(type == "SELL") Color(0xFFEF4444) else Color(0xFF18181B)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("SELL", color = if(type == "SELL") Color.White else Color.Gray)
+                    Icon(
+                        Icons.Default.TrendingDown,
+                        contentDescription = null,
+                        tint = if(type == "SELL") Color.White else Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("SELL", color = if(type == "SELL") Color.White else Color.Gray, fontWeight = FontWeight.Bold)
                 }
             }
             
@@ -388,19 +443,95 @@ fun ManualTradeForm(accentColor: Color, onExecute: (type: String, entry: String,
             
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TradeInputField("ENTRY", entry, Modifier.weight(1f)) { entry = it }
-                TradeInputField("TP", tp, Modifier.weight(1f)) { tp = it }
-                TradeInputField("SL", sl, Modifier.weight(1f)) { sl = it }
+                TradeInputField("LOT SIZE", lotSize, Modifier.weight(1f)) { lotSize = it }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TradeInputField("TAKE PROFIT", tp, Modifier.weight(1f)) { tp = it }
+                TradeInputField("STOP LOSS", sl, Modifier.weight(1f)) { sl = it }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Risk/Reward Display
+            Surface(
+                color = Color.Black,
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color(0xFF27272A))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("RISK", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "$${String.format("%.2f", risk)}",
+                            color = Color(0xFFEF4444),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(Color(0xFF27272A))
+                    )
+                    
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("REWARD", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "$${String.format("%.2f", reward)}",
+                            color = accentColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(Color(0xFF27272A))
+                    )
+                    
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("R:R RATIO", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "1:${String.format("%.2f", riskRewardRatio)}",
+                            color = if (riskRewardRatio >= 2.0) accentColor else Color(0xFFF59E0B),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             Button(
                 onClick = { onExecute(type, entry, sl, tp) },
-                modifier = Modifier.fillMaxWidth().height(44.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("OPEN SIMULATED POSITION", color = Color.Black, fontWeight = FontWeight.Bold)
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("OPEN SIMULATED POSITION", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -427,7 +558,7 @@ fun TradeInputField(label: String, value: String, modifier: Modifier = Modifier,
 @Composable
 fun EquityCurveSectionV3(accentColor: Color) {
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E))
     ) {
@@ -458,7 +589,7 @@ fun EquityCurveSectionV3(accentColor: Color) {
 @Composable
 fun ConfidenceCalibrationSectionV3() {
     Surface(
-        color = Color(0xFF111111),
+        color = Color.Black,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, Color(0xFF1C1C1E))
     ) {
@@ -482,7 +613,7 @@ fun ConfidenceCalibrationSectionV3() {
                 
                 Surface(
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp),
-                    color = Color(0xFF18181B),
+                    color = Color.Black,
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, Color(0xFF27272A))
                 ) {
@@ -538,7 +669,7 @@ fun ActiveSimulatedTradesSectionV2(accentColor: Color, onNewTrade: () -> Unit) {
 
 @Composable
 fun SimulationControlsSectionV2(engineEnabled: Boolean, onEngineToggle: (Boolean) -> Unit, tradingMode: String, onModeToggle: (String) -> Unit, accentColor: Color) {
-    Surface(color = Color(0xFF111111), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFF1C1C1E))) {
+    Surface(color = Color.Black, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFF1C1C1E))) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("SIMULATION CONTROLS", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(20.dp))
@@ -569,7 +700,7 @@ fun SimulationControlsSectionV2(engineEnabled: Boolean, onEngineToggle: (Boolean
 
 @Composable
 fun RiskManagementSectionV2() {
-    Surface(color = Color(0xFF111111), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFF1C1C1E))) {
+    Surface(color = Color.Black, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFF1C1C1E))) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("RISK MANAGEMENT", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(20.dp))
@@ -601,7 +732,7 @@ fun RiskSliderV2(label: String, value: String, progress: Float, color: Color, hi
             Text(hint, color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color(0xFF1C1C1E), RoundedCornerShape(1.dp))) {
+        Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color(0xFF1C1C1E), RoundedCornerShape(1.dp))) {
             Box(modifier = Modifier.fillMaxWidth(progress).fillMaxHeight().background(color, RoundedCornerShape(1.dp)))
             Box(modifier = Modifier.align(Alignment.CenterStart).offset(x = (300 * progress).dp).size(10.dp).clip(CircleShape).background(color))
         }
@@ -640,27 +771,52 @@ fun TradingModeButton(icon: ImageVector, label: String, isSelected: Boolean, mod
 }
 
 @Composable
-fun RecentHistorySection(onViewAll: () -> Unit = {}) {
+fun RecentHistorySection(onViewAll: () -> Unit = {}, trades: List<Trade> = emptyList()) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("RECENT HISTORY", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Text(
-                text = "VIEW ALL", 
-                color = Color(0xFF10B981), 
-                fontSize = 11.sp, 
-                fontWeight = FontWeight.Bold, 
+                text = "VIEW ALL",
+                color = Color(0xFF10B981),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onViewAll() }
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
         Surface(
-            color = Color(0xFF111111),
+            color = Color.Black,
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Color(0xFF1C1C1E)),
-            modifier = Modifier.fillMaxWidth().height(80.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("No recent trades.", color = Color.DarkGray, fontSize = 12.sp)
+            if (trades.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                    Text("No recent trades.", color = Color.DarkGray, fontSize = 12.sp)
+                }
+            } else {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    trades.take(3).forEach { trade ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White.copy(alpha = 0.035f), RoundedCornerShape(8.dp))
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("${trade.asset} ${trade.type}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Entry ${String.format("%.2f", trade.entryPrice)}", color = Color.Gray, fontSize = 10.sp)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                val pnlColor = if (trade.profitLoss >= 0.0) Color(0xFF10B981) else Color(0xFFEF4444)
+                                Text("${if (trade.profitLoss >= 0.0) "+" else ""}$${String.format("%.2f", trade.profitLoss)}", color = pnlColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("CLOSED", color = Color.Gray, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

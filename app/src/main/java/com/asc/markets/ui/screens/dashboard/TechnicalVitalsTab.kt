@@ -29,6 +29,8 @@ import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.CandlestickChart
 import androidx.compose.foundation.lazy.LazyColumn
 import com.asc.markets.ui.theme.*
+import com.asc.markets.ui.screens.dashboard.MiniSparkline
+import com.asc.markets.ui.screens.dashboard.demoSparkline
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
@@ -327,6 +329,14 @@ fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MiniSparkline(
+                        points = demoSparkline(count = 24, seed = 2024, trendBias = 0.01f),
+                        modifier = Modifier.fillMaxWidth().height(52.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
+                        color = IndigoAccent,
+                        fillColor = IndigoAccent.copy(alpha = 0.08f)
+                    )
 
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
                     Text("Audit • direct uplink: TL-01 • ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)

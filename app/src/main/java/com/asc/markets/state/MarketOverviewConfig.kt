@@ -16,34 +16,34 @@ data class MarketOverviewConfig(
 
 object MarketOverviewConfigs {
     val FOREX = MarketOverviewConfig(
-        primarySentimentLabel = "Risk-On / Risk-Off",
+        primarySentimentLabel = "Timing & Liquidity Convergence",
         metrics = listOf(
             MetricConfig("usd_strength", "USD Strength Index", "usd_strength_index", "0.00"),
             MetricConfig("fx_vol", "FX Volatility (ATR/VIX-FX)", "fx_volatility", "0.00"),
-            MetricConfig("session_liquidity", "Session Liquidity", "session_liquidity", "numeric"),
-            MetricConfig("top_gainer_pair", "Top Gainer Pair", "top_gainer_pair", "pair"),
-            MetricConfig("top_loser_pair", "Top Loser Pair", "top_loser_pair", "pair")
+            MetricConfig("timing_window", "Institutional Dispatch Window", "timing_window", "text"),
+            MetricConfig("liq_gap", "Open Liquidity Gap (SMC)", "liquidity_gap", "numeric"),
+            MetricConfig("accum_sat", "Accumulation Saturation", "accumulation_saturation", "percent")
         ),
         hiddenMetrics = listOf("market_cap", "dominance"),
         explanatoryText = listOf(
-            "FX metrics focus on pair-based volatility and session liquidity.",
-            "USD strength is shown as a weighted index across majors."
+            "FX metrics focus on timing windows and liquidity gap targets.",
+            "Dispatch window signals imminent institutional volatility."
         )
     )
 
     val CRYPTO = MarketOverviewConfig(
-        primarySentimentLabel = "Bullish / Bearish",
+        primarySentimentLabel = "Liquidity Cycles & Accumulation",
         metrics = listOf(
             MetricConfig("total_mcap", "Total Market Cap", "total_market_cap", "currency"),
             MetricConfig("btc_dom", "BTC Dominance", "btc_dominance", "percent"),
             MetricConfig("crypto_vol", "Crypto Volatility Index", "crypto_vol_index", "0.00"),
-            MetricConfig("top_gainer_coin", "Top Gainer Coin", "top_gainer_coin", "asset"),
-            MetricConfig("top_loser_coin", "Top Loser Coin", "top_loser_coin", "asset")
+            MetricConfig("timing_window", "Dispatch Timing", "timing_window", "text"),
+            MetricConfig("onchain_flow", "On-Chain Flow Saturation", "onchain_flow", "percent")
         ),
         hiddenMetrics = emptyList(),
         explanatoryText = listOf(
-            "Crypto view surfaces market cap and dominance metrics for macro lensing.",
-            "On-chain flows and derivative activity inform volatility indicators."
+            "Crypto view surfaces market cap and timing for macro lensing.",
+            "On-chain flows signal accumulation progress before dispatch."
         )
     )
 

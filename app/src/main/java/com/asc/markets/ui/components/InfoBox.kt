@@ -30,6 +30,7 @@ fun InfoBox(
     modifier: Modifier = Modifier,
     height: Dp? = null,
     minHeight: Dp? = null,
+    containerColor: Color = DeepBlack,
     onClick: (() -> Unit)? = null,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(1.dp),
     content: @Composable BoxScope.() -> Unit
@@ -48,7 +49,7 @@ fun InfoBox(
     if (minHeight != null) boxModifier = boxModifier.heightIn(min = minHeight)
 
     Surface(
-        color = DeepBlack,
+        color = containerColor,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
@@ -63,9 +64,9 @@ fun InfoBox(
             } else Modifier
         )
     ) {
-        // Subtle vertical highlight to give the DeepBlack surface a slight "shine"
+        // Subtle vertical highlight to give the surface a slight "shine"
         val shineBrush = Brush.verticalGradient(
-            colors = listOf(DeepBlack.copy(alpha = 0.88f), DeepBlack),
+            colors = listOf(containerColor.copy(alpha = 0.88f), containerColor),
             startY = 0f,
             endY = 400f
         )

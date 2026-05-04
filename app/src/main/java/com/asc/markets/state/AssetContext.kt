@@ -3,6 +3,7 @@ package com.asc.markets.state
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.asc.markets.data.AssetDataCache
 
 enum class AssetContext { ALL, FOREX, CRYPTO, COMMODITIES, INDICES, STOCKS, FUTURES, BONDS }
 
@@ -14,7 +15,7 @@ object AssetContextStore {
     fun setAndInvalidate(ctx: AssetContext) {
         _context.value = ctx
         // Clear any cached asset-scoped data when the active context changes
-        com.asc.markets.data.AssetDataCache.invalidateAll()
+        AssetDataCache.invalidateAll()
     }
     fun get(): AssetContext = _context.value
     fun aiPromptPrefix(): String = when (_context.value) {

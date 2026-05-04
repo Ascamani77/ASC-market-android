@@ -2,15 +2,21 @@ package com.asc.markets.ui.terminal.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.asc.markets.data.ForexPair
+import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.terminal.models.*
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 class ChartViewModel : ViewModel() {
-    private val _activeSymbol = MutableStateFlow("BTCUSD")
+    private val _activeSymbol = MutableStateFlow(
+        MarketDataStore.pairSnapshot("BTC/USDT")?.symbol ?: "BTC/USDT"
+    )
     val activeSymbol: StateFlow<String> = _activeSymbol.asStateFlow()
 
     private val _timeframe = MutableStateFlow("5m")
@@ -61,50 +67,83 @@ class ChartViewModel : ViewModel() {
     private val _candleData = MutableStateFlow<List<Candle>>(emptyList())
     val candleData: StateFlow<List<Candle>> = _candleData.asStateFlow()
 
+    private val _currentPair = MutableStateFlow(
+        MarketDataStore.pairSnapshot(_activeSymbol.value) ?: MarketDataStore.allPairs.value.first()
+    )
+    val currentPair: StateFlow<ForexPair> = _currentPair.asStateFlow()
+
+    private val _priceHistory = MutableStateFlow(MarketDataStore.historySnapshot(_activeSymbol.value))
+    val priceHistory: StateFlow<List<Double>> = _priceHistory.asStateFlow()
+
     init {
-        fetchInitialData()
+        observeMarketData()
+        refreshCandles()
     }
 
-    private fun fetchInitialData() {
+    private fun observeMarketData() {
         viewModelScope.launch {
-            val mockData = mutableListOf<Candle>()
-            var lastClose = 64000.0
-            val now = System.currentTimeMillis()
-            for (i in 0 until 100) {
-                val open = lastClose
-                val high = open + (Math.random() * 100)
-                val low = open - (Math.random() * 100)
-                val close = low + (Math.random() * (high - low))
-                val volume = Math.random() * 1000
-                mockData.add(Candle(
-                    time = now - (100 - i) * 5 * 60 * 1000,
-                    open = open,
-                    high = high,
-                    low = low,
-                    close = close,
-                    volume = volume
-                ))
-                lastClose = close
+            combine(_activeSymbol, MarketDataStore.allPairs, MarketDataStore.priceHistory) { symbol, pairs, histories ->
+                val pair = MarketDataStore.pairSnapshot(symbol) ?: pairs.first()
+                val history = histories[pair.symbol] ?: List(40) { pair.price }
+                pair to history
+            }.collect { (pair, history) ->
+                _currentPair.value = pair
+                _priceHistory.value = history
+                refreshCandles()
             }
-            _candleData.value = calculateRSI(mockData)
-            
-            launch {
-                while (true) {
-                    delay(5000)
-                    val current = _candleData.value.toMutableList()
-                    if (current.isEmpty()) continue
-                    val last = current.last()
-                    val newClose = last.close + (Math.random() * 20 - 10)
-                    val updated = last.copy(
-                        high = Math.max(last.high, newClose),
-                        low = Math.min(last.low, newClose),
-                        close = newClose,
-                        volume = last.volume?.plus(Math.random() * 10)
-                    )
-                    current[current.size - 1] = updated
-                    _candleData.value = calculateRSI(current)
-                }
-            }
+        }
+    }
+
+    private fun refreshCandles() {
+        _candleData.value = calculateRSI(
+            buildCandlesFromHistory(
+                history = _priceHistory.value,
+                timeframe = _timeframe.value,
+                fallbackPrice = _currentPair.value.price
+            )
+        )
+    }
+
+    private fun buildCandlesFromHistory(
+        history: List<Double>,
+        timeframe: String,
+        fallbackPrice: Double
+    ): List<Candle> {
+        val prices = when {
+            history.isNotEmpty() -> history.takeLast(60)
+            fallbackPrice > 0.0 -> List(40) { fallbackPrice }
+            else -> emptyList()
+        }
+
+        if (prices.isEmpty()) {
+            return emptyList()
+        }
+
+        val now = System.currentTimeMillis()
+        val stepMillis = timeframeToMillis(timeframe)
+        return prices.mapIndexed { index, close ->
+            val open = if (index == 0) prices.first() else prices[index - 1]
+            Candle(
+                time = now - ((prices.lastIndex - index).toLong() * stepMillis),
+                open = open,
+                high = max(open, close),
+                low = min(open, close),
+                close = close,
+                volume = 0.0
+            )
+        }
+    }
+
+    private fun timeframeToMillis(timeframe: String): Long {
+        return when (timeframe) {
+            "5m" -> 5 * 60 * 1000L
+            "15m" -> 15 * 60 * 1000L
+            "30m" -> 30 * 60 * 1000L
+            "1h" -> 60 * 60 * 1000L
+            "4h" -> 4 * 60 * 60 * 1000L
+            "D" -> 24 * 60 * 60 * 1000L
+            "W" -> 7 * 24 * 60 * 60 * 1000L
+            else -> 5 * 60 * 1000L
         }
     }
 
@@ -135,13 +174,12 @@ class ChartViewModel : ViewModel() {
     }
 
     fun setSymbol(symbol: String) {
-        _activeSymbol.value = symbol
-        fetchInitialData()
+        _activeSymbol.value = MarketDataStore.pairSnapshot(symbol)?.symbol ?: symbol.uppercase()
     }
 
     fun setTimeframe(tf: String) {
         _timeframe.value = tf
-        fetchInitialData()
+        refreshCandles()
     }
 
     fun setSettings(newSettings: ChartSettings) {

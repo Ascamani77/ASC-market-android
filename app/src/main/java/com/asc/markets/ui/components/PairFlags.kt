@@ -14,46 +14,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.theme.IndigoAccent
+import com.trading.app.components.AssetIcon
+import com.trading.app.models.SymbolInfo
+import java.util.Locale
 
-@Composable
-fun PairFlags(symbol: String, size: Int = 20) {
-    val parts = symbol.split("/")
-    val isSingle = parts.size == 1
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        CurrencyCircle(parts[0], size)
-        if (!isSingle) {
-            Spacer(modifier = Modifier.width((- (size / 2.5)).dp))
-            CurrencyCircle(parts[1], size)
-        }
+fun guessAssetType(symbol: String): String {
+    val s = symbol.uppercase(Locale.US)
+    return when {
+        isCryptoSymbol(s) -> "crypto"
+        s.contains("/") -> "forex"
+        s.startsWith("XAU") || s.startsWith("XAG") || s == "GOLD" || s == "SILVER" || s.contains("OIL") || s == "NGAS" -> "commodity"
+        s.length <= 5 && !s.contains("-") -> "stock"
+        else -> "index"
     }
 }
 
 @Composable
-private fun CurrencyCircle(code: String, size: Int) {
-    val color = when (code.uppercase()) {
-        "USD" -> Color(0xFF1E3A8A)
-        "EUR" -> Color(0xFF1E40AF)
-        "GBP" -> Color(0xFF7C3AED)
-        "JPY" -> Color(0xFFDC2626)
-        "BTC" -> Color(0xFFF59E0B)
-        "XAU" -> Color(0xFFEAB308)
-        else -> Color(0xFF334155)
-    }
+fun PairFlags(symbol: String, size: Int = 20) {
+    val cleanSymbol = cryptoIconTicker(symbol) ?: symbol.replace("/", "")
+    val type = guessAssetType(symbol)
+    val symbolInfo = SymbolInfo(
+        ticker = cleanSymbol,
+        name = symbol,
+        type = type
+    )
+    
+    AssetIcon(symbol = symbolInfo, size = size)
+}
 
-    Box(
-        modifier = Modifier
-            .size(size.dp)
-            .clip(CircleShape)
-            .background(color)
-            .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = code.take(1).uppercase(),
-            color = Color.White,
-            fontSize = (size / 2.5).sp,
-            fontWeight = FontWeight.Black
-        )
+private fun isCryptoSymbol(symbol: String): Boolean {
+    val normalized = symbol.replace("/", "").replace("-", "").replace("_", "")
+    return normalized.startsWith("BTC") ||
+        normalized.startsWith("ETH") ||
+        normalized.startsWith("SOL") ||
+        normalized.startsWith("USDT") ||
+        normalized.endsWith("USDT")
+}
+
+private fun cryptoIconTicker(symbol: String): String? {
+    val normalized = symbol
+        .replace("/", "")
+        .replace("-", "")
+        .replace("_", "")
+        .uppercase(Locale.US)
+    return when {
+        normalized == "BTCUSDT" -> "BTC"
+        normalized == "ETHUSDT" -> "ETH"
+        else -> null
     }
 }

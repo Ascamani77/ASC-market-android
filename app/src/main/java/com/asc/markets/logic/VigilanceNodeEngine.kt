@@ -1,5 +1,8 @@
 package com.asc.markets.logic
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.*
 import kotlin.math.abs
 
@@ -17,7 +20,17 @@ data class VigilanceNode(
     val confirmations: List<String> = emptyList(),
     val environmentContext: String? = null,
     val riskFilters: List<String> = emptyList(),
-    val description: String = ""
+    val description: String = "",
+    // NEW FIELDS
+    val direction: String = "BOTH", // "LONG", "SHORT", "BOTH"
+    val priceLevel: Double? = null,   // For PRICE_THRESHOLD trigger
+    val rsiPeriod: Int = 14,          // RSI period (typically 14)
+    val rsiLevel: Int = 70,           // RSI overbought level (typically 70 for long, 30 for short)
+    val maFastPeriod: Int = 9,        // Fast MA period
+    val maSlowPeriod: Int = 21,       // Slow MA period
+    val regimeFilter: String = "ANY", // "ANY", "TRENDING_BULL", "TRENDING_BEAR", "RANGING", "BREAKOUT"
+    val volatilityFilter: String = "ANY", // "ANY", "EXPANDING", "COMPRESSED", "DEAD"
+    val confluenceThreshold: Int = 0  // Minimum confluence score (0-100), 0 = disabled
 )
 
 data class RejectedPattern(
@@ -30,23 +43,46 @@ data class RejectedPattern(
 object VigilanceNodeEngine {
     private val activeNodes = mutableListOf<VigilanceNode>()
     private val rejectedPatterns = mutableListOf<RejectedPattern>()
+    private val _activeNodeCount = MutableStateFlow(0)
+    val activeNodeCount: StateFlow<Int> = _activeNodeCount.asStateFlow()
     
     /**
-     * Create a Simple Alert (Deterministic)
+     * Create a Simple Alert (Deterministic) with full configuration
      */
     fun createSimpleAlert(
         pair: String,
         trigger: String,  // PRICE_THRESHOLD, RSI_LEVEL, MA_CROSS
         timeframe: String,
-        value: Double? = null
+        direction: String = "BOTH",
+        priceLevel: Double? = null,
+        rsiPeriod: Int = 14,
+        rsiLevel: Int = 70,
+        maFastPeriod: Int = 9,
+        maSlowPeriod: Int = 21,
+        cooldownMinutes: Int = 15
     ): VigilanceNode {
         val id = UUID.randomUUID().toString()
         val baseScore = when (trigger) {
-            "PRICE_THRESHOLD" -> 35
+            "PRICE_THRESHOLD" -> if (priceLevel != null) 45 else 35
             "RSI_LEVEL" -> 45
             "MA_CROSS" -> 50
             "TRENDLINE_BREAK" -> 40
             else -> 40
+        }
+        
+        // Add direction bonus
+        val directionScore = when (direction) {
+            "LONG", "SHORT" -> 5
+            else -> 0
+        }
+        
+        val finalScore = (baseScore + directionScore).coerceIn(0, 100)
+        
+        val description = buildString {
+            append("$trigger")
+            if (direction != "BOTH") append(" [$direction]")
+            if (priceLevel != null) append(" @ $priceLevel")
+            append(" on $pair at $timeframe")
         }
         
         val node = VigilanceNode(
@@ -55,24 +91,37 @@ object VigilanceNodeEngine {
             alertType = "SIMPLE",
             trigger = trigger,
             timeframe = timeframe,
-            confidenceScore = baseScore,
-            strength = "EARLY_STRUCTURE",
-            description = "$trigger on $pair at $timeframe"
+            confidenceScore = finalScore,
+            strength = if (finalScore >= 50) "MEDIUM" else "EARLY_STRUCTURE",
+            description = description,
+            direction = direction,
+            priceLevel = priceLevel,
+            rsiPeriod = rsiPeriod,
+            rsiLevel = rsiLevel,
+            maFastPeriod = maFastPeriod,
+            maSlowPeriod = maSlowPeriod,
+            cooldownMinutes = cooldownMinutes
         )
         
         activeNodes.add(node)
+        _activeNodeCount.value = activeNodes.size
         return node
     }
     
     /**
-     * Create a Smart Alert (5-Step Algorithmic Pipeline)
+     * Create a Smart Alert (5-Step Algorithmic Pipeline) with regime and volatility filters
      */
     fun createSmartAlert(
         pair: String,
         primaryEvent: String,        // e.g., "CHANGE_OF_CHARACTER", "LIQUIDITY_SWEEP"
         confirmations: List<String>, // e.g., ["ENGULFING_CANDLE", "MA_SLOPE"]
         environmentContext: String,  // "HTF_ALIGNMENT", "LONDON_SESSION", etc.
-        riskFilters: List<String>    // e.g., ["NO_NEWS_BLOCKS", "HIGH_LIQUIDITY"]
+        riskFilters: List<String>,  // e.g., ["NO_NEWS_BLOCKS", "HIGH_LIQUIDITY"]
+        direction: String = "BOTH",
+        regimeFilter: String = "ANY",
+        volatilityFilter: String = "ANY",
+        confluenceThreshold: Int = 0,
+        cooldownMinutes: Int = 30
     ): VigilanceNode {
         val id = UUID.randomUUID().toString()
         
@@ -90,6 +139,15 @@ object VigilanceNodeEngine {
         // Environment context bonus
         score += if (environmentContext.isNotEmpty()) 8 else 0
         
+        // Direction bonus
+        if (direction != "BOTH") score += 5
+        
+        // Regime filter bonus (specific regimes add confidence)
+        if (regimeFilter != "ANY") score += 3
+        
+        // Volatility filter bonus
+        if (volatilityFilter == "EXPANDING") score += 5
+        
         // Risk filter impact (can reduce score if violated, but in creation we assume filters pass)
         score = score.coerceIn(0, 100)
         
@@ -101,8 +159,11 @@ object VigilanceNodeEngine {
         
         val description = buildString {
             append("$primaryEvent")
+            if (direction != "BOTH") append(" [$direction]")
             if (confirmations.isNotEmpty()) append(" + ${confirmations.size} confirmations")
             if (environmentContext.isNotEmpty()) append(" | $environmentContext")
+            if (regimeFilter != "ANY") append(" | Regime: $regimeFilter")
+            if (volatilityFilter != "ANY") append(" | Vol: $volatilityFilter")
         }
         
         val node = VigilanceNode(
@@ -116,10 +177,16 @@ object VigilanceNodeEngine {
             confirmations = confirmations,
             environmentContext = environmentContext,
             riskFilters = riskFilters,
-            description = description
+            description = description,
+            direction = direction,
+            regimeFilter = regimeFilter,
+            volatilityFilter = volatilityFilter,
+            confluenceThreshold = confluenceThreshold,
+            cooldownMinutes = cooldownMinutes
         )
         
         activeNodes.add(node)
+        _activeNodeCount.value = activeNodes.size
         return node
     }
     
@@ -150,6 +217,7 @@ object VigilanceNodeEngine {
         )
         
         activeNodes.add(node)
+        _activeNodeCount.value = activeNodes.size
         return node
     }
     
@@ -188,14 +256,33 @@ object VigilanceNodeEngine {
         val node = activeNodes.find { it.id == nodeId } ?: return emptyMap()
         
         return when {
-            node.alertType == "SMART" -> mapOf(
-                "Base Trigger" to 40,
-                "Confirmations" to (node.confirmations.size * 12).coerceAtMost(60),
-                "Environment Context" to if (node.environmentContext?.isNotEmpty() == true) 8 else 0
-            )
-            else -> mapOf(
-                "Trigger Rule" to node.confidenceScore
-            )
+            node.alertType == "SMART" -> {
+                val baseScore = when (node.trigger) {
+                    "CHANGE_OF_CHARACTER" -> 50
+                    "LIQUIDITY_SWEEP" -> 55
+                    "BREAKOUT_STRUCTURE" -> 45
+                    else -> 40
+                }
+                mutableMapOf<String, Int>().apply {
+                    put("Base Trigger", baseScore)
+                    put("Confirmations (${node.confirmations.size}x)", (node.confirmations.size * 12).coerceAtMost(60))
+                    put("Environment Context", if (node.environmentContext?.isNotEmpty() == true) 8 else 0)
+                    put("Direction", if (node.direction != "BOTH") 5 else 0)
+                    put("Regime Filter", if (node.regimeFilter != "ANY") 3 else 0)
+                    put("Volatility Filter", if (node.volatilityFilter == "EXPANDING") 5 else 0)
+                }
+            }
+            else -> mutableMapOf<String, Int>().apply {
+                val baseScore = when (node.trigger) {
+                    "PRICE_THRESHOLD" -> if (node.priceLevel != null) 45 else 35
+                    "RSI_LEVEL" -> 45
+                    "MA_CROSS" -> 50
+                    "TRENDLINE_BREAK" -> 40
+                    else -> 40
+                }
+                put("Trigger Rule", baseScore)
+                put("Direction", if (node.direction != "BOTH") 5 else 0)
+            }
         }
     }
     
@@ -204,6 +291,7 @@ object VigilanceNodeEngine {
     fun getNodeCount(): Int = activeNodes.size
     fun clearNode(nodeId: String) {
         activeNodes.removeAll { it.id == nodeId }
+        _activeNodeCount.value = activeNodes.size
     }
 
     /**

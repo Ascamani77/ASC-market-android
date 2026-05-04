@@ -3,12 +3,21 @@ package com.asc.markets.ui.screens.tradeDashboard.viewmodel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.screens.tradeDashboard.model.*
+import kotlin.math.max
+import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * DashboardViewModel: Central state management for the Trade Dashboard
  */
 class DashboardViewModel {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     // UI States
     var accountInfo by mutableStateOf<AccountInfo?>(null)
         private set
@@ -55,6 +64,7 @@ class DashboardViewModel {
     // Initialize with sample data
     init {
         loadSampleData()
+        observeMarketData()
     }
 
     private fun loadSampleData() {
@@ -181,40 +191,38 @@ class DashboardViewModel {
 
     fun updateSelectedSymbol(symbol: String) { 
         selectedSymbol = symbol
-        
-        // Update currentPrice to match the selected symbol
-        val basePrice = when {
-            symbol.contains("JPY") -> 150.0
-            symbol.contains("XAU") -> 2030.0
-            symbol.contains("US30") -> 39000.0
-            symbol.contains("NAS100") -> 18000.0
-            symbol.startsWith("GBP") -> 1.26
-            else -> 1.08 // EURUSD and others
-        }
 
+        val pair = MarketDataStore.pairSnapshot(symbol)
+        val livePrice = pair?.price ?: fallbackBasePrice(symbol)
+        val spread = computeSpread(livePrice)
         currentPrice = PriceData(
-            symbol = symbol,
-            bid = basePrice + (Math.random() * basePrice * 0.001),
-            ask = basePrice + (Math.random() * basePrice * 0.001) + 0.0002,
-            spread = 1.5,
-            change = (Math.random() * 2) - 1
+            symbol = pair?.symbol?.replace("/", "") ?: symbol,
+            bid = livePrice,
+            ask = livePrice + spread,
+            spread = spread,
+            change = pair?.changePercent ?: 0.0
         )
 
-        // Generate new candle data for the symbol
-        candleData = (1..20).map { i ->
-            val candleBase = basePrice + (Math.random() * basePrice * 0.005)
+        val priceHistory = MarketDataStore.historySnapshot(symbol).ifEmpty { List(20) { livePrice } }.takeLast(20)
+        val step = timeframeToMillis(selectedTimeframe)
+        val now = System.currentTimeMillis()
+        candleData = priceHistory.mapIndexed { index, close ->
+            val open = if (index == 0) priceHistory.first() else priceHistory[index - 1]
             CandleData(
-                time = System.currentTimeMillis() - (i * 3600000),
-                open = candleBase,
-                high = candleBase + (Math.random() * basePrice * 0.002),
-                low = candleBase - (Math.random() * basePrice * 0.002),
-                close = candleBase + (Math.random() * basePrice * 0.001),
+                time = now - ((priceHistory.lastIndex - index).toLong() * step),
+                open = open,
+                high = max(open, close),
+                low = min(open, close),
+                close = close,
                 volume = 100000.0
             )
         }
     }
 
-    fun onTimeframeSelected(timeframe: String) { selectedTimeframe = timeframe }
+    fun onTimeframeSelected(timeframe: String) {
+        selectedTimeframe = timeframe
+        updateSelectedSymbol(selectedSymbol)
+    }
     fun adjustStopLoss(ticketId: String, newSL: Double) {
         positions = positions.map { if (it.ticketId == ticketId) it.copy(sl = newSL) else it }
     }
@@ -222,4 +230,44 @@ class DashboardViewModel {
         positions = positions.map { if (it.ticketId == ticketId) it.copy(tp = newTP) else it }
     }
     fun updateAISettings(settings: AISettings) { aiSettings = settings }
+
+    private fun observeMarketData() {
+        scope.launch {
+            MarketDataStore.allPairs.collect {
+                updateSelectedSymbol(selectedSymbol)
+            }
+        }
+    }
+
+    private fun fallbackBasePrice(symbol: String): Double {
+        return when {
+            symbol.contains("JPY") -> 150.0
+            symbol.contains("XAU") -> 2030.0
+            symbol.contains("US30") -> 39000.0
+            symbol.contains("NAS100") -> 18000.0
+            symbol.startsWith("GBP") -> 1.26
+            else -> 1.08
+        }
+    }
+
+    private fun computeSpread(price: Double): Double {
+        return when {
+            price >= 10_000 -> 1.0
+            price >= 100 -> 0.05
+            price >= 1 -> 0.0002
+            else -> 0.00001
+        }
+    }
+
+    private fun timeframeToMillis(timeframe: String): Long {
+        return when (timeframe) {
+            "M5" -> 5 * 60 * 1000L
+            "M15" -> 15 * 60 * 1000L
+            "M30" -> 30 * 60 * 1000L
+            "H1" -> 60 * 60 * 1000L
+            "H4" -> 4 * 60 * 60 * 1000L
+            "D1" -> 24 * 60 * 60 * 1000L
+            else -> 60 * 60 * 1000L
+        }
+    }
 }

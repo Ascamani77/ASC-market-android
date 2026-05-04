@@ -3,10 +3,11 @@ package com.asc.markets.ui.screens.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -19,9 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 import com.asc.markets.ui.theme.*
 import kotlin.random.Random
 import java.util.Locale
@@ -66,6 +65,8 @@ fun DashboardQuality(viewModel: ForexViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth(),
                     iconRes = R.drawable.lucide_activity,
                     iconTint = IndigoAccent,
+                    progress = 0.764f,
+                    progressColor = IndigoAccent,
                     onTap = { selectedBox = "System Accuracy" }
                 )
 
@@ -76,6 +77,8 @@ fun DashboardQuality(viewModel: ForexViewModel = viewModel()) {
                 modifier = Modifier.fillMaxWidth(),
                 iconRes = R.drawable.lucide_book_open,
                 iconTint = Color.White,
+                progress = 0.842f,
+                progressColor = Color.White,
                 onTap = { selectedBox = "Decision Quality" }
             )
 
@@ -86,6 +89,8 @@ fun DashboardQuality(viewModel: ForexViewModel = viewModel()) {
                 modifier = Modifier.fillMaxWidth(),
                 iconRes = R.drawable.lucide_list_filter,
                 iconTint = Color(0xFFF59E0B), // amber
+                progress = 0.925f,
+                progressColor = Color(0xFFF59E0B),
                 onTap = { selectedBox = "WAIT Effectiveness" }
             )
 
@@ -96,21 +101,33 @@ fun DashboardQuality(viewModel: ForexViewModel = viewModel()) {
                 modifier = Modifier.fillMaxWidth(),
                 iconRes = R.drawable.lucide_binary,
                 iconTint = EmeraldSuccess,
+                progress = 0.981f,
+                progressColor = EmeraldSuccess,
                 onTap = { selectedBox = "Safety Gate" }
             )
 
-            // Automated Node Log with Won/Lost breakdown
+            // Automated Node Log with Won/Lost breakdown + Donut
             val won = Random.nextInt(80, 220)
             val lost = Random.nextInt(20, 120)
-            VitalsSmall(
-                "Automated Node Log",
-                "${won + lost}",
-                "${won} Won / ${lost} Lost",
-                modifier = Modifier.fillMaxWidth(),
-                iconRes = R.drawable.lucide_arrow_left_right,
-                iconTint = IndigoAccent,
-                onTap = { selectedBox = "Auto Node Log" }
-            )
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                VitalsSmall(
+                    "Automated Node Log",
+                    "${won + lost}",
+                    "$won Won / $lost Lost",
+                    modifier = Modifier.fillMaxWidth(),
+                    iconRes = R.drawable.lucide_arrow_left_right,
+                    iconTint = IndigoAccent,
+                    onTap = { selectedBox = "Auto Node Log" }
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    WinLossDonut(won = won, lost = lost, modifier = Modifier.weight(1f).height(140.dp))
+                    MiniSparkline(
+                        points = demoSparkline(count = 30, seed = won, trendBias = 0.02f),
+                        modifier = Modifier.weight(1f).height(140.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(12.dp)),
+                        color = if (won > lost) EmeraldSuccess else RoseError
+                    )
+                }
+            }
         }
 
         // Row 2: Consistency Analyzers — stacked, one per row
@@ -160,6 +177,8 @@ private fun VitalsSmall(
     modifier: Modifier = Modifier,
     iconRes: Int? = null,
     iconTint: Color = Color.Unspecified,
+    progress: Float? = null,
+    progressColor: Color = EmeraldSuccess,
     onTap: () -> Unit
 ) {
     InfoBox(modifier = modifier.clickable { onTap() }) {
@@ -187,7 +206,25 @@ private fun VitalsSmall(
                 Text(value, color = EmeraldSuccess, fontSize = DashboardFontSizes.qualityScore, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
 
-            Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+            // Optional progress indicator for percentage metrics
+            if (progress != null) {
+                val clamped = progress.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(999.dp))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(clamped)
+                            .background(progressColor, RoundedCornerShape(999.dp))
+                    )
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
 
             // description / explanatory text
             Text(
@@ -235,13 +272,15 @@ private fun AreaChartBox(
                 }
                 Text("7d", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
             }
-            // Placeholder for area chart: simple gradient block and summary
-            Box(modifier = Modifier.fillMaxWidth().height(140.dp).background(tint.copy(alpha = 0.08f))) {
-                // simulated spark/value
-                Text("▲ 3.4%", color = EmeraldSuccess, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp), fontFamily = InterFontFamily)
-            }
-            Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
-            Text("Interactive area chart (emerald / indigo gradients)", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+            // Live sparkline preview
+            MiniSparkline(
+                points = demoSparkline(count = 56, seed = title.hashCode(), trendBias = if (title.contains("Equity")) 0.015f else 0.005f),
+                modifier = Modifier.fillMaxWidth().height(140.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(10.dp)),
+                color = tint,
+                fillColor = tint.copy(alpha = 0.10f)
+            )
+            HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+            Text("Live trend preview — tap for full audit", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
         }
     }
 }
@@ -283,9 +322,9 @@ private fun NewsSafetyBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         // track
-                        Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.06f), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))) {
+                        Box(modifier = Modifier.fillMaxWidth().height(8.dp).background(Color.White.copy(alpha = 0.06f), shape = RoundedCornerShape(6.dp))) {
                             // filled portion
-                            Box(modifier = Modifier.fillMaxWidth(pct / 100f).height(8.dp).background(colorFill, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)))
+                            Box(modifier = Modifier.fillMaxWidth(pct / 100f).height(8.dp).background(colorFill, shape = RoundedCornerShape(6.dp)))
                         }
                     }
                 }
@@ -322,7 +361,7 @@ private fun ProofBadgeBox(modifier: Modifier = Modifier, iconRes: Int? = null, i
             Text("Proof of Analysis Badge", color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
             Text("Institutional Proof of Analysis — Deterministic & Auditable", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
             Spacer(modifier = Modifier.height(8.dp))
-            Divider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+            HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Digital Signature Verified", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
                 Text("•", color = EmeraldSuccess, fontSize = DashboardFontSizes.gridHeaderSmall)
@@ -406,4 +445,4 @@ private fun verificationDetailsFor(title: String): Pair<String, List<String>> {
     }
 }
 
-private fun samplePercent(v: Double): String = String.format("%.1f", v)
+private fun samplePercent(v: Double): String = String.format(Locale.US, "%.1f", v)

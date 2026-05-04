@@ -2,11 +2,7 @@ package com.asc.markets.ui.screens.tradeDashboard.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -19,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.asc.markets.ui.screens.tradeDashboard.model.*
 import com.asc.markets.ui.screens.tradeDashboard.ui.components.*
+import com.asc.markets.ui.screens.tradeDashboard.ui.tabs.*
 import com.asc.markets.ui.screens.tradeDashboard.ui.theme.*
 import com.asc.markets.ui.screens.tradeDashboard.viewmodel.DashboardViewModel
 
@@ -29,45 +26,35 @@ fun TradeDashboardApp(
     },
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
-    
-    // Use ViewModel state directly
-    val displayAccount = viewModel.accountInfo
-    val displayPositions = viewModel.positions
-    val displayPrice = viewModel.currentPrice
-    val displayCandles = viewModel.candleData
-    val displayAlerts = viewModel.alerts
-    val displayAdvisory = viewModel.advisory
-    val displayIntel = viewModel.marketIntel
-    val displayCalendar = viewModel.calendarEvents
-    val displayHistory = viewModel.closedPositions
-
+    var selectedTabIndex by remember { mutableStateOf(0) }
     var isSettingsDialogOpen by remember { mutableStateOf(false) }
-    val dividerColor = Color(0xFF151515)
+
+    val tabs = listOf("Market", "Opportunity", "Risk", "Execute", "Explain")
+    val tabColors = listOf(
+        Color(0xFF00C853),      // Market - Green
+        Color(0xFF6366F1),      // Opportunity - Indigo
+        Color(0xFFFF6B6B),      // Risk - Red
+        Color(0xFFFAA61A),      // Execute - Amber
+        Color(0xFF6366F1)       // Explain - Indigo
+    )
 
     Surface(
         modifier = modifier.fillMaxSize(),
         color = Color.Black
     ) {
-        if (viewModel.isLoading && displayAccount == null) {
+        if (viewModel.isLoading && viewModel.accountInfo == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF00C853))
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-            ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header
                 DashboardHeader(
                     symbol = viewModel.selectedSymbol,
                     isConnected = true
                 )
 
-                HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                // Added space between header and first content section
-                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = Color(0xFF151515), thickness = 1.dp)
 
                 // Error Message
                 viewModel.errorMessage?.let { msg ->
@@ -81,112 +68,49 @@ fun TradeDashboardApp(
                     }
                 }
 
-                RiskWarningBanner(
-                    atRiskPositions = displayPositions.filter { it.healthScore < 50 }.map { 
-                        RiskInfo(it, "CRITICAL DRAWDOWN", displayAdvisory ?: AIAdvisory(Bias.NEUTRAL, 0, 0.0, 0.0, RiskLevel.LOW))
-                    }
-                )
-
-                Column(
+                // Tab Navigation
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 48.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                        .background(Color.Black)
+                        .height(48.dp),
+                    containerColor = Color.Black,
+                    contentColor = Color.White,
+                    divider = { HorizontalDivider(color = Color(0xFF151515), thickness = 1.dp) }
                 ) {
-                    // 1. Chart Section
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LIVE MARKET VISUALIZATION",
-                                color = Color(0xFF00C853),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.sp
-                            )
-                        }
-                        CandlestickChart(
-                            data = displayCandles,
-                            symbol = viewModel.selectedSymbol,
-                            timeframe = viewModel.selectedTimeframe,
-                            modifier = Modifier.fillMaxWidth().height(300.dp),
-                            onTimeframeChange = { viewModel.onTimeframeSelected(it) }
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            modifier = Modifier.background(Color.Black),
+                            text = {
+                                Text(
+                                    text = title.uppercase(),
+                                    fontSize = 10.sp,
+                                    fontWeight = if (selectedTabIndex == index) FontWeight.Black else FontWeight.Normal,
+                                    color = if (selectedTabIndex == index) tabColors[index] else Color.Gray
+                                )
+                            }
                         )
                     }
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 2. AI Watch Section
-                    AIWatchPanel(alerts = displayAlerts, modifier = Modifier.fillMaxWidth())
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 3. Custom Monitors Section
-                    CustomAlertsManager(
-                        symbol = viewModel.selectedSymbol,
-                        alerts = emptyList(),
-                        onAddAlert = { alert -> /* handle new CustomAlert */ },
-                        onRemoveAlert = { /* handle remove */ }
-                    )
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 4. Open Positions Section
-                    PositionsTable(
-                        positions = displayPositions,
-                        selectedSymbol = viewModel.selectedSymbol,
-                        onAdjustSL = { ticket, newSL -> viewModel.adjustStopLoss(ticket, newSL) },
-                        onAdjustTP = { ticket, newTP -> viewModel.adjustTakeProfit(ticket, newTP) },
-                        onTradeClick = { viewModel.updateSelectedSymbol(it.symbol) }
-                    )
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 5. Live Quote Section
-                    displayPrice?.let { PriceCard(price = it) }
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 6. Account Overview Section
-                    displayAccount?.let { AccountSummary(account = it) }
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 7. Market Intelligence Section
-                    displayIntel?.let { AIMarketIntelligence(intel = it) }
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 8. AI Advisory Section
-                    displayAdvisory?.let { AIAdvisoryPanel(advisory = it) }
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 9. AI Settings Section
-                    AISettingsPanel(
-                        settings = viewModel.aiSettings,
-                        onSettingsChanged = { viewModel.updateAISettings(it) },
-                        onOpenSettings = { isSettingsDialogOpen = true }
-                    )
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 10. Economic Calendar Section
-                    EconomicCalendar(events = displayCalendar)
-
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-
-                    // 11. History Section
-                    TradeHistoryPanel(history = displayHistory)
                 }
-                
+
+                HorizontalDivider(color = Color(0xFF151515), thickness = 1.dp)
+
+                // Tab Content
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    when (selectedTabIndex) {
+                        0 -> MarketTab(viewModel, Modifier.fillMaxSize())
+                        1 -> OpportunityTab(viewModel, Modifier.fillMaxSize())
+                        2 -> RiskTab(viewModel, Modifier.fillMaxSize())
+                        3 -> ExecutionTab(viewModel, Modifier.fillMaxSize())
+                        4 -> ExplanationTab(viewModel, Modifier.fillMaxSize())
+                    }
+                }
+
                 // Status Bar Footer
+                HorizontalDivider(color = Color(0xFF151515), thickness = 1.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

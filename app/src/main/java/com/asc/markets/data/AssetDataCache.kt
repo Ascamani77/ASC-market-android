@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap
  * This is intentionally tiny and synchronous — replace with app-wide cache manager if needed.
  */
 object AssetDataCache {
+    // In-memory cache for news and explore items
     private val newsCache = ConcurrentHashMap<AssetContext, List<Any>>()
     private val exploreCache = ConcurrentHashMap<AssetContext, List<Any>>()
 

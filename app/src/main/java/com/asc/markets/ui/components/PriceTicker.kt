@@ -11,12 +11,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.MarketDataStore
+import java.util.Locale
 import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.RoseError
 import com.asc.markets.ui.theme.PureBlack
 
 @Composable
 fun PriceTicker() {
+    val pairs by MarketDataStore.allPairs.collectAsState()
+    val tickerPairs = remember(pairs) {
+        pairs.take(8)
+    }
+    if (tickerPairs.isEmpty()) return
+
     val infiniteTransition = rememberInfiniteTransition(label = "ticker")
     val offset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -37,11 +45,14 @@ fun PriceTicker() {
         contentAlignment = Alignment.CenterStart
     ) {
         Row(modifier = Modifier.offset(x = offset.dp)) {
-            repeat(10) {
-                TickerItem("EUR/USD", "1.0845", "+0.11%")
-                TickerItem("BTC/USD", "67,432", "+1.87%")
-                TickerItem("XAU/USD", "2,342", "-0.22%")
-                TickerItem("NAS100", "18,240", "+0.79%")
+            repeat(4) {
+                tickerPairs.forEach { pair ->
+                    TickerItem(
+                        pair = pair.symbol,
+                        price = formatTickerPrice(pair.price),
+                        change = formatTickerChange(pair.changePercent)
+                    )
+                }
             }
         }
     }
@@ -64,4 +75,21 @@ fun TickerItem(pair: String, price: String, change: String) {
             fontWeight = FontWeight.Black
         )
     }
+}
+
+private fun formatTickerPrice(price: Double): String {
+    return when {
+        price >= 1000 -> String.format(Locale.US, "%,.2f", price)
+        price >= 1 -> String.format(Locale.US, "%.4f", price)
+        else -> String.format(Locale.US, "%.6f", price)
+    }
+}
+
+private fun formatTickerChange(changePercent: Double): String {
+    return String.format(
+        Locale.US,
+        "%s%.2f%%",
+        if (changePercent >= 0.0) "+" else "",
+        changePercent
+    )
 }

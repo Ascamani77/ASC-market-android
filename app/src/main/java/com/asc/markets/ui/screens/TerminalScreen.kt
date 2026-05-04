@@ -42,10 +42,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ChatMessage
+import com.asc.markets.data.ForexPair
+import com.asc.markets.data.MarketDataStore
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.ui.screens.dashboard.OrderBookMirror
 import com.asc.markets.ui.theme.*
 import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.backend.SurveillanceStateManager
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,6 +62,8 @@ fun TerminalScreen(viewModel: ForexViewModel) {
     val logs by viewModel.terminalLogs.collectAsState()
     val isArmed by viewModel.isArmed.collectAsState()
     val activeAlgo by viewModel.activeAlgo.collectAsState()
+    val allPairs by MarketDataStore.allPairs.collectAsState()
+    val selectedPair = allPairs.firstOrNull() ?: ForexPair("BTC/USD", "Bitcoin", 29481.3, 0.0, 0.0)
     var input by remember { mutableStateOf("") }
     var pasteBlocked by remember { mutableStateOf(false) }
     fun isSuspectedApiKey(s: String): Boolean {
@@ -71,6 +78,20 @@ fun TerminalScreen(viewModel: ForexViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
+        // Order Book Section (Design 1 - Full Order Book with Cumulative Depth)
+        Surface(
+            color = PureBlack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .padding(12.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder)
+        ) {
+            OrderBookMirror(selectedPair = selectedPair, modifier = Modifier.fillMaxSize())
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
         // Status Bar Parity
         Surface(
             color = Color.Black,

@@ -29,7 +29,7 @@ object Constants {
     val RSS_FEEDS = mapOf(
         "calendar" to listOf(
             "https://www.ismworld.org/events/conferences-and-events/upcoming-events/",
-            "https://www.ons.gov.uk/releasecalendar?rss&highlight=true&limit=10&page=1&release-type=type-upcoming&sort=date-newest",
+            "https://www.forexlive.com/feed",
             "https://www.myfxbook.com/rss/forex-economic-calendar-events",
             "https://www.abs.gov.au/rss/abs_future_releases.xml"
         ),
@@ -65,10 +65,10 @@ object Constants {
             "https://www.esma.europa.eu/rss.xml"
         ),
         "macro" to listOf(
+            "https://www.reutersagency.com/feed/?best-topics=business&format=xml",
+            "https://www.fxstreet.com/rss/news",
+            "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839069",
             "https://www.wto.org/english/news_e/news_e.rss",
-            "https://www.weforum.org/agenda/feed/",
-            "https://www.bls.gov/feed/metro.rss",
-            "https://apps.bea.gov/rss/rss.xml",
             "https://www.oecd.org/newsroom/rss.xml",
             "https://www.worldbank.org/en/news/all?feed=rss",
             "https://www.imf.org/en/News/RSS",

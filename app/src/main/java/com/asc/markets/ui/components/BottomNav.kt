@@ -29,6 +29,8 @@ import com.asc.markets.data.AppView
 import com.asc.markets.ui.theme.PureBlack
 import androidx.compose.foundation.Canvas
 
+val AppBottomNavHeight = 65.dp
+
 /**
  * Institutional Bottom Navigation
  * Replicates the provided design image exactly:
@@ -48,7 +50,7 @@ fun NotchedBottomNav(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(65.dp),
+            .height(AppBottomNavHeight),
         color = PureBlack,
         tonalElevation = 0.dp
     ) {
@@ -114,13 +116,13 @@ fun NotchedBottomNav(
                 }
             }
 
-            // 4. STREAM (Institutional Chart Icon - Navigates to Calendar per user request)
+            // 4. STREAM (Institutional Chart Icon)
             NavItemContent(
                 label = "Stream",
-                isActive = currentView == AppView.CALENDAR,
+                isActive = currentView == AppView.STREAM,
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigate(AppView.CALENDAR)
+                    onNavigate(AppView.STREAM)
                 }
             ) { color ->
                 Icon(

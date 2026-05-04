@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.terminal.theme.*
 
 @Composable
@@ -28,17 +29,23 @@ fun SymbolSearchModal(
     if (!isOpen) return
 
     var query by remember { mutableStateOf("") }
-    
-    val symbols = listOf(
-        SymbolItem("BTCUSD", "Bitcoin / U.S. Dollar", "BINANCE", "crypto", "Watchlist"),
-        SymbolItem("ETHUSD", "Ethereum / U.S. Dollar", "BINANCE", "crypto", "Watchlist"),
-        SymbolItem("SOLUSD", "Solana / U.S. Dollar", "BINANCE", "crypto", "Watchlist"),
-        SymbolItem("EURUSD", "Euro / U.S. Dollar", "FXCM", "forex", "FOREX"),
-        SymbolItem("GBPUSD", "British Pound / U.S. Dollar", "FXCM", "forex", "FOREX"),
-        SymbolItem("AAPL", "Apple Inc", "NASDAQ", "stock", "STOCKS"),
-        SymbolItem("TSLA", "Tesla, Inc.", "NASDAQ", "stock", "STOCKS"),
-        SymbolItem("XAUUSD", "Gold / U.S. Dollar", "TVC", "commodity", "FUTURES")
-    ).filter { it.ticker.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true) }
+    val pairs by MarketDataStore.allPairs.collectAsState()
+    val symbols = remember(pairs, query) {
+        pairs
+            .map { pair ->
+                SymbolItem(
+                    ticker = pair.symbol,
+                    name = pair.name,
+                    exchange = exchangeFor(pair.symbol),
+                    type = pair.category.name.lowercase(),
+                    category = pair.category.name
+                )
+            }
+            .filter {
+                it.ticker.contains(query, ignoreCase = true) ||
+                    it.name.contains(query, ignoreCase = true)
+            }
+    }
 
     Dialog(onDismissRequest = onClose) {
         Surface(
@@ -101,6 +108,14 @@ fun SymbolSearchModal(
 }
 
 data class SymbolItem(val ticker: String, val name: String, val exchange: String, val type: String, val category: String)
+
+private fun exchangeFor(symbol: String): String {
+    return when {
+        symbol.endsWith("/USDT") || symbol.endsWith("/USD") -> "BINANCE"
+        symbol.contains("/") -> "FX"
+        else -> "MARKET"
+    }
+}
 
 @Composable
 private fun SymbolListItem(item: SymbolItem, onClick: () -> Unit) {

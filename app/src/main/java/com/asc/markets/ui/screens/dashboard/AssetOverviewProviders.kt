@@ -133,7 +133,7 @@ fun getExploreItemsForContext(ctx: com.asc.markets.state.AssetContext): List<For
     com.asc.markets.state.AssetContext.STOCKS -> provideStocksExplore()
     com.asc.markets.state.AssetContext.FUTURES -> provideFuturesExplore()
     com.asc.markets.state.AssetContext.BONDS -> provideBondsExplore()
-    com.asc.markets.state.AssetContext.ALL -> provideForexExplore()
+    com.asc.markets.state.AssetContext.ALL -> provideAllExplore()
 }
 
 // Concrete explore providers (previously located in MarketOverviewTab.kt).
@@ -150,4 +150,24 @@ fun provideBondsExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.fi
 
 fun provideStocksExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.STOCK }
 
-fun provideFuturesExplore(): List<ForexPair> = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.FUTURES }
+fun provideFuturesExplore(): List<ForexPair> {
+    val liveFutures = com.asc.markets.data.FOREX_PAIRS.filter { it.category == com.asc.markets.data.MarketCategory.FUTURES }
+    if (liveFutures.isNotEmpty()) return liveFutures
+
+    return listOf(
+        ForexPair("ES1!", "E-mini S&P 500", 5218.25, 14.50, 0.28, com.asc.markets.data.MarketCategory.FUTURES),
+        ForexPair("NQ1!", "Nasdaq 100 E-mini", 18322.75, 96.25, 0.53, com.asc.markets.data.MarketCategory.FUTURES),
+        ForexPair("CL1!", "Crude Oil Futures", 81.74, -0.84, -1.02, com.asc.markets.data.MarketCategory.FUTURES),
+        ForexPair("GC1!", "Gold Futures", 2351.80, 11.20, 0.48, com.asc.markets.data.MarketCategory.FUTURES)
+    )
+}
+
+fun provideAllExplore(): List<ForexPair> = buildList {
+    addAll(provideStocksExplore())
+    addAll(provideCryptoExplore())
+    addAll(provideForexExplore())
+    addAll(provideCommoditiesExplore())
+    addAll(provideIndicesExplore())
+    addAll(provideBondsExplore())
+    addAll(provideFuturesExplore())
+}

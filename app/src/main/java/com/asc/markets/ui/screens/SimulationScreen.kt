@@ -20,166 +20,220 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.data.Trade
+import com.asc.markets.logic.PriceStreamManager
+import com.trading.app.data.PaperTradingSnapshotStore
 import java.util.*
 
 @Composable
 fun SimulationScreen(viewModel: ForexViewModel) {
-    val backgroundColor = Color(0xFF09090B)
+    NewAISimulationScreen(viewModel = viewModel)
+}
+
+@Composable
+fun MySimulationScreen(viewModel: ForexViewModel) {
+    SimulationRouteScreen(
+        viewModel = viewModel,
+        pageMode = SimulationPageMode.MY
+    )
+}
+
+@Composable
+private fun SimulationRouteScreen(
+    viewModel: ForexViewModel,
+    pageMode: SimulationPageMode
+) {
+    val backgroundColor = Color.Black
     val accentColor = Color(0xFF10B981)
     
     var selectedTab by remember { mutableStateOf("DASHBOARD") }
     var engineEnabled by remember { mutableStateOf(false) }
     var tradingMode by remember { mutableStateOf("prompt") } // "auto" or "prompt"
+    var chartExpanded by remember { mutableStateOf(false) }
+    val simulationChartState = rememberEmbeddedSimulationChartState(symbol = "BTCUSD", timeframe = "1d")
     
     // Core state management for Simulation
-    val trades = remember { mutableStateListOf<Trade>() }
-    
+    val openTrades = remember { mutableStateListOf<Trade>() }
+    val closedTrades = remember { mutableStateListOf<Trade>() }
+    var exportStatus by remember { mutableStateOf<String?>(null) }
+    val snapshot = PaperTradingSnapshotStore.snapshot
+
     val listState = rememberLazyListState()
     val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState()
 
-    // Sync header visibility state with scroll
-    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-        val isAtTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 100
-        viewModel.setGlobalHeaderVisible(isAtTop)
+    // Sync header visibility state with scroll AND chart expansion
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, chartExpanded) {
+        if (chartExpanded) {
+            viewModel.setGlobalHeaderVisible(false)
+        } else {
+            val isAtTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 100
+            viewModel.setGlobalHeaderVisible(isAtTop)
+        }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-    ) {
-        // Main Header (Tabs) - Animated visibility
-        AnimatedVisibility(
-            visible = headerVisible,
-            enter = expandVertically() + fadeIn() + slideInVertically(initialOffsetY = { -it }),
-            exit = shrinkVertically() + fadeOut() + slideOutVertically(targetOffsetY = { -it })
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-            ) {
-                listOf("DASHBOARD", "BRAIN AUDIT", "HISTORY").forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    Surface(
-                        onClick = { selectedTab = tab },
-                        color = if (isSelected) Color(0xFF1D1D1F) else Color.Transparent,
-                        shape = RoundedCornerShape(12.dp),
-                        border = if (!isSelected) BorderStroke(1.dp, Color(0xFF1C1C1E)) else null
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            BadgedBox(
-                                badge = {
-                                    if (tab == "HISTORY" && trades.isNotEmpty()) {
-                                        Badge(containerColor = accentColor) {
-                                            Text(trades.size.toString(), color = Color.Black)
-                                        }
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = when(tab) {
-                                        "DASHBOARD" -> Icons.Default.GridView
-                                        "BRAIN AUDIT" -> Icons.Default.Psychology
-                                        else -> Icons.Default.History
-                                    },
-                                    contentDescription = null,
-                                    tint = if (isSelected) Color.White else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
-                                )
+    Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
+        if (chartExpanded) {
+            // FULL SCREEN CHART OVERLAY - No headers, no nav, just chart
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                // Full chart
+                Box(modifier = Modifier.fillMaxSize()) {
+                    com.trading.app.components.TradingChart2(
+                        symbol = simulationChartState.symbol,
+                        timeframe = simulationChartState.timeframe,
+                        style = simulationChartState.chartStyle,
+                        chartSettings = simulationChartState.chartSettings,
+                        drawings = simulationChartState.drawings,
+                        onDrawingUpdate = { updatedDrawing ->
+                            val existingIndex = simulationChartState.drawings.indexOfFirst { it.id == updatedDrawing.id }
+                            if (existingIndex >= 0) {
+                                simulationChartState.drawings[existingIndex] = updatedDrawing
+                            } else {
+                                simulationChartState.drawings.add(updatedDrawing)
                             }
+                        },
+                        activeTool = "cursor",
+                        onToolReset = {},
+                        showVolume = true,
+                        showVolumeMa = false,
+                        isLocked = false,
+                        isVisible = true,
+                        selectedCurrency = "USD",
+                        onCurrencyClick = {},
+                        onLongPress = { simulationChartState.showSettingsSheet = true },
+                        onSettingsClick = { simulationChartState.showSettingsSheet = true },
+                        selectedTimeZone = "UTC",
+                        positions = simulationChartState.positions,
+                        onPositionUpdate = {},
+                        onPositionDelete = {},
+                        selectedIndicatorId = simulationChartState.selectedIndicatorId,
+                        onSelectedIndicatorIdChange = { simulationChartState.selectedIndicatorId = it }
+                    )
+                }
+
+                // Footer / Info bar pinned to bottom (Stream page style)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                    color = Color.Black.copy(alpha = 0.8f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(accentColor)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = simulationChartState.symbol,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = tab,
-                                color = if (isSelected) Color.White else Color.Gray,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "1D • REAL-TIME FEED",
+                                color = Color.Gray,
+                                fontSize = 11.sp
+                            )
+                        }
+                        IconButton(onClick = { chartExpanded = false }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
                 }
             }
-        }
-
-        // Subheader (Sticky)
-        Surface(
-            color = backgroundColor,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Subheader (Sticky)
+                Surface(
+                    color = backgroundColor,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = Color(0xFF142921).copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.2f))
+                    Column(modifier = Modifier.padding(horizontal = 0.dp, vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Wifi, contentDescription = null, tint = accentColor, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("LIVE FEED", color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        Surface(
-                            color = Color(0xFF18181B),
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color(0xFF27272A))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(if(engineEnabled) accentColor else Color.Gray))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(if(engineEnabled) "Engine Active" else "Engine Idle", color = Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            }
-                        }
-                    }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val feedColor = if (snapshot.isConnected) accentColor else Color(0xFFEF4444)
+                                val feedText = if (snapshot.isConnected) "LIVE" else "OFFLINE"
+                                Surface(
+                                    color = if (snapshot.isConnected) Color(0xFF142921).copy(alpha = 0.5f) else Color(0xFF2C0B0C).copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, if (snapshot.isConnected) Color(0xFF10B981).copy(alpha = 0.2f) else Color(0xFFEF4444).copy(alpha = 0.2f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Wifi, contentDescription = null, tint = feedColor, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("FEED $feedText", color = feedColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("BALANCE: ", color = Color.Gray, fontSize = 13.sp)
-                        Text("$10,000.00", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Surface(
+                                    color = Color(0xFF18181B),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF27272A))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(if(engineEnabled) accentColor else Color.Gray))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(if(engineEnabled) "Engine Active" else "Engine Idle", color = Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                            }
+
+                        }
                     }
                 }
-            }
-        }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            when (selectedTab) {
-                "DASHBOARD" -> {
-                    item { MarketTickerHeaderV4() }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
                     item {
                         SimulationDashboardContent(
+                            pageMode = pageMode,
                             accentColor = accentColor,
                             engineEnabled = engineEnabled,
                             onEngineToggle = { engineEnabled = it },
                             tradingMode = tradingMode,
                             onModeToggle = { tradingMode = it },
+                            isChartExpanded = chartExpanded,
+                            onExpandToggle = { chartExpanded = it },
+                            chartState = simulationChartState,
+                            openTrades = openTrades.toList(),
+                            closedTrades = closedTrades.toList(),
                             onExecuteManualTrade = { type, entry, sl, tp ->
                                 val entryP = entry.toDoubleOrNull() ?: 0.0
                                 val tpP = tp.toDoubleOrNull() ?: 0.0
                                 val slP = sl.toDoubleOrNull() ?: 0.0
                                 val profitLoss = if (type == "BUY") (tpP - entryP) * 100 else (entryP - tpP) * 100
-                                
-                                trades.add(0, Trade(
+
+                                openTrades.add(0, Trade(
                                     id = UUID.randomUUID().toString().take(8).uppercase(),
                                     asset = "BTC/USDT",
                                     type = type,
@@ -190,15 +244,39 @@ fun SimulationScreen(viewModel: ForexViewModel) {
                                     timestamp = System.currentTimeMillis()
                                 ))
                             },
-                            onViewAllHistory = { selectedTab = "HISTORY" }
+                            onCloseAllTrades = {
+                                closedTrades.addAll(0, openTrades.toList())
+                                openTrades.clear()
+                            },
+                            onCloseProfitableTrades = {
+                                val currentPrice = PriceStreamManager.priceUpdates.value["BTC/USDT"]
+                                    ?: PriceStreamManager.priceUpdates.value["BTC/USD"]
+                                    ?: PriceStreamManager.priceUpdates.value["BTCUSDT"]
+                                    ?: PriceStreamManager.priceUpdates.value["BTCUSD"]
+                                val profitable = openTrades.filter { trade ->
+                                    val direction = if (trade.type.equals("BUY", ignoreCase = true)) 1.0 else -1.0
+                                    val pnl = (currentPrice ?: trade.entryPrice - trade.entryPrice) * direction
+                                    pnl > 0.0
+                                }
+                                closedTrades.addAll(0, profitable)
+                                openTrades.removeAll { it in profitable }
+                            },
+                            onResetSimulation = {
+                                openTrades.clear()
+                                closedTrades.clear()
+                                exportStatus = null
+                            },
+                            onExportPerformance = {
+                                val allTrades = openTrades + closedTrades
+                                val totalPnl = closedTrades.sumOf { it.profitLoss }
+                                val wins = closedTrades.count { it.profitLoss > 0.0 }
+                                val winRate = if (closedTrades.isNotEmpty()) (wins.toDouble() / closedTrades.size * 100.0) else 0.0
+                                exportStatus = "Exported: ${allTrades.size} trades, PnL: $${String.format("%.2f", totalPnl)}, Win Rate: ${String.format("%.1f%%", winRate)}"
+                            },
+                            exportStatus = exportStatus,
+                            onViewAllHistory = { }
                         )
                     }
-                }
-                "BRAIN AUDIT" -> {
-                    item { SimulationBrainAuditContent() }
-                }
-                "HISTORY" -> {
-                    item { SimulationHistoryContent(trades = trades, onBack = { selectedTab = "DASHBOARD" }) }
                 }
             }
         }

@@ -5,13 +5,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 enum class AppView {
-    DASHBOARD, MARKET_WATCH, MARKETS, MACRO_STREAM, INTELLIGENCE_STREAM, CHAT, ALERTS, NOTIFICATIONS,
-    HOME_ALERTS,
-    NEWS, CALENDAR, SENTIMENT, EDUCATION, PROFILE, SETTINGS,
+    DASHBOARD, MARKET_WATCH, MARKETS, INTELLIGENCE_STREAM, CHAT, ALERTS, NOTIFICATIONS,
+    HOME_ALERTS, MY_ALERTS,
+    NEWS, CALENDAR, STREAM, MACRO_STREAM, SENTIMENT, EDUCATION, PROFILE, SETTINGS,
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
-    POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW
-    , TRADE_DASHBOARD, SIDEBAR_PAGE, WATCHLIST, SIMULATION
+    POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW,
+    TRADE_DASHBOARD, SIDEBAR_PAGE, WATCHLIST, SIMULATION, MY_SIMULATION, AI_TERMINAL,
+    PAPER_TRADING, QUOTES
 }
 
 data class ForexPair(
@@ -148,7 +149,7 @@ data class TransitionTrigger(
 
 enum class MacroEventStatus { UPCOMING, CONFIRMED }
 
-enum class ImpactPriority { CRITICAL, HIGH, MEDIUM }
+enum class ImpactPriority { CRITICAL, HIGH, MEDIUM, LOW }
 
 data class MacroEvent(
     val id: String = UUID.randomUUID().toString(),
@@ -212,7 +213,10 @@ data class AuditRecord(
     val reasoning: String = "",
     val nodeId: String = "L14-UK",
     val integrityHash: String = "",
-    var audited: Boolean = false
+    var audited: Boolean = false,
+    val direction: String? = null,
+    val riskPct: Double? = null,
+    val deploymentLabel: String? = null
 )
 
 /**
@@ -287,5 +291,11 @@ data class WatchlistItem(
     val preMoveSignal: String,
     val volatilityScore: Int,
     val triggerEvent: String = "",
-    val timeToEvent: String = ""
+    val timeToEvent: String = "",
+    val price: Double = 0.0,
+    val changePercent: Double = 0.0,
+    val category: MarketCategory = MarketCategory.FOREX,
+    val rationale: String = "",
+    val isNew: Boolean = false,
+    val addedAt: Long = System.currentTimeMillis()
 )

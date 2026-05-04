@@ -3,8 +3,8 @@ package com.asc.markets.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Global Body Calibration: Deep Charcoal Gray (#121212)
-val DeepBlack = Color(0xFF121212)
+// Global Body Calibration: #000000
+val DeepBlack = Color(0xFF000000)
 // Component Surface Calibration: #000000
 val PureBlack = Color(0xFF000000)
 // Active sidebar highlight

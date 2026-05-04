@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trading Chart Host</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #0b1220;
+            color: #c9d1d9;
+        }
+
+        #chartRoot {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #priceChart {
+            width: 100%;
+            flex: 0 0 75%;
+        }
+
+        #rsiChart {
+            width: 100%;
+            flex: 0 0 25%;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- lightweight-charts standalone build from unpkg CDN. Replace with local copy if desired. -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+    <!-- Keep minimal DOM; the JS builder will create or reuse elements as needed. -->
+    <div id="chartRoot">
+        <div id="priceChart"></div>
+        <div id="rsiChart"></div>
+    </div>
+
+    <script>
+        // Expose a small readiness flag so Kotlin can poll or immediately run scripts
+        window.__lightweightChartsReady = !!(window.LightweightCharts || window.lightweightCharts || window.LightweightChart);
+        if (!window.__lightweightChartsReady) {
+            window.addEventListener('load', function () {
+                window.__lightweightChartsReady = !!(window.LightweightCharts || window.lightweightCharts || window.LightweightChart);
+            });
+        }
+    </script>
+</body>
+
+</html>

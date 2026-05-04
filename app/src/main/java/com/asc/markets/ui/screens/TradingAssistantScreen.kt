@@ -17,12 +17,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.ui.screens.dashboard.OrderBookMirror
 import com.asc.markets.ui.theme.*
 
 @Composable
 fun TradingAssistantScreen(viewModel: ForexViewModel) {
     val logs by viewModel.terminalLogs.collectAsState()
     val isArmed by viewModel.isArmed.collectAsState()
+    val selectedPair by viewModel.selectedPair.collectAsState()
     var input by remember { mutableStateOf("") }
     var pasteBlocked by remember { mutableStateOf(false) }
     fun isSuspectedApiKey(s: String): Boolean {
@@ -55,6 +57,17 @@ fun TradingAssistantScreen(viewModel: ForexViewModel) {
                 }
                 Text("MODE: ASSISTANT_v4.2", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
+        }
+
+        // Tactical Order Book (Mirror View)
+        selectedPair?.let { pair ->
+            OrderBookMirror(
+                selectedPair = pair,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 380.dp)
+                    .border(1.dp, HairlineBorder)
+            )
         }
 
         LazyColumn(

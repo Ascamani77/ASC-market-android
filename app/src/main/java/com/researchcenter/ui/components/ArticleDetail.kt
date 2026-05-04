@@ -47,7 +47,7 @@ fun ArticleDetail(
             TopAppBar(
                 title = {
                     Text(
-                        "Macro Intelligence",
+                        "Raw Feed",
                         color = White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold

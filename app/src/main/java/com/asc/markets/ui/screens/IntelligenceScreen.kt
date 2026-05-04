@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,103 +50,68 @@ fun IntelligenceDashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val watchlist by viewModel.watchlist.collectAsState()
     
-    var selectedAsset by remember { mutableStateOf("ALL") }
-    var searchQuery by remember { mutableStateOf("") }
+    var selectedAsset by remember { mutableStateOf("All") }
     val focusManager = LocalFocusManager.current
+    val listState = rememberLazyListState()
+
+    val collapseRange = 150f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            (absoluteScroll / collapseRange).coerceIn(0f, 1f)
+        }
+    }
+
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
 
     Surface(
-        modifier = Modifier.fillMaxSize().clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { focusManager.clearFocus() },
+        modifier = Modifier.fillMaxSize(),
         color = DeepBlack
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header Section matching reference image
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "INTELLIGENCE FEED", 
-                    color = SlateText, 
-                    fontSize = 11.sp, 
-                    fontWeight = FontWeight.Black, 
-                    letterSpacing = 2.sp, 
-                    fontFamily = InterFontFamily
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Asset filter tabs
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val assets = listOf("ALL", "MACRO", "FOREX", "STOCK", "COMMODITY")
-                    assets.forEach { asset ->
-                        FilterTab(
-                            label = asset,
-                            isSelected = selectedAsset == asset,
-                            onClick = { selectedAsset = asset }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Search bar
-                val searchInteractionSource = remember { MutableInteractionSource() }
-                val isSearchFocused = searchInteractionSource.collectIsFocusedAsState().value
-                
-                Surface(
-                    color = Color.DarkGray.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Refactored Tab Bar matching Market screen style
+            Surface(
+                color = Color(0xFF141414),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    val assets = listOf("All", "Macro", "Forex", "Stock", "Commodity")
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(26.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = SlateText,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontFamily = InterFontFamily
-                            ),
-                            cursorBrush = SolidColor(Color.White),
-                            interactionSource = searchInteractionSource,
-                            decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty() && !isSearchFocused) {
-                                    Text(
-                                        "SEARCH ASSETS OR INSTRUMENTS",
-                                        color = SlateText,
-                                        fontSize = 11.sp,
-                                        fontFamily = InterFontFamily
-                                    )
-                                }
-                                innerTextField()
+                        items(assets) { asset ->
+                            val isSelected = selectedAsset == asset
+                            Column(
+                                modifier = Modifier
+                                    .width(IntrinsicSize.Max)
+                                    .clickable { selectedAsset = asset }
+                                    .padding(top = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = asset,
+                                    color = if (isSelected) Color.White else Color(0xFF8E8E8E),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = InterFontFamily
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                // Bold white indicator
+                                Box(
+                                    modifier = Modifier
+                                        .height(3.dp)
+                                        .fillMaxWidth()
+                                        .background(if (isSelected) Color.White else Color.Transparent)
+                                )
                             }
-                        )
-                        
-                        if (searchQuery.isNotEmpty()) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Clear search",
-                                tint = SlateText,
-                                modifier = Modifier.size(18.dp).clickable { searchQuery = "" }
-                            )
                         }
                     }
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
                 }
             }
 
@@ -160,27 +127,18 @@ fun IntelligenceDashboardScreen(
                     }
                     is IntelligenceUiState.Success -> {
                         // Apply filters
-                        val filteredEvents = if (selectedAsset == "ALL") state.events else state.events.filter { it.asset_class.name.uppercase() == selectedAsset }
-                        val searchedEvents = if (searchQuery.isBlank()) {
-                            filteredEvents
-                        } else {
-                            val query = searchQuery.uppercase()
-                            filteredEvents.filter { event ->
-                                event.title.uppercase().contains(query) ||
-                                event.narrative_summary.uppercase().contains(query) ||
-                                event.asset_class.name.uppercase().contains(query)
-                            }
-                        }
+                        val filteredEvents = if (selectedAsset.uppercase() == "ALL") state.events else state.events.filter { it.asset_class.name.uppercase() == selectedAsset.uppercase() }
 
-                        if (searchedEvents.isEmpty()) {
+                        if (filteredEvents.isEmpty()) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("No intelligence events found", color = SlateText, fontSize = 14.sp, fontFamily = InterFontFamily)
                             }
                         } else {
                             EventList(
-                                events = searchedEvents,
+                                events = filteredEvents,
                                 watchlist = watchlist,
-                                onToggleWatchlist = { viewModel.toggleWatchlist(it) }
+                                onToggleWatchlist = { viewModel.toggleWatchlist(it) },
+                                listState = listState
                             )
                         }
                     }
@@ -212,34 +170,19 @@ fun IntelligenceDashboardScreen(
     }
 }
 
-@Composable
-private fun FilterTab(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    Surface(
-        color = if (isSelected) Color.White else Color.Transparent,
-        shape = RoundedCornerShape(6.dp),
-        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color.DarkGray) else null,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Text(
-            label,
-            color = if (isSelected) Color.Black else Color.DarkGray,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = InterFontFamily,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
-    }
-}
+
 
 @Composable
 fun EventList(
     events: List<IntelligenceEvent>,
     watchlist: Set<String>,
-    onToggleWatchlist: (String) -> Unit
+    onToggleWatchlist: (String) -> Unit,
+    listState: androidx.compose.foundation.lazy.LazyListState
 ) {
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(events, key = { it.id }) { event ->
@@ -356,24 +299,6 @@ fun EventCard(
             .border(1.dp, if (isWatched) IndigoAccent.copy(alpha = 0.4f) else styles.cardBorder, RoundedCornerShape(8.dp))
             .padding(20.dp)
     ) {
-        // Watchlist Star
-        Box(
-            modifier = Modifier
-                .offset(x = (-10).dp, y = (-10).dp)
-                .size(28.dp)
-                .background(PureBlack, CircleShape)
-                .border(1.dp, if (isWatched) IndigoAccent else Color(0xFF27272A), CircleShape)
-                .clickable { onToggleWatchlist(event.id) },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = "Watchlist",
-                tint = if (isWatched) IndigoAccent else Color(0xFF27272A),
-                modifier = Modifier.size(12.dp)
-            )
-        }
-
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header Row
             Row(
@@ -403,7 +328,7 @@ fun EventCard(
                             val label = if (timerText.isNotEmpty()) {
                                 if (isLocked) "LOCKED [$timerText]" else "SOFT [$timerText]"
                             } else {
-                                if (isSoft) "SOFT UNLOCK" 
+                                if (isSoft) "SOFT UNLOCK"
                                 else if (isHard && isPast && event.persistence_count >= 2) "REGIME CONFIRMED"
                                 else "PLANNED"
                             }
@@ -414,7 +339,7 @@ fun EventCard(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        
+
                         if (timerText.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Box(
@@ -461,7 +386,7 @@ fun EventCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "EBC: ${event.ebc?.status?.name ?: "UNKNOWN"}",
-                                color = if (event.ebc?.status == IntelligenceEBCStatus.BLOCKED) Color.White else EmeraldSuccess,
+                                color = Color.White,
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 1.sp
@@ -492,22 +417,22 @@ fun EventCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(99.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(PureBlack)
-                    .border(1.dp, Color(0xFF27272A), RoundedCornerShape(99.dp))
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .border(1.dp, Color(0xFF27272A), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (event.strategy_context != null) {
-                        Column(modifier = Modifier.padding(end = 20.dp)) {
+                        Column(modifier = Modifier.padding(end = 16.dp)) {
                             Text(
                                 text = "STRATEGY BIAS",
                                 color = Color(0xFF3F3F46),
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp
+                                letterSpacing = 1.sp
                             )
                             val biasColor = when (event.strategy_context.bias) {
                                 "long" -> EmeraldSuccess
@@ -521,15 +446,15 @@ fun EventCard(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Box(modifier = Modifier.size(1.dp, 20.dp).background(Color(0xFF27272A)))
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Column(modifier = Modifier.padding(end = 20.dp)) {
+                        Box(modifier = Modifier.size(1.dp, 12.dp).background(Color(0xFF27272A)))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.padding(end = 16.dp)) {
                             Text(
                                 text = "POSTURE",
                                 color = Color(0xFF3F3F46),
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp
+                                letterSpacing = 1.sp
                             )
                             val postureColor = when (event.strategy_context.risk_posture) {
                                 "aggressive" -> EmeraldSuccess
@@ -552,7 +477,7 @@ fun EventCard(
                             color = Color(0xFF3F3F46),
                             fontSize = 7.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp
+                            letterSpacing = 1.sp
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             repeat(6) { i ->
@@ -627,7 +552,7 @@ fun EventCard(
             ) {
                 Text(
                     text = event.source.uppercase(),
-                    color = Color(0xFF27272A),
+                    color = Color.White.copy(alpha = 0.4f),
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
@@ -657,17 +582,18 @@ fun EventCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "INTELLIGENCE MONITOR [${if (expanded) "CLOSE" else "OPEN"}]",
-                    color = Color(0xFF27272A),
+                    text = "INTELLIGENCE MONITOR",
+                    color = Color.White.copy(alpha = 0.4f),
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
                 )
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = Color(0xFF27272A),
-                    modifier = Modifier.size(12.dp)
+                Text(
+                    text = if (expanded) "SEE LESS" else "SEE MORE",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
                 )
             }
 
@@ -681,9 +607,9 @@ fun EventCard(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(99.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(PureBlack)
-                            .border(1.dp, Color(0xFF27272A), RoundedCornerShape(99.dp))
+                            .border(1.dp, Color(0xFF27272A), RoundedCornerShape(8.dp))
                             .padding(12.dp)
                     ) {
                         Column {
@@ -744,9 +670,9 @@ fun EventCard(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(99.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(PureBlack)
-                                .border(1.dp, IndigoAccent.copy(alpha = 0.3f), RoundedCornerShape(99.dp))
+                                .border(1.dp, IndigoAccent.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                                 .padding(12.dp)
                         ) {
                             Column {

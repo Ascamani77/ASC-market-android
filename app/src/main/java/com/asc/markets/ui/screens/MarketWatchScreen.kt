@@ -14,6 +14,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
@@ -26,16 +28,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.MarketCategory
 import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.MiniChart
-import com.asc.markets.ui.components.ForexIcon
+import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
+import kotlin.math.abs
 import java.util.Locale
 
 
 @Composable
 fun MarketWatchScreen() {
+    val livePairs by MarketDataStore.allPairs.collectAsState()
+    val samples = remember(livePairs) {
+        livePairs
+            .filter { it.category != MarketCategory.BONDS }
+            .sortedByDescending { abs(it.changePercent) }
+            .take(6)
+            .map(::toSignalModel)
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(PureBlack).verticalScroll(rememberScrollState()).padding(top = 16.dp)) {
         // Top banner: icon, title, sync badge, filter
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -74,7 +88,6 @@ fun MarketWatchScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Sample signals list — match images: three sample cards
-        val samples = remember { sampleSignals() }
         Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
             samples.forEach { signal ->
                 MarketWatchSignalCard(signal)
@@ -111,9 +124,7 @@ private fun MarketWatchSignalCard(s: SignalModel) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // small badge
-                    Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF0B0B0B)), contentAlignment = Alignment.Center) {
-                        Text(s.symbol.take(1), color = Color.Gray)
-                    }
+                    PairFlags(symbol = s.symbol, size = 28)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(s.symbol, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
@@ -172,46 +183,57 @@ private fun MarketWatchSignalCard(s: SignalModel) {
     }
 }
 
-private fun sampleSignals(): List<SignalModel> {
-    return listOf(
-        SignalModel(
-            symbol = "EUR/USD",
-            tag = "Trend Break",
-            tagColor = Color(0xFF222831),
-            confidence = 78,
-            quote = "H4 TRENDLINE VIOLATION WITH INSTITUTIONAL VOLUME SUPPORT.",
-            price = "1.0845",
-            changeText = "+0.11%",
-            momentumPct = 0.6f,
-            volatility = "Normal",
-            atr = "0.0029",
-            inStructure = "7h"
-        ),
-        SignalModel(
-            symbol = "GBP/USD",
-            tag = "Mean Revert",
-            tagColor = Color(0xFF6B4800),
-            confidence = 67,
-            quote = "EXTENDED DEVIATION FROM 50D EMA; LOB IMBALANCE DETECTED.",
-            price = "1.2634",
-            changeText = "-0.17%",
-            momentumPct = 0.45f,
-            volatility = "Normal",
-            atr = "0.0008",
-            inStructure = "12h"
-        ),
-        SignalModel(
-            symbol = "USD/JPY",
-            tag = "Momentum Surge",
-            tagColor = Color(0xFF0B6B4F),
-            confidence = 81,
-            quote = "AGGRESSIVE BUY PROGRAM ENGINEERING DISPLACEMENT ON M15.",
-            price = "151.4200",
-            changeText = "+0.23%",
-            momentumPct = 0.8f,
-            volatility = "Normal",
-            atr = "0.0027",
-            inStructure = "5h"
-        )
+private fun toSignalModel(pair: ForexPair): SignalModel {
+    val absMove = abs(pair.changePercent)
+    val isBullish = pair.changePercent >= 0.0
+    val tag = when {
+        absMove >= 2.0 -> "Momentum Surge"
+        absMove >= 1.0 -> "Trend Break"
+        else -> "Range Shift"
+    }
+    val tagColor = when (pair.category) {
+        MarketCategory.CRYPTO -> Color(0xFF0B6B4F)
+        MarketCategory.FOREX -> Color(0xFF222831)
+        MarketCategory.STOCK -> Color(0xFF1F3A5F)
+        MarketCategory.COMMODITIES -> Color(0xFF6B4800)
+        else -> Color(0xFF3A3A3A)
+    }
+    val volatility = when {
+        absMove >= 2.0 -> "High"
+        absMove >= 1.0 -> "Elevated"
+        else -> "Normal"
+    }
+
+    return SignalModel(
+        symbol = pair.symbol,
+        tag = tag,
+        tagColor = tagColor,
+        confidence = (60 + (absMove * 12)).toInt().coerceAtMost(95),
+        quote = buildQuote(pair, isBullish),
+        price = formatWatchPrice(pair.price),
+        changeText = String.format(Locale.US, "%s%.2f%%", if (isBullish) "+" else "", pair.changePercent),
+        momentumPct = (absMove / 3.0).coerceIn(0.15, 1.0).toFloat(),
+        volatility = volatility,
+        atr = String.format(Locale.US, "%.4f", pair.price * 0.0025),
+        inStructure = if (absMove >= 1.0) "Live" else "Stable"
     )
+}
+
+private fun buildQuote(pair: ForexPair, isBullish: Boolean): String {
+    val direction = if (isBullish) "BUYING" else "SELLING"
+    return when (pair.category) {
+        MarketCategory.CRYPTO -> "$direction PRESSURE PERSISTING ACROSS BINANCE PERPETUAL FLOW."
+        MarketCategory.FOREX -> "$direction FLOW DOMINATES THE CURRENT SESSION RANGE."
+        MarketCategory.STOCK -> "$direction IMBALANCE REMAINS IN CONTROL OF THE TAPE."
+        MarketCategory.COMMODITIES -> "$direction INTEREST IS DRIVING THE LATEST COMMODITY LEG."
+        else -> "$direction CONDITIONS REMAIN FAVOURABLE FOR FOLLOW-THROUGH."
+    }
+}
+
+private fun formatWatchPrice(price: Double): String {
+    return when {
+        price >= 1000 -> String.format(Locale.US, "%,.2f", price)
+        price >= 1 -> String.format(Locale.US, "%.4f", price)
+        else -> String.format(Locale.US, "%.6f", price)
+    }
 }
