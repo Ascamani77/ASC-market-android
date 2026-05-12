@@ -87,6 +87,24 @@ class BinanceService(
         }
     }
 
+    fun subscribeSymbols(symbolsToSubscribe: List<String>) {
+        val normalized = symbolsToSubscribe
+            .asSequence()
+            .map { it.trim().lowercase(Locale.US) }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toList()
+        if (normalized.toSet() == symbols && webSocket != null) return
+        symbols.clear()
+        symbols.addAll(normalized)
+        if (symbols.isEmpty()) {
+            webSocket?.close(1000, "No Binance symbols")
+            webSocket = null
+        } else {
+            connect()
+        }
+    }
+
     fun streamActiveSymbol(symbol: String) {
         val binanceSymbol = symbol.lowercase(Locale.US)
         if (symbols.size == 1 && symbols.contains(binanceSymbol) && webSocket != null) return

@@ -29,6 +29,11 @@ import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
 import com.trading.app.data.PaperTradingAccountSnapshot
 import com.trading.app.data.PaperTradingSnapshotStore
+import com.trading.app.data.BinanceService
+import com.trading.app.data.ChartFeedType
+import com.trading.app.data.PepperstoneChartService
+import com.trading.app.data.chartFeedQuotes
+import com.trading.app.data.chartFeedSymbolFor
 import com.asc.markets.data.NetworkConfig
 import com.asc.markets.logic.PriceStreamManager
 import com.google.gson.Gson
@@ -144,7 +149,9 @@ private fun persistNewsAiPayload(
 @Composable
 fun TradingApp(
     startInPaperTradingPanel: Boolean = false,
-    onPaperTradingClose: (() -> Unit)? = null
+    onPaperTradingClose: (() -> Unit)? = null,
+    streamFeedType: ChartFeedType = ChartFeedType.PEPPERSTONE,
+    stateNamespace: String = "stream_${streamFeedType.prefValue}"
 ) {
     val context = LocalContext.current
     val sharedPrefs = remember { context.getSharedPreferences("trading_prefs", Context.MODE_PRIVATE) }
@@ -155,19 +162,42 @@ fun TradingApp(
     val layoutDirection = LocalLayoutDirection.current
     val safeDrawingInsets = WindowInsets.safeDrawing
 
+    val streamStateNamespace = remember(stateNamespace, streamFeedType) {
+        stateNamespace.ifBlank { "stream_${streamFeedType.prefValue}" }
+    }
+    fun streamScopedKey(base: String): String = "${base}_${streamStateNamespace}"
+
+    val chartFeedType = streamFeedType
+    val chartFeedQuoteCatalog = remember(chartFeedType) { chartFeedQuotes(chartFeedType) }
+    val defaultStreamSymbol = remember(chartFeedType) {
+        chartFeedQuoteCatalog.firstOrNull()?.ticker ?: "EURUSD"
+    }
+
     // Core State
-    var symbol by remember { mutableStateOf("BTCUSD") }
-    var timeframe by remember { mutableStateOf("1h") }
-    var activeRange by remember { mutableStateOf("1Y") }
-    var chartStyle by remember { mutableStateOf("candles") }
+    var symbol by remember(streamStateNamespace, chartFeedType) {
+        mutableStateOf(
+            sharedPrefs.getString(streamScopedKey("selected_symbol"), defaultStreamSymbol)
+                ?.let { chartFeedSymbolFor(chartFeedType, it) }
+                ?: defaultStreamSymbol
+        )
+    }
+    var timeframe by remember(streamStateNamespace) {
+        mutableStateOf(sharedPrefs.getString(streamScopedKey("selected_timeframe"), "1h") ?: "1h")
+    }
+    var activeRange by remember(streamStateNamespace) {
+        mutableStateOf(sharedPrefs.getString(streamScopedKey("active_range"), "1Y") ?: "1Y")
+    }
+    var chartStyle by remember(streamStateNamespace) {
+        mutableStateOf(sharedPrefs.getString(streamScopedKey("chart_style"), "candles") ?: "candles")
+    }
     var activeTool by remember { mutableStateOf("cursor") }
     var stayInDrawingMode by remember { mutableStateOf(false) }
     var isMagnetEnabled by remember { mutableStateOf(false) }
     
     // Loaded from settings
-    var chartSettings by remember { 
+    var chartSettings by remember(streamStateNamespace) { 
         mutableStateOf(
-            sharedPrefs.getString("chart_settings", null)?.let {
+            sharedPrefs.getString(streamScopedKey("chart_settings"), null)?.let {
                 try { 
                     gson.fromJson(it, ChartSettings::class.java)
                 } catch (e: Exception) { ChartSettings() }
@@ -194,8 +224,8 @@ fun TradingApp(
     var currentLiveQuote by remember { mutableStateOf<SymbolQuote?>(null) }
     var isConnected by remember { mutableStateOf(false) }
 
-    val recentPairs = remember {
-        val saved = sharedPrefs.getString("recent_pairs", null)
+    val recentPairs = remember(streamStateNamespace) {
+        val saved = sharedPrefs.getString(streamScopedKey("recent_pairs"), null)
         val list = if (saved != null) {
             try {
                 val type = object : TypeToken<List<Pair<String, String>>>() {}.type
@@ -205,8 +235,8 @@ fun TradingApp(
         mutableStateListOf<Pair<String, String>>().apply { addAll(list) }
     }
 
-    val recentPairQuotes = remember {
-        val saved = sharedPrefs.getString("recent_pair_quotes", null)
+    val recentPairQuotes = remember(streamStateNamespace) {
+        val saved = sharedPrefs.getString(streamScopedKey("recent_pair_quotes"), null)
         val map = if (saved != null) {
             try {
                 val type = object : TypeToken<Map<String, SymbolQuote>>() {}.type
@@ -215,8 +245,8 @@ fun TradingApp(
         } else emptyMap()
         mutableStateMapOf<String, SymbolQuote>().apply { putAll(map) }
     }
-    val symbolQuotesByTicker = remember {
-        val saved = sharedPrefs.getString("symbol_quotes_by_ticker", null)
+    val symbolQuotesByTicker = remember(streamStateNamespace) {
+        val saved = sharedPrefs.getString(streamScopedKey("symbol_quotes_by_ticker"), null)
         val map = if (saved != null) {
             try {
                 val type = object : TypeToken<Map<String, SymbolQuote>>() {}.type
@@ -228,25 +258,42 @@ fun TradingApp(
 
     // Save quotes whenever they update
     LaunchedEffect(recentPairQuotes.toMap()) {
-        sharedPrefs.edit().putString("recent_pair_quotes", gson.toJson(recentPairQuotes.toMap())).apply()
+        sharedPrefs.edit().putString(streamScopedKey("recent_pair_quotes"), gson.toJson(recentPairQuotes.toMap())).apply()
     }
     LaunchedEffect(symbolQuotesByTicker.toMap()) {
-        sharedPrefs.edit().putString("symbol_quotes_by_ticker", gson.toJson(symbolQuotesByTicker.toMap())).apply()
+        sharedPrefs.edit().putString(streamScopedKey("symbol_quotes_by_ticker"), gson.toJson(symbolQuotesByTicker.toMap())).apply()
+    }
+    LaunchedEffect(symbol, timeframe, activeRange, chartStyle, streamStateNamespace) {
+        sharedPrefs.edit()
+            .putString(streamScopedKey("selected_symbol"), symbol)
+            .putString(streamScopedKey("selected_timeframe"), timeframe)
+            .putString(streamScopedKey("active_range"), activeRange)
+            .putString(streamScopedKey("chart_style"), chartStyle)
+            .apply()
     }
     val availableQuotes = remember {
-        val saved = sharedPrefs.getString("available_quotes", null)
-        val list = if (saved != null) {
-            try {
-                val type = object : TypeToken<List<SymbolInfo>>() {}.type
-                gson.fromJson<List<SymbolInfo>>(saved, type)
-            } catch (e: Exception) { defaultQuoteSymbols() }
-        } else defaultQuoteSymbols()
-        mutableStateListOf<SymbolInfo>().apply { addAll(list) }
+        mutableStateListOf<SymbolInfo>().apply { addAll(chartFeedQuoteCatalog) }
     }
-    
-    // Save availableQuotes whenever they are updated
-    LaunchedEffect(availableQuotes.toList()) {
-        sharedPrefs.edit().putString("available_quotes", gson.toJson(availableQuotes.toList())).apply()
+
+    fun clearNonSelectedQuoteCache() {
+        val allowedKeys = chartFeedQuoteCatalog
+            .flatMap { listOf(it.ticker, it.brokerSymbol) }
+            .filter { it.isNotBlank() }
+            .map { it.uppercase(Locale.US) }
+            .toSet()
+        symbolQuotesByTicker.keys
+            .filter { it.uppercase(Locale.US) !in allowedKeys }
+            .toList()
+            .forEach { symbolQuotesByTicker.remove(it) }
+    }
+
+    LaunchedEffect(chartFeedType) {
+        availableQuotes.clear()
+        availableQuotes.addAll(chartFeedQuoteCatalog)
+        clearNonSelectedQuoteCache()
+        if (availableQuotes.none { it.ticker.equals(symbol, ignoreCase = true) || it.brokerSymbol.equals(symbol, ignoreCase = true) }) {
+            symbol = chartFeedQuoteCatalog.firstOrNull()?.ticker ?: symbol
+        }
     }
     fun brokerSymbolForTicker(symbol: String): String {
         val normalizedSymbol = symbol.trim()
@@ -255,7 +302,7 @@ fun TradingApp(
         val knownSymbol = availableQuotes.firstOrNull { quote ->
             quote.ticker.equals(normalizedSymbol, ignoreCase = true) ||
                 quote.brokerSymbol.equals(normalizedSymbol, ignoreCase = true)
-        } ?: defaultQuoteSymbols().firstOrNull { quote ->
+        } ?: chartFeedQuoteCatalog.firstOrNull { quote ->
             quote.ticker.equals(normalizedSymbol, ignoreCase = true) ||
                 quote.brokerSymbol.equals(normalizedSymbol, ignoreCase = true)
         }
@@ -263,10 +310,39 @@ fun TradingApp(
         return knownSymbol?.brokerSymbol?.ifBlank { knownSymbol.ticker } ?: normalizedSymbol
     }
 
+    fun sourceQuoteSymbols(): List<String> {
+        return chartFeedQuoteCatalog
+            .map { quote -> quote.brokerSymbol.ifBlank { quote.ticker } }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.uppercase(Locale.US) }
+    }
+
+    fun cacheSelectedSourceQuote(quote: SymbolQuote) {
+        val incomingName = quote.name.trim()
+        val normalizedName = chartFeedSymbolFor(chartFeedType, incomingName)
+        val catalogItem = chartFeedQuoteCatalog.firstOrNull {
+            it.ticker.equals(normalizedName, ignoreCase = true) ||
+                it.brokerSymbol.equals(normalizedName, ignoreCase = true) ||
+                it.ticker.equals(incomingName, ignoreCase = true) ||
+                it.brokerSymbol.equals(incomingName, ignoreCase = true)
+        } ?: return
+        val keyedQuote = quote.copy(name = catalogItem.ticker)
+        listOf(catalogItem.ticker, catalogItem.brokerSymbol, incomingName)
+            .filter { it.isNotBlank() }
+            .distinctBy { it.uppercase(Locale.US) }
+            .forEach { key -> symbolQuotesByTicker[key.uppercase(Locale.US)] = keyedQuote }
+        PriceStreamManager.updatePrice(catalogItem.ticker, keyedQuote.lastPrice.toDouble())
+        if (catalogItem.ticker.equals(symbol, ignoreCase = true) || catalogItem.brokerSymbol.equals(symbol, ignoreCase = true)) {
+            currentLiveQuote = keyedQuote
+        }
+    }
+
     val visibleQuoteSymbols = remember { mutableStateListOf<String>() }
     val visibleRecentSymbols = remember { mutableStateListOf<String>() }
     val mt5Host = remember { NetworkConfig.mt5Host(context) }
     val mt5Port = remember { NetworkConfig.mt5Port(context) }
+    val cTraderHost = remember { NetworkConfig.cTraderHost(context) }
+    val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
 
     val reverseBridge = remember { 
         Mt5ReverseBridge(
@@ -303,109 +379,34 @@ fun TradingApp(
         )
     }
 
-    // Deriv WebSocket Service for commodities and crypto
-    val derivService = remember {
-        com.trading.app.data.DerivService(
+    val pepperstoneQuoteService = remember {
+        PepperstoneChartService(
+            host = cTraderHost,
+            port = cTraderPort,
             onQuoteUpdate = { quote ->
-                // Propagate Deriv price updates to PriceStreamManager
-                PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
-
-                // Route Deriv updates to CombinedFallbackDataStore
-                val pair = com.asc.markets.data.FOREX_PAIRS.find { it.symbol == quote.name }
-                if (pair != null) {
-                    val updatedPair = pair.copy(
-                        price = quote.lastPrice.toDouble(),
-                        change = quote.lastPrice.toDouble() - pair.price,
-                        changePercent = if (pair.price > 0) ((quote.lastPrice.toDouble() - pair.price) / pair.price * 100) else 0.0
-                    )
-                    com.asc.markets.data.CombinedFallbackDataStore.updatePair(updatedPair)
-                    android.util.Log.d("DerivService", "Updated CombinedFallbackDataStore: ${quote.name} = ${quote.lastPrice}")
-                } else {
-                    android.util.Log.w("DerivService", "Symbol ${quote.name} not found in FOREX_PAIRS")
+                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                    cacheSelectedSourceQuote(quote)
                 }
             },
             onHistoryUpdate = { _, _ -> }
         )
     }
-    
-    // Connect Deriv and subscribe to commodities
-    LaunchedEffect(Unit) {
-        derivService.connect()
-        delay(1000) // Wait for connection
-        
-        // Subscribe to commodities (using FOREX_PAIRS format)
-        derivService.subscribe("XAU/USD")  // Gold
-        derivService.subscribe("XAG/USD")  // Silver
-        derivService.subscribe("USOIL")    // WTI Crude (matches FOREX_PAIRS)
-        
-        // Also subscribe to crypto for backup
-        derivService.subscribe("BTC/USD")
-        derivService.subscribe("ETH/USD")
-        
-        android.util.Log.i("TradingApp", "Deriv service connected and subscribed to commodities")
-    }
-    
-    // Cleanup Deriv on dispose
-    DisposableEffect(Unit) {
-        onDispose {
-            derivService.disconnect()
-        }
-    }
 
-    // cTrader Pepperstone Service for forex trading
-    val cTraderService = remember {
-        com.trading.app.data.CTraderService(
+    val binanceQuoteService = remember {
+        BinanceService(
             onQuoteUpdate = { quote ->
-                // Propagate cTrader price updates to PriceStreamManager
-                PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
-                
-                // Update MarketDataStore so AI backend receives the data
-                val pair = com.asc.markets.data.FOREX_PAIRS.find { it.symbol == quote.name }
-                if (pair != null) {
-                    val updatedPair = pair.copy(
-                        price = quote.lastPrice.toDouble(),
-                        change = quote.lastPrice.toDouble() - pair.price,
-                        changePercent = if (pair.price > 0) ((quote.lastPrice.toDouble() - pair.price) / pair.price * 100) else 0.0
-                    )
-                    com.asc.markets.data.MarketDataStore.updatePair(updatedPair)
-                    android.util.Log.d("CTraderService", "Updated MarketDataStore: ${quote.name} = ${quote.lastPrice}")
+                if (chartFeedType == ChartFeedType.BINANCE) {
+                    cacheSelectedSourceQuote(quote)
                 }
             },
-            onPositionsUpdate = { newPositions ->
-                android.util.Log.d("CTraderService", "Positions updated: ${newPositions.size}")
-            },
-            onAccountUpdate = { accountInfo ->
-                if (accountInfo != null) {
-                    android.util.Log.d("CTraderService", "Account updated: balance=${accountInfo.balance}")
-                }
-            },
-            onConnectionStatusUpdate = { connected ->
-                android.util.Log.i("CTraderService", "Connection status: $connected")
-            }
+            onHistoryUpdate = { _, _ -> }
         )
     }
-    
-    // Connect cTrader and subscribe to forex pairs
-    LaunchedEffect(Unit) {
-        cTraderService.connect()
-        delay(2000)
-        
-        // Subscribe to major forex pairs
-        cTraderService.subscribe("EURUSD")
-        cTraderService.subscribe("GBPUSD")
-        cTraderService.subscribe("USDJPY")
-        cTraderService.subscribe("AUDUSD")
-        cTraderService.subscribe("USDCAD")
-        cTraderService.subscribe("NZDUSD")
-        cTraderService.subscribe("USDCHF")
-        
-        android.util.Log.i("TradingApp", "cTrader service connected and subscribed to forex pairs")
-    }
-    
-    // Cleanup cTrader on dispose
+
     DisposableEffect(Unit) {
         onDispose {
-            cTraderService.disconnect()
+            pepperstoneQuoteService.disconnect()
+            binanceQuoteService.disconnect()
         }
     }
 
@@ -417,8 +418,23 @@ fun TradingApp(
         }
     }
 
-    LaunchedEffect(watchlistSymbols) {
-        mt5Service.updateWatchlist(watchlistSymbols)
+    LaunchedEffect(chartFeedType, watchlistSymbols, chartFeedQuoteCatalog, timeframe) {
+        val sourceSymbols = sourceQuoteSymbols()
+        when (chartFeedType) {
+            ChartFeedType.EXNESS -> {
+                pepperstoneQuoteService.stopActiveStream()
+                binanceQuoteService.stopActiveStream()
+                mt5Service.updateWatchlist(watchlistSymbols.ifEmpty { sourceSymbols })
+            }
+            ChartFeedType.PEPPERSTONE -> {
+                binanceQuoteService.stopActiveStream()
+                pepperstoneQuoteService.subscribeSymbols(sourceSymbols, timeframe)
+            }
+            ChartFeedType.BINANCE -> {
+                pepperstoneQuoteService.stopActiveStream()
+                binanceQuoteService.subscribeSymbols(sourceSymbols)
+            }
+        }
     }
 
     LaunchedEffect(symbol, timeframe) {
@@ -430,7 +446,7 @@ fun TradingApp(
             if (recentPairs.size > 10) {
                 recentPairs.removeAt(recentPairs.size - 1)
             }
-            sharedPrefs.edit().putString("recent_pairs", gson.toJson(recentPairs.toList())).apply()
+            sharedPrefs.edit().putString(streamScopedKey("recent_pairs"), gson.toJson(recentPairs.toList())).apply()
         }
 
         val normalizedSymbol = symbol.trim()
@@ -449,12 +465,14 @@ fun TradingApp(
     val balanceHistory = remember { mutableStateListOf<BalanceRecord>() }
     var mt5AccountInfo by remember { mutableStateOf<Mt5Service.AccountInfo?>(null) }
 
-    LaunchedEffect(positions.toList(), localPositions.toList(), orders.toList()) {
+    LaunchedEffect(positions.toList(), localPositions.toList(), orders.toList(), chartFeedType) {
+        val allowedSymbols = sourceQuoteSymbols().map { it.uppercase(Locale.US) }.toSet()
         val tradeSymbols = ((positions + localPositions).map { it.symbol } + orders.map { it.symbol })
             .flatMap(::liveQuoteSymbolKeys)
             .asSequence()
             .map(::brokerSymbolForTicker)
             .filter { it.isNotEmpty() }
+            .filter { it.uppercase(Locale.US) in allowedSymbols }
             .distinctBy { it.uppercase(Locale.US) }
             .toList()
         visibleRecentSymbols.clear()
@@ -574,9 +592,14 @@ fun TradingApp(
         PaperTradingSnapshotStore.snapshot = paperTradingSnapshot
     }
 
-    // MT5 data is now live from mt5_bridge.py
-    LaunchedEffect(Unit) {
-        mt5Service.connect()
+    LaunchedEffect(chartFeedType) {
+        if (chartFeedType == ChartFeedType.EXNESS) {
+            mt5Service.connect()
+        } else {
+            reverseBridge.disconnect()
+            mt5Service.disconnect()
+            isConnected = true
+        }
     }
 
     DisposableEffect(Unit) {
@@ -723,7 +746,7 @@ fun TradingApp(
                 volumeShowLines = volumeShowLines
             )
         )
-        sharedPrefs.edit().putString("chart_settings", gson.toJson(updatedSettings)).apply()
+        sharedPrefs.edit().putString(streamScopedKey("chart_settings"), gson.toJson(updatedSettings)).apply()
     }
     
     // Tab State
@@ -1021,6 +1044,7 @@ fun TradingApp(
                                 volumeColorBasedOnPreviousClose = volumeColorBasedOnPreviousClose,
                                 onVolumeToggle = { showVolume = it },
                                 onIndicatorSettingsClick = { showIndicatorSettingsModal = it },
+                                chartFeedType = chartFeedType,
                                 isMagnetEnabled = isMagnetEnabled,
                                 isLocked = isLocked,
                                 isVisible = areDrawingsVisible,
@@ -1053,7 +1077,7 @@ fun TradingApp(
                                     }
                                 },
                                 onSymbolsUpdate = { symbols ->
-                                    val mergedQuotes = mergeQuoteCatalog(symbols)
+                                    val mergedQuotes = mergeQuoteCatalog(symbols, chartFeedQuoteCatalog)
                                     availableQuotes.clear()
                                     availableQuotes.addAll(mergedQuotes)
                                 },
@@ -1162,7 +1186,7 @@ fun TradingApp(
                                 onIndicatorDataUpdate = { currentIndicatorData = it }
                             )
 
-                            if (!isConnected) {
+                            if (chartFeedType == ChartFeedType.EXNESS && !isConnected) {
                                 ConnectingToServerOverlay(
                                     backgroundColor = appBackgroundColor,
                                     onRetryBridge = {
@@ -1477,7 +1501,7 @@ fun TradingApp(
                 onClose = { showQuotes = false },
                 quotes = availableQuotes,
                 onQuoteSelect = {
-                    symbol = it
+                    symbol = chartFeedSymbolFor(chartFeedType, it)
                 },
                 quotesByTicker = symbolQuotesByTicker,
                 onVisibleSymbolsChanged = { symbols ->

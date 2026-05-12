@@ -29,6 +29,7 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
+import com.trading.app.data.ChartFeedType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,6 +46,7 @@ sealed class SettingsSection(val id: String, val title: String, val icon: ImageV
     object Risk : SettingsSection("risk", "Risk Governance & Surveillance", androidx.compose.material.icons.autoMirrored.outlined.AccountBalance, "BALANCED")
     object Dispatch : SettingsSection("dispatch", "Intelligence Dispatch", androidx.compose.material.icons.autoMirrored.outlined.Notifications)
     object Asset : SettingsSection("asset", "Asset Universe Filtering", androidx.compose.material.icons.autoMirrored.outlined.List)
+    object ChartType : SettingsSection("chart_type", "Chart Type", androidx.compose.material.icons.autoMirrored.outlined.Timeline, "STREAM")
     object Calibration : SettingsSection("calibration", "Strategy Calibration", androidx.compose.material.icons.autoMirrored.outlined.Tune)
     object Engine : SettingsSection("engine", "Core Engine Analytical Tuning", androidx.compose.material.icons.autoMirrored.outlined.Memory)
 }
@@ -85,7 +87,7 @@ fun SettingsScreen(_viewModel: ForexViewModel) {
                         SettingsSection.Workspace, SettingsSection.Analytical, 
                         SettingsSection.Intelligence, SettingsSection.Security,
                         SettingsSection.Risk, SettingsSection.Dispatch,
-                        SettingsSection.Asset, SettingsSection.Calibration,
+                        SettingsSection.Asset, SettingsSection.ChartType, SettingsSection.Calibration,
                         SettingsSection.Engine
                     )
                     
@@ -231,6 +233,59 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
             SettingsSection.Engine -> {
                 SliderRow("Node Lookback Depth", 500f, 100f, 5000f, " Bars")
                 ToggleRow("HTF Context Aggregator", "Deep structural scanning", true)
+            }
+            SettingsSection.ChartType -> {
+                val context = LocalContext.current
+                val prefs = remember {
+                    context.getSharedPreferences(NetworkConfig.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                }
+                var selectedFeed by remember {
+                    mutableStateOf(ChartFeedType.streamCurrent(context))
+                }
+
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                    Text("Stream Chart Source", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Select which independent source powers StreamScreen charts and the quote page.", color = SlateMuted, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ChartFeedType.values().forEach { feedType ->
+                        val selected = selectedFeed == feedType
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                                .clickable {
+                                    selectedFeed = feedType
+                                    prefs.edit().putString(ChartFeedType.STREAM_PREF_KEY, feedType.prefValue).apply()
+                                },
+                            color = if (selected) Color.White else GhostWhite,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(feedType.displayName, color = if (selected) Color.Black else Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        when (feedType) {
+                                            ChartFeedType.EXNESS -> "MT5 bridge chart and Exness symbols."
+                                            ChartFeedType.PEPPERSTONE -> "Pepperstone cTrader bridge chart and Pepperstone assets."
+                                            ChartFeedType.BINANCE -> "Binance spot chart and USDT crypto assets."
+                                        },
+                                        color = if (selected) Color.DarkGray else SlateMuted,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                                if (selected) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             SettingsSection.Intelligence -> {
                 val force by viewModel.forceRemoteOverride.collectAsState()

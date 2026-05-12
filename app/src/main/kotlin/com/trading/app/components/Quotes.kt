@@ -78,10 +78,6 @@ private val defaultQuotesCatalog = listOf(
     SymbolInfo("BRENTOIL", "Brent Crude Oil", "TVC", "commodity cfd")
 )
 
-private val allowedQuoteTickers = defaultQuotesCatalog
-    .map { it.ticker.uppercase(Locale.US) }
-    .toSet()
-
 private fun defaultBrokerSymbolFor(ticker: String, type: String): String {
     val normalizedTicker = ticker.trim()
     if (normalizedTicker.isEmpty()) return normalizedTicker
@@ -104,11 +100,18 @@ fun defaultQuoteSymbols(): List<SymbolInfo> = defaultQuotesCatalog.map { quote -
 }
 
 fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
+    return mergeQuoteCatalog(symbols, defaultQuoteSymbols())
+}
+
+fun mergeQuoteCatalog(symbols: List<SymbolInfo>, baseQuotes: List<SymbolInfo>): List<SymbolInfo> {
+    val allowedTickers = baseQuotes
+        .map { it.ticker.uppercase(Locale.US) }
+        .toSet()
     val incomingByTicker = symbols
         .asSequence()
         .mapNotNull { quote ->
             val ticker = quote.ticker.trim().uppercase(Locale.US)
-            if (ticker.isEmpty() || ticker !in allowedQuoteTickers) return@mapNotNull null
+            if (ticker.isEmpty() || ticker !in allowedTickers) return@mapNotNull null
 
             val brokerSymbol = quote.brokerSymbol.trim().ifBlank {
                 defaultBrokerSymbolFor(ticker, quote.type)
@@ -127,7 +130,7 @@ fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
             } ?: candidates.first()
         }
 
-    return defaultQuoteSymbols().map { defaultQuote ->
+    return baseQuotes.map { defaultQuote ->
         val incoming = incomingByTicker[defaultQuote.ticker.uppercase(Locale.US)] ?: return@map defaultQuote
         defaultQuote.copy(
             name = incoming.name.ifBlank { defaultQuote.name },

@@ -24,9 +24,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.asc.markets.data.NetworkConfig
-import com.trading.app.data.BinanceService
+import com.trading.app.data.BinanceChartService
+import com.trading.app.data.ChartFeedType
 import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
+import com.trading.app.data.PepperstoneChartService
+import com.trading.app.data.chartFeedSymbolFor
 import com.trading.app.models.ChartSettings
 import com.trading.app.models.Drawing
 import com.trading.app.models.Position
@@ -452,6 +455,7 @@ fun TradingChart(
     onCrosshairToggle: (Boolean) -> Unit = {},
     onVolumeToggle: (Boolean) -> Unit = {},
     onIndicatorSettingsClick: (String) -> Unit = {},
+    chartFeedType: ChartFeedType? = null,
     isMagnetEnabled: Boolean = false,
     isLocked: Boolean = false,
     isVisible: Boolean = true,
@@ -524,6 +528,8 @@ fun TradingChart(
     val context = LocalContext.current
     val mt5Host = remember { NetworkConfig.mt5Host(context) }
     val mt5Port = remember { NetworkConfig.mt5Port(context) }
+    val cTraderHost = remember { NetworkConfig.cTraderHost(context) }
+    val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
     var ohlcData by remember { mutableStateOf<List<OHLCData>>(emptyList()) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMoreHistory by remember { mutableStateOf(true) }
@@ -771,8 +777,48 @@ fun TradingChart(
         else -> LineStyle.SOLID
     }
 
+    fun applyHistoryUpdate(source: String, receivedSymbol: String, history: List<OHLCData>) {
+        if (receivedSymbol.isNotEmpty() && !chartSymbolsMatch(receivedSymbol, currentSymbol.value)) return
+        val processedHistory = history
+            .asSequence()
+            .mapNotNull { candle ->
+                if (candle.time <= 0L) return@mapNotNull null
+                if (!candle.open.isFinite() || !candle.high.isFinite() || !candle.low.isFinite() || !candle.close.isFinite()) {
+                    return@mapNotNull null
+                }
+                val high = maxOf(candle.high, candle.open, candle.close)
+                val low = minOf(candle.low, candle.open, candle.close)
+                OHLCData(
+                    time = candle.time,
+                    open = candle.open,
+                    high = high,
+                    low = low,
+                    close = candle.close,
+                    volume = candle.volume.coerceAtLeast(0f)
+                )
+            }
+            .sortedBy(OHLCData::time)
+            .distinctBy(OHLCData::time)
+            .toList()
+
+        if (isLoadingMore) {
+            val combined = (processedHistory + ohlcData)
+                .distinctBy { it.time }
+                .sortedBy { it.time }
+                .takeLast(10000)
+            ohlcData = combined
+            isLoadingMore = false
+            if (processedHistory.size < MT5_HISTORY_PAGE_SIZE) hasMoreHistory = false
+        } else {
+            ohlcData = processedHistory
+            if (processedHistory.size < MT5_HISTORY_PAGE_SIZE) hasMoreHistory = false
+            updatedOnDataLoaded.value(processedHistory)
+        }
+        Log.d(LOG_TAG, "onHistoryUpdate ($source): received ${processedHistory.size} candles for $receivedSymbol")
+    }
+
     val binanceService = remember {
-        BinanceService(
+        BinanceChartService(
             onQuoteUpdate = { quote: SymbolQuote ->
                 val isTarget = chartSymbolsMatch(quote.name, currentSymbol.value)
                 
@@ -794,13 +840,22 @@ fun TradingChart(
                 val isTarget = chartSymbolsMatch(receivedSymbol, currentSymbol.value)
                 
                 if (isTarget) {
+                    if (chartFeedType == ChartFeedType.BINANCE) {
+                        if (history.isEmpty()) {
+                            isLoadingMore = false
+                            hasMoreHistory = false
+                            return@BinanceChartService
+                        }
+                        applyHistoryUpdate("BINANCE", receivedSymbol, history)
+                        return@BinanceChartService
+                    }
                     if (history.isEmpty()) {
                         // Binance history can be blocked/unavailable in some regions.
                         // Mark fallback so MT5 can provide candles for USDT symbols.
                         if (binanceStreamSymbolFor(currentSymbol.value).endsWith("USDT", ignoreCase = true)) {
                             useMt5FallbackForCrypto = true
                         }
-                        return@BinanceService
+                        return@BinanceChartService
                     }
                     useMt5FallbackForCrypto = false
                     if (isLoadingMore) {
@@ -821,6 +876,30 @@ fun TradingChart(
         )
     }
 
+    val pepperstoneChartService = remember {
+        PepperstoneChartService(
+            host = cTraderHost,
+            port = cTraderPort,
+            onQuoteUpdate = { quote: SymbolQuote ->
+                if (chartSymbolsMatch(quote.name, currentSymbol.value)) {
+                    val prevClose = ohlcData.getOrNull(ohlcData.size - 2)?.close ?: quote.lastPrice
+                    val change = quote.lastPrice - prevClose
+                    val changePercent = if (prevClose != 0f) (change / prevClose) * 100f else 0f
+                    scheduleChartQuote(
+                        quote.copy(
+                            name = currentSymbol.value,
+                            change = change,
+                            changePercent = changePercent
+                        )
+                    )
+                }
+            },
+            onHistoryUpdate = { receivedSymbol: String, history: List<OHLCData> ->
+                applyHistoryUpdate("PEPPERSTONE", receivedSymbol, history)
+            }
+        )
+    }
+
     val mt5Service = remember {
         Mt5Service(
             pcIpAddress = mt5Host,
@@ -832,46 +911,10 @@ fun TradingChart(
                         Log.d(LOG_TAG, "Ignoring MT5 history for $receivedSymbol because Binance route is active for ${currentSymbol.value}")
                         return@Mt5Service
                     }
-                    val processedHistory = history
-                        .asSequence()
-                        .mapNotNull { candle ->
-                            if (candle.time <= 0L) return@mapNotNull null
-                            if (!candle.open.isFinite() || !candle.high.isFinite() || !candle.low.isFinite() || !candle.close.isFinite()) {
-                                return@mapNotNull null
-                            }
-                            val high = maxOf(candle.high, candle.open, candle.close)
-                            val low = minOf(candle.low, candle.open, candle.close)
-                            OHLCData(
-                                time = candle.time,
-                                open = candle.open,
-                                high = high,
-                                low = low,
-                                close = candle.close,
-                                volume = candle.volume.coerceAtLeast(0f)
-                            )
-                        }
-                        .sortedBy(OHLCData::time)
-                        .distinctBy(OHLCData::time)
-                        .toList()
-
-                    if (isLoadingMore) {
-                        val combined = (processedHistory + ohlcData)
-                            .distinctBy { it.time }
-                            .sortedBy { it.time }
-                            .takeLast(10000)
-                        ohlcData = combined
-                        isLoadingMore = false
-                        if (processedHistory.size < MT5_HISTORY_PAGE_SIZE) hasMoreHistory = false
-                    } else {
-                        ohlcData = processedHistory
-                        if (processedHistory.size < MT5_HISTORY_PAGE_SIZE) hasMoreHistory = false
-                        updatedOnDataLoaded.value(processedHistory)
-                    }
-                    Log.d(LOG_TAG, "onHistoryUpdate (MT5): received ${processedHistory.size} candles for $receivedSymbol")
+                    applyHistoryUpdate("MT5", receivedSymbol, history)
                 }
             },
             onQuoteUpdate = { quote: SymbolQuote ->
-                var outgoingQuote = quote
                 if (chartSymbolsMatch(quote.name, currentSymbol.value)) {
                     // Symbol Routing: Only symbols ending in USDT use BinanceService for main chart data
                     val isCryptoBinance = normalizeChartSymbol(currentSymbol.value).endsWith("USDT", ignoreCase = true)
@@ -885,7 +928,6 @@ fun TradingChart(
                             change = change,
                             changePercent = changePercent
                         )
-                        outgoingQuote = updatedQuote
                         scheduleChartQuote(updatedQuote)
                         Log.d(LOG_TAG, "Applied MT5 tick for ${quote.name} price=${quote.lastPrice}")
                     }
@@ -904,15 +946,21 @@ fun TradingChart(
         )
     }
 
-    LaunchedEffect(Unit) {
-        mt5Service.connect()
-        mt5Service.requestSymbols()
-        reverseBridge?.connect()
+    LaunchedEffect(chartFeedType) {
+        if (chartFeedType == null || chartFeedType == ChartFeedType.EXNESS) {
+            mt5Service.connect()
+            mt5Service.requestSymbols()
+            reverseBridge?.connect()
+        } else {
+            reverseBridge?.disconnect()
+            mt5Service.disconnect()
+        }
     }
 
-    LaunchedEffect(symbol, timeframe) {
+    LaunchedEffect(symbol, timeframe, chartFeedType) {
         mt5Service.stopActiveStream()
         binanceService.stopActiveStream()
+        pepperstoneChartService.stopActiveStream()
         ohlcData = emptyList()
         currentQuoteState = null
         pendingChartQuote = null
@@ -920,6 +968,28 @@ fun TradingChart(
         isLoadingMore = false
         hasMoreHistory = true
         useMt5FallbackForCrypto = false
+        when (chartFeedType) {
+            ChartFeedType.EXNESS -> {
+                val streamSymbol = chartFeedSymbolFor(ChartFeedType.EXNESS, symbol)
+                Log.d(LOG_TAG, "Subscribing Exness MT5 chart route for $streamSymbol timeframe=$timeframe")
+                mt5Service.streamActiveSymbol(streamSymbol, timeframe, 500)
+                return@LaunchedEffect
+            }
+            ChartFeedType.PEPPERSTONE -> {
+                val streamSymbol = chartFeedSymbolFor(ChartFeedType.PEPPERSTONE, symbol)
+                Log.d(LOG_TAG, "Subscribing Pepperstone chart route for $streamSymbol timeframe=$timeframe")
+                pepperstoneChartService.streamActiveSymbol(streamSymbol, timeframe, 500)
+                return@LaunchedEffect
+            }
+            ChartFeedType.BINANCE -> {
+                val streamSymbol = chartFeedSymbolFor(ChartFeedType.BINANCE, symbol)
+                Log.d(LOG_TAG, "Subscribing Binance-only chart route for $streamSymbol timeframe=$timeframe")
+                binanceService.streamActiveSymbol(streamSymbol)
+                binanceService.fetchHistory(streamSymbol, timeframe, null)
+                return@LaunchedEffect
+            }
+            null -> Unit
+        }
         val streamSymbol = binanceStreamSymbolFor(symbol)
         if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
             Log.d(LOG_TAG, "Subscribing Binance chart route for $streamSymbol timeframe=$timeframe")
@@ -2007,6 +2077,7 @@ fun TradingChart(
         onDispose {
             mt5Service.disconnect()
             binanceService.disconnect()
+            pepperstoneChartService.disconnect()
             reverseBridge?.disconnect()
         }
     }
@@ -2154,11 +2225,18 @@ fun TradingChart(
                                     if (visibleStart <= firstCandleTime + threshold) {
                                         isLoadingMore = true
                                         val endTime = firstCandleTime - 1
-                                        val streamSymbol = binanceStreamSymbolFor(symbol)
-                                        if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
-                                            binanceService.fetchHistory(streamSymbol, timeframe, endTime)
-                                        } else {
-                                            mt5Service.subscribe(streamSymbol, timeframe, endTime, 500)
+                                        when (chartFeedType) {
+                                            ChartFeedType.EXNESS -> mt5Service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, symbol), timeframe, endTime, 500)
+                                            ChartFeedType.PEPPERSTONE -> isLoadingMore = false
+                                            ChartFeedType.BINANCE -> binanceService.fetchHistory(chartFeedSymbolFor(ChartFeedType.BINANCE, symbol), timeframe, endTime)
+                                            null -> {
+                                                val streamSymbol = binanceStreamSymbolFor(symbol)
+                                                if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
+                                                    binanceService.fetchHistory(streamSymbol, timeframe, endTime)
+                                                } else {
+                                                    mt5Service.subscribe(streamSymbol, timeframe, endTime, 500)
+                                                }
+                                            }
                                         }
                                     }
                                 }

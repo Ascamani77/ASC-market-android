@@ -10,6 +10,7 @@ import websockets
 from ctrader_open_api import Client, EndPoints, Protobuf, TcpProtocol
 from ctrader_open_api.messages.OpenApiCommonMessages_pb2 import ProtoHeartbeatEvent
 from ctrader_open_api.messages.OpenApiMessages_pb2 import *
+from ctrader_open_api.messages.OpenApiModelMessages_pb2 import ProtoOATrendbarPeriod
 from twisted.internet import reactor
 
 
@@ -241,6 +242,7 @@ def on_message_received(_client, message) -> None:
         symbols_loaded = True
         set_status("symbols_loaded", f"Loaded {len(broker_symbols_by_normalized)} broker symbols")
         subscribe_pending_symbols()
+        process_pending_history_requests()
         return
 
     if message.payloadType == ProtoOASubscribeSpotsRes().payloadType:
@@ -249,6 +251,10 @@ def on_message_received(_client, message) -> None:
 
     if message.payloadType == ProtoOASpotEvent().payloadType:
         handle_spot_event(payload)
+        return
+
+    if message.payloadType == ProtoOAGetTrendbarsRes().payloadType:
+        handle_trendbar_response(payload)
         return
 
     if message.payloadType == ProtoOAErrorRes().payloadType:
@@ -306,6 +312,76 @@ def subscribe_app_symbols(symbols: Iterable[str]) -> None:
     with state_lock:
         pending_app_symbols.update(normalized)
     subscribe_pending_symbols()
+
+
+# Queue for pending history requests
+pending_history_requests: List[tuple] = []  # [(symbol, timeframe, count), ...]
+
+
+def request_historical_candles(symbol: str, timeframe: str = "1h", count: int = 500) -> None:
+    """Request historical candles for a symbol"""
+    if not account_authed or not symbols_loaded or account_id is None:
+        # Queue the request for later
+        with state_lock:
+            pending_history_requests.append((symbol, timeframe, count))
+        return
+    
+    normalized = normalize_symbol(symbol)
+    item = resolve_broker_symbol(normalized)
+    if item is None:
+        return
+    
+    symbol_id = int(getattr(item, "symbolId", 0) or 0)
+    if symbol_id <= 0:
+        return
+    
+    # Map timeframe to cTrader period
+    timeframe_map = {
+        "1m": ProtoOATrendbarPeriod.M1,
+        "5m": ProtoOATrendbarPeriod.M5,
+        "15m": ProtoOATrendbarPeriod.M15,
+        "30m": ProtoOATrendbarPeriod.M30,
+        "1h": ProtoOATrendbarPeriod.H1,
+        "4h": ProtoOATrendbarPeriod.H4,
+        "1d": ProtoOATrendbarPeriod.D1,
+        "1w": ProtoOATrendbarPeriod.W1,
+    }
+    period = timeframe_map.get(timeframe.lower(), ProtoOATrendbarPeriod.H1)
+    
+    # Calculate time range
+    now_ms = int(time.time() * 1000)
+    ms_per_bar = {
+        "1m": 60 * 1000,
+        "5m": 5 * 60 * 1000,
+        "15m": 15 * 60 * 1000,
+        "30m": 30 * 60 * 1000,
+        "1h": 60 * 60 * 1000,
+        "4h": 4 * 60 * 60 * 1000,
+        "1d": 24 * 60 * 60 * 1000,
+        "1w": 7 * 24 * 60 * 60 * 1000,
+    }.get(timeframe.lower(), 60 * 60 * 1000)
+    
+    from_ms = now_ms - (count * ms_per_bar)
+    
+    request = ProtoOAGetTrendbarsReq()
+    request.ctidTraderAccountId = account_id
+    request.symbolId = symbol_id
+    request.period = period
+    request.fromTimestamp = from_ms
+    request.toTimestamp = now_ms
+    
+    print(f"Requesting {count} {timeframe} candles for {symbol} (symbolId={symbol_id})")
+    send_request(request)
+
+
+def process_pending_history_requests() -> None:
+    """Process any queued history requests after authentication"""
+    with state_lock:
+        requests = pending_history_requests.copy()
+        pending_history_requests.clear()
+    
+    for symbol, timeframe, count in requests:
+        request_historical_candles(symbol, timeframe, count)
 
 
 def subscribe_pending_symbols() -> None:
@@ -421,6 +497,70 @@ def handle_spot_event(payload) -> None:
     )
 
 
+def handle_trendbar_response(payload) -> None:
+    """Handle historical candle data response"""
+    symbol_id = int(getattr(payload, "symbolId", 0) or 0)
+    with state_lock:
+        state = symbol_states_by_id.get(symbol_id)
+    if state is None:
+        print(f"Received trendbars for unknown symbol_id: {symbol_id}")
+        return
+    
+    trendbars = getattr(payload, "trendbar", [])
+    if not trendbars:
+        print(f"No trendbars in response for {state.app_symbol}")
+        return
+    
+    print(f"Processing {len(trendbars)} trendbars for {state.app_symbol}")
+    
+    candles = []
+    for bar in trendbars:
+        timestamp = int(getattr(bar, "utcTimestampInMinutes", 0) or 0) * 60 * 1000  # Convert minutes to milliseconds
+        if timestamp <= 0:
+            continue
+        
+        # cTrader uses delta encoding: low is absolute, others are deltas from low
+        low_raw = float(getattr(bar, "low", 0) or 0)
+        delta_open = float(getattr(bar, "deltaOpen", 0) or 0)
+        delta_high = float(getattr(bar, "deltaHigh", 0) or 0)
+        delta_close = float(getattr(bar, "deltaClose", 0) or 0)
+        volume = float(getattr(bar, "volume", 0) or 0)
+        
+        if low_raw <= 0:
+            continue
+        
+        # Decode prices: divide by 10^digits to get actual price
+        divisor = 10 ** state.digits if state.digits > 0 else 100000
+        low_price = low_raw / divisor
+        open_price = (low_raw + delta_open) / divisor
+        high_price = (low_raw + delta_high) / divisor
+        close_price = (low_raw + delta_close) / divisor
+        
+        if not all([open_price > 0, high_price > 0, low_price > 0, close_price > 0]):
+            continue
+        
+        candles.append({
+            "time": timestamp,
+            "open": open_price,
+            "high": high_price,
+            "low": low_price,
+            "close": close_price,
+            "volume": volume
+        })
+    
+    if candles:
+        print(f"Broadcasting {len(candles)} candles for {state.app_symbol}")
+        broadcast({
+            "type": "history",
+            "source": "pepperstone_ctrader",
+            "symbol": state.app_symbol,
+            "displaySymbol": display_symbol(state.app_symbol),
+            "data": candles
+        })
+    else:
+        print(f"No valid candles decoded for {state.app_symbol}")
+
+
 def run_ctrader_client() -> None:
     global client
     if not APP_CLIENT_ID or not APP_CLIENT_SECRET or not ACCESS_TOKEN:
@@ -468,7 +608,16 @@ async def handle_android_client(websocket, *_args) -> None:
                 if not isinstance(symbols, list):
                     symbol = payload.get("symbol")
                     symbols = [symbol] if symbol else []
+                
+                # Subscribe to live ticks
                 reactor.callFromThread(subscribe_app_symbols, [str(symbol) for symbol in symbols])
+                
+                # Request historical candles
+                timeframe = payload.get("timeframe", "1h")
+                count = payload.get("count", 500)
+                for symbol in symbols:
+                    reactor.callFromThread(request_historical_candles, str(symbol), timeframe, count)
+                
                 try:
                     await websocket.send(json.dumps({"type": "ack", "action": "subscribe", "symbols": symbols}))
                 except Exception:

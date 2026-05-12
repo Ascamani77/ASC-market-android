@@ -45,6 +45,7 @@ import com.trading.app.models.BalanceRecord
 import com.trading.app.models.EconomicCalendarPayload
 import com.trading.app.models.OHLCData
 import com.trading.app.models.SymbolInfo
+import com.trading.app.data.ChartFeedType
 import com.trading.app.data.Mt5Service
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -91,6 +92,7 @@ fun TradingChart2(
     onCrosshairToggle: (Boolean) -> Unit = {},
     onVolumeToggle: (Boolean) -> Unit = {},
     onIndicatorSettingsClick: (String) -> Unit = {},
+    chartFeedType: ChartFeedType? = null,
     isMagnetEnabled: Boolean = false,
     isLocked: Boolean = false,
     isVisible: Boolean = true,
@@ -247,6 +249,7 @@ fun TradingChart2(
                 onSelectedIndicatorIdChange = onSelectedIndicatorIdChange,
                 onIndicatorDataUpdate = onIndicatorDataUpdate,
                 onIndicatorSettingsClick = onIndicatorSettingsClick,
+                chartFeedType = chartFeedType,
                 isMagnetEnabled = isMagnetEnabled,
                 isLocked = isLocked,
                 isVisible = isVisible,
