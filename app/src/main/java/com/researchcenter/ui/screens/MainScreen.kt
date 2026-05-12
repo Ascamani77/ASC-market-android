@@ -1,5 +1,6 @@
 package com.researchcenter.ui.screens
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -17,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.data.NetworkConfig
 import com.researchcenter.data.models.NewsArticle
 import com.researchcenter.data.models.ViewMode
 import com.researchcenter.ui.components.ArticleDetail
@@ -31,6 +34,8 @@ import com.researchcenter.ui.theme.Black
 import com.researchcenter.ui.theme.Gray400
 import com.researchcenter.ui.theme.SidebarBg
 import com.researchcenter.ui.theme.White
+import com.trading.app.data.Mt5NewsStore
+import com.trading.app.data.Mt5Service
 import java.time.OffsetDateTime
 import java.util.Calendar
 
@@ -39,6 +44,7 @@ fun MainScreen(
     viewModel: NewsViewModel = viewModel(),
     onBackToApp: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val articles by viewModel.articles.collectAsState()
     val aiDiscoveryArticles by viewModel.aiDiscoveryArticles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -47,11 +53,38 @@ fun MainScreen(
     val aiExplanation by viewModel.aiExplanation.collectAsState()
     val bookmarks by viewModel.bookmarks.collectAsState()
 
-    var activeCategory by remember { mutableStateOf("all") }
     var selectedArticle by remember { mutableStateOf<NewsArticle?>(null) }
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
     var isSearchVisible by remember { mutableStateOf(false) }
     var showBookmarksOnly by remember { mutableStateOf(false) }
+    val mt5Host = remember(context) { NetworkConfig.mt5Host(context) }
+    val mt5Port = remember(context) { NetworkConfig.mt5Port(context) }
+    val mt5NewsService = remember(mt5Host, mt5Port) {
+        Mt5Service(
+            pcIpAddress = mt5Host,
+            port = mt5Port,
+            onHistoryUpdate = { _, _ -> },
+            onQuoteUpdate = {},
+            onNewsUpdate = { payload ->
+                Log.i("ResearchMainScreen", "Received ${payload.items.size} MT5 FXStreet news items")
+                Mt5NewsStore.updateNews(payload.items)
+            },
+            onConnectionStatusUpdate = { connected ->
+                Log.i("ResearchMainScreen", "MT5 news bridge connected=$connected")
+            }
+        )
+    }
+
+    LaunchedEffect(mt5NewsService) {
+        mt5NewsService.connect()
+        mt5NewsService.requestNews()
+    }
+
+    DisposableEffect(mt5NewsService) {
+        onDispose {
+            mt5NewsService.disconnect()
+        }
+    }
 
     // Refresh Rotation Animation
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
@@ -102,49 +135,46 @@ fun MainScreen(
         counts
     }
 
-    val displayArticles = remember(activeCategory, articles, aiDiscoveryArticles, searchTerm, searchResults, showBookmarksOnly, bookmarks) {
+    val displayArticles = remember(articles, aiDiscoveryArticles, searchTerm, searchResults, showBookmarksOnly, bookmarks) {
         if (showBookmarksOnly) {
             bookmarks
         } else if (searchTerm.isNotEmpty()) {
             searchResults
         } else {
-            val baseList = if (activeCategory == "all") {
-                articles
-            } else {
-                articles.filter { it.category == activeCategory }
-            }
-
+            // Show ALL articles together (no category filtering)
+            val baseList = articles
+            // Filter out upcoming events (where publishedAt is in the future) and strict calendar/schedule events
             val now = System.currentTimeMillis()
-            val upcoming = mutableListOf<NewsArticle>()
-            val passed = mutableListOf<NewsArticle>()
+            baseList.filter { article ->
+                val isCalendarEvent = article.category == "calendar" || 
+                                      article.category == "macro_cal" || 
+                                      article.intelligence?.asset_tags?.any { it.contains("SCHEDULE") } == true ||
+                                      article.source.contains("TREASURYDIRECT.GOV", ignoreCase = true) ||
+                                      article.title.contains("monthly statement of public debt", ignoreCase = true)
 
-            val threeDaysLater = Calendar.getInstance()
-            threeDaysLater.add(Calendar.DAY_OF_YEAR, 3)
-            threeDaysLater.set(Calendar.HOUR_OF_DAY, 23)
-            threeDaysLater.set(Calendar.MINUTE, 59)
-            threeDaysLater.set(Calendar.SECOND, 59)
-            threeDaysLater.set(Calendar.MILLISECOND, 999)
-            val horizonTime = threeDaysLater.timeInMillis
+                if (isCalendarEvent) return@filter false
 
-            baseList.forEach { a ->
                 try {
-                    val ts = OffsetDateTime.parse(a.publishedAt).toInstant().toEpochMilli()
-                    if (ts > now) {
-                        if (ts <= horizonTime) {
-                            upcoming.add(a)
-                        }
-                    } else {
-                        passed.add(a)
-                    }
+                    val ts = OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
+                    ts <= now
                 } catch (e: Exception) {
-                    upcoming.add(a)
+                    true // Include if parsing fails
                 }
+            }.let { filtered ->
+                val mt5Articles = filtered
+                    .filter { it.id.startsWith("mt5_") }
+                    .sortedByDescending { article ->
+                        try {
+                            OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
+                        } catch (e: Exception) {
+                            0L
+                        }
+                    }
+                val otherArticles = filtered
+                    .filterNot { it.id.startsWith("mt5_") }
+                    .sortedByDescending { it.publishedAt }
+                mt5Articles + otherArticles
             }
-
-            upcoming.sortBy { try { OffsetDateTime.parse(it.publishedAt).toInstant().toEpochMilli() } catch(e: Exception) { 0L } }
-            passed.sortByDescending { try { OffsetDateTime.parse(it.publishedAt).toInstant().toEpochMilli() } catch(e: Exception) { 0L } }
-
-            upcoming + passed
         }
     }
 
@@ -187,7 +217,10 @@ fun MainScreen(
                     }
 
                     IconButton(
-                        onClick = { viewModel.refreshNews() },
+                        onClick = {
+                            viewModel.refreshNews()
+                            mt5NewsService.requestNews()
+                        },
                         enabled = !isLoading
                     ) {
                         Icon(
@@ -258,57 +291,7 @@ fun MainScreen(
             }
 
             if (!showBookmarksOnly) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .background(Black),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    items(Constants.CATEGORIES) { cat ->
-                        val isActive = activeCategory == cat.id
-                        val count = categoryCounts[cat.id] ?: 0
-
-                        Column(
-                            modifier = Modifier
-                                .clickable {
-                                    activeCategory = cat.id
-                                    viewMode = ViewMode.LIST
-                                    selectedArticle = null
-                                }
-                                .padding(vertical = 12.dp),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    if (cat.id == "all") "All" else cat.name,
-                                    color = if (isActive) White else Gray400,
-                                    fontSize = 16.sp,
-                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    count.toString(),
-                                    color = if (isActive) White.copy(alpha = 0.6f) else Gray400.copy(alpha = 0.4f),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            if (isActive) {
-                                Spacer(Modifier.height(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .width(24.dp)
-                                        .height(3.dp)
-                                        .background(White)
-                                )
-                            } else {
-                                Spacer(Modifier.height(11.dp))
-                            }
-                        }
-                    }
-                }
+                // Category navbar removed - all articles shown together
             }
         }
 

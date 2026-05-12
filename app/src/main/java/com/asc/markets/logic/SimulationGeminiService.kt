@@ -1,6 +1,7 @@
 package com.asc.markets.logic
 
 import com.asc.markets.data.SimulationSignal
+import com.asc.markets.data.AISimulationStrategy
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.Dispatchers
@@ -19,13 +20,20 @@ object SimulationGeminiService {
 
     private val ASSETS = arrayOf("BTC/USD", "ETH/USD", "EUR/USD", "GBP/USD", "GOLD", "OIL")
 
-    suspend fun generateTradeSignal(lookbackCandles: Int = 100): SimulationSignal = withContext(Dispatchers.IO) {
+    suspend fun generateTradeSignal(
+        lookbackCandles: Int = 100,
+        enabledStrategies: Set<AISimulationStrategy> = AISimulationStrategy.defaultSelection()
+    ): SimulationSignal = withContext(Dispatchers.IO) {
         val asset = ASSETS.random()
+        val strategyList = enabledStrategies.ifEmpty { AISimulationStrategy.defaultSelection() }
+        val strategyText = strategyList.joinToString(", ") { "${it.label} (${it.description})" }
         
         val prompt = """
             Analyze the market for $asset considering the last $lookbackCandles historical candles. 
-            Provide a simulated trade signal in JSON format based on this historical context.
-            Include: asset, type ('buy' or 'sell'), entry (current price), sl (stop loss), tp (take profit), risk (percentage), confidence (0-1), and a brief reasoning that references the $lookbackCandles candles analysis.
+            You are only allowed to use these selected auto-trading strategies: $strategyText.
+            Ignore any entry idea that is not confirmed by at least one selected strategy. If more than one selected strategy is present, combine them as confluence.
+            Provide a simulated trade signal in JSON format based on this historical context and selected strategy filter.
+            Include: asset, type ('buy' or 'sell'), entry (current price), sl (stop loss), tp (take profit), risk (percentage), confidence (0-1), and a brief reasoning that names the selected strategies used.
             Make the prices realistic for $asset.
             Example format:
             {
@@ -57,7 +65,7 @@ object SimulationGeminiService {
             )
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback mock signal
+            val fallbackStrategies = strategyList.joinToString(" + ") { it.label }
             SimulationSignal(
                 asset = asset,
                 type = if (Math.random() > 0.5) "buy" else "sell",
@@ -66,7 +74,7 @@ object SimulationGeminiService {
                 tp = 110.0,
                 risk = 1.0,
                 confidence = 0.5,
-                reasoning = "Fallback signal due to API error: ${e.message}"
+                reasoning = "Fallback signal constrained to selected strategies: $fallbackStrategies. API error: ${e.message}"
             )
         }
     }

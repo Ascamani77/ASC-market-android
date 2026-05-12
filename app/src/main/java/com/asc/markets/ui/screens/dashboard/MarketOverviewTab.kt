@@ -1,5 +1,7 @@
 package com.asc.markets.ui.screens.dashboard
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -22,18 +24,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.ui.screens.dashboard.DashboardFontSizes
 // FOREX_PAIRS moved to centralized providers to avoid direct references across UI
 import com.asc.markets.data.MarketCategory
@@ -78,13 +88,13 @@ data class NewsItem(
     val imageUrl: String = ""
 )
 
-// --- Networking: fetch from OpenAI (uses BuildConfig.OPENAI_API_KEY) ---
+// --- Networking: fetch from Groq (uses BuildConfig.GROQ_API_KEY) ---
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null): List<NewsItem> {
     return try {
-        val apiKey = BuildConfig.OPENAI_API_KEY
+        val apiKey = BuildConfig.GROQ_API_KEY
         if (apiKey.isBlank()) {
-            android.util.Log.e("AscNews", "OPENAI API key missing in BuildConfig")
+            android.util.Log.e("AscNews", "GROQ API key missing in BuildConfig")
             return emptyList()
         }
 
@@ -96,7 +106,7 @@ suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null)
         val prompt = "$promptPrefix. $hardConstraint. $basePrompt"
 
         val bodyJson = JSONObject().apply {
-            put("model", "gpt-4o-mini")
+            put("model", "llama-3.3-70b-versatile")
             put("temperature", 0.7)
             put("max_tokens", 1200)
             put("messages", JSONArray().put(JSONObject().apply {
@@ -105,7 +115,7 @@ suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null)
             }))
         }
 
-        val url = URL("https://api.openai.com/v1/chat/completions")
+        val url = URL("https://api.groq.com/openai/v1/chat/completions")
         val responseText = withContext(Dispatchers.IO) {
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -119,12 +129,12 @@ suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null)
             conn.outputStream.use { it.write(bodyJson.toString().toByteArray()) }
 
             val code = conn.responseCode
-            android.util.Log.d("AscNews", "OpenAI response code: $code")
+            android.util.Log.d("AscNews", "Groq response code: $code")
             val text = if (code in 200..299) {
                 conn.inputStream.bufferedReader().use { it.readText() }
             } else {
                 val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                android.util.Log.e("AscNews", "OpenAI HTTP error: $code $err")
+                android.util.Log.e("AscNews", "Groq HTTP error: $code $err")
                 ""
             }
             conn.disconnect()
@@ -132,7 +142,7 @@ suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null)
         }
 
         if (responseText.isBlank()) {
-            android.util.Log.d("AscNews", "Empty responseText from OpenAI")
+            android.util.Log.d("AscNews", "Empty responseText from Groq")
             return emptyList()
         }
 
@@ -190,7 +200,7 @@ suspend fun fetchNewsFromGemini(ctx: com.asc.markets.state.AssetContext? = null)
             )
         }
 
-        android.util.Log.d("AscNews", "Parsed ${items.size} news items from OpenAI")
+        android.util.Log.d("AscNews", "Parsed ${items.size} news items from Groq")
         // Defensive filter: ensure returned items are within requested context when ctx provided
         val filtered = if (ctx != null) items.filter { matchesAssetContext(it, ctx) } else items
         if (filtered.isNotEmpty()) filtered else emptyList()
@@ -365,7 +375,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
     val context = LocalContext.current
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    val categories = listOf("All", "Commodities", "Stocks", "Crypto", "Futures", "Forex", "Bonds")
+    val categories = listOf("All", "Commodities", "Stocks", "Crypto", "Indices", "Forex", "Bonds")
 
     // Observe core data providers for real-time AI updates
     val sessionData = rememberSessionData()
@@ -377,8 +387,50 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
     val assetCtxForNews by AssetContextStore.context.collectAsState()
     val cryptoLiveList by viewModel.cryptoPairs.collectAsState()
     val allMarketPairs by MarketDataStore.allPairs.collectAsState()
-    val priceHistory by MarketDataStore.priceHistory.collectAsState()
+    val allBinancePairs by BinanceDataStore.allPairs.collectAsState()
+    val allFallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val allLivePairs = remember(allMarketPairs, allBinancePairs, allFallbackPairs) {
+        (allMarketPairs + allBinancePairs + allFallbackPairs).distinctBy { it.symbol }
+    }
+    val liveCryptoPairs = remember(cryptoLiveList, allMarketPairs, allBinancePairs, allFallbackPairs) {
+        (allBinancePairs + cryptoLiveList + allMarketPairs.filter { it.category == MarketCategory.CRYPTO } + allFallbackPairs.filter { it.category == MarketCategory.CRYPTO })
+            .distinctBy { it.symbol }
+    }
+    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
+    val marketTimedPriceHistory by MarketDataStore.timedPriceHistory.collectAsState()
+    val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
+    val binanceTimedPriceHistory by BinanceDataStore.timedPriceHistory.collectAsState()
+    val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
+    val fallbackTimedPriceHistory by CombinedFallbackDataStore.timedPriceHistory.collectAsState()
+    val priceHistory = remember(marketPriceHistory, binancePriceHistory, fallbackPriceHistory) {
+        marketPriceHistory + binancePriceHistory + fallbackPriceHistory
+    }
+    val timedPriceHistory = remember(marketTimedPriceHistory, binanceTimedPriceHistory, fallbackTimedPriceHistory) {
+        marketTimedPriceHistory + binanceTimedPriceHistory + fallbackTimedPriceHistory
+    }
+    val aiDecisions = aiDeployments?.final_decision.orEmpty()
     val selectedPairCtx = mapCategoryToAssetContext(selectedPair.category.name)
+    val contextPairs = remember(assetCtxForNews, allLivePairs, liveCryptoPairs) {
+        marketPairsForGallery(assetCtxForNews, allLivePairs, liveCryptoPairs)
+    }
+    val allTabRecentExpansionPairs = remember(allLivePairs, liveCryptoPairs, aiDecisions) {
+        recentAssetsCloseToExpansion(
+            pairs = marketPairsForGallery(AssetContext.ALL, allLivePairs, liveCryptoPairs),
+            aiDecisions = aiDecisions
+        )
+    }
+    val topSectionPairs = if (assetCtxForNews == AssetContext.ALL) allTabRecentExpansionPairs else contextPairs
+    val activeContextPair = remember(assetCtxForNews, selectedPair, selectedPairCtx, topSectionPairs) {
+        val contextualPairMatch = topSectionPairs.firstOrNull {
+            MarketDataStore.matchesSymbol(it.symbol, selectedPair.symbol)
+        }
+        when {
+            assetCtxForNews == AssetContext.ALL -> topSectionPairs.firstOrNull() ?: selectedPair
+            selectedPairCtx == assetCtxForNews -> contextualPairMatch ?: selectedPair
+            else -> topSectionPairs.firstOrNull() ?: selectedPair
+        }
+    }
+    val activeContextPairCtx = mapCategoryToAssetContext(activeContextPair.category.name)
     val newsItemsForCtx = remember(assetCtxForNews) { getNewsForContext(assetCtxForNews) }
 
     // Watch scroll and animate header collapse smoothly
@@ -750,14 +802,29 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 158.dp)
+            contentPadding = PaddingValues(bottom = 158.dp)
         ) {
-            // When `All` is selected, show the Universal Overview box below the chips
+            if (topSectionPairs.isNotEmpty()) {
+                item {
+                    PreMoveAiMockImage(
+                        selectedPair = activeContextPair,
+                        livePairs = topSectionPairs,
+                        priceHistory = priceHistory,
+                        timedPriceHistory = timedPriceHistory,
+                        aiDecisions = aiDecisions,
+                        onAssetSelected = { pair ->
+                            viewModel.selectPairBySymbolNoNavigate(pair.symbol)
+                        }
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(12.dp)) }
+            }
+
             if (assetCtxForNews == AssetContext.ALL) {
                 item {
                     AllTabLiveMarketBoard(
-                        selectedPair = selectedPair,
-                        allPairs = allMarketPairs,
+                        selectedPair = activeContextPair,
+                        allPairs = topSectionPairs,
                         priceHistory = priceHistory,
                         onPairFocused = { pair ->
                             viewModel.selectPairBySymbolNoNavigate(pair.symbol)
@@ -766,7 +833,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                 }
                 item { Spacer(modifier = Modifier.height(12.dp)) }
                 item {
-                    UniversalOverviewBox(assetCtxForNews, selectedPair)
+                    UniversalOverviewBox(assetCtxForNews, activeContextPair)
                 }
                 item { Spacer(modifier = Modifier.height(12.dp)) }
             }
@@ -801,7 +868,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             if (assetCtxForNews != AssetContext.ALL) {
                 item { Spacer(modifier = Modifier.height(12.dp)) }
                 item {
-                    PerAssetOverviewBox(assetCtxForNews, selectedPair)
+                    PerAssetOverviewBox(assetCtxForNews, activeContextPair)
                 }
             }
 
@@ -809,14 +876,14 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
             // 1. LIQUIDITY POOL VISUALIZATION (Deterministic Gap 1)
             item {
-                LiquidityPoolVisual(selectedPair)
+                LiquidityPoolVisual(activeContextPair)
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
 
             // 2. SETUP CONFLUENCE MATRIX (Deterministic Gap 2)
             item {
-                ConfluenceMatrix(selectedPair)
+                ConfluenceMatrix(activeContextPair)
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
@@ -1026,8 +1093,8 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             item {
                 AssetGallerySection(
                     ctx = assetCtxForNews,
-                    allPairs = allMarketPairs,
-                    liveCryptoPairs = cryptoLiveList,
+                    allPairs = allLivePairs,
+                    liveCryptoPairs = liveCryptoPairs,
                     onAssetClick = { pair ->
                         vibrator?.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
                         onAssetClick(pair)
@@ -1158,12 +1225,12 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
 
-            if (assetCtxForNews == AssetContext.ALL || assetCtxForNews == selectedPairCtx) {
+            if (assetCtxForNews == AssetContext.ALL || assetCtxForNews == activeContextPairCtx) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                         MarketDepthLadder(
-                            symbol = selectedPair.symbol,
-                            price = selectedPair.price
+                            symbol = activeContextPair.symbol,
+                            price = activeContextPair.price
                         )
                     }
                 }
@@ -1540,7 +1607,7 @@ private fun OverviewBoardRow(
                 PairFlags(symbol = pair.symbol, size = 34)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = pair.symbol.replace("/", ""),
+                        text = marketOverviewDisplayTicker(pair.symbol),
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -1712,6 +1779,34 @@ private fun normalizeOverviewBoardSymbol(symbol: String): String {
         .replace("_", "")
         .replace("!", "")
         .uppercase(Locale.US)
+}
+
+private fun marketOverviewDisplayTicker(symbol: String): String {
+    return when (normalizeOverviewBoardSymbol(symbol)) {
+        "NAS100", "NASDAQ", "NDX", "IXIC" -> "NASDAQ"
+        "SPX500", "SP500", "SPX" -> "SP500"
+        else -> symbol.replace("/", "").replace("!", "")
+    }
+}
+
+private fun marketOverviewIndexRank(symbol: String): Int {
+    return when (normalizeOverviewBoardSymbol(symbol)) {
+        "US30", "DJI", "DOW30" -> 0
+        "SPX500", "SP500", "SPX" -> 1
+        "NAS100", "NASDAQ", "NDX", "IXIC" -> 2
+        else -> Int.MAX_VALUE
+    }
+}
+
+private fun marketOverviewIndexPairs(pairs: List<ForexPair>): List<ForexPair> {
+    return pairs
+        .filter { it.category == MarketCategory.INDICES }
+        .sortedWith(
+            compareBy<ForexPair> { marketOverviewIndexRank(it.symbol) }
+                .thenBy { it.symbol }
+        )
+        .distinctBy { marketOverviewDisplayTicker(it.symbol) }
+        .take(3)
 }
 
 private fun defaultOverviewBoardClass(
@@ -1964,7 +2059,7 @@ private fun ReferenceAssetCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val ticker = remember(pair.symbol) { pair.symbol.replace("/", "").replace("!", "") }
+    val ticker = remember(pair.symbol) { marketOverviewDisplayTicker(pair.symbol) }
     val changeColor = if (pair.changePercent >= 0) Color(0xFF67B7A8) else Color(0xFFD66F79)
     val sparklinePoints = remember(pair.symbol, pair.price, pair.changePercent, isHorizontal) {
         generateSparklinePoints(
@@ -2187,7 +2282,10 @@ private fun marketPairsForGallery(
     val stockPairs = stable(livePairs(MarketCategory.STOCK, provideStocksExplore()))
     val forexPairs = stable(livePairs(MarketCategory.FOREX, provideForexExplore()))
     val commodityPairs = stable(livePairs(MarketCategory.COMMODITIES, provideCommoditiesExplore()))
-    val indexPairs = stable(livePairs(MarketCategory.INDICES, provideIndicesExplore()))
+    val indexPairs = stable(
+        marketOverviewIndexPairs(allPairs).takeIf { it.isNotEmpty() }
+            ?: marketOverviewIndexPairs(provideIndicesExplore())
+    )
     val bondPairs = stable(livePairs(MarketCategory.BONDS, provideBondsExplore()))
     val futuresPairs = stable(livePairs(MarketCategory.FUTURES, provideFuturesExplore()))
     val cryptoPairs = stable(liveCryptoPairs.takeIf { it.isNotEmpty() } ?: provideCryptoExplore())
@@ -2198,18 +2296,114 @@ private fun marketPairsForGallery(
             addAll(cryptoPairs.take(3))
             addAll(forexPairs.take(3))
             addAll(commodityPairs.take(2))
-            addAll(indexPairs.take(2))
+            addAll(indexPairs.take(3))
             addAll(bondPairs.take(2))
-            addAll(futuresPairs.take(2))
         }.distinctBy { it.symbol }
         AssetContext.FOREX -> forexPairs
         AssetContext.CRYPTO -> cryptoPairs
         AssetContext.COMMODITIES -> commodityPairs
         AssetContext.INDICES -> indexPairs
         AssetContext.STOCKS -> stockPairs
-        AssetContext.FUTURES -> futuresPairs
+        AssetContext.FUTURES -> indexPairs.ifEmpty { futuresPairs }
         AssetContext.BONDS -> bondPairs
     }
+}
+
+private fun recentAssetsCloseToExpansion(
+    pairs: List<ForexPair>,
+    aiDecisions: List<FinalDecisionItem>
+): List<ForexPair> {
+    if (pairs.isEmpty()) return emptyList()
+
+    data class RankedAsset(
+        val pair: ForexPair,
+        val timestampMillis: Long,
+        val score: Float,
+        val phase: String
+    )
+
+    val ranked = pairs.map { pair ->
+        val decision = decisionForPair(pair, aiDecisions)
+        RankedAsset(
+            pair = pair,
+            timestampMillis = decisionTimestampMillis(decision),
+            score = decisionScore(decision),
+            phase = decisionPhase(decision)
+        )
+    }
+
+    val nearExpansion = ranked
+        .filter { it.phase in setOf("COMPRESSION", "PRE-MOVE", "EXPANSION") || it.score >= 55f }
+        .sortedWith(
+            compareByDescending<RankedAsset> { it.timestampMillis }
+                .thenBy { expansionPhaseRank(it.phase) }
+                .thenBy { abs(80f - it.score) }
+                .thenByDescending { it.score }
+        )
+
+    val fallback = ranked.sortedWith(
+        compareByDescending<RankedAsset> { it.timestampMillis }
+            .thenBy { abs(80f - it.score) }
+            .thenByDescending { it.score }
+    )
+
+    return (nearExpansion + fallback)
+        .distinctBy { normalizedAssetKey(it.pair.symbol) }
+        .take(5)
+        .map { it.pair }
+}
+
+private fun decisionForPair(
+    pair: ForexPair,
+    aiDecisions: List<FinalDecisionItem>
+): FinalDecisionItem? {
+    val assetKey = normalizedAssetKey(pair.symbol)
+    return aiDecisions.firstOrNull { normalizedAssetKey(it.asset_1.orEmpty()) == assetKey }
+}
+
+private fun normalizedAssetKey(value: String): String {
+    return value.uppercase(Locale.US)
+        .replace("/", "")
+        .replace("-", "")
+        .replace("_", "")
+        .replace(" ", "")
+}
+
+private fun decisionTimestampMillis(decision: FinalDecisionItem?): Long {
+    val rawTimestamp = decision?.journal_timestamp?.takeIf { it.isNotBlank() } ?: return 0L
+    return try {
+        OffsetDateTime.parse(rawTimestamp).toInstant().toEpochMilli()
+    } catch (_: Exception) {
+        0L
+    }
+}
+
+private fun decisionScore(decision: FinalDecisionItem?): Float {
+    val directScore = decision?.pre_move_ai_score
+    val fallbackScore = decision?.journal_score
+    val raw = directScore ?: fallbackScore ?: return 0f
+    return if (raw > 1.0) raw.toFloat().coerceIn(0f, 100f) else (raw * 100.0).toFloat().coerceIn(0f, 100f)
+}
+
+private fun decisionPhase(decision: FinalDecisionItem?): String {
+    val explicitPhase = decision?.pre_move_ai_phase?.uppercase(Locale.US)
+    if (!explicitPhase.isNullOrBlank()) return explicitPhase
+    val score = decisionScore(decision)
+    return when {
+        score >= 80f -> "EXPANSION"
+        score >= 60f -> "PRE-MOVE"
+        score >= 45f -> "COMPRESSION"
+        score >= 30f -> "STRUCTURE"
+        else -> "NOISE"
+    }
+}
+
+private fun expansionPhaseRank(phase: String): Int = when (phase.uppercase(Locale.US)) {
+    "PRE-MOVE" -> 0
+    "COMPRESSION" -> 1
+    "EXPANSION" -> 2
+    "STRUCTURE" -> 3
+    else -> 4
 }
 
 private fun formatGalleryPrice(pair: ForexPair): String = when (pair.category) {
@@ -2446,3 +2640,384 @@ fun AscNewsItemRow(newsItem: NewsItem) {
         Text(text = newsItem.headline, color = Color.White, fontSize = DashboardFontSizes.valueMediumLarge, fontWeight = FontWeight.Bold, lineHeight = 22.sp, fontFamily = InterFontFamily, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
+
+@Composable
+private fun StableDeterministicBandChart(
+    modifier: Modifier = Modifier,
+    aiScore: Float,
+    liveX: Float
+) {
+    val safeScore = if (aiScore.isFinite()) aiScore.coerceIn(0f, 100f) else 0f
+    val safeX = if (liveX.isFinite()) liveX.coerceIn(0f, 100f) else 0f
+    val animatedScore by animateFloatAsState(
+        targetValue = safeScore,
+        animationSpec = tween(600),
+        label = "stableAiScore"
+    )
+    val animatedX by animateFloatAsState(
+        targetValue = safeX,
+        animationSpec = tween(600),
+        label = "stableLiveX"
+    )
+    val phase = when (safeScore) {
+        in 0f..30f -> "NOISE"
+        in 30f..60f -> "STRUCTURE"
+        in 60f..80f -> "PRE-MOVE"
+        else -> "EXPANSION"
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFF0F172A), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("DETERMINISTIC MOVE BAND CHART", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+            Text(phase, color = Color(0xFF81C784), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(
+            "Live AI readiness moving through decision zones",
+            color = Color.Gray,
+            fontSize = 11.sp
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Black)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                if (w <= 0f || h <= 0f) return@Canvas
+
+                fun yPos(value: Float): Float = h - (value.coerceIn(0f, 100f) / 100f) * h
+                fun xPos(value: Float): Float = (value.coerceIn(0f, 100f) / 100f) * w
+
+                drawRect(Color(0xFF111B29), topLeft = Offset(0f, yPos(100f)), size = Size(w, h * 0.20f))
+                drawRect(Color(0xFF17241A), topLeft = Offset(0f, yPos(80f)), size = Size(w, h * 0.20f))
+                drawRect(Color(0xFF2B2011), topLeft = Offset(0f, yPos(60f)), size = Size(w, h * 0.30f))
+                drawRect(Color(0xFF141A28), topLeft = Offset(0f, yPos(30f)), size = Size(w, h * 0.30f))
+
+                listOf(20f, 40f, 60f, 80f).forEach { grid ->
+                    drawLine(Color.White.copy(alpha = 0.06f), Offset(0f, yPos(grid)), Offset(w, yPos(grid)), strokeWidth = 1f)
+                    drawLine(Color.White.copy(alpha = 0.06f), Offset(xPos(grid), 0f), Offset(xPos(grid), h), strokeWidth = 1f)
+                }
+
+                val path = Path()
+                val fillPath = Path()
+                for (i in 0..100) {
+                    val xValue = i.toFloat()
+                    val yValue =
+                        12f +
+                            68f / (1f + kotlin.math.exp(-((xValue - 55f) / 12f))) +
+                            6f * kotlin.math.sin(xValue / 8f)
+                    val px = xPos(xValue)
+                    val py = yPos(yValue.coerceIn(0f, 100f))
+
+                    if (i == 0) {
+                        path.moveTo(px, py)
+                        fillPath.moveTo(px, h)
+                        fillPath.lineTo(px, py)
+                    } else {
+                        path.lineTo(px, py)
+                        fillPath.lineTo(px, py)
+                    }
+                }
+                fillPath.lineTo(w, h)
+                fillPath.close()
+
+                drawPath(fillPath, Color(0xFF0EA5E9).copy(alpha = 0.18f))
+                drawPath(path, Color(0xFF22D3EE).copy(alpha = 0.12f), style = Stroke(width = 16f))
+                drawPath(path, Color(0xFF22D3EE).copy(alpha = 0.22f), style = Stroke(width = 8f))
+                drawPath(path, Color(0xFF38E8FF), style = Stroke(width = 4f))
+
+                val markerX = xPos(animatedX)
+                val markerY = yPos(animatedScore)
+
+                drawLine(
+                    color = Color(0xFF81C784),
+                    start = Offset(markerX, 0f),
+                    end = Offset(markerX, h),
+                    strokeWidth = 2f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+                )
+                drawCircle(color = Color(0xFF81C784), radius = 10f, center = Offset(markerX, markerY))
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.8f),
+                    radius = 13f,
+                    center = Offset(markerX, markerY),
+                    style = Stroke(width = 2f)
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NOISE", color = Color(0xFFD67B7A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("STRUCTURE", color = Color(0xFFDAB354), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("PRE-MOVE", color = Color(0xFF7CB37C), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("EXPANSION", color = Color(0xFF6B8BC4), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("0%", color = Color.Gray, fontSize = 10.sp)
+            Text("${safeScore.toInt()}% LIVE", color = Color(0xFF81C784), fontSize = 12.sp, fontWeight = FontWeight.Black)
+            Text("100%", color = Color.Gray, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+fun LiveDeterministicBandChart(
+    modifier: Modifier = Modifier,
+    aiScore: Float,        // 0f..100f from your AI/market engine
+    liveX: Float           // 0f..100f time/progress position
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val safeScore = if (aiScore.isFinite()) aiScore.coerceIn(0f, 100f) else 0f
+    val safeX = if (liveX.isFinite()) liveX.coerceIn(0f, 100f) else 0f
+    val animatedScore by animateFloatAsState(
+        targetValue = safeScore,
+        animationSpec = tween(600),
+        label = "aiScore"
+    )
+
+    val animatedX by animateFloatAsState(
+        targetValue = safeX,
+        animationSpec = tween(600),
+        label = "liveX"
+    )
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(320.dp) // Increased height to accommodate labels
+            .background(Color(0xFF0F172A), RoundedCornerShape(8.dp)) // Navy/Dark background border
+    ) {
+        val padTop = 30.dp.toPx()
+        val padBottom = 40.dp.toPx()
+        val padStart = 50.dp.toPx()
+        val padEnd = 20.dp.toPx()
+
+        val w = size.width - padStart - padEnd
+        val h = size.height - padTop - padBottom
+        if (w <= 0f || h <= 0f) return@Canvas
+
+        fun yPos(value: Float): Float = padTop + h - (value.coerceIn(0f, 100f) / 100f) * h
+        fun xPos(value: Float): Float = padStart + (value.coerceIn(0f, 100f) / 100f) * w
+
+        // --- 1. Background Bands ---
+        // NOISE (0-30) -> Dark Blueish/Black
+        drawRect(Color(0xFF141A28), topLeft = Offset(padStart, yPos(30f)), size = Size(w, h * 0.30f))
+        // STRUCTURE (30-60) -> Dark Brownish
+        drawRect(Color(0xFF2B2011), topLeft = Offset(padStart, yPos(60f)), size = Size(w, h * 0.30f))
+        // PRE-MOVE (60-80) -> Dark Greenish
+        drawRect(Color(0xFF17241A), topLeft = Offset(padStart, yPos(80f)), size = Size(w, h * 0.20f))
+        // EXPANSION (80-100) -> Dark Navy
+        drawRect(Color(0xFF111B29), topLeft = Offset(padStart, yPos(100f)), size = Size(w, h * 0.20f))
+
+        // --- 2. Grid & Axis ---
+        val gridColor = Color.White.copy(alpha = 0.05f)
+        
+        // Horizontal Grid Lines & Y-Axis Labels
+        val yLabels = listOf("0", "20", "40", "60", "80", "100")
+        yLabels.forEach { label ->
+            val y = yPos(label.toFloat())
+            drawLine(gridColor, Offset(padStart, y), Offset(padStart + w, y), strokeWidth = 1f)
+            
+            drawText(
+                textMeasurer = textMeasurer,
+                text = label,
+                style = TextStyle(color = Color.Gray, fontSize = 10.sp),
+                topLeft = Offset(padStart - 25f, y - 15f)
+            )
+        }
+
+        // Vertical Grid Lines & X-Axis Labels
+        val xLabels = listOf("0", "20", "40", "60", "80", "100")
+        xLabels.forEach { label ->
+            val x = xPos(label.toFloat())
+            drawLine(gridColor, Offset(x, padTop), Offset(x, padTop + h), strokeWidth = 1f)
+            
+            drawText(
+                textMeasurer = textMeasurer,
+                text = label,
+                style = TextStyle(color = Color.Gray, fontSize = 10.sp),
+                topLeft = Offset(x - 10f, padTop + h + 5f)
+            )
+        }
+
+        // Axis Titles
+        withTransform({
+            rotate(-90f, pivot = Offset(15f, padTop + h / 2))
+        }) {
+            drawText(
+                textMeasurer = textMeasurer,
+                text = "AI Probability / Strength",
+                style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp),
+                topLeft = Offset(15f - 60f, padTop + h / 2 + 10f)
+            )
+        }
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "Market Readiness / Time Flow",
+            style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp),
+            topLeft = Offset(padStart + w / 2 - 70f, padTop + h + 25f)
+        )
+
+        // --- 3. Inside Labels ---
+        // NOISE Label
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "NOISE\n0-30\nAvoid",
+            style = TextStyle(color = Color(0xFFD67B7A), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(xPos(10f), yPos(25f))
+        )
+        // STRUCTURE Label
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "STRUCTURE\n30-60\nWatch",
+            style = TextStyle(color = Color(0xFFDAB354), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(xPos(35f), yPos(55f))
+        )
+        // PRE-MOVE Label
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "PRE-MOVE\n60-80\nPrepare",
+            style = TextStyle(color = Color(0xFF7CB37C), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(xPos(65f), yPos(75f))
+        )
+        // EXPANSION Label
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "EXPANSION\n80-100\nExecute",
+            style = TextStyle(color = Color(0xFF6B8BC4), fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(xPos(85f), yPos(95f))
+        )
+
+        // --- 4. Chart Titles (Top Left) ---
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "DETERMINISTIC MOVE BAND CHART",
+            style = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black),
+            topLeft = Offset(padStart, 10f)
+        )
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "Live AI readiness moving through decision zones",
+            style = TextStyle(color = Color.Gray, fontSize = 11.sp),
+            topLeft = Offset(padStart, 30f)
+        )
+
+        // --- 5. Curve Path ---
+        val path = Path()
+        val fillPath = Path()
+
+        for (i in 0..100) {
+            val xValue = i.toFloat()
+            val yValue =
+                12f +
+                68f / (1f + kotlin.math.exp(-((xValue - 55f) / 12f))) +
+                6f * kotlin.math.sin(xValue / 8f)
+
+            val px = xPos(xValue)
+            val py = yPos(yValue.coerceIn(0f, 100f))
+
+            if (i == 0) {
+                path.moveTo(px, py)
+                fillPath.moveTo(px, padTop + h)
+                fillPath.lineTo(px, py)
+            } else {
+                path.lineTo(px, py)
+                fillPath.lineTo(px, py)
+            }
+        }
+
+        fillPath.lineTo(padStart + w, padTop + h)
+        fillPath.close()
+
+        // Area shadow
+        drawPath(fillPath, Color(0xFF0EA5E9).copy(alpha = 0.18f))
+
+        // Glow layers
+        drawPath(path, Color(0xFF22D3EE).copy(alpha = 0.12f), style = Stroke(width = 16f))
+        drawPath(path, Color(0xFF22D3EE).copy(alpha = 0.22f), style = Stroke(width = 8f))
+
+        // Main line
+        drawPath(path, Color(0xFF38E8FF), style = Stroke(width = 4f))
+
+        // --- 6. Live Marker & Floating Box ---
+        val markerX = xPos(animatedX)
+        val markerY = yPos(animatedScore)
+
+        // Vertical dashed line
+        drawLine(
+            color = Color(0xFF7CB37C),
+            start = Offset(markerX, padTop),
+            end = Offset(markerX, padTop + h),
+            strokeWidth = 2f,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+        )
+
+        // Green dot
+        drawCircle(
+            color = Color(0xFF81C784),
+            radius = 10f,
+            center = Offset(markerX, markerY)
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.8f),
+            radius = 13f,
+            center = Offset(markerX, markerY),
+            style = Stroke(width = 2f)
+        )
+
+        // Floating READY Box
+        val boxWidth = 55.dp.toPx()
+        val boxHeight = 45.dp.toPx()
+        val boxOffset = Offset(markerX + 15f, markerY - boxHeight - 10f)
+        
+        // Draw box background
+        drawRoundRect(
+            color = Color(0xFF17241A).copy(alpha = 0.9f),
+            topLeft = boxOffset,
+            size = Size(boxWidth, boxHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx(), 8.dp.toPx())
+        )
+        // Draw box border
+        drawRoundRect(
+            color = Color(0xFF7CB37C),
+            topLeft = boxOffset,
+            size = Size(boxWidth, boxHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx(), 8.dp.toPx()),
+            style = Stroke(width = 2f)
+        )
+
+        // Percentage text
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "${safeScore.toInt()}%",
+            style = TextStyle(color = Color(0xFF81C784), fontSize = 14.sp, fontWeight = FontWeight.Black, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(boxOffset.x + 12f, boxOffset.y + 5f)
+        )
+        // READY text
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "LIVE",
+            style = TextStyle(color = Color(0xFF81C784), fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            topLeft = Offset(boxOffset.x + 12f, boxOffset.y + 22f)
+        )
+    }
+}
+

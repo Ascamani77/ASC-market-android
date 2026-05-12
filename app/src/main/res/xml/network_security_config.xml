@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+
     <!-- Allow cleartext (HTTP) traffic to localhost and your machine IP for development -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.151.58.104</domain>
         <domain includeSubdomains="true">10.95.77.133</domain>
         <domain includeSubdomains="true">10.142.130.133</domain>
         <domain includeSubdomains="true">10.233.78.133</domain>
+        <domain includeSubdomains="true">10.164.138.133</domain>
         <domain includeSubdomains="true">192.168.1.198</domain>
     </domain-config>
     

@@ -33,8 +33,33 @@ data class SimulationSettings(
     val maxDrawdownLimit: Double,
     val winRateThreshold: Double,
     val riskPerTrade: Double,
-    val lookbackCandles: Int
+    val lookbackCandles: Int,
+    val enabledStrategies: List<AISimulationStrategy> = AISimulationStrategy.defaultSelection().toList()
 )
+
+@Serializable
+enum class AISimulationStrategy(val label: String, val description: String) {
+    BOS("BOS", "Break of structure continuation or retest"),
+    CHOCH("CHOCH", "Change of character reversal confirmation"),
+    LIQUIDITY_GRAB("Liquidity Grab", "Stop sweep or liquidity raid before entry"),
+    VOLUME("Volume", "Volume expansion and participation filter"),
+    FVG("FVG", "Fair value gap imbalance setup"),
+    RESISTANCE("Resistance", "Supply-side rejection or breakout level"),
+    SUPPORT("Support", "Demand-side rejection or breakdown level"),
+    DEMAND("Demand", "Institutional demand zone reaction"),
+    SUPPLY("Supply", "Institutional supply zone reaction");
+
+    companion object {
+        fun defaultSelection(): Set<AISimulationStrategy> = setOf(
+            BOS,
+            CHOCH,
+            LIQUIDITY_GRAB,
+            FVG,
+            SUPPORT,
+            RESISTANCE
+        )
+    }
+}
 
 @Serializable
 data class SimulationSignal(

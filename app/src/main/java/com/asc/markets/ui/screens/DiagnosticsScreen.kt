@@ -26,15 +26,22 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.*
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.MicroJitterSnapshot
+import com.asc.markets.data.PreMoveIntelligenceStore
 import com.asc.markets.risk.DiagnosticsReport
 import com.asc.markets.risk.RiskDiagnosticsEngine
 import com.asc.markets.risk.SurfaceStats
 import com.asc.markets.risk.TradeResult
 import com.asc.markets.ui.components.DiagnosticsPanel
+import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.InterFontFamily
+import com.asc.markets.ui.theme.RoseError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 fun DiagnosticsReportScreen(viewModel: ForexViewModel = viewModel()) {
@@ -109,69 +116,147 @@ fun TextRowLabel(text: String) {
 
 @Composable
 fun DiagnosticsScreen() {
-    val metrics by HealthMonitor.metrics.collectAsState()
-    val connState by ConnectivityManager.state.collectAsState()
-    val logs by ConnectivityManager.logs.collectAsState()
-    val feeds by FeedMonitor.feeds.collectAsState()
-
-    val terminalGreen = Color(0xFF00FF41)
-    val criticalRose = Color(0xFFEF476F)
-    val bg = Color.Black
-
-    // lifecycle visibility detection (approximate browser Visibility API)
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val context = LocalContext.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_STOP -> {
-                    HealthMonitor.updateProfiler(metrics.memoryUsageMb, metrics.clockDriftMs, metrics.timerAccuracyMs, "HIDDEN")
-                    ConnectivityManager.logDiagnostic("VISIBILITY: HIDDEN - background throttling likely")
-                }
-                Lifecycle.Event.ON_START -> {
-                    HealthMonitor.updateProfiler(metrics.memoryUsageMb, metrics.clockDriftMs, metrics.timerAccuracyMs, "VISIBLE")
-                    ConnectivityManager.logDiagnostic("VISIBILITY: VISIBLE - resuming high-precision timers")
-                }
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    val viewModel: ForexViewModel = viewModel()
+    val selectedPair by viewModel.selectedPair.collectAsState()
+    val marketTimedHistory by MarketDataStore.timedPriceHistory.collectAsState()
+    val binanceTimedHistory by BinanceDataStore.timedPriceHistory.collectAsState()
+    val fallbackTimedHistory by com.asc.markets.data.CombinedFallbackDataStore.timedPriceHistory.collectAsState()
+    val timedHistory = remember(marketTimedHistory, binanceTimedHistory, fallbackTimedHistory) {
+        marketTimedHistory + binanceTimedHistory + fallbackTimedHistory
     }
+    val snapshot = PreMoveIntelligenceStore.buildMicroJitterSnapshot(selectedPair, timedHistory)
 
-    LazyColumn(modifier = Modifier.fillMaxSize().background(bg).padding(12.dp)) {
-        item {
-            KpiGridSection(connState, metrics, terminalGreen, criticalRose)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(Color.Black).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item { MicroJitterHeader(snapshot) }
+        item { MicroJitterStateCard(snapshot) }
+        item { MicroJitterSignalGrid(snapshot) }
+        item { MicroJitterFeedValidityCard(snapshot) }
+    }
+}
+
+@Composable
+private fun MicroJitterHeader(snapshot: MicroJitterSnapshot) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("MICRO-JITTER MONITOR", color = Color.White, fontFamily = InterFontFamily, fontSize = 22.sp, fontWeight = FontWeight.Black)
+        Text("${snapshot.symbol} PRE-IGNITION TICK INSTABILITY DETECTOR", color = Color(0xFF00FF41), fontFamily = InterFontFamily, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    }
+}
+
+@Composable
+private fun MicroJitterStateCard(snapshot: MicroJitterSnapshot) {
+    val accent = microJitterColor(snapshot.state)
+    Surface(
+        color = Color(0xFF000000),
+        shape = RoundedCornerShape(10.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(snapshot.state, color = accent, fontFamily = InterFontFamily, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                    Text(snapshot.detail, color = Color.White.copy(alpha = 0.72f), fontFamily = InterFontFamily, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+                Text("${snapshot.preIgnitionScore}%", color = Color.White, fontFamily = InterFontFamily, fontSize = 32.sp, fontWeight = FontWeight.Black)
+            }
+            JitterProgressRow("PRE-IGNITION SCORE", snapshot.preIgnitionScore, accent)
         }
-        item {
-            RealTimeIngestionCard(feeds, terminalGreen)
-            Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun MicroJitterSignalGrid(snapshot: MicroJitterSnapshot) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MicroJitterTile("TICK BURST", String.format(Locale.US, "%.2fx", snapshot.burstMultiplier), "baseline ${String.format(Locale.US, "%.2f", snapshot.baselineTicksPerSecond)}/s", Modifier.weight(1f))
+            MicroJitterTile("TICKS/SEC", String.format(Locale.US, "%.2f", snapshot.ticksPerSecond), "${snapshot.averageIntervalMs}ms avg interval", Modifier.weight(1f))
         }
-        item {
-            SafetyInterlockSection(context, terminalGreen)
-            Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MicroJitterTile("SPREAD JITTER", "${snapshot.spreadJitter}%", "quote instability proxy", Modifier.weight(1f))
+            MicroJitterTile("MICRO VOL", "${snapshot.microVolatility}%", "short-window expansion", Modifier.weight(1f))
         }
-        item {
-            TextRowLabel("INGESTION BUFFER")
+        MicroJitterPressureCard(snapshot)
+    }
+}
+
+@Composable
+private fun MicroJitterPressureCard(snapshot: MicroJitterSnapshot) {
+    val accent = if (snapshot.directionalPressure >= 55) EmeraldSuccess else if (snapshot.directionalPressure <= 45) RoseError else Color(0xFF00FF41)
+    Surface(
+        color = Color(0xFF000000),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.18f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("DIRECTIONAL MICRO PRESSURE", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("${snapshot.directionalPressure}%", color = accent, fontFamily = InterFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Black)
+            }
+            JitterProgressRow("BID/ASK PRESSURE ESTIMATE", snapshot.directionalPressure, accent)
         }
-        item {
-            IngestionBufferList(feeds, terminalGreen)
-            Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun MicroJitterFeedValidityCard(snapshot: MicroJitterSnapshot) {
+    val live = snapshot.feedStatus == "MT5 LIVE"
+    val accent = if (live) Color(0xFF00FF41) else Color(0xFFFFA500)
+    Surface(
+        color = Color(0xFF000000),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.18f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("FEED VALIDITY", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            ProfilerRow("MT5 TICK STATE", snapshot.feedStatus, accent)
+            ProfilerRow("LAST TICK AGE", if (snapshot.lastTickAgeMs < 0L) "NO TICKS" else "${snapshot.lastTickAgeMs}ms", accent)
+            ProfilerRow("BRIDGE VALIDITY", snapshot.bridgeLatencyLabel, accent)
         }
-        item {
-            TextRowLabel("CONNECTIVITY MANAGER LOGS")
+    }
+}
+
+@Composable
+private fun MicroJitterTile(label: String, value: String, caption: String, modifier: Modifier = Modifier) {
+    Surface(
+        color = Color(0xFF000000),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF41).copy(alpha = 0.14f)),
+        modifier = modifier.height(92.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = Color(0xFF00FF41), fontFamily = InterFontFamily, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = Color.White, fontFamily = InterFontFamily, fontSize = 21.sp, fontWeight = FontWeight.Black)
+            Text(caption, color = Color(0xFF00FF41).copy(alpha = 0.65f), fontFamily = InterFontFamily, fontSize = 9.sp)
         }
-        item {
-            ConnectivityLogsTerminal(logs, terminalGreen)
-            Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun JitterProgressRow(label: String, score: Int, accent: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = accent.copy(alpha = 0.8f), fontFamily = InterFontFamily, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("$score%", color = accent, fontFamily = InterFontFamily, fontSize = 10.sp, fontWeight = FontWeight.Black)
         }
-        item {
-            EnvironmentProfilerCard(metrics, terminalGreen)
-            Spacer(modifier = Modifier.height(12.dp))
+        Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((score / 100f).coerceIn(0f, 1f)).background(accent, RoundedCornerShape(4.dp)))
         }
-        item {
-            FooterAlertPanel()
-        }
+    }
+}
+
+private fun microJitterColor(state: String): Color {
+    return when (state) {
+        "IGNITION" -> EmeraldSuccess
+        "UNSTABLE" -> RoseError
+        "BUILDING" -> Color(0xFFFFA500)
+        "FEED STALE", "INSUFFICIENT TICKS" -> Color(0xFFFFA500)
+        else -> Color(0xFF00FF41)
     }
 }
 

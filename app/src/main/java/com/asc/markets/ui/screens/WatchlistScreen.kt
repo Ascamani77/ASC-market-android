@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.WatchlistItem
@@ -46,7 +48,12 @@ fun WatchlistScreen(
     val compactMode by viewModel.watchlistCompactMode.collectAsState()
     val isAnalyzing by viewModel.isWatchlistAnalyzing.collectAsState()
     val lastUpdate by viewModel.lastWatchlistUpdate.collectAsState()
-    val allPairs by MarketDataStore.allPairs.collectAsState()
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by BinanceDataStore.allPairs.collectAsState()
+    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val allPairs = remember(marketPairs, binancePairs, fallbackPairs) {
+        (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
+    }
 
     val categoryCounts = remember(watchlistItems) {
         watchlistItems.groupingBy { it.category }.eachCount()
@@ -350,7 +357,7 @@ private fun WatchlistCompactCard(
             }
 
             MiniSparkline(
-                history = MarketDataStore.historySnapshot(item.assetName),
+                history = watchlistHistorySnapshot(item.assetName),
                 modifier = Modifier.width(60.dp).height(24.dp)
             )
 
@@ -358,7 +365,7 @@ private fun WatchlistCompactCard(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = if (price > 100) String.format("%.2f", price) else String.format("%.4f", price),
+                    text = if (price > 100) String.format("%.2f", price) else String.format("%.5f", price), // 5 decimals for forex (like MT5)
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
@@ -445,7 +452,7 @@ private fun WatchlistExpandedCard(
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (price > 100) String.format("%.2f", price) else String.format("%.4f", price),
+                                text = if (price > 100) String.format("%.2f", price) else String.format("%.5f", price), // 5 decimals for forex (like MT5)
                                 color = Color.White,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -498,7 +505,7 @@ private fun WatchlistExpandedCard(
             // Sparkline + probability bar
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 MiniSparkline(
-                    history = MarketDataStore.historySnapshot(item.assetName),
+                    history = watchlistHistorySnapshot(item.assetName),
                     modifier = Modifier.weight(1f).height(40.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -660,6 +667,14 @@ private fun MiniSparkline(history: List<Double>, modifier: Modifier = Modifier, 
                 style = Stroke(width = 2.dp.toPx())
             )
         }
+    }
+}
+
+private fun watchlistHistorySnapshot(symbol: String): List<Double> {
+    return if (BinanceDataStore.isUsdtSymbol(symbol)) {
+        BinanceDataStore.historySnapshot(symbol)
+    } else {
+        MarketDataStore.historySnapshot(symbol)
     }
 }
 

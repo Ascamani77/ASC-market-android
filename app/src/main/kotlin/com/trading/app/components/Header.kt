@@ -53,7 +53,9 @@ fun Header(
     onSellClick: () -> Unit = {},
     onBuyClick: () -> Unit = {},
     onLotSizeChange: (String) -> Unit = {},
-    onCurrencyClick: () -> Unit = {}
+    onCurrencyClick: () -> Unit = {},
+    showCurrencyButton: Boolean = true,
+    showTradeButton: Boolean = true
 ) {
     val scrollState = rememberScrollState()
     var showTimeframeMenu by remember { mutableStateOf(false) }
@@ -196,14 +198,16 @@ fun Header(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                // Currency Exchange Icon
-                IconButton(onClick = onCurrencyClick, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        Icons.Default.CurrencyExchange,
-                        contentDescription = "Currency",
-                        tint = secondaryWhite,
-                        modifier = Modifier.size(22.dp)
-                    )
+                if (showCurrencyButton) {
+                    // Currency Exchange Icon
+                    IconButton(onClick = onCurrencyClick, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Default.CurrencyExchange,
+                            contentDescription = "Currency",
+                            tint = secondaryWhite,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
             }
 
@@ -271,15 +275,17 @@ fun Header(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Button(
-                    onClick = { onTradeClick() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF08090C)),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                    modifier = Modifier.height(32.4.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, Color(0xFF2A2E39))
-                ) {
-                    Text("Trade", color = secondaryWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                if (showTradeButton) {
+                    Button(
+                        onClick = { onTradeClick() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF08090C)),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        modifier = Modifier.height(32.4.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, Color(0xFF2A2E39))
+                    ) {
+                        Text("Trade", color = secondaryWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

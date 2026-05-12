@@ -1,24 +1,30 @@
-package com.asc.markets.ui.screens.tradeDashboard.viewmodel
+﻿package com.asc.markets.ui.screens.tradeDashboard.viewmodel
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.remote.FinalDecisionItem
+import com.asc.markets.data.trade.TradeEntity
 import com.asc.markets.ui.screens.tradeDashboard.model.*
+import com.trading.app.data.PaperTradingAccountSnapshot
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-/**
- * DashboardViewModel: Central state management for the Trade Dashboard
- */
 class DashboardViewModel {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    // UI States
     var accountInfo by mutableStateOf<AccountInfo?>(null)
         private set
 
@@ -61,161 +67,90 @@ class DashboardViewModel {
     var aiSettings by mutableStateOf(AISettings())
         private set
 
-    // Initialize with sample data
+    var decisionNarrative by mutableStateOf<String?>(null)
+        private set
+
     init {
-        loadSampleData()
         observeMarketData()
     }
 
-    private fun loadSampleData() {
-        isLoading = true
-        
-        accountInfo = AccountInfo(
-            balance = 10000.0,
-            equity = 10315.68,
-            margin = 250.0,
-            freeMargin = 10065.68,
-            marginLevel = 4126.27,
-            profit = 315.68
-        )
+    fun updateAccountSnapshot(snapshot: PaperTradingAccountSnapshot) {
+        val hasAccount = snapshot.hasLiveAccountData ||
+            snapshot.balance != 0.0 ||
+            snapshot.equity != 0.0 ||
+            snapshot.margin != 0.0 ||
+            snapshot.freeMargin != 0.0
 
-        positions = listOf(
-            Position(
-                id = "pos_1",
-                ticketId = "8842105",
-                symbol = "EURUSD",
-                type = TradeType.BUY,
-                volume = 1.0,
-                openPrice = 1.0850,
-                currentPrice = 1.0875,
-                tp = 1.0900,
-                sl = 1.0800,
-                swap = -12.45,
-                commission = -7.80,
-                profit = 234.53,
-                healthScore = 100
-            ),
-            Position(
-                id = "pos_2",
-                ticketId = "8842112",
-                symbol = "GBPUSD",
-                type = TradeType.SELL,
-                volume = 0.5,
-                openPrice = 1.2700,
-                currentPrice = 1.2680,
-                tp = 1.2550,
-                sl = 1.2850,
-                swap = 4.20,
-                commission = -3.50,
-                profit = 76.36,
-                healthScore = 100
+        accountInfo = if (hasAccount || snapshot.activeTrades > 0 || snapshot.activeOrders > 0) {
+            AccountInfo(
+                balance = snapshot.balance,
+                equity = snapshot.equity,
+                margin = snapshot.margin + snapshot.ordersMargin,
+                freeMargin = snapshot.freeMargin,
+                marginLevel = snapshot.marginLevel,
+                profit = snapshot.floatingPnl + snapshot.realizedPnl
             )
-        )
+        } else {
+            null
+        }
 
-        closedPositions = listOf(
-            HistoricalTrade(
-                id = "trade_1",
-                ticketId = "789456",
-                symbol = "XAUUSD",
-                volume = 0.1,
-                type = TradeType.BUY,
-                openPrice = 2024.5,
-                closePrice = 2035.2,
-                openTime = "2026-02-27",
-                closeTime = "2026-02-27 09:15",
-                swap = 0.0,
-                commission = -10.0,
-                profit = 150.0
-            ),
-            HistoricalTrade(
-                id = "trade_2",
-                ticketId = "789457",
-                symbol = "USDJPY",
-                volume = 1.0,
-                type = TradeType.SELL,
-                openPrice = 150.45,
-                closePrice = 150.12,
-                openTime = "2026-02-27",
-                closeTime = "2026-02-27 13:45",
-                swap = 0.0,
-                commission = -10.0,
-                profit = 330.0
-            )
-        )
-
-        // Generate data for initial symbol
-        updateSelectedSymbol(selectedSymbol)
-
-        alerts = listOf(
-            AIAlert(
-                id = "alert_1",
-                timestamp = "05:30:12",
-                message = "Bearish divergence noted on RSI (H1).",
-                severity = AlertSeverity.WARNING,
-                details = "RSI shows lower highs while price makes higher highs"
-            )
-        )
-
-        advisory = AIAdvisory(
-            bias = Bias.BEARISH,
-            confidence = 65,
-            suggestedSL = 1.26850,
-            suggestedTP = 1.25900,
-            riskLevel = RiskLevel.HIGH
-        )
-
-        marketIntel = AIMarketIntelligence(
-            trendStrength = 75,
-            volatilityScore = 42,
-            momentumScore = 68,
-            marketPhase = "DISTRIBUTION",
-            timeframeTrends = TimeframeTrends(
-                m5 = 85,
-                m15 = 82,
-                m30 = 78,
-                h1 = 75,
-                h4 = 65,
-                d1 = 45
-            ),
-            volatilityDrivers = listOf("Central bank speech", "Geopolitical tensions", "Overbought RSI")
-        )
-
-        calendarEvents = listOf(
-            EconomicEvent("e1", "13:30", "USD", "Core PCE Price Index (MoM)", Impact.HIGH, forecast = "0.3%", previous = "0.2%"),
-            EconomicEvent("e2", "14:45", "USD", "Chicago PMI", Impact.MEDIUM, forecast = "48.0", previous = "46.0"),
-            EconomicEvent("e3", "15:00", "USD", "Revised UoM Consumer Sentiment", Impact.LOW, forecast = "79.6", previous = "79.6")
-        )
-
-        isLoading = false
+        positions = snapshot.toOpenPositions()
+        snapshot.currentTradeSymbol?.takeIf { it.isNotBlank() }?.let { updateSelectedSymbol(it) }
     }
 
-    fun updateSelectedSymbol(symbol: String) { 
-        selectedSymbol = symbol
+    fun updateClosedTrades(trades: List<TradeEntity>) {
+        closedPositions = trades.map { it.toHistoricalTrade() }
+    }
 
-        val pair = MarketDataStore.pairSnapshot(symbol)
-        val livePrice = pair?.price ?: fallbackBasePrice(symbol)
-        val spread = computeSpread(livePrice)
-        currentPrice = PriceData(
-            symbol = pair?.symbol?.replace("/", "") ?: symbol,
-            bid = livePrice,
-            ask = livePrice + spread,
-            spread = spread,
-            change = pair?.changePercent ?: 0.0
-        )
+    fun updateDeployments(decisions: List<FinalDecisionItem>) {
+        val actionable = decisions.filter { it.asset_1?.isNotBlank() == true }
+        alerts = actionable.take(6).mapIndexed { index, item -> item.toAlert(index) }
+        advisory = actionable.firstOrNull()?.toAdvisory()
+        marketIntel = actionable.firstOrNull()?.toMarketIntel()
+        decisionNarrative = actionable.firstOrNull()?.toNarrative()
+    }
 
-        val priceHistory = MarketDataStore.historySnapshot(symbol).ifEmpty { List(20) { livePrice } }.takeLast(20)
-        val step = timeframeToMillis(selectedTimeframe)
-        val now = System.currentTimeMillis()
-        candleData = priceHistory.mapIndexed { index, close ->
-            val open = if (index == 0) priceHistory.first() else priceHistory[index - 1]
-            CandleData(
-                time = now - ((priceHistory.lastIndex - index).toLong() * step),
-                open = open,
-                high = max(open, close),
-                low = min(open, close),
-                close = close,
-                volume = 100000.0
+    fun updateSelectedSymbol(symbol: String) {
+        val normalized = symbol.ifBlank { selectedSymbol }
+        selectedSymbol = normalized
+
+        val pair = livePairSnapshot(normalized)
+        currentPrice = if (pair != null && pair.price.isFinite() && pair.price > 0.0) {
+            PriceData(
+                symbol = pair.symbol.replace("/", ""),
+                bid = pair.price,
+                ask = pair.price,
+                spread = 0.0,
+                change = pair.changePercent
             )
+        } else {
+            null
+        }
+
+        val history = (if (BinanceDataStore.isUsdtSymbol(normalized)) {
+            BinanceDataStore.historySnapshot(normalized)
+        } else {
+            MarketDataStore.historySnapshot(normalized)
+        })
+            .filter { it.isFinite() && it > 0.0 }
+            .takeLast(80)
+
+        candleData = if (history.size >= 2) {
+            val step = timeframeToMillis(selectedTimeframe)
+            val now = System.currentTimeMillis()
+            history.mapIndexed { index, close ->
+                val open = if (index == 0) history.first() else history[index - 1]
+                CandleData(
+                    time = now - ((history.lastIndex - index).toLong() * step),
+                    open = open,
+                    high = max(open, close),
+                    low = min(open, close),
+                    close = close,
+                    volume = 0.0
+                )
+            }
+        } else {
+            emptyList()
         }
     }
 
@@ -223,51 +158,196 @@ class DashboardViewModel {
         selectedTimeframe = timeframe
         updateSelectedSymbol(selectedSymbol)
     }
+
     fun adjustStopLoss(ticketId: String, newSL: Double) {
         positions = positions.map { if (it.ticketId == ticketId) it.copy(sl = newSL) else it }
     }
+
     fun adjustTakeProfit(ticketId: String, newTP: Double) {
         positions = positions.map { if (it.ticketId == ticketId) it.copy(tp = newTP) else it }
     }
-    fun updateAISettings(settings: AISettings) { aiSettings = settings }
+
+    fun updateAISettings(settings: AISettings) {
+        aiSettings = settings
+    }
 
     private fun observeMarketData() {
         scope.launch {
-            MarketDataStore.allPairs.collect {
-                updateSelectedSymbol(selectedSymbol)
+            combine(
+                MarketDataStore.allPairs,
+                BinanceDataStore.allPairs,
+                CombinedFallbackDataStore.allPairs
+            ) { marketPairs, binancePairs, fallbackPairs ->
+                marketPairs + binancePairs + fallbackPairs
+            }.collect { pairs ->
+                val livePair = pairs.firstOrNull { it.price.isFinite() && it.price > 0.0 }
+                if (currentPrice == null && livePair != null) {
+                    updateSelectedSymbol(livePair.symbol)
+                } else {
+                    updateSelectedSymbol(selectedSymbol)
+                }
             }
         }
     }
 
-    private fun fallbackBasePrice(symbol: String): Double {
-        return when {
-            symbol.contains("JPY") -> 150.0
-            symbol.contains("XAU") -> 2030.0
-            symbol.contains("US30") -> 39000.0
-            symbol.contains("NAS100") -> 18000.0
-            symbol.startsWith("GBP") -> 1.26
-            else -> 1.08
+    private fun PaperTradingAccountSnapshot.toOpenPositions(): List<Position> {
+        val symbol = currentTradeSymbol?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val entry = currentTradeEntryPrice ?: return emptyList()
+        val price = currentTradePrice ?: livePairSnapshot(symbol)?.price ?: entry
+        val side = currentTradeSide.orEmpty().uppercase(Locale.US)
+        val type = if (side.contains("SELL") || side.contains("SHORT")) TradeType.SELL else TradeType.BUY
+        val profit = currentTradePnl ?: 0.0
+        val volume = currentTradeVolume ?: 0.0
+
+        return listOf(
+            Position(
+                id = "live-$symbol",
+                ticketId = "LIVE",
+                symbol = symbol,
+                type = type,
+                volume = volume,
+                openPrice = entry,
+                currentPrice = price,
+                tp = null,
+                sl = null,
+                swap = 0.0,
+                commission = 0.0,
+                profit = profit,
+                healthScore = healthScore(profit, openRisk)
+            )
+        )
+    }
+
+    private fun livePairSnapshot(symbol: String) =
+        BinanceDataStore.pairSnapshot(symbol) ?: MarketDataStore.pairSnapshot(symbol)
+
+    private fun TradeEntity.toHistoricalTrade(): HistoricalTrade {
+        val type = if (direction.uppercase(Locale.US).contains("SELL") || direction.uppercase(Locale.US).contains("SHORT")) {
+            TradeType.SELL
+        } else {
+            TradeType.BUY
+        }
+        val time = formatTime(timestamp)
+        return HistoricalTrade(
+            id = id.toString(),
+            ticketId = id.toString(),
+            symbol = asset,
+            type = type,
+            volume = 0.0,
+            openPrice = entryPrice,
+            closePrice = exitPrice,
+            openTime = time,
+            closeTime = time,
+            swap = 0.0,
+            commission = 0.0,
+            profit = pnl
+        )
+    }
+
+    private fun FinalDecisionItem.toAlert(index: Int): AIAlert {
+        val risk = final_risk_pct ?: recommended_risk_pct ?: 0.0
+        val severity = when {
+            risk >= 2.0 || correlation_warning?.isNotBlank() == true -> AlertSeverity.CRITICAL
+            risk >= 1.0 || journal_priority?.equals("HIGH", ignoreCase = true) == true -> AlertSeverity.WARNING
+            else -> AlertSeverity.INFO
+        }
+        val direction = journal_direction ?: "UNSPECIFIED"
+        val label = portfolio_decision_label ?: journal_label ?: "ASC DECISION"
+        return AIAlert(
+            id = "${asset_1.orEmpty()}-$index",
+            timestamp = journal_timestamp?.takeLast(8) ?: "--:--:--",
+            message = "${asset_1.orEmpty()} $direction • $label",
+            severity = severity,
+            details = portfolio_decision_reason ?: correlation_warning ?: confluence_label
+        )
+    }
+
+    private fun FinalDecisionItem.toAdvisory(): AIAdvisory {
+        val direction = journal_direction.orEmpty().uppercase(Locale.US)
+        val confidence = percentInt(direction_confidence ?: journal_score ?: confluence_score ?: pre_move_ai_score)
+        val risk = final_risk_pct ?: recommended_risk_pct ?: 0.0
+        return AIAdvisory(
+            bias = when {
+                direction.contains("BUY") || direction.contains("LONG") -> Bias.BULLISH
+                direction.contains("SELL") || direction.contains("SHORT") -> Bias.BEARISH
+                else -> Bias.NEUTRAL
+            },
+            confidence = confidence,
+            suggestedSL = 0.0,
+            suggestedTP = 0.0,
+            riskLevel = when {
+                risk >= 2.0 -> RiskLevel.HIGH
+                risk >= 1.0 -> RiskLevel.MEDIUM
+                else -> RiskLevel.LOW
+            }
+        )
+    }
+
+    private fun FinalDecisionItem.toMarketIntel(): AIMarketIntelligence {
+        val drivers = listOfNotNull(
+            correlation_warning,
+            feeder_volatility_reason,
+            structure_label,
+            chart_context_label,
+            confluence_label
+        ).filter { it.isNotBlank() }
+
+        return AIMarketIntelligence(
+            trendStrength = percentInt(mtf_alignment_score ?: directional_score ?: trendScoreFromState(trend_state)),
+            volatilityScore = percentInt(feeder_volatility_score ?: atr_ratio ?: vol_ratio ?: burst_ratio),
+            momentumScore = percentInt(ignition_probability ?: expansion_probability ?: entry_quality_score),
+            marketPhase = pre_move_ai_phase ?: regime_state ?: trend_state ?: "WAITING",
+            phaseDescription = portfolio_decision_reason,
+            timeframeTrends = null,
+            volatilityDrivers = drivers
+        )
+    }
+
+    private fun FinalDecisionItem.toNarrative(): String {
+        val lines = listOfNotNull(
+            asset_1?.let { "Asset: $it" },
+            journal_direction?.let { "Direction: $it" },
+            portfolio_decision_label?.let { "Decision: $it" },
+            portfolio_deployment_bucket?.let { "Bucket: $it" },
+            final_risk_pct?.let { "Final risk: ${String.format(Locale.US, "%.2f", it)}%" },
+            final_position_scale?.let { "Position scale: ${String.format(Locale.US, "%.2f", it)}" },
+            pre_move_ai_phase?.let { "Pre-move phase: $it" },
+            portfolio_decision_reason
+        )
+        return lines.joinToString("\n")
+    }
+
+    private fun healthScore(profit: Double, openRisk: Double): Int {
+        val denominator = openRisk.takeIf { it > 0.0 } ?: abs(profit).coerceAtLeast(1.0)
+        return ((1.0 + (profit / denominator)).coerceIn(0.0, 1.0) * 100.0).toInt()
+    }
+
+    private fun percentInt(value: Double?): Int {
+        val raw = value ?: return 0
+        val normalized = if (raw <= 1.0) raw * 100.0 else raw
+        return normalized.toInt().coerceIn(0, 100)
+    }
+
+    private fun trendScoreFromState(state: String?): Double? {
+        return when (state?.uppercase(Locale.US)) {
+            "UPTREND", "DOWNTREND", "TRENDING" -> 75.0
+            "SIDEWAYS", "RANGE" -> 40.0
+            else -> null
         }
     }
 
-    private fun computeSpread(price: Double): Double {
-        return when {
-            price >= 10_000 -> 1.0
-            price >= 100 -> 0.05
-            price >= 1 -> 0.0002
-            else -> 0.00001
-        }
+    private fun formatTime(timestamp: Long): String {
+        return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date(timestamp))
     }
 
     private fun timeframeToMillis(timeframe: String): Long {
         return when (timeframe) {
-            "M5" -> 5 * 60 * 1000L
-            "M15" -> 15 * 60 * 1000L
-            "M30" -> 30 * 60 * 1000L
-            "H1" -> 60 * 60 * 1000L
-            "H4" -> 4 * 60 * 60 * 1000L
-            "D1" -> 24 * 60 * 60 * 1000L
-            else -> 60 * 60 * 1000L
+            "M1" -> 60_000L
+            "M5" -> 300_000L
+            "M15" -> 900_000L
+            "H4" -> 14_400_000L
+            "D1" -> 86_400_000L
+            else -> 3_600_000L
         }
     }
 }

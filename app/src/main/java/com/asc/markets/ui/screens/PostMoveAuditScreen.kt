@@ -72,8 +72,15 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import com.asc.markets.data.AuditRecord
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.PostMoveAuditCase
+import com.asc.markets.data.PostMoveAuditSource
+import com.asc.markets.data.PostMoveAuditStore
+import com.asc.markets.data.PreMoveIntelligenceStore
+import com.asc.markets.data.trade.TradeEntity
 
-fun exportAuditPdf(context: Context, entry: AuditRecord): File? {
+fun exportAuditPdf(context: Context, entry: PostMoveAuditCase): File? {
     return try {
         val doc = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
@@ -81,18 +88,17 @@ fun exportAuditPdf(context: Context, entry: AuditRecord): File? {
         val canvas = page.canvas
         val paint = android.graphics.Paint().apply { color = android.graphics.Color.BLACK; textSize = 12f }
         var y = 40f
-        canvas.drawText("Execution Audit", 40f, y, paint); y += 24f
-        canvas.drawText("Headline: ${entry.headline}", 40f, y, paint); y += 18f
-        canvas.drawText("Impact: ${entry.impact}  Confidence: ${entry.confidence}%", 40f, y, paint); y += 18f
-        canvas.drawText("Assets: ${entry.assets}", 40f, y, paint); y += 18f
-        val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timeUtc))
+        canvas.drawText("Post-Move Audit", 40f, y, paint); y += 24f
+        canvas.drawText("Symbol: ${entry.symbol}", 40f, y, paint); y += 18f
+        canvas.drawText("Status: ${entry.status}  Score: ${entry.modelAccuracyScore ?: 0}%", 40f, y, paint); y += 18f
+        canvas.drawText("Source: ${entry.source}", 40f, y, paint); y += 18f
+        val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timestamp))
         canvas.drawText("Time: $timeText", 40f, y, paint); y += 18f
         canvas.drawText("Node: ${entry.nodeId}", 40f, y, paint); y += 18f
         canvas.drawText("Integrity: ${entry.integrityHash}", 40f, y, paint); y += 24f
 
-        // reasoning text (wrap simple)
         val chunkSize = 90
-        entry.reasoning.chunked(chunkSize).forEach { line ->
+        "${entry.thesis}\n${entry.postMoveOutcome}".chunked(chunkSize).forEach { line ->
             canvas.drawText(line, 40f, y, paint)
             y += 16f
         }
@@ -123,14 +129,14 @@ fun sharePdf(context: Context, file: File) {
     }
 }
 
-fun buildExpandedAnalyticalContext(entry: com.asc.markets.data.AuditRecord, displayedNode: String): String {
-    val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timeUtc))
+fun buildExpandedAnalyticalContext(entry: PostMoveAuditCase, displayedNode: String): String {
+    val timeText = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(entry.timestamp))
     return buildString {
-        append(entry.reasoning.trim())
+        append(entry.thesis.trim())
         append("\n\n")
-        append("Headline: ${entry.headline}\n")
-        append("Assets: ${entry.assets}\n")
-        append("Impact: ${entry.impact} — Confidence: ${entry.confidence}%\n")
+        append("Outcome: ${entry.postMoveOutcome}\n")
+        append("Symbol: ${entry.symbol}\n")
+        append("Status: ${entry.status} — Score: ${entry.modelAccuracyScore?.let { "$it%" } ?: "pending"}\n")
         append("Node: $displayedNode — Integrity: ${entry.integrityHash}\n")
         append("Time: $timeText")
     }
@@ -148,16 +154,41 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
     val assetCtx by com.asc.markets.state.AssetContextStore.context.collectAsState()
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
-    val audits by viewModel.auditRecords.collectAsState()
-    // Apply ActiveAssetContext filtering: if not ALL, show only audits referencing the active asset
-    val auditsForDisplay = remember(audits, assetCtx) {
-        if (assetCtx == com.asc.markets.state.AssetContext.ALL) audits else audits.filter { entry ->
-            entry.assets.contains(assetCtx.name, true)
+    var closedTrades by remember { mutableStateOf<List<TradeEntity>>(emptyList()) }
+    val auditRecords by viewModel.auditRecords.collectAsState()
+    val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())
+    val marketTimedHistory by MarketDataStore.timedPriceHistory.collectAsState()
+    val binanceTimedHistory by BinanceDataStore.timedPriceHistory.collectAsState()
+    val fallbackTimedHistory by com.asc.markets.data.CombinedFallbackDataStore.timedPriceHistory.collectAsState()
+    val timedHistory = remember(marketTimedHistory, binanceTimedHistory, fallbackTimedHistory) {
+        marketTimedHistory + binanceTimedHistory + fallbackTimedHistory
+    }
+    val allCases = remember(closedTrades, auditRecords, candidates, timedHistory) {
+        PostMoveAuditStore.buildCases(closedTrades, auditRecords, candidates, timedHistory)
+    }
+    val auditsForDisplay = remember(allCases, assetCtx, filterState.value) {
+        val assetFiltered = if (assetCtx == com.asc.markets.state.AssetContext.ALL) {
+            allCases
+        } else {
+            allCases.filter { entry -> entry.symbol.contains(assetCtx.name, true) }
+        }
+        when (filterState.value) {
+            "CLOSED TRADE" -> assetFiltered.filter { it.source == PostMoveAuditSource.CLOSED_TRADE }
+            "AI OUTCOME" -> assetFiltered.filter { it.source == PostMoveAuditSource.AI_DECISION }
+            "TARGET HIT" -> assetFiltered.filter { it.targetHit == true }
+            "INVALIDATED" -> assetFiltered.filter { it.invalidationHit == true }
+            "UNRESOLVED" -> assetFiltered.filter { it.status == "UNRESOLVED" }
+            else -> assetFiltered
+        }
+    }
+
+    LaunchedEffect(viewModel.tradeHistoryRepository) {
+        closedTrades = withContext(Dispatchers.IO) {
+            viewModel.tradeHistoryRepository?.getLast100Trades().orEmpty()
         }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = DeepBlack) {
-        // collapsing header + sticky submenu pattern
         val showMainHeader = rememberSaveable { mutableStateOf(true) }
         val listState = rememberLazyListState()
 
@@ -176,8 +207,6 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                 )
             }
         }, content = { paddingValues ->
-            // Ledger list (Safe Set)
-                // If there are no audit records, show a helpful message and a button to add a sample for testing
                 if (auditsForDisplay.isEmpty()) {
                     Column(modifier = Modifier
                         .fillMaxSize()
@@ -185,22 +214,9 @@ fun PostMoveAuditScreen(viewModel: ForexViewModel = viewModel()) {
                         .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center) {
-                        Text("No audit records to display.", color = Color.Gray, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = {
-                            // add a sample audit record for debugging/verification
-                            val sample = com.asc.markets.data.AuditRecord(
-                                headline = "Sample Audit: Price Spike Detected",
-                                impact = "INFO",
-                                confidence = 72,
-                                assets = assetCtx.name,
-                                status = "ACTIVE",
-                                reasoning = "This is a generated sample record for UI verification."
-                            )
-                            viewModel.appendAuditRecord(sample)
-                        }) {
-                            Text("Add sample audit")
-                        }
+                        Text("No post-move audit records to display.", color = Color.Gray, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Records appear after closed trades or AI decisions have enough post-signal market history.", color = SlateText, fontSize = 11.sp)
                     }
                 } else {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize(),

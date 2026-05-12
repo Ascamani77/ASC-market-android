@@ -10,6 +10,7 @@ import com.trading.app.models.EconomicCalendarDisplayPayload
 import com.trading.app.models.EconomicCalendarPayload
 import com.trading.app.models.OHLCData
 import com.trading.app.models.SymbolInfo
+import com.asc.markets.data.SystemTelemetry
 import okhttp3.*
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -173,6 +174,7 @@ class Mt5Service(
                 isConnecting = false
                 isConnected = true
                 dispatchToMain { onConnectionStatusUpdate(true) }
+                SystemTelemetry.recordConnectionEvent("MT5", "WEBSOCKET_CONNECTED")
                 synchronized(pendingMessages) {
                     pendingMessages.forEach(webSocket::send)
                     pendingMessages.clear()
@@ -182,47 +184,44 @@ class Mt5Service(
             override fun onMessage(webSocket: WebSocket, text: String) {
                 try {
                     val root = JSONObject(text)
-                    val type = root.optString("type")
+                    val type = root.optString("type", root.optString("event", ""))
                     
-                    if (type == "history") {
+                    if (type == "history" || type == "historical" || type == "bars") {
                         val rawSymbol = root.optString("symbol", root.optString("name", ""))
                         val symbol = cleanSymbol(rawSymbol)
                         rememberBrokerSymbol(rawSymbol, symbol)
                         val dataArray = root.optJSONArray("data")
+                            ?: root.optJSONArray("bars")
+                            ?: root.optJSONArray("candles")
                         if (dataArray == null) {
-                            Log.w(TAG, "History response for $symbol has no 'data' array: $text")
+                            Log.w(TAG, "History response for $symbol has no candles array: $text")
                             return
                         }
                         
                         val history = mutableListOf<OHLCData>()
                         fun parseTime(obj: JSONObject): Long {
-                            // Try multiple possible fields and formats
-                            var t = 0L
-                            if (obj.has("time")) {
-                                try { t = obj.getLong("time") } catch (_: Exception) {
-                                    try { t = obj.getString("time").toLong() } catch (_: Exception) { t = 0L }
+                            for (field in listOf("time", "timestamp", "t", "date", "datetime", "isoDateTime")) {
+                                if (!obj.has(field)) continue
+                                val raw = obj.opt(field)
+                                val parsed = when (raw) {
+                                    is Number -> raw.toLong()
+                                    is String -> raw.toLongOrNull() ?: parseIsoDateToEpochSeconds(raw)
+                                    else -> 0L
+                                }
+                                if (parsed > 0L) {
+                                    return if (parsed > 1000000000000L) parsed / 1000L else parsed
                                 }
                             }
-                            if (t == 0L && obj.has("timestamp")) {
-                                try { t = obj.getLong("timestamp") } catch (_: Exception) {
-                                    try { t = obj.getString("timestamp").toLong() } catch (_: Exception) { t = 0L }
-                                }
+                            return 0L
+                        }
+
+                        fun firstFiniteDouble(obj: JSONObject, vararg fields: String): Double {
+                            for (field in fields) {
+                                if (!obj.has(field)) continue
+                                val value = obj.optDouble(field, Double.NaN)
+                                if (value.isFinite()) return value
                             }
-                            if (t == 0L && obj.has("t")) {
-                                try { t = obj.getLong("t") } catch (_: Exception) {
-                                    try { t = obj.getString("t").toLong() } catch (_: Exception) { t = 0L }
-                                }
-                            }
-                            if (t == 0L && obj.has("date")) {
-                                // try ISO datetime parsing
-                                try {
-                                    val s = obj.getString("date")
-                                    t = parseIsoDateToEpochSeconds(s)
-                                } catch (_: Exception) { /* ignore */ }
-                            }
-                            // if t looks like milliseconds (>= 1e12), convert to seconds
-                            if (t > 1000000000000L) t /= 1000L
-                            return t
+                            return Double.NaN
                         }
 
                         if (dataArray.length() > 0) {
@@ -237,23 +236,30 @@ class Mt5Service(
                                 continue
                             }
 
-                            history.add(OHLCData(
-                                time = timeVal,
-                                open = obj.optDouble("open", 0.0).toFloat(),
-                                high = obj.optDouble("high", 0.0).toFloat(),
-                                low = obj.optDouble("low", 0.0).toFloat(),
-                                close = obj.optDouble("close", 0.0).toFloat(),
-                                volume = obj.optDouble(
-                                    "volume",
-                                    obj.optDouble(
-                                        "tick_volume",
-                                        obj.optDouble(
-                                            "real_volume",
-                                            obj.optDouble("vol", 0.0)
-                                        )
-                                    )
-                                ).toFloat()
-                            ))
+                            val close = firstFiniteDouble(obj, "close", "c", "price", "last", "bid").toFloat()
+                            if (!close.isFinite() || close <= 0f) {
+                                if (i == 0) Log.w(TAG, "Failed to parse close for first candle of $symbol: $obj")
+                                continue
+                            }
+                            val openRaw = firstFiniteDouble(obj, "open", "o").toFloat()
+                            val highRaw = firstFiniteDouble(obj, "high", "h").toFloat()
+                            val lowRaw = firstFiniteDouble(obj, "low", "l").toFloat()
+                            val open = openRaw.takeIf { it.isFinite() && it > 0f } ?: close
+                            val high = maxOf(highRaw.takeIf { it.isFinite() && it > 0f } ?: close, open, close)
+                            val low = minOf(lowRaw.takeIf { it.isFinite() && it > 0f } ?: close, open, close)
+                            val volume = firstFiniteDouble(obj, "volume", "tick_volume", "real_volume", "vol", "v")
+                                .takeIf { it.isFinite() }
+                                ?.toFloat()
+                                ?: 0f
+
+                                history.add(OHLCData(
+                                    time = timeVal,
+                                    open = open,
+                                    high = high,
+                                    low = low,
+                                    close = close,
+                                    volume = volume
+                                ))
                         }
                         val orderedHistory = history.sortedBy(OHLCData::time)
                         Log.d(TAG, "Parsed ${orderedHistory.size} candles for $symbol (raw count: ${dataArray.length()})")
@@ -263,7 +269,7 @@ class Mt5Service(
                         dispatchToMain {
                             onHistoryUpdate(symbol, orderedHistory)
                         }
-                    } else if (type == "tick") {
+                    } else if (type == "tick" || type == "quote" || (root.has("symbol") && (root.has("bid") || root.has("ask") || root.has("price") || root.has("last")))) {
                         val rawSymbol = root.optString("symbol", root.optString("name", ""))
                         val symbol = cleanSymbol(rawSymbol)
                         rememberBrokerSymbol(rawSymbol, symbol)
@@ -287,7 +293,17 @@ class Mt5Service(
                             ask.isFinite() && ask > 0f -> ask
                             else -> 0f
                         }
-                        val resolvedTime = root.optLong("time", root.optLong("timestamp", quote.time))
+                        val rawResolvedTime = root.optLong("time", root.optLong("timestamp", quote.time))
+                        val resolvedTime = if (rawResolvedTime > 0L) {
+                            rawResolvedTime
+                        } else {
+                            System.currentTimeMillis() / 1000L
+                        }
+                        val latency = when {
+                            resolvedTime > 1_000_000_000_000L -> System.currentTimeMillis() - resolvedTime
+                            resolvedTime > 1_000_000_000L -> System.currentTimeMillis() - (resolvedTime * 1000L)
+                            else -> 1L
+                        }
                         val resolvedVolume = root.optDouble(
                             "volume",
                             root.optDouble(
@@ -303,6 +319,8 @@ class Mt5Service(
                             time = resolvedTime,
                             volume = resolvedVolume.takeIf { it.isFinite() } ?: 0f
                         )
+                        Log.d(TAG, "Parsed tick for $symbol price=${finalQuote.lastPrice} time=${finalQuote.time}")
+                        SystemTelemetry.recordTick("MT5", latency.toDouble().coerceAtLeast(1.0))
                         dispatchToMain {
                             onQuoteUpdate(finalQuote)
                         }
@@ -421,7 +439,10 @@ class Mt5Service(
                             onCalendarUpdate(EconomicCalendarPayload(display = display, ai = ai))
                         }
                     } else if (type == "news") {
+                        Log.i(TAG, "=== NEWS RESPONSE RECEIVED ===")
+                        Log.i(TAG, "Raw news JSON: ${text.take(500)}")
                         val newsPayload = gson.fromJson(text, com.trading.app.models.NewsPayload::class.java)
+                        Log.i(TAG, "Parsed news items: ${newsPayload.items.size}")
                         dispatchToMain {
                             onNewsUpdate(newsPayload)
                         }
@@ -539,6 +560,7 @@ class Mt5Service(
     }
 
     fun requestNews() {
+        Log.i(TAG, "Requesting news from MT5 Bridge via 'get_news' action")
         sendAction("get_news", emptyMap())
     }
 

@@ -54,7 +54,13 @@ fun CalendarPage(
 
     val dayChips = payload?.dayChips ?: emptyList()
     val selectedDateIso = payload?.selectedDateIso.orEmpty()
-    val events = payload?.events?.filter { it.isoDateTime.startsWith(selectedDateIso) } ?: emptyList()
+    val allEvents = payload?.events?.sortedBy { it.isoDateTime } ?: emptyList()
+    val selectedDayEvents = if (selectedDateIso.isBlank()) {
+        allEvents
+    } else {
+        allEvents.filter { it.isoDateTime.take(10) == selectedDateIso }
+    }
+    val events = selectedDayEvents.ifEmpty { allEvents }
     val monthLabel = payload?.rangeStartIso?.let(::formatMonthLabel).orEmpty()
 
     Column(

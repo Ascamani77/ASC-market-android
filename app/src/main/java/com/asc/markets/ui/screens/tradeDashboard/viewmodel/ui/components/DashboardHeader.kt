@@ -17,6 +17,8 @@ import com.asc.markets.ui.screens.tradeDashboard.ui.theme.*
 
 @Composable
 fun DashboardHeader(symbol: String, isConnected: Boolean, modifier: Modifier = Modifier) {
+    val statusColor = if (isConnected) Emerald500 else Color.Gray
+    val statusLabel = if (isConnected) "SYNCED" else "WAITING"
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -44,10 +46,10 @@ fun DashboardHeader(symbol: String, isConnected: Boolean, modifier: Modifier = M
                 Icon(
                     imageVector = Icons.Default.Circle,
                     contentDescription = null,
-                    tint = Emerald500,
+                    tint = statusColor,
                     modifier = Modifier.size(8.dp)
                 )
-                Text("SYNCED", color = Emerald500, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                Text(statusLabel, color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
             }
         }
     }

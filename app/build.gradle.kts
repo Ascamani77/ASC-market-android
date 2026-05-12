@@ -30,16 +30,26 @@ android {
             localProps.load(localPropsFile.inputStream())
         }
 
-        buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"AIzaSyCSgl9f2fN-E6P9AeZ-1Qb_y1vkfplMmHc\"")
-        buildConfigField("String", "REMOTE_CONFIG_URL", "\"${project.findProperty("REMOTE_CONFIG_URL") ?: ""}\"")
-        buildConfigField("boolean", "DEFAULT_FORCE_REMOTE", "${project.findProperty("DEFAULT_FORCE_REMOTE") ?: false}")
-        buildConfigField("long", "DEFAULT_REMOTE_POLL_MS", "${project.findProperty("DEFAULT_REMOTE_POLL_MS") ?: 10000}L")
-        buildConfigField("String", "META_API_TOKEN", "\"${localProps.getProperty("META_API_TOKEN") ?: project.findProperty("META_API_TOKEN") ?: ""}\"")
-        buildConfigField("String", "META_API_ACCOUNT_ID", "\"${localProps.getProperty("META_API_ACCOUNT_ID") ?: project.findProperty("META_API_ACCOUNT_ID") ?: ""}\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${localProps.getProperty("OPENAI_API_KEY") ?: project.findProperty("OPENAI_API_KEY") ?: ""}\"")
+        buildConfigField("String", "GROQ_API_KEY", "\"${localProps.getProperty("GROQ_API_KEY") ?: project.findProperty("GROQ_API_KEY") ?: ""}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProps.getProperty("GEMINI_API_KEY") ?: project.findProperty("GEMINI_API_KEY") ?: ""}\"")
+        buildConfigField("String", "REMOTE_CONFIG_URL", "\"${localProps.getProperty("REMOTE_CONFIG_URL") ?: project.findProperty("REMOTE_CONFIG_URL") ?: ""}\"")
+        buildConfigField("boolean", "DEFAULT_FORCE_REMOTE", "${localProps.getProperty("DEFAULT_FORCE_REMOTE") ?: project.findProperty("DEFAULT_FORCE_REMOTE") ?: false}")
+        buildConfigField("long", "DEFAULT_REMOTE_POLL_MS", "${localProps.getProperty("DEFAULT_REMOTE_POLL_MS") ?: project.findProperty("DEFAULT_REMOTE_POLL_MS") ?: 10000}L")
         buildConfigField("String", "TIINGO_API_KEY", "\"${localProps.getProperty("TIINGO_API_KEY") ?: project.findProperty("TIINGO_API_KEY") ?: ""}\"")
         buildConfigField("int", "TIINGO_THRESHOLD_LEVEL", "${localProps.getProperty("TIINGO_THRESHOLD_LEVEL") ?: project.findProperty("TIINGO_THRESHOLD_LEVEL") ?: 5}")
         buildConfigField("String", "FRED_API_KEY", "\"${localProps.getProperty("FRED_API_KEY") ?: project.findProperty("FRED_API_KEY") ?: ""}\"")
+        buildConfigField("String", "DERIV_APP_ID", "\"${localProps.getProperty("DERIV_APP_ID") ?: project.findProperty("DERIV_APP_ID") ?: "1089"}\"")
+        buildConfigField("String", "DERIV_API_TOKEN", "\"${localProps.getProperty("DERIV_API_TOKEN") ?: project.findProperty("DERIV_API_TOKEN") ?: ""}\"")
+        
+        // cTrader Pepperstone Configuration
+        buildConfigField("String", "CTRADER_HOST_TYPE", "\"${localProps.getProperty("CTRADER_HOST_TYPE") ?: project.findProperty("CTRADER_HOST_TYPE") ?: "demo"}\"")
+        buildConfigField("String", "CTRADER_CLIENT_ID", "\"${localProps.getProperty("CTRADER_CLIENT_ID") ?: project.findProperty("CTRADER_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "CTRADER_CLIENT_SECRET", "\"${localProps.getProperty("CTRADER_CLIENT_SECRET") ?: project.findProperty("CTRADER_CLIENT_SECRET") ?: ""}\"")
+        buildConfigField("String", "CTRADER_ACCESS_TOKEN", "\"${localProps.getProperty("CTRADER_ACCESS_TOKEN") ?: project.findProperty("CTRADER_ACCESS_TOKEN") ?: ""}\"")
+        buildConfigField("String", "CTRADER_REFRESH_TOKEN", "\"${localProps.getProperty("CTRADER_REFRESH_TOKEN") ?: project.findProperty("CTRADER_REFRESH_TOKEN") ?: ""}\"")
+        buildConfigField("String", "CTRADER_ACCOUNT_ID", "\"${localProps.getProperty("CTRADER_ACCOUNT_ID") ?: project.findProperty("CTRADER_ACCOUNT_ID") ?: ""}\"")
+        buildConfigField("int", "CTRADER_BRIDGE_PORT", "${localProps.getProperty("CTRADER_BRIDGE_PORT") ?: project.findProperty("CTRADER_BRIDGE_PORT") ?: 8082}")
     }
 
     buildTypes {
@@ -48,14 +58,17 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -89,9 +102,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation("io.socket:socket.io-client:2.1.2") {
-        exclude(group = "org.json", module = "json")
-    }
+
     implementation("androidx.webkit:webkit:1.7.0")
     implementation("com.tradingview:lightweightcharts:4.0.0")
     implementation("javax.inject:javax.inject:1")

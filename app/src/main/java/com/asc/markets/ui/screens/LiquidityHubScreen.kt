@@ -19,244 +19,206 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.LiquidityPool
+import com.asc.markets.data.PreMoveCandidate
+import com.asc.markets.data.PreMoveIntelligenceStore
+import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.screens.dashboard.OrderBookSplit
 import com.asc.markets.ui.theme.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Locale
 
 data class NetDeltaData(val currency: String, val bias: String, val delta: Int, val confidence: Int)
 
 @Composable
 fun LiquidityHubScreen() {
-    val allPairs by MarketDataStore.allPairs.collectAsState()
-    val selectedPair = allPairs.firstOrNull() ?: ForexPair("BTC/USD", "Bitcoin", 29481.3, 0.0, 0.0)
+    val viewModel: ForexViewModel = viewModel()
+    val selectedPair by viewModel.selectedPair.collectAsState()
+    val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())
+    val selectedCandidate = PreMoveIntelligenceStore.candidateFor(selectedPair.symbol, candidates) ?: candidates.firstOrNull()
     
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
-        // Order Book Section
         item {
             InfoBox {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ORDER BOOK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+                        Text("LIQUIDITY MAP", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OrderBookSplit(selectedPair = selectedPair, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("PRE-MOVE LIQUIDITY ATTRACTION AND SWEEP MODEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
                 }
             }
         }
-        // BOX A: Cross-Asset Correlation Matrix (table layout like image)
-        item {
-            InfoBox {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    // Title with icon
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("CROSS-ASSET CORRELATION MATRIX", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
-                    }
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("STATISTICAL ALIGNMENT COEFFICIENT ACROSS PRIMARY LIQUIDITY HUBS", color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Correlation Matrix Table
-                    CorrelationMatrixTable()
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Alert: Over-Correlation Detected
-                    Surface(
-                        color = RoseError.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                            Text("⚠", color = RoseError, fontSize = 16.sp, modifier = Modifier.padding(top = 2.dp))
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("OVER-CORRELATION DETECTED", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                Text("EUR/USD AND GBP/USD ARE CURRENTLY MOVING WITH A 0.88 COEFFICIENT. AVOID HOLDING LONG POSITIONS IN BOTH SIMULTANEOUSLY TO PREVENT USD-CONCENTRATION RISK.", color = Color.White.copy(alpha = 0.7f), fontSize = 9.sp, lineHeight = 12.sp)
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Alert: Inverse Signal Opportunity
-                    Surface(
-                        color = IndigoAccent.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                            Text("⚡", color = IndigoAccent, fontSize = 16.sp, modifier = Modifier.padding(top = 2.dp))
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("INVERSE SIGNAL OPPORTUNITY", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                Text("USD/JPY AND EUR/USD DIVERGENCE DETECTED. INSTITUTIONAL HEDGING SUGGESTS A STRUCTURAL SHIFT IN JAPANESE SESSION LIQUIDITY FLOWS.", color = Color.White.copy(alpha = 0.7f), fontSize = 9.sp, lineHeight = 12.sp)
-                            }
-                        }
-                    }
+        if (selectedCandidate == null) {
+            item { EmptyLiquidityState() }
+        } else {
+            item { LiquidityOverviewCard(selectedCandidate) }
+            item { LiquidityPoolsCard(selectedCandidate) }
+            item { SweepProbabilityCard(selectedCandidate) }
+            item { CorrelationGateCard(selectedCandidate) }
+        }
+    }
+}
+
+@Composable
+private fun EmptyLiquidityState() {
+    InfoBox {
+        Text(
+            "No liquidity candidate is available yet. Wait for MT5 live history to populate buy-side and sell-side pools.",
+            color = SlateText,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            fontFamily = InterFontFamily,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun LiquidityOverviewCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(candidate.symbol, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text(candidate.deterministicReason, color = SlateText, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = InterFontFamily)
                 }
+                LiquidityBadge(candidate.riskGate, riskGateColor(candidate.riskGate))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LiquidityMetricTile("MAGNET", candidate.liquidityMagnet, modifier = Modifier.weight(1f))
+                LiquidityMetricTile("TRAP RISK", candidate.trapRisk, modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LiquidityMetricTile("REGIME", candidate.regime, modifier = Modifier.weight(1f))
+                LiquidityMetricTile("WINDOW", candidate.expectedWindow, modifier = Modifier.weight(1f))
             }
         }
+    }
+}
 
-        // BOX B: Net Currency Delta
-        item {
-            InfoBox {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    // Title with icon
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("NET CURRENCY DELTA", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("AGGREGATED EXPOSURE ACROSS THE SYSTEM BASKET", color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Currency Delta Rows
-                    val currencyData = listOf(
-                        NetDeltaData("USD", "SHORT", -452000, 72),
-                        NetDeltaData("EUR", "LONG", 284000, 31),
-                        NetDeltaData("GBP", "LONG", 142000, 45),
-                        NetDeltaData("JPY", "SHORT", -89000, 12),
-                        NetDeltaData("AUD", "FLAT", 0, 50)
-                    )
-
-                    currencyData.forEach { data ->
-                        ExpandedNetDeltaRow(data)
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Safety Gate: Arm Dispatch
-                    Surface(
-                        color = Color.White.copy(alpha = 0.08f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("SAFETY GATE: ARM DISPATCH", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp)
-                                    .background(Color.White, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("CALCULATE NET USD RISK", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
-                            }
-                        }
-                    }
-                }
+@Composable
+private fun LiquidityPoolsCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("ACTIVE LIQUIDITY POOLS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+            candidate.liquidityPools.forEach { pool ->
+                LiquidityPoolRow(pool)
             }
         }
+    }
+}
 
-        // BOX C: Volatility Pulse (Risk Gauge)
-        item {
-            InfoBox {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text("VOLATILITY PULSE (VIX PROXY)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Global VIX Proxy display
+@Composable
+private fun SweepProbabilityCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("SWEEP PROBABILITY", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+            LiquidityProgressRow("Buy-side draw", if (candidate.liquidityMagnet == "Buy-side liquidity") candidate.sweepProbability else 100 - candidate.sweepProbability)
+            LiquidityProgressRow("Sell-side draw", if (candidate.liquidityMagnet == "Sell-side liquidity") candidate.sweepProbability else 100 - candidate.sweepProbability)
+            LiquidityProgressRow("Compression near pool", candidate.compressionScore)
+        }
+    }
+}
+
+@Composable
+private fun CorrelationGateCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("CORRELATION GATE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+                LiquidityBadge(candidate.correlationGate, riskGateColor(candidate.correlationGate))
+            }
+            if (candidate.correlations.isEmpty()) {
+                Text("Waiting for enough cross-asset history to validate correlation pressure.", color = SlateText, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = InterFontFamily)
+            } else {
+                candidate.correlations.forEach { signal ->
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Global Fear Index:", color = SlateText, fontSize = 10.sp)
-                        Text("23.45", color = EmeraldSuccess, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Equity Beta bar
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Equity Beta", color = SlateText, fontSize = 9.sp)
-                            Text("0.62", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Column {
+                            Text(signal.symbol, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                            Text(signal.alignment, color = SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(0.62f)
-                                    .background(EmeraldSuccess, RoundedCornerShape(3.dp))
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Currency Volatility bar
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Currency Vol", color = SlateText, fontSize = 9.sp)
-                            Text("0.38", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(3.dp))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(0.38f)
-                                    .background(EmeraldSuccess, RoundedCornerShape(3.dp))
-                            )
-                        }
+                        Text(String.format(Locale.US, "%.2f", signal.coefficient), color = if (signal.alignment == "CONFLICT") RoseError else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                     }
                 }
             }
         }
+    }
+}
 
-        // BOX D: Institutional Disclosure
-        item {
-            InfoBox {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = "Info", tint = SlateText, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("INSTITUTIONAL DISCLOSURE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        "Correlations calculated using 1,000 bar rolling window. Net Delta reflects current portfolio aggregation. Volatility bars show 20-day standard deviation. All figures are theoretical approximations.",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = InterFontFamily
-                    )
+@Composable
+private fun LiquidityPoolRow(pool: LiquidityPool) {
+    Surface(
+        color = PureBlack,
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(pool.label, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text("${pool.side} · ${String.format(Locale.US, "%.2f", pool.distancePercent)}% away", color = SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
                 }
+                Text(formatLiquidityPrice(pool.level), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
+            LiquidityProgressRow("Magnet strength", pool.strength)
         }
+    }
+}
+
+@Composable
+private fun LiquidityProgressRow(label: String, score: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+            Text("$score%", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        }
+        Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((score / 100f).coerceIn(0f, 1f)).background(riskGateColor(if (score >= 70) "PASS" else "WATCH"), RoundedCornerShape(4.dp)))
+        }
+    }
+}
+
+@Composable
+private fun LiquidityMetricTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(color = GhostWhite, shape = RoundedCornerShape(10.dp), modifier = modifier) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(label, color = SlateText, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text(value, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, lineHeight = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun LiquidityBadge(label: String, color: Color) {
+    Surface(color = color.copy(alpha = 0.18f), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.45f))) {
+        Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+    }
+}
+
+private fun riskGateColor(label: String): Color {
+    return when (label) {
+        "PASS", "SUPPORT", "LOW" -> EmeraldSuccess
+        "WATCH", "NEUTRAL", "MEDIUM" -> IndigoAccent
+        else -> RoseError
+    }
+}
+
+private fun formatLiquidityPrice(value: Double): String {
+    return when {
+        value >= 1000.0 -> String.format(Locale.US, "%,.2f", value)
+        value >= 1.0 -> String.format(Locale.US, "%.5f", value)
+        else -> String.format(Locale.US, "%.6f", value)
     }
 }
 

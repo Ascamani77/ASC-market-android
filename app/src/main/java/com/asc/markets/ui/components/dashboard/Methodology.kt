@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import com.asc.markets.R
 import com.asc.markets.ui.screens.dashboard.EducationTab
 
-val ICON_METHODOLOGY = R.drawable.lucide_book_open
+val ICON_METHODOLOGY get() = R.drawable.lucide_book_open
 
 @Composable
 fun MethodologyComponent() {

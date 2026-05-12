@@ -108,7 +108,7 @@ object OrderBookStore {
 
     private suspend fun pollSnapshot(key: String, seedPair: ForexPair) {
         while (currentCoroutineContext().isActive) {
-            val pair = MarketDataStore.pairSnapshot(seedPair.symbol) ?: seedPair
+            val pair = livePairSnapshot(seedPair.symbol) ?: seedPair
             val previous = _snapshots.value[key]
             val nextSnapshot = fetchLiveSnapshot(pair)
                 ?: previous?.takeUnless { it.isFallback }?.copy(isStale = true)
@@ -233,9 +233,9 @@ object OrderBookStore {
     }
 
     private fun deterministicSnapshot(pair: ForexPair): OrderBookSnapshot {
-        val livePair = MarketDataStore.pairSnapshot(pair.symbol) ?: pair
+        val livePair = livePairSnapshot(pair.symbol) ?: pair
         val currentPrice = livePair.price
-        val history = MarketDataStore.historySnapshot(livePair.symbol).ifEmpty { List(12) { currentPrice } }
+        val history = liveHistorySnapshot(livePair.symbol).ifEmpty { List(12) { currentPrice } }
         val baseTick = baseTickSize(livePair.symbol, currentPrice)
         val volatility = history
             .zipWithNext { previous, next -> abs(next - previous) }
@@ -392,7 +392,6 @@ object OrderBookStore {
         val normalized = symbolKey(pair.symbol)
         return when {
             normalized.endsWith("USDT") -> normalized
-            normalized.endsWith("USD") -> normalized.removeSuffix("USD") + "USDT"
             else -> null
         }
     }
@@ -404,6 +403,18 @@ object OrderBookStore {
             .replace("-", "")
             .replace("_", "")
             .replace(" ", "")
+    }
+
+    private fun livePairSnapshot(symbol: String): ForexPair? {
+        return BinanceDataStore.pairSnapshot(symbol) ?: MarketDataStore.pairSnapshot(symbol)
+    }
+
+    private fun liveHistorySnapshot(symbol: String): List<Double> {
+        return if (BinanceDataStore.isUsdtSymbol(symbol)) {
+            BinanceDataStore.historySnapshot(symbol)
+        } else {
+            MarketDataStore.historySnapshot(symbol)
+        }
     }
 
     private fun symbolSignature(symbol: String): Int {

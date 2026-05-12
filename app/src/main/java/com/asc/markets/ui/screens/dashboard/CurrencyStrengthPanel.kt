@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
@@ -69,8 +71,14 @@ fun CurrencyStrengthPanel(density: MarketCompareDensity = MarketCompareDensity.F
 @Composable
 fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FULL) {
     val assetContext by AssetContextStore.context.collectAsState()
-    val allPairs by MarketDataStore.allPairs.collectAsState()
-    val priceHistory by MarketDataStore.priceHistory.collectAsState()
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by BinanceDataStore.allPairs.collectAsState()
+    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
+    val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
+    val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
+    val allPairs = (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
+    val priceHistory = marketPriceHistory + binancePriceHistory + fallbackPriceHistory
 
     val scopedPairs = allPairs
         .filter { pair -> pairInContext(pair.category, assetContext) }

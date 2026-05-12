@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.terminal.theme.*
 
@@ -29,9 +31,12 @@ fun SymbolSearchModal(
     if (!isOpen) return
 
     var query by remember { mutableStateOf("") }
-    val pairs by MarketDataStore.allPairs.collectAsState()
-    val symbols = remember(pairs, query) {
-        pairs
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by BinanceDataStore.allPairs.collectAsState()
+    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val symbols = remember(marketPairs, binancePairs, fallbackPairs, query) {
+        (marketPairs + binancePairs + fallbackPairs)
+            .distinctBy { it.symbol }
             .map { pair ->
                 SymbolItem(
                     ticker = pair.symbol,
@@ -111,7 +116,7 @@ data class SymbolItem(val ticker: String, val name: String, val exchange: String
 
 private fun exchangeFor(symbol: String): String {
     return when {
-        symbol.endsWith("/USDT") || symbol.endsWith("/USD") -> "BINANCE"
+        symbol.endsWith("/USDT") -> "BINANCE"
         symbol.contains("/") -> "FX"
         else -> "MARKET"
     }

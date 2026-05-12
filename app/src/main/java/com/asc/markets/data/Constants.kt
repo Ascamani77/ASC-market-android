@@ -22,10 +22,10 @@ val FOREX_PAIRS = listOf(
     ForexPair("DXY", "US Dollar Index", 104.28, 0.45, 0.43, com.asc.markets.data.MarketCategory.COMMODITIES),
 
     // CRYPTO (4)
-    // AI Intelligence Layer (Binance - Truth Data)
+    // Binance USDT pairs (for most of the app - Market Overview, Dashboard, etc.)
     ForexPair("BTC/USDT", "Bitcoin / Tether", 67432.50, 1240.20, 1.87, com.asc.markets.data.MarketCategory.CRYPTO),
     ForexPair("ETH/USDT", "Ethereum / Tether", 3452.15, -45.20, -1.29, com.asc.markets.data.MarketCategory.CRYPTO),
-    // Execution / Broker Layer (MetaTrader 5 - Execution & Monitoring)
+    // MT5/Exness pairs (for Quote page and StreamScreen chart only)
     ForexPair("BTC/USD", "Bitcoin / US Dollar", 67425.00, 1232.50, 1.85, com.asc.markets.data.MarketCategory.CRYPTO),
     ForexPair("ETH/USD", "Ethereum / US Dollar", 3450.80, -46.50, -1.33, com.asc.markets.data.MarketCategory.CRYPTO),
 

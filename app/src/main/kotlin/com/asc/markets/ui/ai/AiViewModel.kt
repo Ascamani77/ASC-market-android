@@ -40,14 +40,20 @@ class AiViewModel : ViewModel() {
 
     fun fetchLatest() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.fetchLatestDeployments()
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Unknown error"
+                    )
+                }
         }
     }
 
     fun runAi() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.runAiPipeline()
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(

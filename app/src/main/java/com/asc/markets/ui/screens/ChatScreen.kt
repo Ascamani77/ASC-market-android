@@ -1,6 +1,5 @@
 package com.asc.markets.ui.screens
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,17 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.imePadding
-import com.asc.markets.api.ForexAnalysisEngine
 import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.ANALYST_MODELS
-import com.asc.markets.logic.AIIntelEngine
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -37,19 +33,13 @@ fun ChatScreen(viewModel: ForexViewModel) {
         val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
         return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
     }
-    val messages = remember { mutableStateListOf<ChatMessage>() }
     var selectedPersona by remember { mutableStateOf(ANALYST_MODELS[0]) }
-    var isVoiceActive by remember { mutableStateOf(false) }
-    var auditPipeline by remember { mutableStateOf<List<AIIntelEngine.PipelineStage>?>(null) }
-    var showAuditDetails by remember { mutableStateOf(false) }
+    val messages by viewModel.ascChatMessages.collectAsState()
+    val isResponding by viewModel.ascChatResponding.collectAsState()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "voice")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "pulse"
-    )
+    LaunchedEffect(Unit) {
+        viewModel.fetchLatestDeployments()
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
         Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
@@ -100,17 +90,15 @@ fun ChatScreen(viewModel: ForexViewModel) {
         ) {
             if (messages.isEmpty()) {
                 item {
-                    ChatBubble(ChatMessage(role = "model", content = 
-                        "🧠 AI INTEL PAGE READY\n\n" +
-                        "Selected Specialist: ${selectedPersona.name}\n" +
-                        "Mode: ${if (isVoiceActive) "VOICE (Gemini Live API)" else "TEXT (Gemini 3-Flash)"}\n" +
-                        "Architecture: 6-Stage Institutional Hierarchy Pipeline\n\n" +
-                        "Ask me to 'audit', 'verify', or 'validate' a signal for full pipeline action.\n" +
-                        "Or get specialist-only analysis from ${selectedPersona.name}."
-                    ))
+                    ChatBubble(ChatMessage(role = "model", content = "This is ASC Engine v1. What can I do for you?"))
                 }
             }
             items(messages) { msg -> ChatBubble(msg) }
+            if (isResponding) {
+                item {
+                    ChatBubble(ChatMessage(role = "model", content = "[ASC_ENGINE] Reading app state..."))
+                }
+            }
         }
 
         Surface(
@@ -126,24 +114,18 @@ fun ChatScreen(viewModel: ForexViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Voice button
+                // ASC refresh button
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .scale(if (isVoiceActive) pulseScale else 1f)
-                        .background(if (isVoiceActive) RoseError.copy(alpha = 0.15f) else Color.Transparent, CircleShape)
+                        .background(Color.Transparent, CircleShape)
                         .clickable { 
-                            isVoiceActive = !isVoiceActive
-                            if (isVoiceActive) {
-                                val voiceMessage = "[VOICE_MODE_ACTIVE] Listening for conversational audit...\n" +
-                                    "Using Gemini Native Audio (gemini-2.5-flash-native-audio-preview)\n" +
-                                    "Specialist: ${selectedPersona.name}"
-                                messages.add(ChatMessage(role = "model", content = voiceMessage))
-                            }
+                            viewModel.fetchLatestDeployments()
+                            viewModel.addAscChatSystemMessage("[ASC_AI] Refreshing latest ASC deployment output...")
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Mic, null, tint = if (isVoiceActive) RoseError else Color.Gray, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Sync, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                 }
 
                 // Input field (expanded)
@@ -157,7 +139,7 @@ fun ChatScreen(viewModel: ForexViewModel) {
                             input = it
                         }
                     },
-                    placeholder = { Text("COMMAND INPUT...", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold) },
+                    placeholder = { Text("ASK ASC AI...", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -175,48 +157,35 @@ fun ChatScreen(viewModel: ForexViewModel) {
                 }
 
                 // Add data button
-                IconButton(onClick = { }) {
+                IconButton(onClick = {
+                    viewModel.runAiPipelineNow()
+                    viewModel.addAscChatSystemMessage("[ASC_AI] Pipeline run requested. Refresh deployments after it completes.")
+                }) {
                     Icon(Icons.Default.Add, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                 }
 
                 // Send button
                 Surface(
                     onClick = { 
-                        if (input.isNotBlank()) { 
-                            val userQuery = input
-                            messages.add(ChatMessage(role = "user", content = userQuery)) 
+                        if (input.isNotBlank() && !isResponding) { 
+                            val userQuery = input.trim()
                             input = "" 
-                            
-                            val context = AIIntelEngine.PipelineContext(
+                            viewModel.sendAscChatMessage(
                                 userQuery = userQuery,
-                                selectedPersona = selectedPersona.name,
-                                conversationHistory = messages
+                                personaName = selectedPersona.name,
+                                personaInstruction = selectedPersona.instruction
                             )
-                            
-                            val response = if (userQuery.lowercase().contains(Regex("audit|verify|signal|validate"))) {
-                                val auditResult = AIIntelEngine.executeInstitutionalAudit(context)
-                                auditPipeline = auditResult.pipeline
-                                AIIntelEngine.logAudit(selectedPersona.name, userQuery, auditResult)
-                                
-                                auditResult.finalRecommendation + "\n\n" +
-                                    (auditResult.riskWarning?.let { it + "\n\n" } ?: "") +
-                                    "Pipeline stages executed: ${auditResult.pipeline.size}"
-                            } else {
-                                AIIntelEngine.getSpecialistResponse(context)
-                            }
-                            
-                            messages.add(ChatMessage(role = "model", content = response))
                         } 
                     },
                     modifier = Modifier.size(40.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = if (input.isNotBlank()) Color.White else Color.White.copy(alpha = 0.05f)
+                    color = if (input.isNotBlank() && !isResponding) Color.White else Color.White.copy(alpha = 0.05f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.ArrowUpward, 
                             null, 
-                            tint = if (input.isNotBlank()) Color.Black else Color.Gray,
+                            tint = if (input.isNotBlank() && !isResponding) Color.Black else Color.Gray,
                             modifier = Modifier.size(20.dp)
                         )
                     }

@@ -1,0 +1,276 @@
+{
+  "type": "news",
+  "items": [
+    {
+      "id": 637678655,
+      "title": "Forex Today: US Dollar steadies ahead of key US CPI data as markets monitor Iran tensions",
+      "timeLabel": "32 minutes ago",
+      "isoDateTime": "2026-05-11T21:46:30+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/forex-today-us-dollar-steadies-ahead-of-key-us-cpi-data-as-markets-monitor-iran-tensions-202605112046"
+    },
+    {
+      "id": 659991095,
+      "title": "Taiwan: Mild tightening path in 2H – DBS",
+      "timeLabel": "37 minutes ago",
+      "isoDateTime": "2026-05-11T21:41:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/taiwan-mild-tightening-path-in-2h-dbs-202605112041"
+    },
+    {
+      "id": 579850669,
+      "title": "Silver Price Analysis: Tests $86.00 as rally gains momentum",
+      "timeLabel": "1 hours ago",
+      "isoDateTime": "2026-05-11T21:16:50+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/silver-price-analysis-tests-8600-as-rally-gains-momentum-202605112016"
+    },
+    {
+      "id": 1778618133,
+      "title": "China: Supportive policy but slower growth – BNP Paribas",
+      "timeLabel": "1 hours ago",
+      "isoDateTime": "2026-05-11T21:03:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/china-supportive-policy-but-slower-growth-bnp-paribas-202605112003"
+    },
+    {
+      "id": 1130875022,
+      "title": "Gold rises as Trump rejects Iran deal, war risks increase",
+      "timeLabel": "1 hours ago",
+      "isoDateTime": "2026-05-11T20:57:50+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/gold-rises-as-trump-rejects-iran-deal-war-risks-increase-202605111957"
+    },
+    {
+      "id": 668576750,
+      "title": "Malaysian Ringgit: Stronger BNM reserves back stability – UOB",
+      "timeLabel": "1 hours ago",
+      "isoDateTime": "2026-05-11T20:26:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/malaysian-ringgit-stronger-bnm-reserves-back-stability-uob-202605111926"
+    },
+    {
+      "id": 679919824,
+      "title": "USD/CAD Price Forecast: Neutral RSI and soft ADX signal lack of momentum",
+      "timeLabel": "2 hours ago",
+      "isoDateTime": "2026-05-11T19:56:48+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/usd-cad-price-forecast-neutral-rsi-and-soft-adx-signal-lack-of-strong-directional-momentum-202605111856"
+    },
+    {
+      "id": 1468715024,
+      "title": "Japanese Yen loses ground as Trump rejects Iran proposal ahead of US CPI",
+      "timeLabel": "2 hours ago",
+      "isoDateTime": "2026-05-11T19:49:17+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/japanese-yen-loses-ground-as-trump-rejects-iran-proposal-ahead-of-us-cpi-202605111849"
+    },
+    {
+      "id": 474274093,
+      "title": "Japan: Wage gains, confidence risks and BoJ – Rabobank",
+      "timeLabel": "2 hours ago",
+      "isoDateTime": "2026-05-11T19:42:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/japan-wage-gains-confidence-risks-and-boj-rabobank-202605111842"
+    },
+    {
+      "id": 562488781,
+      "title": "Emerging markets: Broadening gains persist in 2026 – HSBC",
+      "timeLabel": "3 hours ago",
+      "isoDateTime": "2026-05-11T19:04:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/emerging-markets-broadening-gains-persist-in-2026-hsbc-202605111804"
+    },
+    {
+      "id": 138396349,
+      "title": "Euro consolidates as US Dollar and Oil price dynamics dominate market sentiment",
+      "timeLabel": "3 hours ago",
+      "isoDateTime": "2026-05-11T19:02:57+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/euro-consolidates-as-us-dollar-and-oil-price-dynamics-dominate-market-sentiment-202605111802"
+    },
+    {
+      "id": 406003754,
+      "title": "Swiss Franc: Safe-haven CHF held back by SNB – MUFG",
+      "timeLabel": "3 hours ago",
+      "isoDateTime": "2026-05-11T18:47:18+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/swiss-franc-safe-haven-chf-held-back-by-snb-mufg-202605111747"
+    },
+    {
+      "id": 886768823,
+      "title": "India: Upside risks build as price pressures broaden – Societe Generale",
+      "timeLabel": "3 hours ago",
+      "isoDateTime": "2026-05-11T18:28:34+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/india-upside-risks-build-as-price-pressures-broaden-societe-generale-202605111728"
+    },
+    {
+      "id": 1699585119,
+      "title": "US President Trump weighs military options as Iran rejects US memo – Axios",
+      "timeLabel": "4 hours ago",
+      "isoDateTime": "2026-05-11T18:14:16+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/us-president-trump-weighs-military-options-as-iran-rejects-us-memo-202605111714"
+    },
+    {
+      "id": 345128672,
+      "title": "Gold steadies as markets await US CPI amid rising Middle East tensions",
+      "timeLabel": "4 hours ago",
+      "isoDateTime": "2026-05-11T18:12:51+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/gold-gaps-lower-as-higher-for-longer-fed-outlook-weighs-on-sentiment-202605111157"
+    },
+    {
+      "id": 413095487,
+      "title": "United States 3-Year Note Auction rose from previous 3.897% to 3.965%",
+      "timeLabel": "4 hours ago",
+      "isoDateTime": "2026-05-11T18:04:47+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/united-states-3-year-note-auction-rose-from-previous-3897-to-3965-202605111704"
+    },
+    {
+      "id": 1937194519,
+      "title": "Pound Sterling Price News and Forecast: GBP/USD steadies as Starmer ouster fears rock UK Gilts",
+      "timeLabel": "4 hours ago",
+      "isoDateTime": "2026-05-11T17:26:38+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/pound-sterling-price-news-and-forecast-gbp-usd-steadies-as-starmer-ouster-fears-rock-uk-gilts-202605111626"
+    },
+    {
+      "id": 2135615380,
+      "title": "Dow Jones Industrial Average steady as Iran rebuff lifts Oil, CPI in focus",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T17:17:50+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/dow-jones-industrial-average-steady-as-iran-rebuff-lifts-oil-cpi-in-focus-202605111617"
+    },
+    {
+      "id": 1956476113,
+      "title": "US President Trump: Iran's proposal is a stupid proposal",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T17:10:17+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/us-president-trump-irans-proposal-is-a-stupid-proposal-202605111610"
+    },
+    {
+      "id": 355818148,
+      "title": "WTI Oil climbs on Trump rejection of Iran peace plan, Hormuz closure fears",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T16:57:38+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/wti-oil-climbs-on-trump-rejection-of-iran-peace-plan-hormuz-closure-fears-202605111557"
+    },
+    {
+      "id": 17894338,
+      "title": "British Pound steadies as Starmer ouster fears rock UK Gilts",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T16:46:44+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/british-pound-steadies-as-starmer-ouster-fears-rock-uk-gilts-202605111546"
+    },
+    {
+      "id": 808054142,
+      "title": "Australian Dollar surges as traders await US CPI, Trump rejects Iran deal",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T16:37:52+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/australian-dollar-surges-as-traders-await-us-cpi-trump-rejects-iran-deal-202605111537"
+    },
+    {
+      "id": 409347845,
+      "title": "Euro: Recovery against US Dollar targets key Fib level – Scotiabank",
+      "timeLabel": "5 hours ago",
+      "isoDateTime": "2026-05-11T16:36:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/euro-recovery-against-us-dollar-targets-key-fib-level-scotiabank-202605111536"
+    },
+    {
+      "id": 1511209271,
+      "title": "US Dollar: Gradual depreciation path outlined – BNP Paribas",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T16:01:10+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/us-dollar-gradual-depreciation-path-outlined-bnp-paribas-202605111501"
+    },
+    {
+      "id": 1429728895,
+      "title": "Swedish Krona: Dovish Riksbank weighs on currency – MUFG",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:51:31+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/swedish-krona-dovish-riksbank-weighs-on-currency-mufg-202605111451"
+    },
+    {
+      "id": 1584560890,
+      "title": "Swiss Franc regains traction as USD eases from intraday highs amid stalled US-Iran negotiations",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:44:40+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/swiss-franc-regains-traction-as-usd-eases-from-intraday-highs-amid-stalled-us-iran-negotiations-202605111444"
+    },
+    {
+      "id": 34181810,
+      "title": "Japanese Yen: Choppy trade versus US Dollar around intervention line – OCBC",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:42:44+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/japanese-yen-choppy-trade-versus-us-dollar-around-intervention-line-ocbc-202605111442"
+    },
+    {
+      "id": 593034474,
+      "title": "BoC: Patience on hikes despite oil shock – TD Securities",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:33:47+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/boc-patience-on-hikes-despite-oil-shock-td-securities-202605111433"
+    },
+    {
+      "id": 463216498,
+      "title": "Silver rallies to two-month high as US-Iran tensions boost haven demand",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:32:33+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/silver-price-rallies-to-two-month-high-as-us-iran-tensions-boost-haven-demand-202605111432"
+    },
+    {
+      "id": 681839123,
+      "title": "US Dollar Index: DXY trading in range as inflation eyed – ING",
+      "timeLabel": "6 hours ago",
+      "isoDateTime": "2026-05-11T15:24:13+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/us-dollar-index-dxy-trading-in-range-as-inflation-eyed-ing-202605111424"
+    }
+  ],
+  "lastUpdatedIso": "2026-05-11T21:18:58.085358+00:00"
+}

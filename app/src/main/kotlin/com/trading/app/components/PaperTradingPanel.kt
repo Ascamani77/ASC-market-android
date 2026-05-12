@@ -70,7 +70,7 @@ fun PaperTradingPanel(
         ) {
             Column(modifier = Modifier.clickable { }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Paper Trading", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Live Trade", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {

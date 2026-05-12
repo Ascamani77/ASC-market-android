@@ -2,14 +2,22 @@ package com.researchcenter.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
+import com.researchcenter.data.models.Intelligence
 import com.researchcenter.data.models.NewsArticle
 import com.researchcenter.services.AiService
 import com.researchcenter.services.NewsService
 import com.researchcenter.util.StringUtils
+import com.trading.app.data.Mt5NewsStore
+import com.trading.app.models.NewsItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class NewsViewModel(
     private val newsService: NewsService = NewsService(),
@@ -41,9 +49,23 @@ class NewsViewModel(
     val bookmarks: StateFlow<List<NewsArticle>> = _bookmarks.asStateFlow()
 
     private var _lastAiUpdate = 0L
+    private var latestMt5Articles: List<NewsArticle> = emptyList()
+    private val mt5DateFormatters = listOf(
+        DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss"),
+        DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    )
 
     init {
         fetchAllNews()
+        viewModelScope.launch {
+            Mt5NewsStore.newsItems.collect { mt5Items ->
+                Log.i("NewsViewModel", "Mt5NewsStore updated: ${mt5Items.size} items")
+                latestMt5Articles = mt5Items.map(::toMt5NewsArticle)
+                _articles.value = mergeMt5News(_articles.value, latestMt5Articles)
+            }
+        }
     }
 
     fun refreshNews() {
@@ -58,9 +80,70 @@ class NewsViewModel(
     fun fetchAllNews() {
         viewModelScope.launch {
             _isLoading.value = true
-            _articles.value = newsService.fetchAllNews()
+            _articles.value = mergeMt5News(emptyList(), latestMt5Articles)
             _isLoading.value = false
         }
+    }
+
+    private fun toMt5NewsArticle(item: NewsItem): NewsArticle {
+        val publishedAt = normalizeMt5Date(item.isoDateTime)
+        val summary = listOf(item.category, item.countryCode, item.timeLabel)
+            .filter { it.isNotBlank() }
+            .joinToString(" · ")
+            .ifBlank { "FXStreet news from MT5" }
+
+        return NewsArticle(
+            id = "mt5_${item.id}",
+            url = item.detailsUrl.orEmpty(),
+            title = item.title,
+            publishedAt = publishedAt,
+            source = "FXStreet (MT5)",
+            author = "FXStreet",
+            category = "fxstreet",
+            summary = summary,
+            content = item.title,
+            imageUrl = null,
+            intelligence = Intelligence(
+                sentiment = "neutral",
+                confidence = "low",
+                asset_tags = listOf(item.countryCode, item.category)
+                    .filter { it.isNotBlank() }
+                    .map { it.uppercase().replace(" ", "_") },
+                impact_score = 0.4,
+                market_type = "FX"
+            )
+        )
+    }
+
+    private fun normalizeMt5Date(rawDate: String): String {
+        if (rawDate.isBlank()) return OffsetDateTime.now(ZoneOffset.UTC).toString()
+        try {
+            return OffsetDateTime.parse(rawDate).withOffsetSameInstant(ZoneOffset.UTC).toString()
+        } catch (_: Exception) {
+        }
+        mt5DateFormatters.forEach { formatter ->
+            try {
+                return LocalDateTime.parse(rawDate.trim(), formatter)
+                    .atOffset(ZoneOffset.UTC)
+                    .toString()
+            } catch (_: Exception) {
+            }
+        }
+        return OffsetDateTime.now(ZoneOffset.UTC).toString()
+    }
+
+    private fun mergeMt5News(baseArticles: List<NewsArticle>, mt5Articles: List<NewsArticle>): List<NewsArticle> {
+        val nonMt5Articles = baseArticles.filterNot { it.id.startsWith("mt5_") }
+        val sortedMt5Articles = mt5Articles.sortedByDescending { article ->
+            try {
+                OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
+            } catch (e: Exception) {
+                0L
+            }
+        }
+        return (sortedMt5Articles + nonMt5Articles.sortedByDescending { it.publishedAt })
+            .distinctBy { it.id }
+            .take(200)
     }
 
     fun fetchAiSortedNews() {

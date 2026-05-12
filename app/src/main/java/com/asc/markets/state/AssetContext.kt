@@ -33,6 +33,7 @@ object AssetContextStore {
 fun mapCategoryToAssetContext(category: String): AssetContext = when (category.trim().lowercase()) {
     "all", "all assets", "global" -> AssetContext.ALL
     "commodities", "commodity", "energy" -> AssetContext.COMMODITIES
+    "indices", "index" -> AssetContext.INDICES
     "stocks", "stock" -> AssetContext.STOCKS
     "crypto", "cryptocurrency", "cryptos" -> AssetContext.CRYPTO
     "futures", "future" -> AssetContext.FUTURES

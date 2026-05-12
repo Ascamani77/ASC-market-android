@@ -10,14 +10,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import com.asc.markets.MyApp
 import com.asc.markets.ui.screens.tradeDashboard.model.*
 import com.asc.markets.ui.screens.tradeDashboard.ui.components.*
 import com.asc.markets.ui.screens.tradeDashboard.ui.tabs.*
 import com.asc.markets.ui.screens.tradeDashboard.ui.theme.*
 import com.asc.markets.ui.screens.tradeDashboard.viewmodel.DashboardViewModel
+import com.trading.app.data.PaperTradingSnapshotStore
+import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun TradeDashboardApp(
@@ -26,8 +32,30 @@ fun TradeDashboardApp(
     },
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val app = remember(context) { context.applicationContext as MyApp }
+    val deployments by app.aiRepository.deployments.collectAsState()
+    val accountSnapshot = PaperTradingSnapshotStore.snapshot
     var selectedTabIndex by remember { mutableStateOf(0) }
     var isSettingsDialogOpen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(accountSnapshot) {
+        viewModel.updateAccountSnapshot(accountSnapshot)
+    }
+
+    LaunchedEffect(deployments) {
+        viewModel.updateDeployments(deployments?.final_decision.orEmpty())
+    }
+
+    LaunchedEffect(app) {
+        app.aiRepository.fetchLatestDeployments()
+        runCatching {
+            val trades = withContext(Dispatchers.IO) {
+                app.tradeRepository.getLast100Trades()
+            }
+            viewModel.updateClosedTrades(trades)
+        }
+    }
 
     val tabs = listOf("Market", "Opportunity", "Risk", "Execute", "Explain")
     val tabColors = listOf(
@@ -51,7 +79,7 @@ fun TradeDashboardApp(
                 // Header
                 DashboardHeader(
                     symbol = viewModel.selectedSymbol,
-                    isConnected = true
+                    isConnected = accountSnapshot.isConnected || deployments?.success == true
                 )
 
                 HorizontalDivider(color = Color(0xFF151515), thickness = 1.dp)
@@ -123,12 +151,12 @@ fun TradeDashboardApp(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text("SERVER: LD4-PROD-01", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("LATENCY: 12ms", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("ACCOUNT: ${if (accountSnapshot.isConnected) "CONNECTED" else "WAITING"}", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("AI DEPLOYMENTS: ${deployments?.count ?: 0}", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text("UTC: 09:31:40", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("SYSTEMS NOMINAL", color = Color(0xFF00C853).copy(alpha = 0.8f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text("UTC: ${Instant.now()}", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text(if (deployments?.success == true || accountSnapshot.isConnected) "LIVE SOURCES ACTIVE" else "WAITING FOR LIVE SOURCES", color = Color(0xFF00C853).copy(alpha = 0.8f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

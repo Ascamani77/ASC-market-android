@@ -1,6 +1,5 @@
 package com.asc.markets.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -41,8 +40,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.NetworkConfig
 import com.asc.markets.logic.MT5BridgeClient
 import com.asc.markets.ui.components.OrderFlowMiniChart
 import com.asc.markets.ui.screens.dashboard.OrderBookLadder
@@ -88,8 +90,18 @@ private val orderFlowTimeframes = listOf(
 
 @Composable
 fun MultiTimeframeScreen(symbol: String) {
-    val allPairs by MarketDataStore.allPairs.collectAsState()
-    val priceHistory by MarketDataStore.priceHistory.collectAsState()
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by BinanceDataStore.allPairs.collectAsState()
+    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
+    val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
+    val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
+    val allPairs = remember(marketPairs, binancePairs, fallbackPairs) {
+        (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
+    }
+    val priceHistory = remember(marketPriceHistory, binancePriceHistory, fallbackPriceHistory) {
+        marketPriceHistory + binancePriceHistory + fallbackPriceHistory
+    }
     val assetOptions = remember(allPairs) { allPairs.distinctBy(ForexPair::symbol).sortedBy(ForexPair::symbol) }
 
     var assetModeName by rememberSaveable { mutableStateOf(OrderFlowAssetMode.LINKED.name) }
@@ -541,8 +553,7 @@ private fun rememberMt5OrderFlowHistory(
             return@LaunchedEffect
         }
 
-        val prefs = context.applicationContext.getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
-        val bridgeUrl = prefs.getString("mt5_bridge_url", "192.168.1.100:62100") ?: "192.168.1.100:62100"
+        val bridgeUrl = NetworkConfig.mt5BridgeUrl(context)
         val client = MT5BridgeClient(bridgeUrl = bridgeUrl, brokerSuffix = "m")
         val bars = client.getHistoricalBars(
             symbol = normalizedSymbol,

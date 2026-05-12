@@ -11,22 +11,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.asc.markets.data.SystemTelemetry
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.DeepBlack
 import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.SlateText
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
+    val globalThroughput by SystemTelemetry.globalThroughput.collectAsState()
+    val aggLatency by SystemTelemetry.aggLatency.collectAsState()
+    val relays by SystemTelemetry.relays.collectAsState()
+    val logs by SystemTelemetry.logs.collectAsState()
+    val dateFormatter = remember { SimpleDateFormat("HH:mm:ss.SSS", Locale.US) }
+    val busLoadPercent = ((globalThroughput / 5.0) * 100.0).coerceIn(0.0, 100.0)
+    val sweepAngle = (busLoadPercent / 100.0 * 360.0).toFloat()
+
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
             // Main scrollable content
@@ -104,7 +117,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 )
 
                                 Text(
-                                    "6,022.571",
+                                    text = String.format(Locale.US, "%.1f", globalThroughput),
                                     color = Color.White,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
@@ -125,7 +138,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 )
 
                                 Text(
-                                    "12ms",
+                                    "${aggLatency.toInt()}ms",
                                     color = IndigoAccent,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
@@ -136,13 +149,14 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                 }
 
                 // Relay Cards
-                listOf(
-                    RelayData("LMAX NY4 RELAY", 10.32, 20.5, "LMAX"),
-                    RelayData("BINANCE AGGREGATOR", 7.31, 99.1, "BINANCE"),
-                    RelayData("MT5 BRIDGE", 42.81, 4.3, "MT5")
-                ).forEach { relay ->
+                relays.forEach { relay ->
                     item {
-                        RelayCard(relay)
+                        RelayCard(com.asc.markets.data.RelayData(
+                            title = relay.title,
+                            latency = relay.latency,
+                            buffer = relay.buffer,
+                            id = relay.id
+                        ))
                     }
                 }
 
@@ -174,11 +188,25 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            LogLine("[INFO]", "BUS_SYNCHRONIZED: LMAX_NY4 -> LOCAL_BUFFER", Color(0xFF90CAF9))
-                            LogLine("[DATA]", "PRICE_TICK: EUR/USD @ 1.08451 | SIZE: 12.5M", Color(0xFF2EE08A))
-                            LogLine("[DATA]", "PRICE_TICK: GBP/USD @ 1.26342 | SIZE: 4.2M", Color(0xFF2EE08A))
-                            LogLine("[FLOW]", "BUFFER_REBALANCE: FLUSHING_OLD_FRAMES...", Color(0xFFFFC700))
-                            LogLine("[INFO]", "INTEGRITY_OK: ALL_NODES_ALIGNED", Color(0xFF90CAF9))
+                            if (logs.isEmpty()) {
+                                Text(
+                                    "WAITING FOR EVENTS...",
+                                    color = SlateText,
+                                    fontSize = 10.sp
+                                )
+                            } else {
+                                logs.take(6).forEach { log ->
+                                    val timeStr = dateFormatter.format(Date(log.timestamp))
+                                    val color = when (log.level) {
+                                        "[INFO]" -> Color(0xFF90CAF9)
+                                        "[DATA]" -> Color(0xFF2EE08A)
+                                        "[FLOW]" -> Color(0xFFFFC700)
+                                        "[WAIT]" -> Color(0xFF9E9E9E)
+                                        else -> Color.White
+                                    }
+                                    LogLine(log.level, "[$timeStr] ${log.message}", color)
+                                }
+                            }
                             LogLine("[WAIT]", "LISTENING_FOR_EVENT_REDUX...", Color(0xFF9E9E9E))
                         }
                     }
@@ -226,7 +254,6 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                             radius = 60.dp.toPx()
                                         )
                                         // Inner circle (progress)
-                                        val sweepAngle = 260f // 72% of 360
                                         drawArc(
                                             color = IndigoAccent,
                                             startAngle = -90f,
@@ -241,7 +268,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        "72%",
+                                        "${busLoadPercent.toInt()}%",
                                         color = Color.White,
                                         fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold
@@ -278,15 +305,8 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
     }
 }
 
-data class RelayData(
-    val title: String,
-    val latency: Double,
-    val buffer: Double,
-    val id: String
-)
-
 @Composable
-fun RelayCard(relay: RelayData) {
+fun RelayCard(relay: com.asc.markets.data.RelayData) {
     val bufferColor = when {
         relay.buffer > 80 -> Color(0xFFFFC700)
         else -> Color(0xFF2EE08A)

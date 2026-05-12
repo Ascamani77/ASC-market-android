@@ -24,9 +24,20 @@ import com.asc.markets.ui.theme.DeepBlack
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.SlateText
+import com.trading.app.data.PaperTradingAccountSnapshot
+import com.trading.app.data.PaperTradingSnapshotStore
+import java.util.Locale
+import kotlin.math.abs
 
 @Composable
 fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
+    val snapshot = PaperTradingSnapshotStore.snapshot
+    val hasAccount = snapshot.hasLiveAccountData || snapshot.balance != 0.0 || snapshot.equity != 0.0
+    val hasOpenInventory = snapshot.hasLiveTradeData || snapshot.activeTrades > 0
+    val pnlColor = if (snapshot.floatingPnl >= 0.0) Color(0xFF2EE08A) else Color(0xFFE53935)
+    val marginUsedPct = if (snapshot.equity > 0.0) ((snapshot.margin + snapshot.ordersMargin) / snapshot.equity) * 100.0 else 0.0
+    val exposureLabel = inventoryExposureLabel(snapshot)
+    val exposureColor = inventoryExposureColor(snapshot)
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
             LazyColumn(
@@ -111,8 +122,8 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        "+$19.36",
-                                        color = Color(0xFF2EE08A),
+                                        if (hasAccount || hasOpenInventory) formatInventoryMoney(snapshot.floatingPnl) else "WAITING",
+                                        color = pnlColor,
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -126,7 +137,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        "4.2%",
+                                        if (hasAccount || hasOpenInventory) String.format(Locale.US, "%.2f%%", marginUsedPct) else "WAITING",
                                         color = Color.White,
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold
@@ -178,7 +189,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                 }
 
                                 Text(
-                                    "1 NODES DISPATCHED",
+                                    "${snapshot.activeTrades} POSITIONS • ${snapshot.activeOrders} ORDERS",
                                     color = SlateText,
                                     fontSize = 10.sp
                                 )
@@ -186,96 +197,10 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Position Card
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        color = Color(0xFF1A1A2E),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ),
-                                color = Color(0xFF1A1A2E),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Linked pairs icon
-                                        Text(
-                                            "🔗",
-                                            fontSize = 18.sp
-                                        )
-
-                                        Column {
-                                            Text(
-                                                "EUR/USD",
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-
-                                            Text(
-                                                "BUY 1.00\nLOT",
-                                                color = Color(0xFF2EE08A),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                lineHeight = 12.sp
-                                            )
-                                        }
-                                    }
-
-                                    Column(
-                                        horizontalAlignment = Alignment.End,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Column {
-                                            Text(
-                                                "ENTRY",
-                                                color = SlateText,
-                                                fontSize = 9.sp
-                                            )
-                                            Text(
-                                                "1.0842",
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        Column {
-                                            Text(
-                                                "NET PNL",
-                                                color = SlateText,
-                                                fontSize = 9.sp
-                                            )
-                                            Text(
-                                                "+$142.00",
-                                                color = Color(0xFF2EE08A),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    // Close button
-                                    Text(
-                                        "✕",
-                                        color = SlateText,
-                                        fontSize = 16.sp,
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
-                                }
+                            if (hasOpenInventory) {
+                                LiveInventoryPositionCard(snapshot)
+                            } else {
+                                EmptyInventoryState(snapshot)
                             }
                         }
                     }
@@ -334,7 +259,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 LinearProgressIndicator(
-                                    progress = 0.4f,
+                                    progress = (abs(snapshot.currentTradeVolume ?: 0.0) / 10.0).toFloat().coerceIn(0.0f, 1.0f),
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(4.dp),
@@ -345,7 +270,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                 Spacer(modifier = Modifier.width(8.dp))
 
                                 Text(
-                                    "0.0L",
+                                    snapshot.currentTradeVolume?.let { String.format(Locale.US, "%.2fL", it) } ?: "0.00L",
                                     color = IndigoAccent,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -367,7 +292,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        "1.2x",
+                                        inventoryLeverageText(snapshot),
                                         color = Color.White,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
@@ -382,8 +307,8 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        "LOW",
-                                        color = Color(0xFF2EE08A),
+                                        exposureLabel,
+                                        color = exposureColor,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -432,7 +357,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                "EMERGENCY VETO WILL DISARM ALL AUTOMATED DISPATCHES IF UNREALIZED DRAWDOWN EXCEEDS 2.5% OF LOCAL COLLATERAL.",
+                                "LIVE DRAWDOWN ${String.format(Locale.US, "%.2f%%", inventoryDrawdownPct(snapshot))}. EMERGENCY VETO DISARMS AUTOMATED DISPATCHES WHEN LOCAL COLLATERAL RISK BREACHES POLICY.",
                                 color = SlateText,
                                 fontSize = 10.sp,
                                 lineHeight = 12.sp
@@ -451,7 +376,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    "KILL-SWITCH ENABLED",
+                                    if (inventoryDrawdownPct(snapshot) >= 2.5) "KILL-SWITCH REQUIRED" else "GUARD ARMED",
                                     color = Color.White,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -500,7 +425,7 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                "INVENTORY DISPLAYS THEORETICAL POSITIONING FOR THE CURRENT NODE SESSION. REAL-WORLD LIQUIDITY, SLIPPAGE, AND SPREAD FLUCTUATIONS ARE MONITORED BUT NOT CONTROLLED BY THIS DASHBOARD. RISK GOVERNANCE IS MAINTAINED BY THE PROP GUARD INTERLOCK.",
+                                "INVENTORY REFLECTS THE CURRENT ACCOUNT AND PAPER-TRADING SNAPSHOT STREAM. WHEN NO LIVE POSITION STREAM IS AVAILABLE, OPEN INVENTORY STAYS EMPTY INSTEAD OF SHOWING SAMPLE POSITIONS.",
                                 color = SlateText,
                                 fontSize = 10.sp,
                                 lineHeight = 12.sp
@@ -514,5 +439,152 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LiveInventoryPositionCard(snapshot: PaperTradingAccountSnapshot) {
+    val pnl = snapshot.currentTradePnl ?: snapshot.floatingPnl
+    val side = snapshot.currentTradeSide?.uppercase(Locale.US) ?: "LIVE"
+    val sideColor = if (side.contains("SELL") || side.contains("SHORT")) Color(0xFFE53935) else Color(0xFF2EE08A)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = Color(0xFF1A1A2E),
+                shape = RoundedCornerShape(8.dp)
+            ),
+        color = Color(0xFF1A1A2E),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("🔗", fontSize = 18.sp)
+
+                Column {
+                    Text(
+                        snapshot.currentTradeSymbol ?: "LIVE POSITION",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        "$side ${snapshot.currentTradeVolume?.let { String.format(Locale.US, "%.2f", it) } ?: "--"} LOT",
+                        color = sideColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 12.sp
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("ENTRY", color = SlateText, fontSize = 9.sp)
+                    Text(
+                        snapshot.currentTradeEntryPrice?.let { formatInventoryPrice(it) } ?: "—",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("NET PNL", color = SlateText, fontSize = 9.sp)
+                    Text(
+                        formatInventoryMoney(pnl),
+                        color = if (pnl >= 0.0) Color(0xFF2EE08A) else Color(0xFFE53935),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyInventoryState(snapshot: PaperTradingAccountSnapshot) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF11111F),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                "NO OPEN INVENTORY",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                if (snapshot.isConnected) "Account stream connected. No live position is currently open." else "Waiting for the account or paper-trading stream to publish open positions.",
+                color = SlateText,
+                fontSize = 10.sp,
+                lineHeight = 13.sp
+            )
+        }
+    }
+}
+
+private fun formatInventoryMoney(value: Double): String {
+    return String.format(Locale.US, "%s${'$'}%,.2f", if (value >= 0.0) "+" else "-", abs(value))
+}
+
+private fun formatInventoryPrice(value: Double): String {
+    return when {
+        value >= 1000.0 -> String.format(Locale.US, "%,.2f", value)
+        value >= 100.0 -> String.format(Locale.US, "%.2f", value)
+        value >= 1.0 -> String.format(Locale.US, "%.5f", value)
+        else -> String.format(Locale.US, "%.6f", value)
+    }
+}
+
+private fun inventoryDrawdownPct(snapshot: PaperTradingAccountSnapshot): Double {
+    val equity = snapshot.equity.takeIf { it > 0.0 } ?: snapshot.balance.takeIf { it > 0.0 } ?: return 0.0
+    return if (snapshot.floatingPnl < 0.0) abs(snapshot.floatingPnl) / equity * 100.0 else 0.0
+}
+
+private fun inventoryLeverageText(snapshot: PaperTradingAccountSnapshot): String {
+    val equity = snapshot.equity.takeIf { it > 0.0 } ?: return "0.0x"
+    val notional = abs(snapshot.currentTradePrice ?: snapshot.currentTradeEntryPrice ?: 0.0) * abs(snapshot.currentTradeVolume ?: 0.0)
+    val leverage = if (notional > 0.0) notional / equity else 0.0
+    return String.format(Locale.US, "%.1fx", leverage)
+}
+
+private fun inventoryExposureLabel(snapshot: PaperTradingAccountSnapshot): String {
+    return when {
+        snapshot.openRiskPct >= 5.0 || inventoryDrawdownPct(snapshot) >= 2.5 -> "HIGH"
+        snapshot.openRiskPct >= 2.0 || snapshot.activeTrades >= 3 -> "MEDIUM"
+        snapshot.activeTrades > 0 -> "LOW"
+        else -> "FLAT"
+    }
+}
+
+private fun inventoryExposureColor(snapshot: PaperTradingAccountSnapshot): Color {
+    return when (inventoryExposureLabel(snapshot)) {
+        "HIGH" -> Color(0xFFE53935)
+        "MEDIUM" -> Color(0xFFFFA726)
+        "LOW" -> Color(0xFF2EE08A)
+        else -> SlateText
     }
 }

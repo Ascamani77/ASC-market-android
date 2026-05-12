@@ -19,6 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import com.asc.markets.data.CombinedFallbackDecision
+import com.asc.markets.data.CombinedFallbackStore
+import com.asc.markets.data.NetworkConfig
+import com.asc.markets.data.remote.AiRetrofitClient
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
@@ -30,6 +34,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 
 sealed class SettingsSection(val id: String, val title: String, val icon: ImageVector, val value: String? = null) {
     object Workspace : SettingsSection("workspace", "Workspace Interface", androidx.compose.material.icons.autoMirrored.outlined.Settings, "DARK")
@@ -235,12 +241,20 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                 }
 
                 var backendUrl by remember {
-                    mutableStateOf(prefs.getString("backend_url", "http://10.95.77.133:8000") ?: "http://10.95.77.133:8000")
+                    mutableStateOf(prefs.getString("backend_url", NetworkConfig.DEFAULT_BACKEND_URL) ?: NetworkConfig.DEFAULT_BACKEND_URL)
                 }
                 var redisHost by remember {
-                    mutableStateOf(prefs.getString("redis_host", "10.95.77.133") ?: "10.95.77.133")
+                    mutableStateOf(prefs.getString("redis_host", NetworkConfig.DEFAULT_HOST) ?: NetworkConfig.DEFAULT_HOST)
                 }
                 var redisPortText by remember { mutableStateOf(prefs.getInt("redis_port", 6379).toString()) }
+                var mt5Host by remember {
+                    mutableStateOf(NetworkConfig.normalizedHost(prefs.getString("mt5_host", NetworkConfig.DEFAULT_HOST) ?: NetworkConfig.DEFAULT_HOST))
+                }
+                var mt5PortText by remember { mutableStateOf(prefs.getInt("mt5_port", NetworkConfig.DEFAULT_MT5_PORT).toString()) }
+                var cTraderHost by remember {
+                    mutableStateOf(NetworkConfig.normalizedHost(prefs.getString("ctrader_host", NetworkConfig.DEFAULT_HOST) ?: NetworkConfig.DEFAULT_HOST))
+                }
+                var cTraderPortText by remember { mutableStateOf(prefs.getInt("ctrader_port", NetworkConfig.DEFAULT_CTRADER_PORT).toString()) }
                 var streamName by remember {
                     mutableStateOf(prefs.getString("stream_name", "market.ticks.stream") ?: "market.ticks.stream")
                 }
@@ -251,12 +265,43 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                 val scope = rememberCoroutineScope()
                 var isCheckingConnection by remember { mutableStateOf(false) }
                 var isConnected by remember { mutableStateOf<Boolean?>(null) }
+                var isCheckingMt5 by remember { mutableStateOf(false) }
+                var mt5Connected by remember { mutableStateOf<Boolean?>(null) }
+                var isCheckingCTrader by remember { mutableStateOf(false) }
+                var cTraderConnected by remember { mutableStateOf<Boolean?>(null) }
+                val combinedFallbackState by CombinedFallbackStore.state.collectAsState()
+                val combinedFallbackEnabled = combinedFallbackState.isActive &&
+                    combinedFallbackState.decision == CombinedFallbackDecision.ACCEPTED
 
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                     Text("Network / Live Data", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Update these when your hotspot/Wi-Fi IP changes.", color = SlateMuted, fontSize = 10.sp)
                     Spacer(modifier = Modifier.height(10.dp))
+
+                    ToggleRowControlled(
+                        label = "Combined fallback",
+                        sub = "Manual only. Keep off for strict Pepperstone prices.",
+                        checked = combinedFallbackEnabled,
+                        onCheckedChange = { enabled ->
+                            prefs.edit().putBoolean("combined_fallback_manual_enabled", enabled).apply()
+                            CombinedFallbackStore.setManualEnabled(enabled)
+                            saveMessage = if (enabled) {
+                                "Combined fallback enabled manually."
+                            } else {
+                                "Combined fallback disabled. Pepperstone only."
+                            }
+                        },
+                        isHighImpact = true
+                    )
+
+                    Text(
+                        "Default live source: Pepperstone cTrader. Combined fallback will not auto-start or ask permission.",
+                        color = SlateMuted,
+                        fontSize = 10.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = backendUrl,
@@ -290,6 +335,48 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                     )
 
                     OutlinedTextField(
+                        value = mt5Host,
+                        onValueChange = { mt5Host = it },
+                        label = { Text("MT5 Bridge Host", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = mt5PortText,
+                        onValueChange = { mt5PortText = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("MT5 Bridge Port", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = cTraderHost,
+                        onValueChange = { cTraderHost = it },
+                        label = { Text("Pepperstone cTrader Bridge Host", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
+                        value = cTraderPortText,
+                        onValueChange = { cTraderPortText = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Pepperstone cTrader Bridge Port", color = SlateMuted) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = HairlineBorder, focusedBorderColor = Color.White)
+                    )
+
+                    OutlinedTextField(
                         value = streamName,
                         onValueChange = { streamName = it },
                         label = { Text("Stream Name", color = SlateMuted) },
@@ -313,16 +400,30 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                     Button(
                         onClick = {
                             val port = redisPortText.toIntOrNull()
+                            val mt5Port = mt5PortText.toIntOrNull()
+                            val cTraderPort = cTraderPortText.toIntOrNull()
                             if (port == null) {
                                 saveMessage = "Invalid Redis port"
+                            } else if (mt5Port == null) {
+                                saveMessage = "Invalid MT5 bridge port"
+                            } else if (cTraderPort == null) {
+                                saveMessage = "Invalid Pepperstone cTrader bridge port"
                             } else {
+                                val cleanMt5Host = mt5Host.trim()
+                                val cleanCTraderHost = cTraderHost.trim()
                                 prefs.edit()
-                                    .putString("backend_url", backendUrl.trim())
+                                    .putString("backend_url", NetworkConfig.normalizedBackendUrl(backendUrl))
                                     .putString("redis_host", redisHost.trim())
                                     .putInt("redis_port", port)
+                                    .putString("mt5_host", cleanMt5Host)
+                                    .putInt("mt5_port", mt5Port)
+                                    .putString("mt5_bridge_url", "$cleanMt5Host:$mt5Port")
+                                    .putString("ctrader_host", cleanCTraderHost)
+                                    .putInt("ctrader_port", cTraderPort)
                                     .putString("stream_name", streamName.trim())
                                     .putString("publish_api_key", publishApiKey.trim())
                                     .apply()
+                                AiRetrofitClient.configure(NetworkConfig.normalizedBackendUrl(backendUrl))
                                 saveMessage = "Network settings saved. Reopen app to reinitialize connections."
                             }
                         },
@@ -371,6 +472,147 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
                     ) {
                         Text(if (isCheckingConnection) "Testing..." else "Test Connection", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val cleanMt5Host = mt5Host.trim()
+                            val mt5Port = mt5PortText.toIntOrNull()
+                            if (cleanMt5Host.isBlank() || mt5Port == null) {
+                                saveMessage = "Invalid MT5 host/port"
+                                return@Button
+                            }
+                            isCheckingMt5 = true
+                            saveMessage = null
+                            scope.launch {
+                                val ok = withContext(Dispatchers.IO) {
+                                    try {
+                                        val client = OkHttpClient.Builder()
+                                            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+                                            .build()
+                                        val request = Request.Builder()
+                                            .url("ws://$cleanMt5Host:$mt5Port")
+                                            .build()
+                                        val socket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {
+                                            override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                                                webSocket.close(1000, "Test complete")
+                                            }
+                                            override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {}
+                                            override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {}
+                                            override fun onClosing(webSocket: okhttp3.WebSocket, code: Int, reason: String) {}
+                                            override fun onClosed(webSocket: okhttp3.WebSocket, code: Int, reason: String) {}
+                                        })
+                                        kotlinx.coroutines.delay(2000)
+                                        true
+                                    } catch (_: Exception) {
+                                        false
+                                    }
+                                }
+                                mt5Connected = ok
+                                isCheckingMt5 = false
+                                saveMessage = if (ok) {
+                                    "MT5 Bridge reachable"
+                                } else {
+                                    "MT5 Bridge unreachable (check host/port/firewall)"
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
+                    ) {
+                        Text(if (isCheckingMt5) "Testing MT5..." else "Test MT5 Bridge", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (mt5Connected != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val mt5StatusColor = if (mt5Connected == true) Color(0xFF22C55E) else Color(0xFFEF4444)
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(mt5StatusColor, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (mt5Connected == true) "MT5 Bridge connected" else "MT5 Bridge failed", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val cleanCTraderHost = cTraderHost.trim()
+                            val cTraderPort = cTraderPortText.toIntOrNull()
+                            if (cleanCTraderHost.isBlank() || cTraderPort == null) {
+                                saveMessage = "Invalid Pepperstone cTrader host/port"
+                                return@Button
+                            }
+                            isCheckingCTrader = true
+                            saveMessage = null
+                            scope.launch {
+                                val ok = withContext(Dispatchers.IO) {
+                                    try {
+                                        val connected = java.util.concurrent.atomic.AtomicBoolean(false)
+                                        val completed = java.util.concurrent.CountDownLatch(1)
+                                        val client = OkHttpClient.Builder()
+                                            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+                                            .build()
+                                        val request = Request.Builder()
+                                            .url("ws://$cleanCTraderHost:$cTraderPort")
+                                            .build()
+                                        val socket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {
+                                            override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                                                connected.set(true)
+                                                webSocket.close(1000, "Test complete")
+                                                completed.countDown()
+                                            }
+                                            override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
+                                                connected.set(false)
+                                                completed.countDown()
+                                            }
+                                        })
+                                        val finished = completed.await(3, java.util.concurrent.TimeUnit.SECONDS)
+                                        if (!finished) {
+                                            socket.cancel()
+                                        }
+                                        finished && connected.get()
+                                    } catch (_: Exception) {
+                                        false
+                                    }
+                                }
+                                cTraderConnected = ok
+                                isCheckingCTrader = false
+                                saveMessage = if (ok) {
+                                    "Pepperstone cTrader Bridge reachable"
+                                } else {
+                                    "Pepperstone cTrader Bridge unreachable (check host/port/firewall)"
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
+                    ) {
+                        Text(if (isCheckingCTrader) "Testing cTrader..." else "Test Pepperstone cTrader Bridge", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (cTraderConnected != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val cTraderStatusColor = if (cTraderConnected == true) Color(0xFF22C55E) else Color(0xFFEF4444)
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(cTraderStatusColor, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (cTraderConnected == true) "Pepperstone cTrader Bridge connected" else "Pepperstone cTrader Bridge failed", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))

@@ -132,6 +132,7 @@ class BinanceWebSocketManager(
             .toSet()
 
         if (nextSymbols.isEmpty()) {
+            Log.w("BinanceWS", "No Binance USDT symbols to subscribe")
             return
         }
 
@@ -184,6 +185,7 @@ class BinanceWebSocketManager(
                         category = MarketCategory.CRYPTO
                     )
                     scope.launch {
+                        Log.v("BinanceWS", "Emitting Binance tick ${pair.symbol} ${pair.price}")
                         _priceUpdates.emit(pair)
                     }
                 } catch (e: Exception) {
@@ -191,8 +193,12 @@ class BinanceWebSocketManager(
                 }
             }
 
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.i("BinanceWS", "Connected to Binance streams for symbols=${symbols.joinToString(",")}")
+            }
+
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                t.printStackTrace()
+                Log.e("BinanceWS", "Binance WebSocket failure: ${t.message}", t)
                 // Reconnect on failure
                 scope.launch {
                     delay(5000)

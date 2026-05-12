@@ -1,49 +1,46 @@
 package com.asc.markets.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.AutomatedTrade
+import com.asc.markets.data.PostMoveAuditCase
+import com.asc.markets.data.PostMoveAuditStore
+import com.asc.markets.data.label
 import com.asc.markets.ui.theme.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.graphics.Brush
 
 @Composable
-fun DeepAuditModal(trade: AutomatedTrade, onClose: () -> Unit) {
-    // Backdrop dim
+fun DeepAuditModal(case: PostMoveAuditCase, onClose: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Card(modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.86f), shape = RoundedCornerShape(12.dp)) {
-                Column(modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.fillMaxSize().padding(18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("DEEP AUDIT REPORT — ${trade.id}", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text("POST-MOVE RECONSTRUCTION — ${case.symbol}", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
                         Text("Close", color = SlateText, modifier = Modifier.clickable { onClose() })
                     }
 
-                    // Snapshot grid: 4 boxes
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        AuditSnapshotBox("VIX", "19.8", Modifier.weight(1f))
-                        AuditSnapshotBox("DXY Beta", "+0.42%", Modifier.weight(1f))
-                        AuditSnapshotBox("News Safety", "CLEAR", Modifier.weight(1f))
-                        AuditSnapshotBox("HTF Bias", "BULLISH", Modifier.weight(1f))
+                        AuditSnapshotBox("Source", case.source.label(), Modifier.weight(1f))
+                        AuditSnapshotBox("Status", case.status, Modifier.weight(1f))
+                        AuditSnapshotBox("Move", PostMoveAuditStore.formatPercent(case.actualMovePct), Modifier.weight(1f))
+                        AuditSnapshotBox("Score", case.modelAccuracyScore?.let { "$it%" } ?: "PENDING", Modifier.weight(1f))
                     }
 
-                    // Operational metrics
                     Surface(
                         color = PureBlack,
                         shape = RoundedCornerShape(8.dp),
@@ -51,40 +48,57 @@ fun DeepAuditModal(trade: AutomatedTrade, onClose: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Operational Metrics", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("Outcome Metrics", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Fill Price", color = Color.White, fontWeight = FontWeight.Black)
-                                    Text(trade.entryPrice, color = SlateText)
+                                    Text("Entry", color = Color.White, fontWeight = FontWeight.Black)
+                                    Text(PostMoveAuditStore.formatPrice(case.entryPrice), color = SlateText)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                        Text("Intelligence Type", color = Color.White, fontWeight = FontWeight.Black)
-                                        Text("AI Analytical", color = SlateText)
+                                    Text("Exit", color = Color.White, fontWeight = FontWeight.Black)
+                                    Text(PostMoveAuditStore.formatPrice(case.exitPrice), color = SlateText)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Transaction ID", color = Color.White, fontWeight = FontWeight.Black)
-                                    Text(trade.id, color = SlateText)
+                                    Text("PnL", color = Color.White, fontWeight = FontWeight.Black)
+                                    Text(PostMoveAuditStore.formatSigned(case.pnl), color = SlateText)
                                 }
                             }
                         }
                     }
 
-                    // Digital signature pulse
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        val pulse = animateFloatAsState(targetValue = 1f, animationSpec = androidx.compose.animation.core.tween(durationMillis = 1200, easing = FastOutSlowInEasing)).value
-                        val brush = Brush.horizontalGradient(listOf(IndigoAccent, IndigoAccent.copy(alpha = 0.6f)))
-                        Box(modifier = Modifier
-                            .size((64 * pulse).dp)
-                            .shadow(8.dp, RoundedCornerShape(32.dp))
-                            .background(brush, shape = RoundedCornerShape(32.dp)), contentAlignment = Alignment.Center) {
-                            Text("Immutable Digital Signature Verified", color = Color.White, fontSize = 12.sp)
+                    Surface(
+                        color = PureBlack,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, HairlineBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Original Thesis", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text(case.thesis, color = Color.White, fontSize = 13.sp, lineHeight = 18.sp)
+                            Text("Post-Move Outcome", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text(case.postMoveOutcome, color = Color.White, fontSize = 13.sp, lineHeight = 18.sp)
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Surface(
+                        color = PureBlack,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, HairlineBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Reconstruction Trace", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            case.reconstructionLines.forEach { line ->
+                                Text(line, color = Color.White, fontSize = 12.sp, lineHeight = 16.sp)
+                            }
+                            if (case.failureReason != null) {
+                                Text("Failure Reason", color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                Text(case.failureReason, color = Color.White, fontSize = 12.sp, lineHeight = 16.sp)
+                            }
+                        }
+                    }
 
-                    // Footer fingerprint disclosure
                     Surface(
                         color = IndigoAccent.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(8.dp),
@@ -95,7 +109,7 @@ fun DeepAuditModal(trade: AutomatedTrade, onClose: () -> Unit) {
                             Text("🔐", fontSize = 18.sp)
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                "This ledger is immutable and synchronized with PRIMARY-UK-L14. All snapshots are cryptographically signed and stored in the local audit archive.",
+                                "This reconstruction is derived from captured closed trades, recorded AI decisions, and available post-signal market history. Missing fields are shown as not captured instead of being simulated.",
                                 color = SlateText,
                                 fontSize = 11.sp
                             )

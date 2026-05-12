@@ -200,8 +200,8 @@ fun AscSidebar(
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.GppGood,
-                            label = "Deep Audit",
-                            onClick = { onViewChange(AppView.ANALYSIS_RESULTS) }
+                            label = "Post-Move Recon",
+                            onClick = { onViewChange(AppView.TRADE_RECONSTRUCTION) }
                         )
                         QuickAccessCard(
                             modifier = Modifier.weight(1f),
@@ -227,24 +227,13 @@ fun AscSidebar(
                             onClick = { onViewChange(AppView.CALENDAR) }
                         )
                     }
-                    Row(
+                    QuickAccessCard(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.NotificationsNone,
-                            label = "Vigilance Setup",
-                            badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
-                            onClick = { onViewChange(AppView.ALERTS) }
-                        )
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.BookmarkBorder,
-                            label = "Saved Items",
-                            onClick = { }
-                        )
-                    }
+                        icon = Icons.Outlined.NotificationsNone,
+                        label = "Vigilance Setup",
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
+                        onClick = { onViewChange(AppView.ALERTS) }
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -298,8 +287,6 @@ fun AscSidebar(
                         badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()
                     ) { onViewChange(AppView.MY_ALERTS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.StarBorder, "Saved Items") { /* Placeholder */ }
-                    MenuDivider()
                     MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation") { onViewChange(AppView.SIMULATION) }
                     MenuDivider()
                     MenuItem(Icons.Default.Timeline, "My Simulation") { onViewChange(AppView.MY_SIMULATION) }
@@ -323,8 +310,8 @@ fun AscSidebar(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // DEEP AUDIT Section
-                SectionHeader("DEEP AUDIT")
+                // MARKET INTELLIGENCE Section
+                SectionHeader("MARKET INTELLIGENCE")
                 MenuGroupContainer {
                     MenuItem(Icons.Default.Language, "Macro Stream") { onViewChange(AppView.MACRO_STREAM) }
                     MenuDivider()
@@ -364,7 +351,7 @@ fun AscSidebar(
                 MenuGroupContainer {
                     MenuItem(Icons.Default.AttachMoney, "Active Inventory") { onViewChange(AppView.PORTFOLIO_MANAGER) }
                     MenuDivider()
-                    MenuItem(Icons.Default.CurrencyExchange, "Paper Trading") { onViewChange(AppView.PAPER_TRADING) }
+                    MenuItem(Icons.Default.CurrencyExchange, "Live Trade") { onViewChange(AppView.PAPER_TRADING) }
                     MenuDivider()
                     MenuItem(Icons.Default.Language, "Raw Feed") { onViewChange(AppView.NEWS) }
                     MenuDivider()
@@ -384,7 +371,7 @@ fun AscSidebar(
                     MenuDivider()
                     MenuItem(Icons.Default.List, "Post-Move Audit") { onViewChange(AppView.POST_MOVE_AUDIT) }
                     MenuDivider()
-                    MenuItem(Icons.Default.AssignmentReturned, "Deep Audit") { onViewChange(AppView.TRADE_RECONSTRUCTION) }
+                    MenuItem(Icons.Default.AssignmentReturned, "Post-Move Reconstruction") { onViewChange(AppView.TRADE_RECONSTRUCTION) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

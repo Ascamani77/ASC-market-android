@@ -29,13 +29,13 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
-private val ICON_DROPLETS = R.drawable.lucide_pie_chart
-private val ICON_GAUGE = R.drawable.lucide_line_chart
-private val ICON_CLOCK = R.drawable.lucide_list_filter
-private val ICON_ZAP = R.drawable.lucide_activity
-private val ICON_ZAP_OFF = R.drawable.lucide_binary
-private val ICON_COMPASS = R.drawable.lucide_arrow_left_right
-private val ICON_ACTIVITY = R.drawable.lucide_activity
+private val ICON_DROPLETS get() = R.drawable.lucide_pie_chart
+private val ICON_GAUGE get() = R.drawable.lucide_line_chart
+private val ICON_CLOCK get() = R.drawable.lucide_list_filter
+private val ICON_ZAP get() = R.drawable.lucide_activity
+private val ICON_ZAP_OFF get() = R.drawable.lucide_binary
+private val ICON_COMPASS get() = R.drawable.lucide_arrow_left_right
+private val ICON_ACTIVITY get() = R.drawable.lucide_activity
 
 data class StreamItem(val id: Long, val text: String, val time: String, val isDim: Boolean)
 

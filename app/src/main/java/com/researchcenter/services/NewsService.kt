@@ -99,18 +99,18 @@ class NewsService {
     }
 
     private fun normalizeDate(rawDate: String): String {
-        if (rawDate.isEmpty()) return OffsetDateTime.now().toString()
+        if (rawDate.isEmpty()) return OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
         return try {
             // Try ISO first
-            OffsetDateTime.parse(rawDate).toString()
+            OffsetDateTime.parse(rawDate).withOffsetSameInstant(java.time.ZoneOffset.UTC).toString()
         } catch (e: Exception) {
             try {
                 // Try RFC 1123 (Common RSS format)
                 val formatter = DateTimeFormatter.RFC_1123_DATE_TIME
-                OffsetDateTime.parse(rawDate, formatter).toString()
+                OffsetDateTime.parse(rawDate, formatter).withOffsetSameInstant(java.time.ZoneOffset.UTC).toString()
             } catch (e2: Exception) {
                 // Return current time as fallback to keep it at top
-                OffsetDateTime.now().toString()
+                OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
             }
         }
     }

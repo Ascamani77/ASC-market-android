@@ -1,11 +1,8 @@
 package com.asc.markets.ui.screens
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +29,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.AuditRecord
+import com.asc.markets.data.AppView
+import com.asc.markets.data.PostMoveAuditCase
+import com.asc.markets.data.PostMoveAuditStore
+import com.asc.markets.data.label
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
@@ -45,13 +45,18 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun PostMoveAuditItem(
-    entry: AuditRecord,
+    entry: PostMoveAuditCase,
     expanded: SnapshotStateMap<String, Boolean>,
     viewModel: ForexViewModel,
     context: Context
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isExpanded = expanded[entry.id] ?: false
+    val impactColor = when {
+        entry.targetHit == true -> EmeraldSuccess
+        entry.invalidationHit == true -> RoseError
+        else -> IndigoAccent
+    }
 
     Surface(
         modifier = Modifier
@@ -64,21 +69,16 @@ fun PostMoveAuditItem(
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(entry.assets, color = SlateText, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                        Text(entry.symbol, color = SlateText, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.width(8.dp))
-                        val impactColor = when (entry.impact) {
-                            "CRITICAL" -> RoseError
-                            "INFO" -> SlateText.copy(alpha = 0.7f)
-                            else -> IndigoAccent
-                        }
-                        Text(entry.impact, color = impactColor, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                        Text(entry.status, color = impactColor, modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(entry.status.uppercase(), color = if (entry.status.equals("UPCOMING", true)) Color(0xFFB06A00) else Color(0xFF0F6F52), modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                        Text(entry.source.label(), color = Color(0xFF0F6F52), modifier = Modifier.padding(end = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    val confidenceInt = try { entry.confidence.toInt() } catch (e: Throwable) { null }
+                    val confidenceInt = entry.modelAccuracyScore ?: entry.confidence
                     val confidenceColor = when {
                         confidenceInt != null && confidenceInt >= 60 -> EmeraldSuccess
                         confidenceInt != null && confidenceInt <= 40 -> RoseError
@@ -86,20 +86,20 @@ fun PostMoveAuditItem(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("[ ", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
-                        Text("${entry.confidence}%", color = confidenceColor, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-                        Text(" ] confidence", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
+                        Text("${confidenceInt ?: 0}%", color = confidenceColor, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
+                        Text(" ] outcome score", color = SlateText, style = TerminalTypography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily))
                     }
                     Spacer(modifier = Modifier.height(35.dp))
 
-                    Text(entry.headline, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(entry.postMoveOutcome, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp, fontFamily = InterFontFamily), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
                     val fmt = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
                     Box(modifier = Modifier.wrapContentWidth()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(fmt.format(Instant.ofEpochMilli(entry.timeUtc)), color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
-                            if (entry.status.equals("ACTIVE", true)) {
+                            Text(fmt.format(Instant.ofEpochMilli(entry.timestamp)), color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
+                            if (entry.status == "UNRESOLVED") {
                                 val infiniteTransition = rememberInfiniteTransition()
                                 val blinkAlpha by infiniteTransition.animateFloat(
                                     initialValue = 1f,
@@ -127,9 +127,9 @@ fun PostMoveAuditItem(
                     }
                 } else {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-                        Text("ANALYTICAL REASONING", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
+                        Text("POST-MOVE THESIS", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(entry.reasoning, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
+                        Text(entry.thesis, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
 
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -148,9 +148,9 @@ fun PostMoveAuditItem(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))
                             ) {
                                 Column(modifier = Modifier.padding(6.dp)) {
-                                    Text("Insight Node", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                                    Text("Source Node", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text("Insight Node", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                                    Text(entry.nodeId, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                                 }
                             }
 
@@ -161,9 +161,9 @@ fun PostMoveAuditItem(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))
                             ) {
                                 Column(modifier = Modifier.padding(6.dp)) {
-                                    Text("INTEGRITY CHECK", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                                    Text("OUTCOME CHECK", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text("VERIFIED", color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                                    Text(entry.status, color = impactColor, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                                 }
                             }
                         }
@@ -174,12 +174,12 @@ fun PostMoveAuditItem(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                if (entry.direction != null || entry.riskPct != null) {
+                                if (entry.direction != "UNSPECIFIED" || entry.riskPct != null) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        if (entry.direction != null) {
+                                        if (entry.direction != "UNSPECIFIED") {
                                             Column {
                                                 Text("BIAS", color = SlateText, fontSize = 10.sp)
-                                                Text(entry.direction.uppercase(), color = if (entry.direction.contains("bull", true)) EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                                Text(entry.direction, color = if (entry.direction == "LONG") EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, fontSize = 14.sp)
                                             }
                                         }
                                         if (entry.riskPct != null) {
@@ -197,7 +197,18 @@ fun PostMoveAuditItem(
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
                                 }
-                                Text(buildExpandedAnalyticalContext(entry, "Insight Node"), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily))
+                                Text(buildExpandedAnalyticalContext(entry, entry.nodeId), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily))
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Column {
+                                        Text("ENTRY", color = SlateText, fontSize = 10.sp)
+                                        Text(PostMoveAuditStore.formatPrice(entry.entryPrice), color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                    }
+                                    Column {
+                                        Text("EXIT", color = SlateText, fontSize = 10.sp)
+                                        Text(PostMoveAuditStore.formatPrice(entry.exitPrice), color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                    }
+                                }
                             }
                         }
 
@@ -219,21 +230,31 @@ fun PostMoveAuditItem(
                                 Text("EXPORT AUDIT PDF", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                             }
 
-                            Button(onClick = { viewModel.markAuditRecordAudited(entry.id); Toast.makeText(context, "Marked audited", Toast.LENGTH_SHORT).show() }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
+                            Button(onClick = {
+                                val sourceId = entry.originAuditRecordId
+                                if (sourceId != null) {
+                                    viewModel.markAuditRecordAudited(sourceId)
+                                    Toast.makeText(context, "Marked reviewed", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Closed-trade records are read-only", Toast.LENGTH_SHORT).show()
+                                }
+                            }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
                                 Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("MARK AUDITED", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
+                                Text("MARK REVIEWED", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                             }
 
-                            Button(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))) }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
+                            Button(onClick = { viewModel.navigateTo(AppView.TRADE_RECONSTRUCTION) }, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B0B0B))) {
                                 Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("OPEN RECONSTRUCTION", color = Color.White, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("TS_MICRO: ${entry.timeUtc}", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
+                            Text("TS_MICRO: ${entry.timestamp}", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                             Text("SEQ_ID: ${entry.id.take(3).uppercase()}", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, fontWeight = FontWeight.Medium)
                         }
 

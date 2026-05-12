@@ -24,7 +24,7 @@ import com.asc.markets.ui.screens.tradeDashboard.viewmodel.DashboardViewModel
 
 /**
  * EXPLANATION TAB - "Why did the system decide this?"
- * Shows: Gemini/OpenAI narrative explanation only (NOT decision-making)
+ * Shows: Gemini/Groq narrative explanation only (NOT decision-making)
  * AI decision-making comes from internal ASC engine, this is presentation only
  */
 @Composable
@@ -70,7 +70,7 @@ fun ExplanationTab(
                 .padding(12.dp)
         ) {
             Text(
-                text = "💡 Explanation Tool: External AI (Gemini/OpenAI) explains ASC's internal decisions. Explanations are for transparency only and do NOT influence trade decisions.",
+                text = "💡 Explanation Tool: External AI (Gemini/Groq) explains ASC's internal decisions. Explanations are for transparency only and do NOT influence trade decisions.",
                 color = Color(0xFF6366F1),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Normal,
@@ -127,7 +127,7 @@ fun ExplanationTab(
 
         HorizontalDivider(color = dividerColor, thickness = 1.dp)
 
-        // 2. Gemini/OpenAI Explanation
+        // 2. Gemini/Groq Explanation
         ExplanationContent(viewModel)
 
         HorizontalDivider(color = dividerColor, thickness = 1.dp)
@@ -159,7 +159,7 @@ private fun ExplanationContent(viewModel: DashboardViewModel) {
                 .padding(12.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Placeholder - will be filled by Gemini/OpenAI response
+                // Placeholder - will be filled by Gemini/Groq response
                 Text(
                     text = "Generating explanation...",
                     color = Color.Gray,

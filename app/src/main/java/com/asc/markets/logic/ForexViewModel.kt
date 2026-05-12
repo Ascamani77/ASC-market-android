@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.asc.markets.api.ForexAnalysisEngine
 import com.asc.markets.data.*
 import com.asc.markets.ui.screens.dashboard.provideForexExplore
 import com.asc.markets.data.ForexDataPoint
@@ -21,7 +20,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import androidx.room.Room
 import com.asc.markets.data.trade.AppDatabase
 import com.asc.markets.data.trade.TradeHistoryRepository
@@ -38,14 +37,18 @@ import com.asc.markets.data.remote.LatestDeploymentsResponse
 import com.asc.markets.ui.screens.dashboard.AIAppManager
 import com.researchcenter.services.NewsService
 import kotlinx.coroutines.flow.filterNotNull
-import com.asc.markets.network.MetaApiClient
+import com.asc.markets.network.CTraderBridgeClient
 import com.asc.markets.network.TiingoFxRestClient
 import com.asc.markets.network.TiingoFxWebSocketManager
 import com.asc.markets.network.TiingoIexRestClient
 import com.asc.markets.network.TiingoIexWebSocketManager
 
+import com.trading.app.data.DerivService
 import com.trading.app.data.FredService
+import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.models.BondData
+import java.util.Locale
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class CommandCenterStatus(
@@ -58,11 +61,23 @@ data class CommandCenterStatus(
 class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         private const val TIINGO_REST_REFRESH_MS = 60 * 60_000L
+        private const val COMBINED_FALLBACK_RETRY_MS = 5_000L
     }
 
     private val myApp = application as com.asc.markets.MyApp
     private val aiRepository = myApp.aiRepository
     val aiDeployments: StateFlow<LatestDeploymentsResponse?> = aiRepository.deployments
+    private val chatPrefs = application.getSharedPreferences("asc_engine_chat", Context.MODE_PRIVATE)
+    private val _ascChatMessages = MutableStateFlow(loadAscChatMessages())
+    val ascChatMessages = _ascChatMessages.asStateFlow()
+    private val _ascChatResponding = MutableStateFlow(false)
+    val ascChatResponding = _ascChatResponding.asStateFlow()
+
+    fun fetchLatestDeployments() {
+        viewModelScope.launch(Dispatchers.IO) {
+            aiRepository.fetchLatestDeployments()
+        }
+    }
 
     private val _currentView = MutableStateFlow(AppView.DASHBOARD)
     val currentView = _currentView.asStateFlow()
@@ -81,6 +96,56 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     val bondData = _bondData.asStateFlow()
 
     private val fredService = FredService()
+    private val derivService = DerivService(
+        onQuoteUpdate = derivQuote@ { quote ->
+            val quoteCategory = when {
+                quote.name.contains("NAS") || quote.name.contains("US30") || quote.name.contains("SPX") -> MarketCategory.INDICES
+                quote.name.contains("XAU") || quote.name.contains("XAG") || quote.name.contains("OIL") -> MarketCategory.COMMODITIES
+                quote.name.contains("BTC") || quote.name.contains("ETH") -> MarketCategory.CRYPTO
+                else -> MarketCategory.FOREX
+            }
+            if (quoteCategory != MarketCategory.CRYPTO && cTraderBridgeClient.hasRecentPrice(quote.name)) {
+                android.util.Log.d("DerivService", "Skipping Deriv update ${quote.name}; Pepperstone cTrader is primary")
+                return@derivQuote
+            }
+            val pair = ForexPair(
+                symbol = quote.name,
+                name = quote.name,
+                price = quote.lastPrice.toDouble(),
+                change = quote.change.toDouble(),
+                changePercent = quote.changePercent.toDouble(),
+                category = quoteCategory
+            )
+            if (!canUseCombinedFallback(
+                    source = "Combined fallback",
+                    reason = "Pepperstone primary data is unavailable. Combined fallback is ready."
+                )
+            ) {
+                android.util.Log.i("DerivService", "Waiting for Pepperstone availability or Combined fallback approval before routing ${quote.name}")
+                return@derivQuote
+            }
+            PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
+            CombinedFallbackDataStore.updatePair(pair)
+            android.util.Log.d("DerivService", "Routing Deriv update ${quote.name} ${quote.lastPrice} to CombinedFallbackDataStore")
+        },
+        onHistoryUpdate = { _, _ -> }
+    )
+
+    private fun canUseCombinedFallback(source: String, reason: String): Boolean {
+        return CombinedFallbackStore.canUseFallback()
+    }
+
+    private fun markPrimaryLiveDataRestored() {
+        CombinedFallbackStore.markPrimaryRestored()
+    }
+
+    private fun pepperstoneCTraderSymbol(pair: ForexPair): String {
+        return when (pair.symbol.uppercase(Locale.US).replace("/", "")) {
+            "US10Y" -> "USTN10YR-F"
+            "US02Y" -> "USTN2YR-F"
+            else -> pair.symbol.replace("/", "")
+        }
+    }
 
     fun refreshBondData() {
         val seriesToFetch = listOf(
@@ -101,14 +166,22 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                         val latestObservation = parsedObservations.firstOrNull()?.first ?: return
                         val latestValue = parsedObservations.firstOrNull()?.second ?: return
                         val date = latestObservation.optString("date")
-                        val existing = MarketDataStore.pairSnapshot(symbol)
+                        val existing = CombinedFallbackDataStore.pairSnapshot(symbol)
                         val previousPrice = existing?.price ?: latestValue.toDouble()
                         val change = latestValue.toDouble() - previousPrice
                         val changePercent = if (previousPrice != 0.0) (change / previousPrice) * 100.0 else 0.0
 
                         _bondData.value = _bondData.value + (seriesId to BondData(seriesId, latestValue, date, name))
-                        android.util.Log.i("FredService", "Routing FRED bond data to MarketDataStore $symbol $latestValue")
-                        MarketDataStore.updatePair(
+                        if (!canUseCombinedFallback(
+                                source = "Combined fallback",
+                                reason = "Pepperstone primary bond data is unavailable. Combined fallback is ready."
+                            )
+                        ) {
+                            android.util.Log.i("FredService", "Waiting for Pepperstone availability or Combined fallback approval before routing $symbol")
+                            return
+                        }
+                        android.util.Log.i("FredService", "Routing FRED bond data to CombinedFallbackDataStore $symbol $latestValue")
+                        CombinedFallbackDataStore.updatePair(
                             ForexPair(
                                 symbol = symbol,
                                 name = name,
@@ -118,7 +191,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                                 category = MarketCategory.BONDS
                             )
                         )
-                        MarketDataStore.replaceHistory(
+                        CombinedFallbackDataStore.replaceHistory(
                             symbol = symbol,
                             prices = parsedObservations.asReversed().map { it.second.toDouble() }
                         )
@@ -163,12 +236,17 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     val isRiskAccepted = _isRiskAccepted.asStateFlow()
 
     private val _selectedPair = MutableStateFlow(
-        MarketDataStore.pairSnapshot("BTC/USDT") ?: provideForexExplore().first()
+        BinanceDataStore.pairSnapshot("BTC/USDT") ?: provideForexExplore().first()
     )
     val selectedPair = _selectedPair.asStateFlow()
 
     private val _cryptoPairs = MutableStateFlow(
-        MarketDataStore.allPairs.value.filter { it.category == MarketCategory.CRYPTO }
+        (
+            BinanceDataStore.allPairs.value +
+                MarketDataStore.allPairs.value.filter { it.category == MarketCategory.CRYPTO } +
+                CombinedFallbackDataStore.allPairs.value.filter { it.category == MarketCategory.CRYPTO }
+            )
+            .distinctBy { it.symbol }
     )
     val cryptoPairs = _cryptoPairs.asStateFlow()
 
@@ -293,13 +371,39 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun syncWatchlistWithLivePrices() {
         _watchlistItems.value = _watchlistItems.value.map { item ->
-            val livePair = MarketDataStore.pairSnapshot(item.assetName) ?: return@map item
+            val livePair = livePairSnapshot(item.assetName) ?: return@map item
             item.copy(
                 price = livePair.price,
                 changePercent = livePair.changePercent,
                 category = livePair.category
             )
         }
+    }
+
+    private fun livePairSnapshot(symbol: String): ForexPair? {
+        return BinanceDataStore.pairSnapshot(symbol)
+            ?: MarketDataStore.pairSnapshot(symbol)
+            ?: CombinedFallbackDataStore.pairSnapshot(symbol)
+    }
+
+    private fun mergedMarketPairs(): List<ForexPair> {
+        return (
+            MarketDataStore.allPairs.value +
+                BinanceDataStore.allPairs.value +
+                CombinedFallbackDataStore.allPairs.value
+            ).distinctBy { it.symbol }
+    }
+
+    private fun mergedCryptoPairs(
+        marketPairs: List<ForexPair>,
+        binancePairs: List<ForexPair>,
+        fallbackPairs: List<ForexPair>
+    ): List<ForexPair> {
+        return (
+            binancePairs +
+                marketPairs.filter { it.category == MarketCategory.CRYPTO } +
+                fallbackPairs.filter { it.category == MarketCategory.CRYPTO }
+            ).distinctBy { it.symbol }
     }
 
     // Initialize persistent trade repository from Application single instance
@@ -436,14 +540,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val binanceWsManager: com.asc.markets.network.BinanceWebSocketManager by lazy {
         val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
         // Default to laptop LAN IP for physical-device testing. Users can override in settings.
-        val redisHost = prefs.getString("redis_host", "10.95.77.133") ?: "10.95.77.133"
+        val redisHost = prefs.getString("redis_host", NetworkConfig.DEFAULT_HOST) ?: NetworkConfig.DEFAULT_HOST
         val redisPort = prefs.getInt("redis_port", 6379)
         val redisPassword = prefs.getString("redis_password", null)
         val redisUseSsl = prefs.getBoolean("redis_use_ssl", false)
         val streamName = prefs.getString("stream_name", "market.ticks.stream") ?: "market.ticks.stream"
         val fieldName = prefs.getString("field_name", "data") ?: "data"
         // 10.0.2.2 is emulator-only; use LAN default for real phone.
-        val backendUrl = prefs.getString("backend_url", "http://10.95.77.133:8000")
+        val backendUrl = prefs.getString("backend_url", NetworkConfig.DEFAULT_BACKEND_URL)
         val publishApiKey = prefs.getString("publish_api_key", null)
 
             com.asc.markets.network.BinanceWebSocketManager(
@@ -460,9 +564,15 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val mt5BridgeClient: MT5BridgeClient by lazy {
-        val prefs = getApplication<Application>().getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
-        val bridgeUrl = prefs.getString("mt5_bridge_url", "192.168.1.100:62100") ?: "192.168.1.100:62100"
+        val bridgeUrl = NetworkConfig.mt5BridgeUrl(getApplication())
         MT5BridgeClient(bridgeUrl = bridgeUrl, scope = viewModelScope, brokerSuffix = "m")
+    }
+
+    private val cTraderBridgeClient: CTraderBridgeClient by lazy {
+        CTraderBridgeClient(
+            bridgeUrl = NetworkConfig.cTraderBridgeUrl(getApplication()),
+            scope = viewModelScope
+        )
     }
 
     private val tiingoFxManager: TiingoFxWebSocketManager? by lazy {
@@ -514,23 +624,38 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        val tiingoFxAvailable = tiingoFxManager != null
+        CombinedFallbackStore.setManualEnabled(
+            getApplication<Application>()
+                .getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean("combined_fallback_manual_enabled", false)
+        )
 
-        // Binance = USDT pairs only. Tiingo is the primary live source for Forex when configured.
+        val tiingoFxAvailable = tiingoFxManager != null
+        val tiingoIexAvailable = tiingoIexManager != null
+
+        // Binance = USDT pairs only (including BTC/USDT, ETH/USDT for most of the app).
+        // BTC/USD and ETH/USD are handled by Pepperstone cTrader.
         val usdtSymbols = FOREX_PAIRS
             .filter { it.symbol.endsWith("/USDT") }
             .map { it.symbol.replace("/", "") }
             .distinct()
 
-        val metaManagedPairs = FOREX_PAIRS
+        val cTraderSymbols = FOREX_PAIRS
             .filter { pair ->
                 !pair.symbol.endsWith("/USDT") &&
-                    !(tiingoFxAvailable && pair.category == MarketCategory.FOREX)
+                    (pair.category == MarketCategory.FOREX ||
+                        pair.category == MarketCategory.COMMODITIES ||
+                        pair.category == MarketCategory.INDICES ||
+                        pair.category == MarketCategory.STOCK ||
+                        pair.category == MarketCategory.CRYPTO ||
+                        pair.category == MarketCategory.BONDS)
             }
-
-        val metaSymbols = metaManagedPairs
-            .map { it.symbol.replace("/", "") }
+            .map(::pepperstoneCTraderSymbol)
             .distinct()
+
+        // MT5 polling is disabled here to avoid overlapping Pepperstone cTrader crypto prices.
+        // Other non-USDT pairs are handled by dedicated live routes when available.
+        val mt5PollingSymbols = emptyList<String>()
 
         val tiingoForexSymbols = FOREX_PAIRS
             .filter { it.category == MarketCategory.FOREX }
@@ -542,10 +667,6 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             .map { it.symbol.replace("/", "") }
             .distinct()
 
-        val mt5FallbackSymbols = metaManagedPairs
-            .map { it.symbol.replace("/", "") }
-            .distinct()
-
         android.util.Log.i(
             "TiingoFxWS",
             "ForexViewModel Tiingo startup available=$tiingoFxAvailable symbols=${tiingoForexSymbols.joinToString(",")}"
@@ -554,18 +675,57 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             "TiingoIexWS",
             "ForexViewModel Tiingo IEX startup available=${tiingoIexManager != null} symbols=${tiingoStockSymbols.joinToString(",")}"
         )
+        android.util.Log.i(
+            "CTraderBridge",
+            "ForexViewModel Pepperstone cTrader startup symbols=${cTraderSymbols.joinToString(",")}"
+        )
+
+        viewModelScope.launch {
+            cTraderBridgeClient.connectionState.collect { state ->
+                android.util.Log.i("CTraderBridge", "Pepperstone cTrader bridge state=$state")
+            }
+        }
+
+        viewModelScope.launch {
+            cTraderBridgeClient.priceUpdates.collect { pair ->
+                MarketDataStore.updatePair(pair)
+                PriceStreamManager.updatePrice(pair.symbol, pair.price)
+                markPrimaryLiveDataRestored()
+            }
+        }
 
         if (usdtSymbols.isNotEmpty()) {
             binanceWsManager.connect(usdtSymbols)
         }
 
+        if (cTraderSymbols.isNotEmpty()) {
+            cTraderBridgeClient.connect(cTraderSymbols)
+        }
+
+        derivService.connect()
+        viewModelScope.launch {
+            delay(1000)
+            // Subscribe to FOREX, commodities, and indices via Deriv (primary source)
+            listOf("EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "XAU/USD", "XAG/USD", "USOIL", "NAS100", "US30", "SPX500").forEach { symbol ->
+                derivService.subscribe(symbol)
+            }
+        }
+
         refreshBondData()
 
+        // Tiingo FX as fallback - connect only if Deriv is unavailable or fails
         if (tiingoForexSymbols.isNotEmpty()) {
-            if (tiingoFxManager != null) {
-                tiingoFxManager?.connect(tiingoForexSymbols)
-            } else {
-                android.util.Log.w("TiingoFxWS", "Tiingo FX unavailable: TIINGO_API_KEY is not configured")
+            viewModelScope.launch {
+                delay(5000) // Wait for Deriv to attempt connection
+                // Check if Deriv is connected, if not use Tiingo as fallback
+                if (!derivService.isConnected()) {
+                    android.util.Log.w("ForexViewModel", "Deriv not connected, using Tiingo FX as fallback")
+                    if (tiingoFxManager != null) {
+                        tiingoFxManager?.connect(tiingoForexSymbols)
+                    } else {
+                        android.util.Log.w("TiingoFxWS", "Tiingo FX unavailable: TIINGO_API_KEY is not configured")
+                    }
+                }
             }
         }
 
@@ -577,14 +737,25 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // Tiingo FX REST fallback - only run if Deriv is not connected
         if (tiingoForexSymbols.isNotEmpty()) {
             tiingoFxRestClient?.let { restClient ->
                 viewModelScope.launch {
                     while (isActive) {
-                        val pairs = restClient.fetchTopPairs(tiingoForexSymbols)
-                        pairs.forEach { pair ->
-                            android.util.Log.i("TiingoFxREST", "Routing Tiingo FX REST top to MarketDataStore ${pair.symbol} ${pair.price}")
-                            MarketDataStore.updatePair(pair)
+                        if (!cTraderBridgeClient.hasAnyRecentPrice() && !derivService.isConnected()) {
+                            if (!canUseCombinedFallback(
+                                    source = "Combined fallback",
+                                    reason = "Primary live data is unavailable. Combined fallback is ready."
+                                )
+                            ) {
+                                delay(COMBINED_FALLBACK_RETRY_MS)
+                                continue
+                            }
+                            val pairs = restClient.fetchTopPairs(tiingoForexSymbols)
+                            pairs.forEach { pair ->
+                                android.util.Log.i("TiingoFxREST", "Routing Tiingo FX REST top to CombinedFallbackDataStore ${pair.symbol} ${pair.price}")
+                                CombinedFallbackDataStore.updatePair(pair)
+                            }
                         }
                         delay(TIINGO_REST_REFRESH_MS)
                     }
@@ -596,10 +767,18 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             tiingoIexRestClient?.let { restClient ->
                 viewModelScope.launch {
                     while (isActive) {
+                        if (!canUseCombinedFallback(
+                                source = "Combined fallback",
+                                reason = "Pepperstone primary data is unavailable. Combined fallback is ready."
+                            )
+                        ) {
+                            delay(COMBINED_FALLBACK_RETRY_MS)
+                            continue
+                        }
                         val pairs = restClient.fetchTopPairs(tiingoStockSymbols)
                         pairs.forEach { pair ->
-                            android.util.Log.i("TiingoIexREST", "Routing Tiingo IEX REST top to MarketDataStore ${pair.symbol} ${pair.price}")
-                            MarketDataStore.updatePair(pair)
+                            android.util.Log.i("TiingoIexREST", "Routing Tiingo IEX REST top to CombinedFallbackDataStore ${pair.symbol} ${pair.price}")
+                            CombinedFallbackDataStore.updatePair(pair)
                         }
                         delay(TIINGO_REST_REFRESH_MS)
                     }
@@ -607,76 +786,17 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // MetaAPI primary for non-USDT, non-Tiingo assets; MT5 polling remains the fallback.
-        val metaToken = BuildConfig.META_API_TOKEN.takeIf { it.isNotBlank() }
-        val metaAccountId = BuildConfig.META_API_ACCOUNT_ID.takeIf { it.isNotBlank() }
-        var fallbackActive = false
-        var mt5FallbackJob: Job? = null
-
-        fun activateGlobalFallback(reason: String) {
-            if (fallbackActive) return
-            android.util.Log.w("ASC", "Activating MetaAPI fallback routing: $reason")
-            fallbackActive = true
-
-            if (mt5FallbackSymbols.isNotEmpty()) {
-                mt5FallbackJob?.cancel()
-                mt5FallbackJob = viewModelScope.launch {
-                    while (fallbackActive && isActive) {
-                        mt5FallbackSymbols.forEach { symbol ->
-                            val tick = mt5BridgeClient.getTick(symbol) ?: return@forEach
-                            val price = (tick.bid + tick.ask) / 2.0
-                            PriceStreamManager.updatePrice(symbol, price)
-                        }
-                        delay(3000)
-                    }
-                }
-            }
-        }
-
-        fun deactivateGlobalFallback() {
-            if (!fallbackActive) return
-            fallbackActive = false
-            mt5FallbackJob?.cancel()
-            mt5FallbackJob = null
-        }
-
-        if (metaSymbols.isNotEmpty() && metaToken != null && metaAccountId != null) {
-            val metaApiClient = MetaApiClient(
-                accountId = metaAccountId,
-                token = metaToken,
-                scope = viewModelScope,
-                brokerSuffix = "m"
-            )
-            metaApiClient.connect(metaSymbols)
-
+        if (mt5PollingSymbols.isNotEmpty()) {
             viewModelScope.launch {
-                metaApiClient.priceUpdates.collect { rawPair ->
-                    if (!fallbackActive) {
-                        MarketDataStore.updatePair(rawPair)
+                while (isActive) {
+                    mt5PollingSymbols.forEach { symbol ->
+                        val tick = mt5BridgeClient.getTick(symbol) ?: return@forEach
+                        val price = (tick.bid + tick.ask) / 2.0
+                        PriceStreamManager.updatePrice(symbol, price)
                     }
+                    delay(3000)
                 }
             }
-            viewModelScope.launch {
-                metaApiClient.connectionState.collect { state ->
-                    when (state) {
-                        MetaApiClient.ConnectionState.ERROR_UNAUTHORIZED,
-                        MetaApiClient.ConnectionState.ERROR_UNAVAILABLE,
-                        MetaApiClient.ConnectionState.TIMEOUT,
-                        MetaApiClient.ConnectionState.DISCONNECTED -> {
-                            activateGlobalFallback("MetaAPI state: $state")
-                        }
-                        MetaApiClient.ConnectionState.CONNECTED -> {
-                            if (fallbackActive) {
-                                android.util.Log.i("ASC", "MetaAPI recovered; returning forex to MetaAPI and stopping fallbacks")
-                                deactivateGlobalFallback()
-                            }
-                        }
-                        else -> {}
-                    }
-                }
-            }
-        } else if (metaSymbols.isNotEmpty() || usdtSymbols.isNotEmpty()) {
-            activateGlobalFallback("No MetaAPI credentials configured")
         }
 
         tiingoFxManager?.let { manager ->
@@ -687,8 +807,20 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             }
             viewModelScope.launch {
                 manager.priceUpdates.collect { pair ->
-                    android.util.Log.i("TiingoFxWS", "Routing Tiingo FX update to MarketDataStore ${pair.symbol} ${pair.price}")
-                    MarketDataStore.updatePair(pair)
+                    if (cTraderBridgeClient.hasRecentPrice(pair.symbol)) {
+                        android.util.Log.i("TiingoFxWS", "Skipping Tiingo FX update ${pair.symbol}; Pepperstone cTrader is primary")
+                        return@collect
+                    }
+                    if (!canUseCombinedFallback(
+                            source = "Combined fallback",
+                            reason = "Primary live data is stale. Combined fallback is ready."
+                        )
+                    ) {
+                        android.util.Log.i("TiingoFxWS", "Waiting for Combined fallback approval before routing ${pair.symbol}")
+                        return@collect
+                    }
+                    android.util.Log.i("TiingoFxWS", "Routing Tiingo FX update to CombinedFallbackDataStore ${pair.symbol} ${pair.price}")
+                    CombinedFallbackDataStore.updatePair(pair)
                 }
             }
         }
@@ -701,8 +833,16 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             }
             viewModelScope.launch {
                 manager.priceUpdates.collect { pair ->
-                    android.util.Log.i("TiingoIexWS", "Routing Tiingo IEX update to MarketDataStore ${pair.symbol} ${pair.price}")
-                    MarketDataStore.updatePair(pair)
+                    if (!canUseCombinedFallback(
+                            source = "Combined fallback",
+                            reason = "Pepperstone primary data is unavailable. Combined fallback is ready."
+                        )
+                    ) {
+                        android.util.Log.i("TiingoIexWS", "Waiting for Pepperstone availability or Combined fallback approval before routing ${pair.symbol}")
+                        return@collect
+                    }
+                    android.util.Log.i("TiingoIexWS", "Routing Tiingo IEX update to CombinedFallbackDataStore ${pair.symbol} ${pair.price}")
+                    CombinedFallbackDataStore.updatePair(pair)
                 }
             }
         }
@@ -712,7 +852,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             while (isActive) {
                 delay(500)
                 try {
-                    val pairs = MarketDataStore.allPairs.value
+                    val pairs = mergedMarketPairs()
                     if (pairs.isNotEmpty()) {
                         val assetsMap = pairs.associate { pair ->
                             val symbol = pair.symbol.replace("/", "")
@@ -736,15 +876,21 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             binanceWsManager.priceUpdates.collect { pair ->
-                // Route Binance updates through PriceStreamManager for unified logic
-                PriceStreamManager.updatePrice(pair.symbol, pair.price)
+                android.util.Log.i("BinanceWS", "Routing Binance update to BinanceDataStore ${pair.symbol} ${pair.price}")
+                BinanceDataStore.updatePair(pair)
             }
         }
 
         viewModelScope.launch {
-            MarketDataStore.allPairs.collect { pairs ->
-                _cryptoPairs.value = pairs.filter { it.category == MarketCategory.CRYPTO }
-                MarketDataStore.pairSnapshot(_selectedPair.value.symbol)?.let { latest ->
+            combine(
+                MarketDataStore.allPairs,
+                BinanceDataStore.allPairs,
+                CombinedFallbackDataStore.allPairs
+            ) { marketPairs, binancePairs, fallbackPairs ->
+                Triple(marketPairs, binancePairs, fallbackPairs)
+            }.collect { (marketPairs, binancePairs, fallbackPairs) ->
+                _cryptoPairs.value = mergedCryptoPairs(marketPairs, binancePairs, fallbackPairs)
+                livePairSnapshot(_selectedPair.value.symbol)?.let { latest ->
                     _selectedPair.value = latest
                 }
                 syncWatchlistWithLivePrices()
@@ -764,16 +910,18 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     try {
                         val articles = newsService.fetchAllNews()
                         if (articles.isNotEmpty()) {
+                            val now = System.currentTimeMillis()
                             val newsEvents = articles.map { article ->
+                                val eventTime = try {
+                                    java.time.OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
+                                } catch (e: Exception) {
+                                    System.currentTimeMillis()
+                                }
                                 MacroEvent(
                                     id = article.id,
                                     title = article.title,
                                     currency = article.intelligence?.asset_tags?.firstOrNull() ?: "GLOBAL",
-                                    datetimeUtc = try {
-                                        java.time.OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
-                                    } catch (e: Exception) {
-                                        System.currentTimeMillis()
-                                    },
+                                    datetimeUtc = eventTime,
                                     priority = when (val score = article.intelligence?.impact_score) {
                                         null -> ImpactPriority.LOW
                                         in 80.0..100.0 -> ImpactPriority.CRITICAL
@@ -781,7 +929,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                                         in 40.0..60.0 -> ImpactPriority.MEDIUM
                                         else -> ImpactPriority.LOW
                                     },
-                                    status = MacroEventStatus.CONFIRMED,
+                                    status = if (eventTime > now) MacroEventStatus.UPCOMING else MacroEventStatus.CONFIRMED,
                                     source = article.source,
                                     details = article.summary
                                 )
@@ -1222,12 +1370,12 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun closeCommandPalette() { _isCommandPaletteOpen.value = false }
     fun acceptRisk() { _isRiskAccepted.value = true }
     fun selectPair(pair: ForexPair) { 
-        _selectedPair.value = MarketDataStore.pairSnapshot(pair.symbol) ?: pair
+        _selectedPair.value = livePairSnapshot(pair.symbol) ?: pair
         _currentView.value = AppView.DASHBOARD
     }
 
     fun selectPairBySymbol(symbol: String) {
-        val pair = MarketDataStore.pairSnapshot(symbol)
+        val pair = livePairSnapshot(symbol)
         pair?.let {
             selectPair(it)
         }
@@ -1238,7 +1386,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
      * Use this when updating selection from within a modal or settings screen.
      */
     fun selectPairBySymbolNoNavigate(symbol: String) {
-        val pair = MarketDataStore.pairSnapshot(symbol)
+        val pair = livePairSnapshot(symbol)
         pair?.let {
             _selectedPair.value = it
         }
@@ -1275,25 +1423,277 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendCommand(cmd: String) {
-        val userMsg = ChatMessage(role = "user", content = cmd.uppercase())
+        val text = cmd.trim()
+        if (text.isBlank()) return
+
+        val userMsg = ChatMessage(role = "user", content = text)
         _terminalLogs.value = listOf(userMsg) + _terminalLogs.value
         
         viewModelScope.launch {
-            delay(300)
-            val response = if (cmd.uppercase() == "ARM") {
-                _isArmed.value = true
-                "[SECURITY] PIPELINE ARMED via Local Node."
-            } else if (cmd.uppercase() == "ACCOUNT") {
-                binanceWsManager.fetchAccountStatus()
-                "[SYSTEM] Requesting Binance account status..."
-            } else {
-                ForexAnalysisEngine.getAnalystResponse(cmd, "Core_Engine")
+            val upper = text.uppercase()
+            val response = when {
+                upper == "ARM" || upper == "ARM SURVEILLANCE" || upper == "ARM_SURVEILLANCE" -> {
+                    _isArmed.value = true
+                    TradingAssistantEngine.armed = true
+                    TradingAssistantEngine.safetyLockActive = false
+                    "[SECURITY] PIPELINE ARMED via Local Node."
+                }
+                upper == "DISARM" || upper == "DISARM SURVEILLANCE" || upper == "DISARM_SURVEILLANCE" -> {
+                    _isArmed.value = false
+                    TradingAssistantEngine.armed = false
+                    TradingAssistantEngine.safetyLockActive = true
+                    "[SECURITY] PIPELINE DISARMED. Surveillance lock restored."
+                }
+                upper == "ACCOUNT" -> {
+                    binanceWsManager.fetchAccountStatus()
+                    "[SYSTEM] Requesting Binance account status..."
+                }
+                upper == "RUN AI" || upper == "RUN ASC AI" || upper == "RUN PIPELINE" || upper == "RUN ASC PIPELINE" -> {
+                    aiRepository.runAiPipeline().fold(
+                        onSuccess = { resp ->
+                            "[ASC_AI] Pipeline completed=${resp.success}. Decisions=${resp.final_decision.size}. ${resp.message ?: "Latest deployments refreshed."}"
+                        },
+                        onFailure = { err ->
+                            "[ASC_AI_REJECTION] Pipeline failed: ${err.message ?: "unknown error"}"
+                        }
+                    )
+                }
+                upper == "ASC" || upper == "ASC STATUS" || upper == "AI STATUS" || upper == "DEPLOYMENTS" || upper == "REFRESH AI" -> {
+                    val latest = aiRepository.fetchLatestDeployments().getOrNull() ?: aiDeployments.value
+                    buildTerminalAscSummary(latest)
+                }
+                isDeepTerminalCommand(upper) -> {
+                    val result = TradingAssistantEngine.handleInput(text)
+                    syncTerminalEngineState()
+                    result.first
+                }
+                else -> {
+                    val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
+                    "[ASC_AI_TERMINAL]\n" + AscAiTextExplainer.explain(
+                        userQuery = text,
+                        personaName = "Terminal Desk",
+                        personaInstruction = "Deep operator terminal. Explain ASC AI deployment state, selected assets, decision labels, risk, entry windows, exit plans, live tick state, and what the system is waiting for. Do not create a new signal.",
+                        deployments = latest
+                    )
+                }
             }
             _terminalLogs.value = listOf(ChatMessage(role = "model", content = response)) + _terminalLogs.value
         }
     }
 
-    fun toggleArm() { _isArmed.value = !_isArmed.value }
+    fun askAscAiTextLayer(
+        userQuery: String,
+        personaName: String,
+        personaInstruction: String,
+        onResult: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
+            val response = AscAiTextExplainer.explain(
+                userQuery = userQuery,
+                personaName = personaName,
+                personaInstruction = personaInstruction,
+                deployments = latest,
+                appContext = buildChatAppContext(latest)
+            )
+            onResult(response)
+        }
+    }
+
+    fun sendAscChatMessage(
+        userQuery: String,
+        personaName: String,
+        personaInstruction: String
+    ) {
+        val text = userQuery.trim()
+        if (text.isBlank() || _ascChatResponding.value) return
+
+        appendAscChatMessage(ChatMessage(role = "user", content = text))
+        _ascChatResponding.value = true
+
+        viewModelScope.launch {
+            val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
+            val response = AscAiTextExplainer.explain(
+                userQuery = text,
+                personaName = personaName,
+                personaInstruction = personaInstruction,
+                deployments = latest,
+                appContext = buildChatAppContext(latest)
+            )
+            appendAscChatMessage(ChatMessage(role = "model", content = response))
+            _ascChatResponding.value = false
+        }
+    }
+
+    fun addAscChatSystemMessage(content: String) {
+        appendAscChatMessage(ChatMessage(role = "model", content = content))
+    }
+
+    fun clearAscChatMessages() {
+        _ascChatMessages.value = emptyList()
+        persistAscChatMessages()
+    }
+
+    private fun appendAscChatMessage(message: ChatMessage) {
+        _ascChatMessages.value = (_ascChatMessages.value + message).takeLast(80)
+        persistAscChatMessages()
+    }
+
+    private fun persistAscChatMessages() {
+        val jsonArray = JSONArray()
+        _ascChatMessages.value.forEach { message ->
+            jsonArray.put(JSONObject().apply {
+                put("id", message.id)
+                put("role", message.role)
+                put("content", message.content)
+                put("timestamp", message.timestamp)
+            })
+        }
+        chatPrefs.edit().putString("messages", jsonArray.toString()).apply()
+    }
+
+    private fun loadAscChatMessages(): List<ChatMessage> {
+        val raw = chatPrefs.getString("messages", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(raw)
+            buildList {
+                for (index in 0 until array.length()) {
+                    val item = array.optJSONObject(index) ?: continue
+                    val role = item.optString("role").takeIf { it.isNotBlank() } ?: continue
+                    val content = item.optString("content").takeIf { it.isNotBlank() } ?: continue
+                    add(
+                        ChatMessage(
+                            id = item.optString("id").takeIf { it.isNotBlank() } ?: java.util.UUID.randomUUID().toString(),
+                            role = role,
+                            content = content,
+                            timestamp = item.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+            }.takeLast(80)
+        }.getOrDefault(emptyList())
+    }
+
+    private fun buildChatAppContext(deployments: LatestDeploymentsResponse?): String {
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        val selected = _selectedPair.value
+        val status = _commandCenterStatus.value
+        val livePairs = mergedMarketPairs()
+            .filter { it.price.isFinite() && it.price > 0.0 }
+            .take(12)
+        val currentTrade = snapshot.currentTradeSymbol?.let { symbol ->
+            "${snapshot.currentTradeSide ?: "UNKNOWN"} $symbol volume=${chatFmt(snapshot.currentTradeVolume)} entry=${chatFmt(snapshot.currentTradeEntryPrice)} price=${chatFmt(snapshot.currentTradePrice)} pnl=${chatFmt(snapshot.currentTradePnl)}"
+        } ?: "none"
+
+        return buildString {
+            appendLine("current_view=${_currentView.value}")
+            appendLine("selected_asset=${selected.symbol}")
+            appendLine("selected_asset_price=${chatFmt(selected.price)}")
+            appendLine("selected_asset_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("account_connected=${snapshot.isConnected}")
+            appendLine("has_live_account_data=${snapshot.hasLiveAccountData}")
+            appendLine("has_live_trade_data=${snapshot.hasLiveTradeData}")
+            appendLine("active_live_trades=${snapshot.activeTrades}")
+            appendLine("active_orders=${snapshot.activeOrders}")
+            appendLine("current_live_trade=$currentTrade")
+            appendLine("balance=${chatFmt(snapshot.balance)}")
+            appendLine("equity=${chatFmt(snapshot.equity)}")
+            appendLine("floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("realized_pnl=${chatFmt(snapshot.realizedPnl)}")
+            appendLine("open_risk=${chatFmt(snapshot.openRisk)}")
+            appendLine("open_risk_pct=${chatFmt(snapshot.openRiskPct)}")
+            appendLine("pipeline_loading=${status.isLoading}")
+            appendLine("pipeline_connected=${status.isConnected ?: "unknown"}")
+            appendLine("pipeline_last_message=${status.lastMessage}")
+            appendLine("terminal_armed=${_isArmed.value}")
+            appendLine("terminal_algo=${_activeAlgo.value}")
+            appendLine("drawer_open=${_isDrawerOpen.value}")
+            appendLine("command_palette_open=${_isCommandPaletteOpen.value}")
+            appendLine("global_header_visible=${_isGlobalHeaderVisible.value}")
+            appendLine("dashboard_tab_target=${_dashboardTabTarget.value}")
+            appendLine("risk_accepted=${_isRiskAccepted.value}")
+            appendLine("market_state_symbol=${_marketState.value?.symbol ?: "none"}")
+            appendLine("market_state_bias=${_marketState.value?.technicalBias ?: "unknown"}")
+            appendLine("market_state_confidence=${_marketState.value?.confidence ?: 0}")
+            appendLine("watchlist_items=${_watchlistItems.value.size}")
+            _watchlistItems.value.take(8).forEach { item ->
+                appendLine("watchlist=${item.assetName} status=${item.status} confidence=${item.confidence} move_probability=${item.moveProbability} category=${item.category}")
+            }
+            appendLine("watchlist_analyzing=${_isWatchlistAnalyzing.value}")
+            appendLine("watchlist_filter=${_watchlistCategoryFilter.value ?: "ALL"}")
+            appendLine("macro_events_total=${_allMacroEvents.value.size}")
+            appendLine("macro_stream_events=${_macroStreamEvents.value.size}")
+            _macroStreamEvents.value.take(5).forEach { event ->
+                appendLine("macro_event=${event.title} priority=${event.priority} status=${event.status} currency=${event.currency}")
+            }
+            appendLine("notifications_unread=${_unreadCount.value}")
+            appendLine("notifications_alert=${_alertNotificationCount.value}")
+            appendLine("notifications_total=${_inAppNotifications.value.size}")
+            _inAppNotifications.value.take(5).forEach { notification ->
+                appendLine("notification=${notification.type} severity=${notification.severity} seen=${notification.seen} message=${notification.msg}")
+            }
+            appendLine("telemetry_session_landing=${_sessionLandingCount.value}")
+            appendLine("telemetry_clicks_to_execution=${_clicksToExecutionCount.value}")
+            appendLine("telemetry_ingestion_dropped=${_ingestionDroppedCount.value}")
+            appendLine("audit_records=${_auditLog.value.size}")
+            appendLine("user_override_count=${_userOverrideCount.value}")
+            appendLine("execution_opt_in_requested=${_executionOptInRequested.value}")
+            appendLine("pending_execution_target=${_pendingExecutionTarget.value ?: "none"}")
+            appendLine("pattern_sensitivity=${chatFmt(_patternSensitivity.value.toDouble())}")
+            appendLine("remote_force_override=${_forceRemoteOverride.value}")
+            appendLine("remote_poll_interval_ms=${_remotePollIntervalMs.value}")
+            appendLine("bond_data_series=${_bondData.value.size}")
+            _bondData.value.values.take(4).forEach { bond ->
+                appendLine("bond=${bond.name ?: bond.seriesId} value=${bond.value} date=${bond.date}")
+            }
+            appendLine("asc_deployments_loaded=${deployments?.final_decision?.size ?: 0}")
+            appendLine("asc_deployments_last_updated=${deployments?.last_updated ?: "not loaded"}")
+            appendLine("live_market_pairs=${livePairs.size}")
+            livePairs.forEach { pair ->
+                appendLine("market_pair=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+        }
+    }
+
+    private fun chatFmt(value: Double?): String {
+        val safe = value ?: return "unknown"
+        return if (safe.isFinite()) String.format(Locale.US, "%.4f", safe) else "unknown"
+    }
+
+    private fun isDeepTerminalCommand(upper: String): Boolean {
+        return upper == "ARM PIPELINE" ||
+            upper.startsWith("SET ALGO ") ||
+            Regex("\\b(BUY|SELL)\\s+[A-Z0-9/]{3,12}\\s+[\\d.]+").containsMatchIn(upper)
+    }
+
+    private fun syncTerminalEngineState() {
+        _isArmed.value = TradingAssistantEngine.armed && !TradingAssistantEngine.safetyLockActive
+        _activeAlgo.value = TradingAssistantEngine.executionAlgo
+    }
+
+    private fun buildTerminalAscSummary(deployments: LatestDeploymentsResponse?): String {
+        val decisions = deployments?.final_decision.orEmpty()
+        if (deployments == null) return "[ASC_AI] No deployment payload loaded. Run REFRESH AI or RUN ASC AI."
+        if (decisions.isEmpty()) {
+            return "[ASC_AI] Latest deployment loaded but no final decisions are available. success=${deployments.success}, count=${deployments.count}, last_updated=${deployments.last_updated ?: "unknown"}"
+        }
+        return buildString {
+            appendLine("[ASC_AI] Latest deployment status")
+            appendLine("success=${deployments.success}")
+            appendLine("count=${deployments.count}")
+            appendLine("last_updated=${deployments.last_updated ?: "unknown"}")
+            decisions.take(5).forEachIndexed { index, decision ->
+                appendLine("${index + 1}. ${decision.asset_1 ?: "UNKNOWN"} ${decision.journal_direction ?: "WAIT"} ${decision.portfolio_decision_label ?: decision.journal_label ?: "NO_LABEL"} bucket=${decision.portfolio_deployment_bucket ?: "unknown"} risk=${decision.final_risk_pct ?: decision.recommended_risk_pct ?: 0.0} entry=${decision.entry_window ?: "unknown"}")
+            }
+        }
+    }
+
+    fun toggleArm() {
+        val next = !_isArmed.value
+        _isArmed.value = next
+        TradingAssistantEngine.armed = next
+        TradingAssistantEngine.safetyLockActive = !next
+    }
 
     fun runAiPipelineNow() {
         viewModelScope.launch {
@@ -1372,6 +1772,62 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                         isLoading = false,
                         isConnected = false,
                         lastMessage = "Health check failed: ${err.message ?: "unknown error"}",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+        }
+    }
+
+    fun syncDataVaultNow() {
+        viewModelScope.launch {
+            _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                isLoading = true,
+                lastMessage = "Checking ASC AI vault backend..."
+            )
+
+            val healthResult = aiRepository.healthCheck()
+            if (healthResult.isFailure) {
+                val err = healthResult.exceptionOrNull()
+                _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                    isLoading = false,
+                    isConnected = false,
+                    lastMessage = "Vault backend offline: ${err?.message ?: "unknown error"}",
+                    lastActionAtMillis = System.currentTimeMillis()
+                )
+                return@launch
+            }
+
+            val status = healthResult.getOrNull().orEmpty()["status"]?.toString() ?: "unknown"
+            if (!status.equals("ok", ignoreCase = true)) {
+                _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                    isLoading = false,
+                    isConnected = false,
+                    lastMessage = "Vault backend health: $status",
+                    lastActionAtMillis = System.currentTimeMillis()
+                )
+                return@launch
+            }
+
+            _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                isLoading = true,
+                isConnected = true,
+                lastMessage = "ASC AI online. Refreshing vault packets..."
+            )
+
+            aiRepository.fetchLatestDeployments()
+                .onSuccess { resp ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = true,
+                        lastMessage = "Vault synced: ${resp.count} ASC AI packets",
+                        lastActionAtMillis = System.currentTimeMillis()
+                    )
+                }
+                .onFailure { err ->
+                    _commandCenterStatus.value = _commandCenterStatus.value.copy(
+                        isLoading = false,
+                        isConnected = false,
+                        lastMessage = "Vault sync failed: ${err.message ?: "unknown error"}",
                         lastActionAtMillis = System.currentTimeMillis()
                     )
                 }
@@ -1488,6 +1944,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        derivService.disconnect()
         binanceWsManager.disconnect()
         tiingoFxManager?.disconnect()
     }

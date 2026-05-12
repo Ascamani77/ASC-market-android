@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.AISimulationStrategy
 import com.asc.markets.logic.ForexViewModel
 import com.trading.app.data.PaperTradingSnapshotStore
 
@@ -30,9 +31,14 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
 
     var engineEnabled by remember { mutableStateOf(false) }
     var chartExpanded by remember { mutableStateOf(false) }
+    var selectedStrategies by remember { mutableStateOf(AISimulationStrategy.defaultSelection()) }
     val aiChartState = rememberEmbeddedSimulationChartState(symbol = "BTCUSD", timeframe = "1h")
     val listState = rememberLazyListState()
     val snapshot = PaperTradingSnapshotStore.snapshot
+    val selectedStrategyLabel = remember(selectedStrategies) {
+        selectedStrategies.ifEmpty { AISimulationStrategy.defaultSelection() }
+            .joinToString(" + ") { it.label }
+    }
 
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, chartExpanded) {
         if (chartExpanded) {
@@ -209,7 +215,7 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
                             Text("CURRENT STATE", color = Color.Gray, fontSize = 10.sp)
                             val stateText = if (snapshot.currentTradeSymbol != null) "POSITION OPEN" else if (snapshot.hasLiveTradeData) "SCANNING" else "WAITING FOR TRIGGER"
                             Text(stateText, color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            val descText = if (snapshot.currentTradeSymbol != null) "Managing active ${snapshot.currentTradeSymbol} position." else "AI is scanning the market for high-probability opportunities."
+                            val descText = if (snapshot.currentTradeSymbol != null) "Managing active ${snapshot.currentTradeSymbol} position using $selectedStrategyLabel." else "AI is scanning with selected strategy filters: $selectedStrategyLabel."
                             Text(descText, color = Color.Gray, fontSize = 10.sp)
                         }
                         Column(horizontalAlignment = Alignment.End) {
@@ -222,6 +228,23 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
                         }
                     }
                 }
+            }
+
+            item {
+                AIStrategySelectionCard(
+                    selectedStrategies = selectedStrategies,
+                    onStrategyToggle = { strategy ->
+                        selectedStrategies = if (selectedStrategies.contains(strategy)) {
+                            if (selectedStrategies.size > 1) selectedStrategies - strategy else selectedStrategies
+                        } else {
+                            selectedStrategies + strategy
+                        }
+                    },
+                    onSelectAll = { selectedStrategies = AISimulationStrategy.values().toSet() },
+                    onResetDefault = { selectedStrategies = AISimulationStrategy.defaultSelection() },
+                    accentColor = accentColor,
+                    cardColor = cardColor
+                )
             }
 
             // Chart Section - Compact Mini Chart
@@ -319,9 +342,9 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
                             val marketStatus = if (snapshot.currentTradeSymbol != null) "IN TRADE" else if (snapshot.hasLiveTradeData) "SCAN" else "WAIT"
                             val marketProgress = if (snapshot.currentTradeSymbol != null) 1.0f else if (snapshot.hasLiveTradeData) 0.72f else 0.0f
                             AiDecisionVisualCard("MARKET", marketStatus, marketProgress, accentColor, Modifier.weight(1f))
-                            val entryStatus = if (snapshot.currentTradeSymbol != null) snapshot.currentTradeSide?.uppercase() ?: "OPEN" else "WAIT"
-                            val entryProgress = if (snapshot.currentTradeSymbol != null) 1.0f else 0.46f
-                            AiDecisionVisualCard("ENTRY", entryStatus, entryProgress, Color(0xFF3B82F6), Modifier.weight(1f))
+                            val entryStatus = if (snapshot.currentTradeSymbol != null) snapshot.currentTradeSide?.uppercase() ?: "OPEN" else "${selectedStrategies.size} STR"
+                            val entryProgress = if (snapshot.currentTradeSymbol != null) 1.0f else (selectedStrategies.size / AISimulationStrategy.values().size.toFloat()).coerceIn(0.12f, 1f)
+                            AiDecisionVisualCard("STRATEGY", entryStatus, entryProgress, Color(0xFF3B82F6), Modifier.weight(1f))
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -357,7 +380,7 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("DECISION", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
-                                val decisionText = if (snapshot.currentTradeSymbol != null) "POSITION ACTIVE" else "WAITING FOR TRIGGER"
+                                val decisionText = if (snapshot.currentTradeSymbol != null) "POSITION ACTIVE" else "FILTER: $selectedStrategyLabel"
                                 Text(decisionText, color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -408,6 +431,146 @@ fun NewAISimulationScreen(viewModel: ForexViewModel) {
                         Text("MANUAL OVERRIDE", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AIStrategySelectionCard(
+    selectedStrategies: Set<AISimulationStrategy>,
+    onStrategyToggle: (AISimulationStrategy) -> Unit,
+    onSelectAll: () -> Unit,
+    onResetDefault: () -> Unit,
+    accentColor: Color,
+    cardColor: Color
+) {
+    Surface(
+        color = cardColor,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFF1C1C1E)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Tune, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text("AI STRATEGY FILTER", color = accentColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("Choose exactly what the AI can use for auto trading", color = Color.Gray, fontSize = 10.sp)
+                    }
+                }
+                Surface(
+                    color = Color(0xFF142921),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.22f))
+                ) {
+                    Text("${selectedStrategies.size} ACTIVE", color = accentColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AISimulationStrategy.values().toList().chunked(2).forEach { rowStrategies ->
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        rowStrategies.forEach { strategy ->
+                            AIStrategyChip(
+                                strategy = strategy,
+                                selected = selectedStrategies.contains(strategy),
+                                accentColor = accentColor,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onStrategyToggle(strategy) }
+                            )
+                        }
+                        if (rowStrategies.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            Surface(
+                color = Color.White.copy(alpha = 0.035f),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "AUTO TRADING WILL ONLY CONFIRM ENTRIES USING THE SELECTED STRATEGIES.",
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onSelectAll,
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("SELECT ALL", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onResetDefault,
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("DEFAULT SET", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AIStrategyChip(
+    strategy: AISimulationStrategy,
+    selected: Boolean,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val borderColor = if (selected) accentColor else Color(0xFF2A2A2E)
+    val backgroundColor = if (selected) Color(0xFF064E3B).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.035f)
+    val textColor = if (selected) Color.White else Color.Gray
+
+    Surface(
+        onClick = onClick,
+        color = backgroundColor,
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, borderColor),
+        modifier = modifier.height(64.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(if (selected) accentColor else Color.Transparent, CircleShape)
+                    .border(1.dp, borderColor, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(strategy.label.uppercase(), color = textColor, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Text(strategy.description, color = Color.Gray, fontSize = 8.sp, maxLines = 2)
             }
         }
     }

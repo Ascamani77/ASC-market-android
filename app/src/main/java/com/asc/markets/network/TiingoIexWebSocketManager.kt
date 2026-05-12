@@ -16,6 +16,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
@@ -118,6 +119,10 @@ class TiingoIexWebSocketManager(
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 handleMessage(text)
+            }
+
+            override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                handleMessage(bytes.utf8())
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
@@ -224,32 +229,44 @@ class TiingoIexWebSocketManager(
     }
 
     private fun parseQuoteOrTrade(data: JSONArray?): ForexPair? {
-        if (data == null || data.length() < 4) {
+        if (data == null || data.length() < 3) {
             return null
         }
 
+        // Handle simple 3-element format: [timestamp, symbol, price]
+        if (data.length() == 3) {
+            val symbol = normalizeDisplaySymbol(data.optString(1))
+            if (symbol.isBlank()) return null
+            val price = data.optDouble(2, Double.NaN)
+            if (!price.isFinite() || price <= 0.0) return null
+            return buildStockPair(symbol, price)
+        }
+
+        // Handle legacy multi-field format with update type
         val updateType = data.optString(0).uppercase(Locale.US)
-        val symbol = findTickerInPayload(data)
+        val symbolIndex = findTickerIndexInPayload(data)
+        val symbol = symbolIndex
+            ?.let { index -> normalizeDisplaySymbol(data.optString(index)) }
+            ?: normalizeDisplaySymbol(data.optString(3))
         if (symbol.isBlank()) {
             return null
         }
 
         val price: Double = when (updateType) {
             "Q" -> {
-                val bid = data.optDouble(5, Double.NaN)
-                val mid = data.optDouble(6, Double.NaN)
-                val ask = data.optDouble(7, Double.NaN)
+                val bid = firstValidPrice(data, symbol, listOfNotNull(symbolIndex?.plus(2), symbolIndex?.plus(3), 4, 5))
+                val ask = firstValidPrice(data, symbol, listOfNotNull(symbolIndex?.plus(4), symbolIndex?.plus(5), 6, 7))
                 when {
-                    bid.isFinite() && ask.isFinite() && bid > 0.0 && ask > 0.0 -> (bid + ask) / 2.0
-                    mid.isFinite() && mid > 0.0 -> mid
-                    bid.isFinite() && bid > 0.0 -> bid
-                    ask.isFinite() && ask > 0.0 -> ask
+                    bid != null && ask != null -> (bid + ask) / 2.0
+                    bid != null -> bid
+                    ask != null -> ask
                     else -> bestPriceCandidate(data, symbol) ?: return null
                 }
             }
             "T", "B" -> {
-                val lastPrice = data.optDouble(9, Double.NaN)
-                if (lastPrice.isFinite() && lastPrice > 0.0) lastPrice else bestPriceCandidate(data, symbol) ?: return null
+                firstValidPrice(data, symbol, listOfNotNull(symbolIndex?.plus(1), 3, 4, 9))
+                    ?: bestPriceCandidate(data, symbol)
+                    ?: return null
             }
             else -> bestPriceCandidate(data, symbol) ?: return null
         }
@@ -257,15 +274,28 @@ class TiingoIexWebSocketManager(
         return buildStockPair(symbol, price)
     }
 
-    private fun findTickerInPayload(data: JSONArray): String {
+    private fun findTickerIndexInPayload(data: JSONArray): Int? {
         val subscribedTickers = currentTickers().map { it.uppercase(Locale.US) }.toSet()
         for (index in 1 until data.length()) {
             val value = normalizeDisplaySymbol(data.optString(index))
             if (value in subscribedTickers) {
-                return value
+                return index
             }
         }
-        return normalizeDisplaySymbol(data.optString(3))
+        return null
+    }
+
+    private fun firstValidPrice(data: JSONArray, symbol: String, indices: List<Int>): Double? {
+        val reference = MarketDataStore.pairSnapshot(symbol)?.price ?: 0.0
+        return indices
+            .distinct()
+            .mapNotNull { index ->
+                val value = data.optDouble(index, Double.NaN)
+                if (isPlausibleStockPrice(value, reference)) value else null
+            }
+            .minByOrNull { value ->
+                if (reference > 0.0) kotlin.math.abs(value - reference) else value
+            }
     }
 
     private fun bestPriceCandidate(data: JSONArray, symbol: String): Double? {
@@ -273,11 +303,18 @@ class TiingoIexWebSocketManager(
         return (1 until data.length())
             .mapNotNull { index ->
                 val value = data.optDouble(index, Double.NaN)
-                if (value.isFinite() && value > 0.0 && value < 100_000.0) value else null
+                if (isPlausibleStockPrice(value, reference)) value else null
             }
             .minByOrNull { value ->
                 if (reference > 0.0) kotlin.math.abs(value - reference) else value
             }
+    }
+
+    private fun isPlausibleStockPrice(value: Double, reference: Double): Boolean {
+        if (!value.isFinite() || value <= 0.0 || value >= 100_000.0) {
+            return false
+        }
+        return reference <= 0.0 || value in (reference * 0.25)..(reference * 4.0)
     }
 
     private fun buildStockPair(symbol: String, price: Double): ForexPair {

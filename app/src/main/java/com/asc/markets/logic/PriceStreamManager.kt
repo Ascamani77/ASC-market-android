@@ -1,12 +1,17 @@
 package com.asc.markets.logic
 
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
+import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.SystemTelemetry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -18,7 +23,7 @@ object PriceStreamManager {
 
     // Map of pair symbol -> current price
     private val _priceUpdates = MutableStateFlow(
-        MarketDataStore.allPairs.value.associate { pair -> pair.symbol to pair.price }
+        priceMapFor(MarketDataStore.allPairs.value + BinanceDataStore.allPairs.value + CombinedFallbackDataStore.allPairs.value)
     )
 
     // Public read-only access to price stream
@@ -26,8 +31,14 @@ object PriceStreamManager {
 
     init {
         scope.launch {
-            MarketDataStore.allPairs.collect { pairs ->
-                _priceUpdates.value = pairs.associate { pair -> pair.symbol to pair.price }
+            combine(
+                MarketDataStore.allPairs,
+                BinanceDataStore.allPairs,
+                CombinedFallbackDataStore.allPairs
+            ) { marketPairs, binancePairs, fallbackPairs ->
+                marketPairs + binancePairs + fallbackPairs
+            }.collect { pairs ->
+                _priceUpdates.value = priceMapFor(pairs)
             }
         }
     }
@@ -37,8 +48,19 @@ object PriceStreamManager {
      * All subscribers (Dashboard, Chart, Tape, etc.) will receive this update instantly.
      */
     fun updatePrice(pair: String, newPrice: Double) {
+        val telemetrySource = when {
+            pair.contains("USDT", ignoreCase = true) -> "BINANCE"
+            pair.contains("BTC", ignoreCase = true) || pair.contains("ETH", ignoreCase = true) -> "CTRADER"
+            else -> "MT5"
+        }
+        SystemTelemetry.recordTick(telemetrySource, 1.0)
+
         // Use pairSnapshot to find the canonical ForexPair even if symbol is "BTCUSD" vs "BTC/USDT"
-        val currentPair = MarketDataStore.pairSnapshot(pair)
+        val currentPair = if (isUsdtSymbol(pair)) {
+            BinanceDataStore.pairSnapshot(pair)
+        } else {
+            MarketDataStore.pairSnapshot(pair) ?: CombinedFallbackDataStore.pairSnapshot(pair)
+        }
         
         if (currentPair == null) {
             android.util.Log.d("PriceStream", "No match found for incoming symbol: $pair")
@@ -55,14 +77,12 @@ object PriceStreamManager {
             0.0
         }
         
-        // Update the canonical pair in the store
-        MarketDataStore.updatePair(
-            currentPair.copy(
-                price = newPrice,
-                change = change,
-                changePercent = changePercent
-            )
-        )
+        _priceUpdates.value = _priceUpdates.value.toMutableMap().apply {
+            put(currentPair.symbol, newPrice)
+            put(currentPair.symbol.replace("/", ""), newPrice)
+            put(pair, newPrice)
+            put(pair.replace("/", ""), newPrice)
+        }
     }
 
     /**
@@ -77,5 +97,18 @@ object PriceStreamManager {
     /**
      * Get current price for a pair (synchronous access)
      */
-    fun getPrice(pair: String): Double? = _priceUpdates.value[pair]
+    fun getPrice(pair: String): Double? = _priceUpdates.value[pair] ?: _priceUpdates.value[pair.replace("/", "")]
+
+    private fun isUsdtSymbol(symbol: String): Boolean {
+        return symbol.replace("/", "").uppercase().endsWith("USDT")
+    }
+
+    private fun priceMapFor(pairs: List<ForexPair>): Map<String, Double> {
+        val prices = mutableMapOf<String, Double>()
+        pairs.forEach { pair ->
+            prices[pair.symbol] = pair.price
+            prices[pair.symbol.replace("/", "")] = pair.price
+        }
+        return prices
+    }
 }

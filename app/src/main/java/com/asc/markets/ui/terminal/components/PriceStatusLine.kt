@@ -218,7 +218,7 @@ private fun computeSpread(price: Double): Double {
 private fun formatPrice(price: Double): String {
     return when {
         price >= 1000 -> String.format(Locale.US, "%,.2f", price)
-        price >= 1 -> String.format(Locale.US, "%.4f", price)
+        price >= 1 -> String.format(Locale.US, "%.5f", price) // 5 decimals for forex (like MT5)
         else -> String.format(Locale.US, "%.6f", price)
     }
 }

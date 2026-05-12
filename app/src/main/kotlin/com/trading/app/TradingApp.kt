@@ -24,10 +24,12 @@ import com.trading.app.components.*
 import com.trading.app.models.*
 import com.trading.app.data.CalendarSnapshotStore
 import com.trading.app.data.NewsSnapshotStore
+import com.trading.app.data.Mt5NewsStore
 import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
 import com.trading.app.data.PaperTradingAccountSnapshot
 import com.trading.app.data.PaperTradingSnapshotStore
+import com.asc.markets.data.NetworkConfig
 import com.asc.markets.logic.PriceStreamManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -140,7 +142,10 @@ private fun persistNewsAiPayload(
 }
 
 @Composable
-fun TradingApp() {
+fun TradingApp(
+    startInPaperTradingPanel: Boolean = false,
+    onPaperTradingClose: (() -> Unit)? = null
+) {
     val context = LocalContext.current
     val sharedPrefs = remember { context.getSharedPreferences("trading_prefs", Context.MODE_PRIVATE) }
     val gson = remember { Gson() }
@@ -178,7 +183,7 @@ fun TradingApp() {
     // Currency State
     var selectedCurrency by remember { mutableStateOf("USD") }
     var showCurrencyModal by remember { mutableStateOf(false) }
-    var showPaperTradingPanel by remember { mutableStateOf(false) }
+    var showPaperTradingPanel by remember { mutableStateOf(startInPaperTradingPanel) }
 
     // UI visibility state
     var isSidebarVisible by remember { mutableStateOf(chartSettings.quickActions.isSidebarVisible) }
@@ -260,26 +265,148 @@ fun TradingApp() {
 
     val visibleQuoteSymbols = remember { mutableStateListOf<String>() }
     val visibleRecentSymbols = remember { mutableStateListOf<String>() }
+    val mt5Host = remember { NetworkConfig.mt5Host(context) }
+    val mt5Port = remember { NetworkConfig.mt5Port(context) }
 
     val reverseBridge = remember { 
         Mt5ReverseBridge(
-            pcIpAddress = "10.95.77.133",
-            port = 8081
+            pcIpAddress = mt5Host,
+            port = mt5Port
         )
     }
     
     val mt5Service = remember {
         Mt5Service(
-            pcIpAddress = "10.95.77.133",
-            port = 8081,
+            pcIpAddress = mt5Host,
+            port = mt5Port,
             onHistoryUpdate = { _, _ -> },
+            onNewsUpdate = { newsPayload ->
+                android.util.Log.i("TradingApp", "Received ${newsPayload.items.size} MT5 news items in Stream host")
+                Mt5NewsStore.updateNews(newsPayload.items)
+            },
             onQuoteUpdate = { quote ->
                 // Propagate price updates to the global PriceStreamManager
-                // so other screens (like MultiTimeframeScreen) get live data.
                 PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
+                
+                // Route MT5 updates to CombinedFallbackDataStore
+                val pair = com.asc.markets.data.FOREX_PAIRS.find { it.symbol == quote.name }
+                if (pair != null) {
+                    val updatedPair = pair.copy(
+                        price = quote.lastPrice.toDouble(),
+                        change = quote.lastPrice.toDouble() - pair.price,
+                        changePercent = if (pair.price > 0) ((quote.lastPrice.toDouble() - pair.price) / pair.price * 100) else 0.0
+                    )
+                    com.asc.markets.data.CombinedFallbackDataStore.updatePair(updatedPair)
+                }
             },
             onConnectionStatusUpdate = { isConnected = it }
         )
+    }
+
+    // Deriv WebSocket Service for commodities and crypto
+    val derivService = remember {
+        com.trading.app.data.DerivService(
+            onQuoteUpdate = { quote ->
+                // Propagate Deriv price updates to PriceStreamManager
+                PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
+
+                // Route Deriv updates to CombinedFallbackDataStore
+                val pair = com.asc.markets.data.FOREX_PAIRS.find { it.symbol == quote.name }
+                if (pair != null) {
+                    val updatedPair = pair.copy(
+                        price = quote.lastPrice.toDouble(),
+                        change = quote.lastPrice.toDouble() - pair.price,
+                        changePercent = if (pair.price > 0) ((quote.lastPrice.toDouble() - pair.price) / pair.price * 100) else 0.0
+                    )
+                    com.asc.markets.data.CombinedFallbackDataStore.updatePair(updatedPair)
+                    android.util.Log.d("DerivService", "Updated CombinedFallbackDataStore: ${quote.name} = ${quote.lastPrice}")
+                } else {
+                    android.util.Log.w("DerivService", "Symbol ${quote.name} not found in FOREX_PAIRS")
+                }
+            },
+            onHistoryUpdate = { _, _ -> }
+        )
+    }
+    
+    // Connect Deriv and subscribe to commodities
+    LaunchedEffect(Unit) {
+        derivService.connect()
+        delay(1000) // Wait for connection
+        
+        // Subscribe to commodities (using FOREX_PAIRS format)
+        derivService.subscribe("XAU/USD")  // Gold
+        derivService.subscribe("XAG/USD")  // Silver
+        derivService.subscribe("USOIL")    // WTI Crude (matches FOREX_PAIRS)
+        
+        // Also subscribe to crypto for backup
+        derivService.subscribe("BTC/USD")
+        derivService.subscribe("ETH/USD")
+        
+        android.util.Log.i("TradingApp", "Deriv service connected and subscribed to commodities")
+    }
+    
+    // Cleanup Deriv on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            derivService.disconnect()
+        }
+    }
+
+    // cTrader Pepperstone Service for forex trading
+    val cTraderService = remember {
+        com.trading.app.data.CTraderService(
+            onQuoteUpdate = { quote ->
+                // Propagate cTrader price updates to PriceStreamManager
+                PriceStreamManager.updatePrice(quote.name, quote.lastPrice.toDouble())
+                
+                // Update MarketDataStore so AI backend receives the data
+                val pair = com.asc.markets.data.FOREX_PAIRS.find { it.symbol == quote.name }
+                if (pair != null) {
+                    val updatedPair = pair.copy(
+                        price = quote.lastPrice.toDouble(),
+                        change = quote.lastPrice.toDouble() - pair.price,
+                        changePercent = if (pair.price > 0) ((quote.lastPrice.toDouble() - pair.price) / pair.price * 100) else 0.0
+                    )
+                    com.asc.markets.data.MarketDataStore.updatePair(updatedPair)
+                    android.util.Log.d("CTraderService", "Updated MarketDataStore: ${quote.name} = ${quote.lastPrice}")
+                }
+            },
+            onPositionsUpdate = { newPositions ->
+                android.util.Log.d("CTraderService", "Positions updated: ${newPositions.size}")
+            },
+            onAccountUpdate = { accountInfo ->
+                if (accountInfo != null) {
+                    android.util.Log.d("CTraderService", "Account updated: balance=${accountInfo.balance}")
+                }
+            },
+            onConnectionStatusUpdate = { connected ->
+                android.util.Log.i("CTraderService", "Connection status: $connected")
+            }
+        )
+    }
+    
+    // Connect cTrader and subscribe to forex pairs
+    LaunchedEffect(Unit) {
+        cTraderService.connect()
+        delay(2000)
+        
+        // Subscribe to major forex pairs
+        cTraderService.subscribe("EURUSD")
+        cTraderService.subscribe("GBPUSD")
+        cTraderService.subscribe("USDJPY")
+        cTraderService.subscribe("AUDUSD")
+        cTraderService.subscribe("USDCAD")
+        cTraderService.subscribe("NZDUSD")
+        cTraderService.subscribe("USDCHF")
+        
+        android.util.Log.i("TradingApp", "cTrader service connected and subscribed to forex pairs")
+    }
+    
+    // Cleanup cTrader on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            cTraderService.disconnect()
+        }
     }
 
     val watchlistSymbols by remember {
@@ -1020,6 +1147,7 @@ fun TradingApp() {
                                 isNewsVisible = showNewsPage,
                                 onNewsUpdate = { payload ->
                                     android.util.Log.d("TradingApp", "Received news update: ${payload.items.size} items")
+                                    Mt5NewsStore.updateNews(payload.items)
                                     newsItems.clear()
                                     newsItems.addAll(payload.items)
                                     isNewsLoading = false
@@ -1168,10 +1296,16 @@ fun TradingApp() {
                 }
             }
 
-            // Paper Trading Panel Overlay
+            // Live Trade Panel Overlay
             if (showPaperTradingPanel) {
                 PaperTradingPanel(
-                    onClose = { showPaperTradingPanel = false },
+                    onClose = {
+                        if (onPaperTradingClose != null) {
+                            onPaperTradingClose()
+                        } else {
+                            showPaperTradingPanel = false
+                        }
+                    },
                     onPositionClick = { pos ->
                         selectedPositionToModify = pos
                         showPositionActionsModal = true

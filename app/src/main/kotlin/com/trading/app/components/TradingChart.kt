@@ -21,7 +21,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.asc.markets.data.NetworkConfig
 import com.trading.app.data.BinanceService
 import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
@@ -199,11 +201,7 @@ private fun normalizeChartSymbol(symbol: String): String {
 }
 
 private fun binanceStreamSymbolFor(symbol: String): String {
-    return when (val normalized = normalizeChartSymbol(symbol)) {
-        "BTCUSD" -> "BTCUSDT"
-        "ETHUSD" -> "ETHUSDT"
-        else -> normalized
-    }
+    return normalizeChartSymbol(symbol)
 }
 
 private fun chartSymbolsMatch(left: String, right: String): Boolean {
@@ -465,6 +463,8 @@ fun TradingChart(
     onScrollDone: () -> Unit = {},
     onLongPress: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    showCurrencySelector: Boolean = true,
+    showSettingsButton: Boolean = true,
     onDataLoaded: (List<OHLCData>) -> Unit = {},
     selectedTimeZone: String = "UTC",
     onQuoteUpdate: (SymbolQuote) -> Unit = {},
@@ -521,6 +521,9 @@ fun TradingChart(
     onSelectedIndicatorIdChange: (String?) -> Unit = {},
     onIndicatorDataUpdate: (IndicatorData) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val mt5Host = remember { NetworkConfig.mt5Host(context) }
+    val mt5Port = remember { NetworkConfig.mt5Port(context) }
     var ohlcData by remember { mutableStateOf<List<OHLCData>>(emptyList()) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMoreHistory by remember { mutableStateOf(true) }
@@ -820,12 +823,13 @@ fun TradingChart(
 
     val mt5Service = remember {
         Mt5Service(
-            pcIpAddress = "10.95.77.133",
-            port = 8081,
+            pcIpAddress = mt5Host,
+            port = mt5Port,
             onHistoryUpdate = { receivedSymbol: String, history: List<OHLCData> ->
                 if (receivedSymbol.isEmpty() || chartSymbolsMatch(receivedSymbol, currentSymbol.value)) {
                     val isCryptoBinance = normalizeChartSymbol(currentSymbol.value).endsWith("USDT", ignoreCase = true)
                     if (isCryptoBinance && !useMt5FallbackForCrypto) {
+                        Log.d(LOG_TAG, "Ignoring MT5 history for $receivedSymbol because Binance route is active for ${currentSymbol.value}")
                         return@Mt5Service
                     }
                     val processedHistory = history
@@ -883,6 +887,7 @@ fun TradingChart(
                         )
                         outgoingQuote = updatedQuote
                         scheduleChartQuote(updatedQuote)
+                        Log.d(LOG_TAG, "Applied MT5 tick for ${quote.name} price=${quote.lastPrice}")
                     }
                 }
             },
@@ -917,6 +922,7 @@ fun TradingChart(
         useMt5FallbackForCrypto = false
         val streamSymbol = binanceStreamSymbolFor(symbol)
         if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
+            Log.d(LOG_TAG, "Subscribing Binance chart route for $streamSymbol timeframe=$timeframe")
             binanceService.streamActiveSymbol(streamSymbol)
             binanceService.fetchHistory(streamSymbol, timeframe, null) // Explicit null and it uses limit=500
             // If Binance history does not arrive quickly, auto-fallback to MT5 history.
@@ -927,9 +933,11 @@ fun TradingChart(
                 currentTimeframe.value.equals(timeframe, ignoreCase = true)
             ) {
                 useMt5FallbackForCrypto = true
-                mt5Service.streamActiveSymbol(streamSymbol, timeframe, 500)
+                Log.w(LOG_TAG, "Binance candles unavailable for $streamSymbol; falling back to MT5 symbol=$symbol timeframe=$timeframe")
+                mt5Service.streamActiveSymbol(symbol, timeframe, 500)
             }
         } else {
+            Log.d(LOG_TAG, "Subscribing MT5 chart route for $streamSymbol timeframe=$timeframe")
             mt5Service.streamActiveSymbol(streamSymbol, timeframe, 500)
         }
     }
@@ -1843,13 +1851,9 @@ fun TradingChart(
         positionPriceLineOwner = api
 
         positionsSnapshot.filter { pos ->
-            val s1 = symbol.uppercase()
-            val s2 = pos.symbol.uppercase()
-            s1 == s2 || 
-            (s1 == "BTCUSDT" && s2 == "BTCUSD") || 
-            (s1 == "BTCUSD" && s2 == "BTCUSDT") ||
-            (s1 == "ETHUSDT" && s2 == "ETHUSD") || 
-            (s1 == "ETHUSD" && s2 == "ETHUSDT")
+            val s1 = normalizeChartSymbol(symbol)
+            val s2 = normalizeChartSymbol(pos.symbol)
+            s1 == s2
         }.forEach { position ->
             val color = if (position.type.equals("buy", ignoreCase = true)) "#089981" else "#F23645"
             val isBuy = position.type.equals("buy", ignoreCase = true)
@@ -1934,13 +1938,9 @@ fun TradingChart(
         orderPriceLineOwner = api
 
         ordersSnapshot.filter { ord ->
-            val s1 = symbol.uppercase()
-            val s2 = ord.symbol.uppercase()
-            s1 == s2 || 
-            (s1 == "BTCUSDT" && s2 == "BTCUSD") || 
-            (s1 == "BTCUSD" && s2 == "BTCUSDT") ||
-            (s1 == "ETHUSDT" && s2 == "ETHUSD") || 
-            (s1 == "ETHUSD" && s2 == "ETHUSDT")
+            val s1 = normalizeChartSymbol(symbol)
+            val s2 = normalizeChartSymbol(ord.symbol)
+            s1 == s2
         }.forEach { order ->
             val color = if (order.type.equals("buy", ignoreCase = true)) "#089981" else "#F23645"
             
@@ -2720,30 +2720,32 @@ fun TradingChart(
                     scalesPlacement = chartSettings.scales.scalesPlacement
                 )
             }
-        // Top Right Currency Selector
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 12.dp, end = 2.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(ComposeColor(0xFF131722))
-                .border(1.dp, ComposeColor(0xFF363A45), RoundedCornerShape(3.dp))
-                .clickable { onCurrencyClick() }
-                .padding(horizontal = 4.dp, vertical = 1.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = selectedCurrency,
-                    color = ComposeColor(0xFFD1D4DC),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    null,
-                    tint = ComposeColor(0xFF787B86),
-                    modifier = Modifier.size(16.dp)
-                )
+        if (showCurrencySelector) {
+            // Top Right Currency Selector
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 2.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(ComposeColor(0xFF131722))
+                    .border(1.dp, ComposeColor(0xFF363A45), RoundedCornerShape(3.dp))
+                    .clickable { onCurrencyClick() }
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = selectedCurrency,
+                        color = ComposeColor(0xFFD1D4DC),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        null,
+                        tint = ComposeColor(0xFF787B86),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 
@@ -3123,20 +3125,22 @@ fun TradingChart(
             )
         }
 
-        // Settings Button (Bottom Right)
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(width = 60.dp, height = 34.dp)
-                .clickable { onSettingsClick() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Chart Settings",
-                tint = ComposeColor(0xFFD1D4DC),
-                modifier = Modifier.size(24.dp)
-            )
+        if (showSettingsButton) {
+            // Settings Button (Bottom Right)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(width = 60.dp, height = 34.dp)
+                    .clickable { onSettingsClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Chart Settings",
+                    tint = ComposeColor(0xFFD1D4DC),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         if (showMarketStatus) {

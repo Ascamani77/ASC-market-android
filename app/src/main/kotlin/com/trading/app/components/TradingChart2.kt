@@ -102,6 +102,8 @@ fun TradingChart2(
     onScrollDone: () -> Unit = {},
     onLongPress: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    showCurrencySelector: Boolean = true,
+    showSettingsButton: Boolean = true,
     onDataLoaded: (List<OHLCData>) -> Unit = {},
     selectedTimeZone: String = "UTC",
     onQuoteUpdate: (SymbolQuote) -> Unit = {},
@@ -256,6 +258,8 @@ fun TradingChart2(
                 onScrollDone = onScrollDone,
                 onLongPress = onLongPress,
                 onSettingsClick = onSettingsClick,
+                showCurrencySelector = showCurrencySelector,
+                showSettingsButton = showSettingsButton,
                 onDataLoaded = onDataLoaded,
                 selectedTimeZone = selectedTimeZone,
                 onQuoteUpdate = {

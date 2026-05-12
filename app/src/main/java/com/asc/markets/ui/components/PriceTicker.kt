@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
 import java.util.Locale
 import com.asc.markets.ui.theme.EmeraldSuccess
@@ -19,9 +21,11 @@ import com.asc.markets.ui.theme.PureBlack
 
 @Composable
 fun PriceTicker() {
-    val pairs by MarketDataStore.allPairs.collectAsState()
-    val tickerPairs = remember(pairs) {
-        pairs.take(8)
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by BinanceDataStore.allPairs.collectAsState()
+    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
+    val tickerPairs = remember(marketPairs, binancePairs, fallbackPairs) {
+        (binancePairs + marketPairs + fallbackPairs).distinctBy { it.symbol }.take(8)
     }
     if (tickerPairs.isEmpty()) return
 
@@ -80,7 +84,7 @@ fun TickerItem(pair: String, price: String, change: String) {
 private fun formatTickerPrice(price: Double): String {
     return when {
         price >= 1000 -> String.format(Locale.US, "%,.2f", price)
-        price >= 1 -> String.format(Locale.US, "%.4f", price)
+        price >= 1 -> String.format(Locale.US, "%.5f", price) // 5 decimals for forex (like MT5)
         else -> String.format(Locale.US, "%.6f", price)
     }
 }

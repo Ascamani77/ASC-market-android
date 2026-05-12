@@ -10,14 +10,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.data.NetworkConfig
 
 @Composable
 fun AiScreen(
     viewModel: AiViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val backendUrl = NetworkConfig.backendUrl(context)
 
     Column(
         modifier = Modifier
@@ -31,6 +35,12 @@ fun AiScreen(
             text = "AI PIPELINE TERMINAL",
             color = Color(0xFF00C853),
             style = MaterialTheme.typography.headlineSmall
+        )
+
+        Text(
+            text = "BACKEND: $backendUrl",
+            color = Color.Gray,
+            style = MaterialTheme.typography.labelSmall
         )
 
         // Run Button
@@ -85,7 +95,7 @@ fun AiScreen(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF6B2222))
             ) {
                 Text(
-                    text = "Error: $it",
+                    text = "Error: $it\n\nTarget backend: $backendUrl",
                     modifier = Modifier.padding(12.dp),
                     color = Color(0xFFFF6B6B)
                 )

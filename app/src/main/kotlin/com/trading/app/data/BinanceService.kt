@@ -6,6 +6,7 @@ import android.util.Log
 import com.google.gson.Gson
 import com.trading.app.components.SymbolQuote
 import com.trading.app.models.OHLCData
+import com.asc.markets.data.SystemTelemetry
 import okhttp3.*
 import org.json.JSONObject
 import java.util.Locale
@@ -50,6 +51,9 @@ class BinanceService(
                         time = data.optLong("E")
                     )
                     
+                    val latency = System.currentTimeMillis() - quote.time
+                    SystemTelemetry.recordTick("BINANCE", latency.toDouble().coerceAtLeast(1.0))
+                    
                     mainHandler.post {
                         onQuoteUpdate(quote)
                     }
@@ -65,6 +69,11 @@ class BinanceService(
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.w("BinanceService", "Binance WebSocket Closed: $reason")
+                SystemTelemetry.recordConnectionEvent("BINANCE", "CONNECTION_CLOSED ($reason)")
+            }
+            
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                SystemTelemetry.recordConnectionEvent("BINANCE", "WEBSOCKET_CONNECTED")
             }
         })
     }

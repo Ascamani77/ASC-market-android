@@ -312,6 +312,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 }
 
 private fun resolveLinkedOrderFlowSymbol(

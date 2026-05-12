@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Required for WebView to load remote charting scripts -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -30,6 +31,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".notifications.CombinedFallbackActionReceiver"
+            android:exported="false" />
 
         <!-- In-app Settings activity (deep-link target for asc://settings?section=... ) -->
         <activity

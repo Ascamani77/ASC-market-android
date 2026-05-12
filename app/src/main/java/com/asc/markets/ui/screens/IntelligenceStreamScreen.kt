@@ -143,7 +143,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Pills / sub-menu
-                    val pills = listOf("ALL", "POSSIBLE ENTRY", "ZONE GUARDS", "OBSERVATIONS", "MACRO NEWS", "SYSTEM")
+                    val pills = listOf("ALL", "UPCOMING", "CONFIRMED", "HIGH IMPACT", "MACRO NEWS", "SYSTEM")
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -175,20 +175,21 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Stream list (Intelligence Stream focuses on CONFIRMED events/signals)
+                // Stream list (Intelligence Stream focuses on upcoming events and confirmed signals)
                 val filtered = remember(macroEvents, query, selectedCategory) {
                     macroEvents.filter { it ->
                         val q = query.trim().lowercase()
                         val matchesQuery = q.isEmpty() || it.currency.lowercase().contains(q) || it.title.lowercase().contains(q) || it.details.lowercase().contains(q)
                         
-                        // Intelligence Stream shows confirmed captures only to avoid duplication with Macro Stream
-                        val isConfirmed = it.status == MacroEventStatus.CONFIRMED
+                        // Intelligence Stream shows UPCOMING events primarily, but can show confirmed captures based on filters
+                        val isUpcomingOrConfirmed = it.status == MacroEventStatus.UPCOMING || it.status == MacroEventStatus.CONFIRMED
                         
                         val matchesCategory = when(selectedCategory) {
-                            "ALL" -> isConfirmed
-                            "HIGH IMPACT" -> isConfirmed && (it.priority == ImpactPriority.HIGH || it.priority == ImpactPriority.CRITICAL)
-                            "CONFIRMED" -> isConfirmed
-                            else -> isConfirmed && it.source.equals(selectedCategory, true)
+                            "ALL" -> isUpcomingOrConfirmed
+                            "HIGH IMPACT" -> isUpcomingOrConfirmed && (it.priority == ImpactPriority.HIGH || it.priority == ImpactPriority.CRITICAL)
+                            "CONFIRMED" -> it.status == MacroEventStatus.CONFIRMED
+                            "UPCOMING" -> it.status == MacroEventStatus.UPCOMING
+                            else -> isUpcomingOrConfirmed && it.source.equals(selectedCategory, true)
                         }
                         matchesQuery && matchesCategory
                     }

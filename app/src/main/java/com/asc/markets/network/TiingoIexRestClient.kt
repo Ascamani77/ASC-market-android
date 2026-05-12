@@ -157,6 +157,6 @@ class TiingoIexRestClient(
         private const val KEY_NEXT_ALLOWED_REQUEST_AT = "tiingo_iex_rest_next_allowed_request_at"
         private const val TOP_URL = "https://api.tiingo.com/iex"
         private val RATE_LIMIT_BACKOFF_MS = TimeUnit.HOURS.toMillis(1)
-        private val SUCCESS_COOLDOWN_MS = TimeUnit.HOURS.toMillis(1)
+        private val SUCCESS_COOLDOWN_MS = TimeUnit.MINUTES.toMillis(1)
     }
 }

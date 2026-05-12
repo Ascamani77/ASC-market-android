@@ -1,7 +1,7 @@
 package com.asc.markets.logic
 
 import kotlinx.coroutines.delay
-import com.asc.markets.backend.OpenAIClient
+import com.asc.markets.backend.GroqClient
 import com.asc.markets.BuildConfig
 import kotlin.random.Random
 
@@ -28,7 +28,7 @@ object TradingAssistantEngine {
     // Simple in-memory ledger for mocked automated trades (Paper Bridge)
     val MOCK_AUTOMATED_TRADES: MutableList<TradeRecord> = mutableListOf()
 
-    private val tradeCmd = Regex("(?i)\\b(BUY|SELL)\\s+([A-Z/]{3,7})\\s+([\\d.]+)")
+    private val tradeCmd = Regex("(?i)\\b(BUY|SELL)\\s+([A-Z0-9/]{3,12})\\s+([\\d.]+)")
     private val setAlgoCmd = Regex("(?i)SET ALGO\\s+(VWAP|TWAP|MARKET)")
     private val armCmd = Regex("(?i)ARM\\s+PIPELINE")
 
@@ -93,11 +93,11 @@ object TradingAssistantEngine {
     }
 
     private suspend fun chatWithForexExpert(question: String): String {
-        // If the OpenAI API key is configured, call the remote model; otherwise use a local stub
+        // If the Groq API key is configured, call the remote model; otherwise use a local stub
         try {
-            if (BuildConfig.OPENAI_API_KEY.isNotBlank()) {
+            if (BuildConfig.GROQ_API_KEY.isNotBlank()) {
                 val prompt = com.asc.markets.ai.AiPrompts.buildAnalysisPrompt(question)
-                val resp = OpenAIClient.chatCompletion(prompt)
+                val resp = GroqClient.chatCompletion(prompt)
                 return "[ANALYSIS] " + resp
             }
         } catch (t: Throwable) {

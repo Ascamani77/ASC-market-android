@@ -89,7 +89,7 @@ fun PostMoveAuditHeader(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Sticky Sub-Menu (moves together with header for smooth transition)
-        val pills = listOf("ALL", "SIMPLE ALERTS", "SMART ALERTS", "NEWS", "STRATEGY", "SYSTEM", "ACCOUNT")
+        val pills = listOf("ALL", "CLOSED TRADE", "AI OUTCOME", "TARGET HIT", "INVALIDATED", "UNRESOLVED")
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()

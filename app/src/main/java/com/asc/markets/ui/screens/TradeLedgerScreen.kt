@@ -14,23 +14,52 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.MOCK_TRADES
-import com.asc.markets.data.AutomatedTrade
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.data.BinanceDataStore
+import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.PostMoveAuditCase
+import com.asc.markets.data.PostMoveAuditSource
+import com.asc.markets.data.PostMoveAuditStore
+import com.asc.markets.data.PreMoveIntelligenceStore
+import com.asc.markets.data.trade.TradeEntity
+import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.components.DeepAuditModal
 import com.asc.markets.ui.components.DashboardTrade
 import com.asc.markets.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
-fun TradeLedgerScreen() {
-    var selectedTrade by remember { mutableStateOf<com.asc.markets.data.AutomatedTrade?>(null) }
+fun TradeLedgerScreen(viewModel: ForexViewModel = viewModel()) {
+    var selectedCase by remember { mutableStateOf<PostMoveAuditCase?>(null) }
+    var closedTrades by remember { mutableStateOf<List<TradeEntity>>(emptyList()) }
+    val auditRecords by viewModel.auditRecords.collectAsState()
+    val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())
+    val marketTimedHistory by MarketDataStore.timedPriceHistory.collectAsState()
+    val binanceTimedHistory by BinanceDataStore.timedPriceHistory.collectAsState()
+    val fallbackTimedHistory by com.asc.markets.data.CombinedFallbackDataStore.timedPriceHistory.collectAsState()
+    val timedHistory = remember(marketTimedHistory, binanceTimedHistory, fallbackTimedHistory) {
+        marketTimedHistory + binanceTimedHistory + fallbackTimedHistory
+    }
+    val cases = remember(closedTrades, auditRecords, candidates, timedHistory) {
+        PostMoveAuditStore.buildCases(closedTrades, auditRecords, candidates, timedHistory)
+    }
+    val ledgerCases = remember(cases) {
+        cases.filter { it.source == PostMoveAuditSource.CLOSED_TRADE }
+    }
+    val avgSlippage = PostMoveAuditStore.averageSlippage(ledgerCases)
+    val efficiency = PostMoveAuditStore.outcomeEfficiency(ledgerCases)
+
+    LaunchedEffect(viewModel.tradeHistoryRepository) {
+        closedTrades = withContext(Dispatchers.IO) {
+            viewModel.tradeHistoryRepository?.getLast100Trades().orEmpty()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Separator between main menu and subheader
         Divider(modifier = Modifier.fillMaxWidth().height(1.dp), color = Color.White.copy(alpha = 0.06f))
 
-        // Static subheader that does not scroll
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -38,11 +67,10 @@ fun TradeLedgerScreen() {
                 .padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("REAL-TIME NODE AUTONOMOUS AUDIT STREAM", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text("CLOSED TRADE POST-MOVE LEDGER", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Area between subheader and page content uses DeepBlack background
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,7 +87,6 @@ fun TradeLedgerScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            // Full-width execution quality banner (touches screen edges)
             item {
                 InfoBox(minHeight = 220.dp, modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
@@ -72,7 +99,7 @@ fun TradeLedgerScreen() {
                             Text("EXECUTION", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
                             Text("QUALITY", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("POST-MOVE EFFICIENCY\nLEDGER (10%)", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text("POST-MOVE CLOSED TRADE LEDGER", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
                         }
                     }
 
@@ -81,28 +108,37 @@ fun TradeLedgerScreen() {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("AVG SLIPPAGE", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                            Text("0.12 PIPS", color = EmeraldSuccess, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(avgSlippage?.let { String.format("%.2f PIPS", it) } ?: "NOT CAPTURED", color = if (avgSlippage == null) SlateText else EmeraldSuccess, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("SYSTEM EFFICIENCY", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                            Text("96.8% VALIDATED", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("OUTCOME EFFICIENCY", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            Text(efficiency?.let { "$it% SCORED" } ?: "PENDING", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 }
             }
             }
 
-            items(MOCK_TRADES) { trade ->
-                DashboardTrade(trade) { selectedTrade = it }
-                Spacer(modifier = Modifier.height(0.dp))
+            if (ledgerCases.isEmpty()) {
+                item {
+                    InfoBox(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("NO CLOSED TRADE LEDGER RECORDS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("The ledger will populate after confirmed fills are saved through TradeHistoryRepository or synchronized from a closed-order source.", color = SlateText, fontSize = 12.sp, lineHeight = 17.sp, fontFamily = InterFontFamily)
+                        }
+                    }
+                }
+            } else {
+                items(ledgerCases, key = { it.id }) { case ->
+                    DashboardTrade(case) { selectedCase = it }
+                    Spacer(modifier = Modifier.height(0.dp))
+                }
             }
         }
     }
 
-    if (selectedTrade != null) {
-        DeepAuditModal(selectedTrade!!) { selectedTrade = null }
+    if (selectedCase != null) {
+        DeepAuditModal(selectedCase!!) { selectedCase = null }
     }
 }
-
-// ContextMiniBox moved to ui.components.DashboardTrade
