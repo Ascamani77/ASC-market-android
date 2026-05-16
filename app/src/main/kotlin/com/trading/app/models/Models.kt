@@ -249,7 +249,8 @@ data class TradeNotification(
     val volume: Float,
     val price: Float,
     val isBuy: Boolean,
-    val type: String // "executed", "tp_placed", "sl_placed"
+    val type: String, // "executed", "tp_placed", "sl_placed"
+    val exchange: String = "EXNESS"
 )
 
 data class OHLCData(
@@ -327,7 +328,8 @@ data class Position(
     val leverage: String = "1x",
     val margin: Float = 0f,
     val isSelected: Boolean = false,
-    val partialOrders: List<PartialOrder> = emptyList()
+    val partialOrders: List<PartialOrder> = emptyList(),
+    val positionSide: String? = null // For Binance hedge mode: "LONG", "SHORT", or "BOTH"
 )
 
 data class Order(

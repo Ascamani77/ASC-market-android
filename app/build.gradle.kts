@@ -29,6 +29,11 @@ android {
         if (localPropsFile.exists()) {
             localProps.load(localPropsFile.inputStream())
         }
+        val demoProps = Properties()
+        val demoPropsFile = project.rootProject.file("env.demo")
+        if (demoPropsFile.exists()) {
+            demoProps.load(demoPropsFile.inputStream())
+        }
 
         buildConfigField("String", "OPENAI_API_KEY", "\"${localProps.getProperty("OPENAI_API_KEY") ?: project.findProperty("OPENAI_API_KEY") ?: ""}\"")
         buildConfigField("String", "GROQ_API_KEY", "\"${localProps.getProperty("GROQ_API_KEY") ?: project.findProperty("GROQ_API_KEY") ?: ""}\"")
@@ -41,6 +46,12 @@ android {
         buildConfigField("String", "FRED_API_KEY", "\"${localProps.getProperty("FRED_API_KEY") ?: project.findProperty("FRED_API_KEY") ?: ""}\"")
         buildConfigField("String", "DERIV_APP_ID", "\"${localProps.getProperty("DERIV_APP_ID") ?: project.findProperty("DERIV_APP_ID") ?: "1089"}\"")
         buildConfigField("String", "DERIV_API_TOKEN", "\"${localProps.getProperty("DERIV_API_TOKEN") ?: project.findProperty("DERIV_API_TOKEN") ?: ""}\"")
+        buildConfigField("String", "BINANCE_API_KEY", "\"${localProps.getProperty("BINANCE_API_KEY") ?: project.findProperty("BINANCE_API_KEY") ?: ""}\"")
+        buildConfigField("String", "BINANCE_SECRET_KEY", "\"${localProps.getProperty("BINANCE_SECRET_KEY") ?: project.findProperty("BINANCE_SECRET_KEY") ?: ""}\"")
+        buildConfigField("String", "BINANCE_DEMO_API_KEY", "\"${demoProps.getProperty("BINANCE_DEMO_API_KEY") ?: project.findProperty("BINANCE_DEMO_API_KEY") ?: ""}\"")
+        buildConfigField("String", "BINANCE_DEMO_SECRET_KEY", "\"${demoProps.getProperty("BINANCE_DEMO_SECRET_KEY") ?: project.findProperty("BINANCE_DEMO_SECRET_KEY") ?: ""}\"")
+        
+        // Binance Trading
         
         // cTrader Pepperstone Configuration
         buildConfigField("String", "CTRADER_HOST_TYPE", "\"${localProps.getProperty("CTRADER_HOST_TYPE") ?: project.findProperty("CTRADER_HOST_TYPE") ?: "demo"}\"")
@@ -49,6 +60,7 @@ android {
         buildConfigField("String", "CTRADER_ACCESS_TOKEN", "\"${localProps.getProperty("CTRADER_ACCESS_TOKEN") ?: project.findProperty("CTRADER_ACCESS_TOKEN") ?: ""}\"")
         buildConfigField("String", "CTRADER_REFRESH_TOKEN", "\"${localProps.getProperty("CTRADER_REFRESH_TOKEN") ?: project.findProperty("CTRADER_REFRESH_TOKEN") ?: ""}\"")
         buildConfigField("String", "CTRADER_ACCOUNT_ID", "\"${localProps.getProperty("CTRADER_ACCOUNT_ID") ?: project.findProperty("CTRADER_ACCOUNT_ID") ?: ""}\"")
+        buildConfigField("String", "CTRADER_BRIDGE_HOST", "\"${localProps.getProperty("CTRADER_BRIDGE_HOST") ?: project.findProperty("CTRADER_BRIDGE_HOST") ?: "192.168.1.100"}\"")
         buildConfigField("int", "CTRADER_BRIDGE_PORT", "${localProps.getProperty("CTRADER_BRIDGE_PORT") ?: project.findProperty("CTRADER_BRIDGE_PORT") ?: 8082}")
     }
 

@@ -62,9 +62,10 @@ private fun buildRsiData(
     rsiValues: List<Float?>
 ): List<LineData> {
     return rsiValues.mapIndexedNotNull { index, value ->
+        val candle = candles.getOrNull(index) ?: return@mapIndexedNotNull null
         value?.let {
             LineData(
-                time = candles[index].time.toChartTime(),
+                time = candle.time.toChartTime(),
                 value = it.coerceIn(RSI_MIN, RSI_MAX)
             )
         }
@@ -346,9 +347,10 @@ internal fun updateInlineRsiPaneData(
     refs.rsiSeriesApi?.setData(rsiData)
 
     val maData = data.movingAverageValues.mapIndexedNotNull { index, value ->
+        val candle = candles.getOrNull(index) ?: return@mapIndexedNotNull null
         value?.let {
             LineData(
-                time = candles[index].time.toChartTime(),
+                time = candle.time.toChartTime(),
                 value = it.coerceIn(RSI_MIN, RSI_MAX)
             )
         }

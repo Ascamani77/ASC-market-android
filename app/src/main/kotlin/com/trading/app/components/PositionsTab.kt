@@ -29,6 +29,8 @@ fun PositionsTab(
     positions: List<Position>,
     currentPrice: Float,
     selectedPositionId: String? = null,
+    quotePriceForSymbol: ((String) -> Float?)? = null,
+    providerLabel: String = "LIVE",
     visibility: PaperTradingVisibility = PaperTradingVisibility(),
     onPositionClick: (Position) -> Unit = {},
     onSettingsClick: () -> Unit = {},
@@ -50,10 +52,12 @@ fun PositionsTab(
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             items(positions) { position ->
+                val positionPrice = quotePriceForSymbol?.invoke(position.symbol) ?: currentPrice
                 PositionItem(
-                    position, 
-                    currentPrice, 
+                    position,
+                    positionPrice,
                     isSelected = position.id == selectedPositionId,
+                    providerLabel = providerLabel,
                     visibility = visibility,
                     onClick = { onPositionClick(position) },
                     onSettingsClick = onSettingsClick
@@ -70,9 +74,10 @@ fun PositionsTab(
 
 @Composable
 private fun PositionItem(
-    position: Position, 
-    lastPrice: Float, 
+    position: Position,
+    lastPrice: Float,
     isSelected: Boolean,
+    providerLabel: String,
     visibility: PaperTradingVisibility,
     onClick: () -> Unit,
     onSettingsClick: () -> Unit
@@ -114,7 +119,7 @@ private fun PositionItem(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    "EXNESS:${position.symbol.uppercase()}",
+                    "${providerLabel.uppercase(Locale.US)}:${position.symbol.uppercase()}",
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold

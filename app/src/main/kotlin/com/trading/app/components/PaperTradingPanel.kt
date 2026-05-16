@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.models.Position
 import com.trading.app.models.Order
 import com.trading.app.data.Mt5Service
@@ -30,30 +31,44 @@ fun PaperTradingPanel(
     orderHistory: List<Order> = emptyList(),
     balanceHistory: List<com.trading.app.models.BalanceRecord> = emptyList(),
     currentPrice: Float = 0f,
+    quotePriceForSymbol: ((String) -> Float?)? = null,
+    preferSnapshotStats: Boolean = false,
+    providerLabel: String = "LIVE",
     balance: Double = 0.0,
     accountInfo: Mt5Service.AccountInfo? = null,
-    backgroundColor: Color = Color(0xFF08090C)
+    sourceName: String = "Live Trade",
+    accountLabel: String = "No account connected",
+    isBrokerConnected: Boolean = accountInfo != null,
+    backgroundColor: Color = Color(0xFF08090C),
+    onMarketTypeChange: ((String) -> Unit)? = null,
+    currentMarketType: String = "spot",
+    onRefresh: (() -> Unit)? = null
 ) {
     var activeTab by remember { mutableStateOf("Positions") }
     val tabs = listOf("Positions", "Orders", "Order History", "Balance History", "Trading Journal")
     
     var showVisibilitySettings by remember { mutableStateOf(false) }
     var visibilitySettings by remember { mutableStateOf(PaperTradingVisibility()) }
+    var showMarketTypeDropdown by remember { mutableStateOf(false) }
 
     val labelColor = Color(0xFF787B86)
     val horizontalMargin = 16.dp
+    val snapshot = PaperTradingSnapshotStore.snapshot
+    val useSnapshotStats = preferSnapshotStats && snapshot.hasLiveTradeData && snapshot.activeTrades > 0 && snapshot.currentTradeSymbol != null
 
     // Calculations for Header Stats
-    val totalUnrealizedPnl = accountInfo?.unrealizedPnl ?: positions.sumOf { 
+    val totalUnrealizedPnl = if (useSnapshotStats) {
+        snapshot.floatingPnl
+    } else accountInfo?.unrealizedPnl ?: positions.sumOf {
         ((currentPrice - it.entryPrice) * it.volume * (if (it.type == "buy") 1f else -1f)).toDouble()
     }
-    val displayBalance = accountInfo?.balance ?: balance
-    val equity = accountInfo?.equity ?: (displayBalance + totalUnrealizedPnl)
-    val totalMargin = accountInfo?.margin ?: positions.sumOf { (it.entryPrice * it.volume * 0.01f).toDouble() }
-    val availableFunds = accountInfo?.availableFunds ?: (equity - totalMargin)
-    val marginBuffer = accountInfo?.marginBuffer ?: (if (equity > 0) (availableFunds / equity) * 100 else 100.0)
-    val realizedPnl = accountInfo?.realizedPnl ?: 0.0
-    val ordersMargin = accountInfo?.ordersMargin ?: 0.0
+    val displayBalance = if (useSnapshotStats) snapshot.balance else accountInfo?.balance ?: balance
+    val equity = if (useSnapshotStats) snapshot.equity else accountInfo?.equity ?: (displayBalance + totalUnrealizedPnl)
+    val totalMargin = if (useSnapshotStats) snapshot.margin else accountInfo?.margin ?: positions.sumOf { (it.entryPrice * it.volume * 0.01f).toDouble() }
+    val availableFunds = if (useSnapshotStats) snapshot.freeMargin else accountInfo?.availableFunds ?: (equity - totalMargin)
+    val marginBuffer = if (useSnapshotStats) snapshot.marginLevel else accountInfo?.marginBuffer ?: (if (equity > 0) (availableFunds / equity) * 100 else 100.0)
+    val realizedPnl = if (useSnapshotStats) snapshot.realizedPnl else accountInfo?.realizedPnl ?: 0.0
+    val ordersMargin = if (useSnapshotStats) snapshot.ordersMargin else accountInfo?.ordersMargin ?: 0.0
 
     Column(
         modifier = Modifier
@@ -70,16 +85,90 @@ fun PaperTradingPanel(
         ) {
             Column(modifier = Modifier.clickable { }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Live Trade", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(sourceName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("nelsonekomwenrenren USD", color = labelColor, fontSize = 12.sp)
-                    Icon(Icons.Default.KeyboardArrowDown, null, tint = labelColor, modifier = Modifier.size(14.dp))
+                Box {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { 
+                            if (onMarketTypeChange != null) {
+                                showMarketTypeDropdown = !showMarketTypeDropdown
+                            }
+                        }
+                    ) {
+                        Text(accountLabel, color = labelColor, fontSize = 12.sp)
+                        if (onMarketTypeChange != null) {
+                            Icon(Icons.Default.KeyboardArrowDown, null, tint = labelColor, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                    
+                    // Dropdown menu for market type selection
+                    DropdownMenu(
+                        expanded = showMarketTypeDropdown,
+                        onDismissRequest = { showMarketTypeDropdown = false },
+                        modifier = Modifier.background(Color(0xFF1E222D))
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Binance Spot ${if (accountLabel.contains("Demo")) "Demo" else "Live"}",
+                                        color = if (currentMarketType == "spot") Color(0xFF2962FF) else Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                    if (currentMarketType == "spot") {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2962FF),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                onMarketTypeChange?.invoke("spot")
+                                showMarketTypeDropdown = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Binance Futures ${if (accountLabel.contains("Demo")) "Demo" else "Live"}",
+                                        color = if (currentMarketType == "futures") Color(0xFF2962FF) else Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                    if (currentMarketType == "futures") {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2962FF),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                onMarketTypeChange?.invoke("futures")
+                                showMarketTypeDropdown = false
+                            }
+                        )
+                    }
                 }
             }
             
             Spacer(modifier = Modifier.weight(1f))
+            
+            // Refresh button
+            if (onRefresh != null) {
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Default.Refresh, "Refresh", tint = labelColor, modifier = Modifier.size(24.dp))
+                }
+            }
             
             IconButton(onClick = { }) {
                 Icon(Icons.Default.Settings, null, tint = labelColor, modifier = Modifier.size(24.dp))
@@ -92,7 +181,7 @@ fun PaperTradingPanel(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-    val isConnected = accountInfo != null
+    val isConnected = isBrokerConnected
     
     fun formatValue(value: Double, pattern: String = "%,.2f", showSign: Boolean = false): String {
         if (!isConnected) return "---"
@@ -209,6 +298,8 @@ fun PaperTradingPanel(
                     positions = positions, 
                     currentPrice = currentPrice,
                     selectedPositionId = selectedPositionId,
+                    quotePriceForSymbol = quotePriceForSymbol,
+                    providerLabel = providerLabel,
                     visibility = visibilitySettings,
                     onPositionClick = onPositionClick,
                     onSettingsClick = { showVisibilitySettings = true }

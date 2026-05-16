@@ -19,7 +19,7 @@ val FOREX_PAIRS = listOf(
     ForexPair("XAU/USD", "Gold / US Dollar", 2342.50, 12.40, 0.53, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("XAG/USD", "Silver / US Dollar", 28.45, 0.65, 2.34, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("USOIL", "WTI Crude Oil", 82.14, -1.20, -1.44, com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("DXY", "US Dollar Index", 104.28, 0.45, 0.43, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("UKOIL", "Brent Crude Oil", 85.42, -0.95, -1.10, com.asc.markets.data.MarketCategory.COMMODITIES),
 
     // CRYPTO (4)
     // Binance USDT pairs (for most of the app - Market Overview, Dashboard, etc.)
@@ -29,7 +29,8 @@ val FOREX_PAIRS = listOf(
     ForexPair("BTC/USD", "Bitcoin / US Dollar", 67425.00, 1232.50, 1.85, com.asc.markets.data.MarketCategory.CRYPTO),
     ForexPair("ETH/USD", "Ethereum / US Dollar", 3450.80, -46.50, -1.33, com.asc.markets.data.MarketCategory.CRYPTO),
 
-    // INDICES (3)
+    // INDICES (4)
+    ForexPair("DXY", "US Dollar Index", 104.28, 0.45, 0.43, com.asc.markets.data.MarketCategory.INDICES),
     ForexPair("NAS100", "Nasdaq 100", 18240.50, 142.30, 0.79, com.asc.markets.data.MarketCategory.INDICES),
     ForexPair("US30", "Dow Jones 30", 39120.00, 85.00, 0.22, com.asc.markets.data.MarketCategory.INDICES),
     ForexPair("SPX500", "S&P 500", 5210.45, 12.15, 0.23, com.asc.markets.data.MarketCategory.INDICES),

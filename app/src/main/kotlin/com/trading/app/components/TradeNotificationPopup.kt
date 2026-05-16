@@ -127,7 +127,7 @@ fun TradeNotificationPopup(
                     Spacer(modifier = Modifier.height(2.dp))
                     
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        ExchangeIcon(exchange = "exness", modifier = Modifier.size(14.dp))
+                        ExchangeIcon(exchange = notification.exchange.lowercase(), modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         val formattedSymbol = if (notification.symbol.contains("USD")) {
                             notification.symbol.uppercase()
@@ -135,7 +135,7 @@ fun TradeNotificationPopup(
                             "${notification.symbol.uppercase()}USD"
                         }
                         Text(
-                            text = "EXNESS:$formattedSymbol",
+                            text = "${notification.exchange.uppercase()}:$formattedSymbol",
                             color = Color(0xFF787B86),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
@@ -146,7 +146,7 @@ fun TradeNotificationPopup(
                     
                     val sideColor = if (notification.isBuy) Color(0xFF089981) else Color(0xFFF23645)
                     val sideText = if (notification.isBuy) "Buy" else "Sell"
-                    val volumeText = String.format("%.0f", notification.volume)
+                    val volumeText = String.format("%.2f", notification.volume)
                     
                     Text(
                         text = "$sideText $volumeText at ${notification.price}",

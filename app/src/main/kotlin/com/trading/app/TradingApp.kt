@@ -1,6 +1,7 @@
 package com.trading.app
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -27,9 +28,15 @@ import com.trading.app.data.NewsSnapshotStore
 import com.trading.app.data.Mt5NewsStore
 import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
+import com.trading.app.data.BinanceTradingMode
+import com.trading.app.data.BinanceMarketType
 import com.trading.app.data.PaperTradingAccountSnapshot
 import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.data.BinanceService
+import com.trading.app.data.BinanceTradingService
+import com.trading.app.data.BinanceFuturesService
+import com.trading.app.data.BinanceTradingService.Balance
+import com.trading.app.data.CTraderService
 import com.trading.app.data.ChartFeedType
 import com.trading.app.data.PepperstoneChartService
 import com.trading.app.data.chartFeedQuotes
@@ -131,6 +138,12 @@ private fun liveQuoteSymbolKeys(symbol: String): List<String> {
     }.distinct()
 }
 
+private const val LIVE_QUOTE_MAX_AGE_MS = 15_000L
+
+private fun isFreshLiveQuote(quote: SymbolQuote?, nowMillis: Long = System.currentTimeMillis()): Boolean {
+    return quote != null && quote.lastPrice > 0f && quote.time > 0L && nowMillis - quote.time <= LIVE_QUOTE_MAX_AGE_MS
+}
+
 private fun persistNewsAiPayload(
     context: Context,
     sharedPrefs: android.content.SharedPreferences,
@@ -155,6 +168,7 @@ fun TradingApp(
 ) {
     val context = LocalContext.current
     val sharedPrefs = remember { context.getSharedPreferences("trading_prefs", Context.MODE_PRIVATE) }
+    val networkPrefs = remember { context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE) }
     val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
@@ -168,9 +182,24 @@ fun TradingApp(
     fun streamScopedKey(base: String): String = "${base}_${streamStateNamespace}"
 
     val chartFeedType = streamFeedType
+    var binanceTradingMode by remember {
+        mutableStateOf(BinanceTradingMode.current(context))
+    }
     val chartFeedQuoteCatalog = remember(chartFeedType) { chartFeedQuotes(chartFeedType) }
     val defaultStreamSymbol = remember(chartFeedType) {
         chartFeedQuoteCatalog.firstOrNull()?.ticker ?: "EURUSD"
+    }
+
+    DisposableEffect(networkPrefs, context) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == BinanceTradingMode.PREF_KEY) {
+                binanceTradingMode = BinanceTradingMode.current(context)
+            }
+        }
+        networkPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            networkPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
 
     // Core State
@@ -243,7 +272,9 @@ fun TradingApp(
                 gson.fromJson<Map<String, SymbolQuote>>(saved, type)
             } catch (e: Exception) { emptyMap() }
         } else emptyMap()
-        mutableStateMapOf<String, SymbolQuote>().apply { putAll(map) }
+        mutableStateMapOf<String, SymbolQuote>().apply {
+            putAll(map.filterValues { isFreshLiveQuote(it) })
+        }
     }
     val symbolQuotesByTicker = remember(streamStateNamespace) {
         val saved = sharedPrefs.getString(streamScopedKey("symbol_quotes_by_ticker"), null)
@@ -253,7 +284,9 @@ fun TradingApp(
                 gson.fromJson<Map<String, SymbolQuote>>(saved, type)
             } catch (e: Exception) { emptyMap() }
         } else emptyMap()
-        mutableStateMapOf<String, SymbolQuote>().apply { putAll(map) }
+        mutableStateMapOf<String, SymbolQuote>().apply {
+            putAll(map.filterValues { isFreshLiveQuote(it) })
+        }
     }
 
     // Save quotes whenever they update
@@ -283,6 +316,11 @@ fun TradingApp(
             .toSet()
         symbolQuotesByTicker.keys
             .filter { it.uppercase(Locale.US) !in allowedKeys }
+            .toList()
+            .forEach { symbolQuotesByTicker.remove(it) }
+        symbolQuotesByTicker.entries
+            .filter { !isFreshLiveQuote(it.value) }
+            .map { it.key }
             .toList()
             .forEach { symbolQuotesByTicker.remove(it) }
     }
@@ -315,6 +353,23 @@ fun TradingApp(
             .map { quote -> quote.brokerSymbol.ifBlank { quote.ticker } }
             .filter { it.isNotEmpty() }
             .distinctBy { it.uppercase(Locale.US) }
+    }
+
+    fun liveTradeSourceName(): String = when (chartFeedType) {
+        ChartFeedType.BINANCE -> if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Demo Trade" else "Binance Live Trade"
+        ChartFeedType.EXNESS -> "Exness Live Trade"
+        ChartFeedType.PEPPERSTONE -> "Pepperstone Live Trade"
+    }
+
+    fun liveTradeDefaultAccountLabel(): String = when (chartFeedType) {
+        ChartFeedType.BINANCE -> if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Futures Demo" else "Binance Futures Live"
+        ChartFeedType.EXNESS -> "Exness MT5"
+        ChartFeedType.PEPPERSTONE -> "Pepperstone cTrader"
+    }
+
+    fun binanceTradingSymbol(symbol: String): String {
+        val normalized = chartFeedSymbolFor(ChartFeedType.BINANCE, symbol).trim().uppercase(Locale.US)
+        return normalized.replace("/", "").replace("-", "").replace("_", "")
     }
 
     fun cacheSelectedSourceQuote(quote: SymbolQuote) {
@@ -380,9 +435,16 @@ fun TradingApp(
     }
 
     val pepperstoneQuoteService = remember {
+        val prefs = context.getSharedPreferences("asc_prefs", android.content.Context.MODE_PRIVATE)
+        val redisHost = prefs.getString("redis_host", "10.164.138.133") ?: "10.164.138.133"
+        val redisPort = prefs.getInt("redis_port", 6379)
+        
         PepperstoneChartService(
             host = cTraderHost,
             port = cTraderPort,
+            redisHost = redisHost,
+            redisPort = redisPort,
+            publishToRedis = true,
             onQuoteUpdate = { quote ->
                 if (chartFeedType == ChartFeedType.PEPPERSTONE) {
                     cacheSelectedSourceQuote(quote)
@@ -392,8 +454,10 @@ fun TradingApp(
         )
     }
 
-    val binanceQuoteService = remember {
+    val binanceQuoteService = remember(binanceTradingMode) {
         BinanceService(
+            tradingMode = binanceTradingMode,
+            marketType = BinanceMarketType.FUTURES,
             onQuoteUpdate = { quote ->
                 if (chartFeedType == ChartFeedType.BINANCE) {
                     cacheSelectedSourceQuote(quote)
@@ -402,6 +466,9 @@ fun TradingApp(
             onHistoryUpdate = { _, _ -> }
         )
     }
+
+    val binanceTradingService = remember(binanceTradingMode) { BinanceTradingService(binanceTradingMode) }
+    val binanceFuturesService = remember(binanceTradingMode) { BinanceFuturesService(binanceTradingMode) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -432,6 +499,7 @@ fun TradingApp(
             }
             ChartFeedType.BINANCE -> {
                 pepperstoneQuoteService.stopActiveStream()
+                Log.d("BinanceService", "Subscribing to Binance symbols: ${sourceSymbols.joinToString(", ")}")
                 binanceQuoteService.subscribeSymbols(sourceSymbols)
             }
         }
@@ -450,7 +518,7 @@ fun TradingApp(
         }
 
         val normalizedSymbol = symbol.trim()
-        currentLiveQuote = symbolQuotesByTicker[normalizedSymbol.uppercase(Locale.US)]
+        currentLiveQuote = symbolQuotesByTicker[normalizedSymbol.uppercase(Locale.US)]?.takeIf { isFreshLiveQuote(it) }
     }
 
     // Settings & Data
@@ -464,6 +532,40 @@ fun TradingApp(
     val orderHistory = remember { mutableStateListOf<Order>() }
     val balanceHistory = remember { mutableStateListOf<BalanceRecord>() }
     var mt5AccountInfo by remember { mutableStateOf<Mt5Service.AccountInfo?>(null) }
+    var liveTradeAccountLabel by remember(chartFeedType, binanceTradingMode) { mutableStateOf(liveTradeDefaultAccountLabel()) }
+    var liveTradeRefreshToken by remember(streamStateNamespace) { mutableIntStateOf(0) }
+    val cTraderTradingService = remember {
+        CTraderService(
+            onQuoteUpdate = { quote ->
+                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                    cacheSelectedSourceQuote(quote)
+                }
+            },
+            onPositionsUpdate = { updatedPositions ->
+                Log.d("TradingApp", "cTrader positions update received: ${updatedPositions.size} positions")
+                updatedPositions.forEachIndexed { index, pos ->
+                    Log.d("TradingApp", "Position $index: id=${pos.id}, symbol=${pos.symbol}, type=${pos.type}, volume=${pos.volume}")
+                }
+                positions.clear()
+                positions.addAll(updatedPositions)
+                Log.d("TradingApp", "Positions list updated, new size: ${positions.size}")
+            },
+            onAccountUpdate = { accountInfo ->
+                Log.d("TradingApp", "cTrader account update received: balance=${accountInfo?.balance}, equity=${accountInfo?.equity}, margin=${accountInfo?.margin}")
+                mt5AccountInfo = accountInfo
+                Log.d("TradingApp", "mt5AccountInfo updated to: $mt5AccountInfo")
+            },
+            onBalanceHistoryUpdate = { newBalanceHistory ->
+                balanceHistory.clear()
+                balanceHistory.addAll(newBalanceHistory)
+            },
+            onConnectionStatusUpdate = { connected ->
+                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                    isConnected = connected
+                }
+            }
+        )
+    }
 
     LaunchedEffect(positions.toList(), localPositions.toList(), orders.toList(), chartFeedType) {
         val allowedSymbols = sourceQuoteSymbols().map { it.uppercase(Locale.US) }.toSet()
@@ -530,15 +632,25 @@ fun TradingApp(
                 val livePrice = quoteForSymbol(position.symbol)?.lastPrice ?: return@sumOf 0.0
                 ((livePrice - position.entryPrice) * position.volume * (if (position.type == "buy") 1f else -1f)).toDouble()
             }
-            val floatingPnl = mt5AccountInfo?.unrealizedPnl ?: calculatedFloatingPnl
+            val accountInfo = mt5AccountInfo
+            val floatingPnl = if (chartFeedType == ChartFeedType.PEPPERSTONE && paperPositions.isNotEmpty()) {
+                calculatedFloatingPnl
+            } else {
+                accountInfo?.unrealizedPnl ?: calculatedFloatingPnl
+            }
             val latestBalance = balanceHistory.maxByOrNull { it.time }?.balanceAfter
-            val hasLiveAccountData = mt5AccountInfo != null || latestBalance != null
-            val balance = mt5AccountInfo?.balance ?: latestBalance ?: 0.0
-            val equity = mt5AccountInfo?.equity ?: if (hasLiveAccountData || paperPositions.isNotEmpty()) balance + floatingPnl else 0.0
-            val margin = mt5AccountInfo?.margin ?: paperPositions.sumOf { (it.margin.takeIf { value -> value > 0f } ?: (it.entryPrice * it.volume * 0.01f)).toDouble() }
-            val freeMargin = mt5AccountInfo?.availableFunds ?: (equity - margin)
-            val ordersMargin = mt5AccountInfo?.ordersMargin ?: orders.sumOf { it.margin.toDouble() }
-            val marginLevel = mt5AccountInfo?.marginBuffer ?: (if (equity > 0.0) (freeMargin / equity) * 100.0 else 100.0)
+            val hasLiveAccountData = accountInfo != null || latestBalance != null
+            val balance = accountInfo?.balance ?: latestBalance ?: 0.0
+            val equity = when {
+                chartFeedType == ChartFeedType.PEPPERSTONE && paperPositions.isNotEmpty() -> balance + calculatedFloatingPnl
+                accountInfo?.equity != null -> accountInfo.equity
+                hasLiveAccountData || paperPositions.isNotEmpty() -> balance + floatingPnl
+                else -> 0.0
+            }
+            val margin = accountInfo?.margin ?: paperPositions.sumOf { (it.margin.takeIf { value -> value > 0f } ?: (it.entryPrice * it.volume * 0.01f)).toDouble() }
+            val freeMargin = accountInfo?.availableFunds ?: (equity - margin)
+            val ordersMargin = accountInfo?.ordersMargin ?: orders.sumOf { it.margin.toDouble() }
+            val marginLevel = accountInfo?.marginBuffer ?: (if (equity > 0.0) (freeMargin / equity) * 100.0 else 100.0)
             val openRisk = paperPositions.sumOf { position ->
                 val stopLoss = position.sl
                 if (stopLoss != null) {
@@ -592,13 +704,223 @@ fun TradingApp(
         PaperTradingSnapshotStore.snapshot = paperTradingSnapshot
     }
 
-    LaunchedEffect(chartFeedType) {
-        if (chartFeedType == ChartFeedType.EXNESS) {
-            mt5Service.connect()
+    LaunchedEffect(chartFeedType, binanceTradingMode) {
+        mt5AccountInfo = null
+        positions.clear()
+        localPositions.clear()
+        orders.clear()
+        orderHistory.clear()
+        balanceHistory.clear()
+        isConnected = false
+        liveTradeAccountLabel = liveTradeDefaultAccountLabel()
+        when (chartFeedType) {
+            ChartFeedType.EXNESS -> {
+                cTraderTradingService.disconnect()
+                mt5Service.connect()
+            }
+            ChartFeedType.PEPPERSTONE -> {
+                reverseBridge.disconnect()
+                mt5Service.disconnect()
+                cTraderTradingService.connect()
+            }
+            ChartFeedType.BINANCE -> {
+                reverseBridge.disconnect()
+                mt5Service.disconnect()
+                cTraderTradingService.disconnect()
+                isConnected = binanceTradingService.isConfigured()
+            }
+        }
+    }
+
+    LaunchedEffect(chartFeedType, binanceTradingMode, showPaperTradingPanel, symbol, liveTradeRefreshToken) {
+        Log.d("BinanceBalance", "LaunchedEffect triggered: chartFeedType=$chartFeedType, showPaperTradingPanel=$showPaperTradingPanel, binanceTradingMode=$binanceTradingMode")
+        
+        if (!showPaperTradingPanel) return@LaunchedEffect
+
+        // Auto-refresh loop for Binance orders and positions
+        if (chartFeedType == ChartFeedType.BINANCE) {
+            // Setup User Data Stream callbacks for real-time position/account updates
+            binanceFuturesService.onPositionUpdate = { updatedPositions ->
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    // Merge WebSocket position updates into local state
+                    updatedPositions.forEach { pos ->
+                        val existingIndex = positions.indexOfFirst { it.symbol == pos.symbol && it.positionSide == pos.positionSide }
+                        val position = Position(
+                            symbol = pos.symbol,
+                            type = if (pos.positionAmt > 0) "buy" else "sell",
+                            entryPrice = pos.entryPrice.toFloat(),
+                            volume = kotlin.math.abs(pos.positionAmt).toFloat(),
+                            time = System.currentTimeMillis(),
+                            leverage = "${pos.leverage}x",
+                            margin = pos.isolatedMargin.toFloat(),
+                            positionSide = pos.positionSide
+                        )
+                        if (existingIndex >= 0) {
+                            if (pos.positionAmt == 0.0) {
+                                positions.removeAt(existingIndex)
+                            } else {
+                                positions[existingIndex] = position
+                            }
+                        } else if (pos.positionAmt != 0.0) {
+                            positions.add(position)
+                        }
+                    }
+                    Log.i("BinanceBalance", "Positions updated via WebSocket: ${positions.size} positions")
+                }
+            }
+            binanceFuturesService.onAccountUpdate = { accountInfo ->
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    mt5AccountInfo = Mt5Service.AccountInfo(
+                        balance = accountInfo.totalWalletBalance,
+                        equity = accountInfo.totalMarginBalance,
+                        unrealizedPnl = accountInfo.totalUnrealizedProfit,
+                        realizedPnl = 0.0,
+                        margin = accountInfo.totalMarginBalance - accountInfo.availableBalance,
+                        availableFunds = accountInfo.availableBalance,
+                        ordersMargin = 0.0,
+                        marginBuffer = if (accountInfo.totalMarginBalance > 0) (accountInfo.availableBalance / accountInfo.totalMarginBalance) * 100.0 else 100.0
+                    )
+                }
+            }
+            scope.launch {
+                val key = binanceFuturesService.startUserDataStream()
+                if (key != null) {
+                    binanceFuturesService.connectUserDataStream()
+                    Log.i("BinanceBalance", "Binance User Data Stream connected")
+                } else {
+                    Log.e("BinanceBalance", "Failed to start Binance User Data Stream")
+                }
+            }
+
+            while (showPaperTradingPanel) {
+                Log.d("BinanceBalance", "Entering BINANCE branch (Futures)")
+
+                if (binanceFuturesService.isRegionBlocked()) {
+                    liveTradeAccountLabel = "Binance blocked in your region"
+                    mt5AccountInfo = null
+                    positions.clear()
+                    orders.clear()
+                    delay(3000)
+                    continue
+                }
+
+                // ==================== FUTURES ====================
+                if (!binanceFuturesService.isConfigured()) {
+                    Log.d("BinanceBalance", "Binance Futures service NOT configured")
+                    liveTradeAccountLabel = if (binanceTradingMode == BinanceTradingMode.DEMO) {
+                        "Binance Futures demo API not configured"
+                    } else {
+                        "Binance Futures live API not configured"
+                    }
+                    mt5AccountInfo = null
+                    positions.clear()
+                    orders.clear()
+                    return@LaunchedEffect
+                }
+
+                Log.d("BinanceBalance", "Binance Futures service IS configured, fetching account info...")
+                liveTradeAccountLabel = if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Futures Demo" else "Binance Futures Live"
+
+                runCatching {
+                    val account = binanceFuturesService.getAccountInfo()
+                    
+                    Log.d("BinanceBalance", "=== Binance Futures Account ===")
+                    Log.d("BinanceBalance", "Trading Mode: $binanceTradingMode")
+                    Log.d("BinanceBalance", "Wallet Balance: ${account.totalWalletBalance}")
+                    Log.d("BinanceBalance", "Unrealized PnL: ${account.totalUnrealizedProfit}")
+                    Log.d("BinanceBalance", "Margin Balance: ${account.totalMarginBalance}")
+                    Log.d("BinanceBalance", "Available Balance: ${account.availableBalance}")
+                    Log.d("BinanceBalance", "Positions: ${account.positions.size}")
+                    
+                    mt5AccountInfo = Mt5Service.AccountInfo(
+                        balance = account.totalWalletBalance,
+                        equity = account.totalMarginBalance,
+                        unrealizedPnl = account.totalUnrealizedProfit,
+                        realizedPnl = 0.0,
+                        margin = account.totalMarginBalance - account.availableBalance,
+                        availableFunds = account.availableBalance,
+                        ordersMargin = 0.0,
+                        marginBuffer = if (account.totalMarginBalance > 0) (account.availableBalance / account.totalMarginBalance) * 100.0 else 100.0
+                    )
+                    
+                    positions.clear()
+                    positions.addAll(
+                        account.positions.map { pos ->
+                            val isLong = pos.positionAmt > 0
+                            Log.d("BinanceBalance", "  ${pos.symbol}: ${if (isLong) "LONG" else "SHORT"} ${kotlin.math.abs(pos.positionAmt)} @ ${pos.entryPrice}, PnL: ${pos.unRealizedProfit}, Leverage: ${pos.leverage}x, PositionSide: ${pos.positionSide}")
+                            Position(
+                                symbol = pos.symbol,
+                                type = if (isLong) "buy" else "sell",
+                                entryPrice = pos.entryPrice.toFloat(),
+                                volume = kotlin.math.abs(pos.positionAmt).toFloat(),
+                                time = System.currentTimeMillis(),
+                                leverage = "${pos.leverage}x",
+                                margin = pos.isolatedMargin.toFloat(),
+                                positionSide = pos.positionSide
+                            )
+                        }
+                    )
+                    Log.d("BinanceBalance", "Total positions: ${positions.size}")
+                    Log.d("BinanceBalance", "================================")
+                }.onFailure { error ->
+                    Log.e("BinanceBalance", "Failed to fetch Futures account info: ${error.message}", error)
+                    mt5AccountInfo = null
+                    positions.clear()
+                    liveTradeAccountLabel = if (error.message?.contains("region blocked") == true || error.message?.contains("451") == true) {
+                        "Binance blocked in your region"
+                    } else {
+                        "Binance Futures unavailable"
+                    }
+                }
+
+                runCatching {
+                    binanceFuturesService.getOpenOrders()
+                }.onSuccess { openOrders ->
+                    Log.d("BinanceBalance", "Fetched ${openOrders.size} open Futures orders")
+                    orders.clear()
+                    orders.addAll(
+                        openOrders.map { openOrder ->
+                            Order(
+                                id = openOrder.optLong("orderId", 0L).toString(),
+                                symbol = openOrder.optString("symbol"),
+                                type = openOrder.optString("side", "BUY").lowercase(Locale.US),
+                                orderType = openOrder.optString("type", "LIMIT"),
+                                status = openOrder.optString("status", "Working"),
+                                price = openOrder.optDouble("price", 0.0).toFloat(),
+                                volume = openOrder.optDouble("origQty", 0.0).toFloat(),
+                                time = openOrder.optLong("time", System.currentTimeMillis()),
+                                filledQuantity = openOrder.optDouble("executedQty", 0.0).toFloat(),
+                                averagePrice = openOrder.optDouble("avgPrice", 0.0).toFloat()
+                            )
+                        }
+                    )
+                }.onFailure { error ->
+                    Log.e("BinanceBalance", "Failed to fetch Futures orders: ${error.message}", error)
+                    orders.clear()
+                }
+                
+                // Wait 3 seconds before next refresh
+                delay(3000)
+            }
         } else {
-            reverseBridge.disconnect()
-            mt5Service.disconnect()
-            isConnected = true
+            // Non-Binance feeds - fetch once
+            when (chartFeedType) {
+                ChartFeedType.EXNESS -> {
+                    liveTradeAccountLabel = "Exness MT5"
+                }
+                ChartFeedType.PEPPERSTONE -> {
+                    liveTradeAccountLabel = "Pepperstone cTrader"
+                    cTraderTradingService.subscribe(brokerSymbolForTicker(symbol))
+                }
+                else -> {}
+            }
+        }
+    }
+
+    DisposableEffect(chartFeedType) {
+        // Always disconnect old stream when mode changes; LaunchedEffect will reconnect
+        onDispose {
+            binanceFuturesService.disconnectUserDataStream()
         }
     }
 
@@ -606,7 +928,250 @@ fun TradingApp(
         onDispose {
             reverseBridge.disconnect()
             mt5Service.disconnect()
+            cTraderTradingService.disconnect()
+            binanceFuturesService.disconnectUserDataStream()
         }
+    }
+
+    fun placeStreamOrder(position: Position, orderType: String, stopLimitPrice: Float?) {
+        when (chartFeedType) {
+            ChartFeedType.EXNESS -> {
+                if (orderType == "Market Execution") {
+                    reverseBridge.placePosition(position)
+                    positions.add(position)
+                    tradeNotifications.add(
+                        TradeNotification(
+                            symbol = position.symbol,
+                            volume = position.volume,
+                            price = position.entryPrice,
+                            isBuy = position.type == "buy",
+                            type = "executed"
+                        )
+                    )
+                } else {
+                    val order = Order(
+                        symbol = position.symbol,
+                        type = position.type,
+                        orderType = orderType,
+                        status = "Working",
+                        price = position.entryPrice,
+                        stopLimitPrice = stopLimitPrice,
+                        volume = position.volume,
+                        time = position.time,
+                        tp = position.tp,
+                        sl = position.sl
+                    )
+                    reverseBridge.placeOrder(order)
+                    orders.add(order)
+                }
+            }
+            ChartFeedType.BINANCE -> {
+                scope.launch {
+                    val tradeSymbol = binanceTradingSymbol(position.symbol)
+                    
+                    Log.d("TradingApp", "placeStreamOrder - BINANCE: symbol=$tradeSymbol, side=${position.type}, volume=${position.volume}, orderType=$orderType")
+                    
+                    // Determine positionSide for hedge mode support
+                    // In hedge mode: BUY -> LONG, SELL -> SHORT
+                    // In one-way mode: use BOTH (default)
+                    val positionSide = when (position.type.uppercase()) {
+                        "BUY" -> "LONG"
+                        "SELL" -> "SHORT"
+                        else -> "BOTH"
+                    }
+                    
+                    // Futures order placement
+                    runCatching {
+                        when (orderType) {
+                            "Market Execution" -> {
+                                binanceFuturesService.placeMarketOrder(
+                                    symbol = tradeSymbol,
+                                    side = position.type.uppercase(),
+                                    quantity = position.volume.toDouble(),
+                                    positionSide = positionSide
+                                )
+                            }
+                            "Buy Limit", "Sell Limit" -> {
+                                binanceFuturesService.placeLimitOrder(
+                                    symbol = tradeSymbol,
+                                    side = position.type.uppercase(),
+                                    quantity = position.volume.toDouble(),
+                                    price = position.entryPrice.toDouble(),
+                                    positionSide = positionSide
+                                )
+                            }
+                            else -> {
+                                binanceFuturesService.placeStopMarketOrder(
+                                    symbol = tradeSymbol,
+                                    side = position.type.uppercase(),
+                                    quantity = position.volume.toDouble(),
+                                    stopPrice = (stopLimitPrice ?: position.entryPrice).toDouble(),
+                                    positionSide = positionSide
+                                )
+                            }
+                        }
+                    }.onSuccess { result ->
+                        val hasExecutedQuantity = result.executedQty > 0.0
+
+                        if (orderType == "Market Execution" && hasExecutedQuantity) {
+                            val executedPosition = position.copy(
+                                symbol = result.symbol,
+                                entryPrice = if (result.avgPrice > 0.0) result.avgPrice.toFloat() else position.entryPrice,
+                                volume = result.executedQty.toFloat(),
+                                positionSide = positionSide
+                            )
+                            positions.add(executedPosition)
+                            orderHistory.add(
+                                Order(
+                                    id = result.orderId.toString(),
+                                    symbol = result.symbol,
+                                    type = position.type,
+                                    orderType = orderType,
+                                    status = result.status,
+                                    price = if (result.avgPrice > 0.0) result.avgPrice.toFloat() else position.entryPrice,
+                                    volume = result.executedQty.toFloat(),
+                                    time = System.currentTimeMillis(),
+                                    filledQuantity = result.executedQty.toFloat(),
+                                    averagePrice = result.avgPrice.toFloat()
+                                )
+                            )
+                            tradeNotifications.add(
+                                TradeNotification(
+                                    symbol = result.symbol,
+                                    volume = result.executedQty.toFloat(),
+                                    price = if (result.avgPrice > 0.0) result.avgPrice.toFloat() else position.entryPrice,
+                                    isBuy = position.type == "buy",
+                                    type = "executed"
+                                )
+                            )
+                        } else {
+                            orders.add(
+                                Order(
+                                    id = result.orderId.toString(),
+                                    symbol = result.symbol,
+                                    type = position.type,
+                                    orderType = orderType,
+                                    status = result.status,
+                                    price = position.entryPrice,
+                                    stopLimitPrice = stopLimitPrice,
+                                    volume = position.volume,
+                                    time = System.currentTimeMillis(),
+                                    filledQuantity = result.executedQty.toFloat(),
+                                    averagePrice = result.avgPrice.toFloat(),
+                                    tp = position.tp,
+                                    sl = position.sl
+                                )
+                            )
+                        }
+                        liveTradeRefreshToken += 1
+                    }
+                }
+            }
+            ChartFeedType.PEPPERSTONE -> {
+                if (orderType == "Market Execution") {
+                    cTraderTradingService.placeMarketOrder(
+                        symbol = brokerSymbolForTicker(position.symbol),
+                        side = position.type,
+                        volume = position.volume.toDouble(),
+                        stopLoss = position.sl?.toDouble(),
+                        takeProfit = position.tp?.toDouble()
+                    ) { success, message ->
+                        Log.d("TradingApp", "Pepperstone order result: success=$success message=$message")
+                        if (success) {
+                            tradeNotifications.add(
+                                TradeNotification(
+                                    symbol = position.symbol,
+                                    volume = position.volume,
+                                    price = position.entryPrice,
+                                    isBuy = position.type == "buy",
+                                    type = "executed",
+                                    exchange = "Pepperstone"
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    orders.add(
+                        Order(
+                            symbol = position.symbol,
+                            type = position.type,
+                            orderType = orderType,
+                            status = "Working",
+                            price = position.entryPrice,
+                            stopLimitPrice = stopLimitPrice,
+                            volume = position.volume,
+                            time = position.time,
+                            tp = position.tp,
+                            sl = position.sl
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun closeStreamPosition(position: Position) {
+        when (chartFeedType) {
+            ChartFeedType.EXNESS -> reverseBridge.closePosition(position)
+            ChartFeedType.BINANCE -> {
+                scope.launch {
+                    runCatching {
+                        // Use the positionSide from the position if available (from Binance API)
+                        // Otherwise, determine it from the position type for backward compatibility
+                        val positionSide = position.positionSide ?: when (position.type.uppercase()) {
+                            "BUY" -> "LONG"
+                            "SELL" -> "SHORT"
+                            else -> "BOTH"
+                        }
+                        
+                        // In hedge mode, reduceOnly is not needed (and may cause issues)
+                        // The positionSide parameter already specifies which position to close
+                        val useReduceOnly = positionSide == "BOTH"
+                        
+                        Log.d("TradingApp", "Closing Binance position: symbol=${position.symbol}, type=${position.type}, positionSide=$positionSide, volume=${position.volume}, reduceOnly=$useReduceOnly")
+                        
+                        binanceFuturesService.placeMarketOrder(
+                            symbol = binanceTradingSymbol(position.symbol),
+                            side = if (position.type.equals("buy", ignoreCase = true)) "SELL" else "BUY",
+                            quantity = position.volume.toDouble(),
+                            positionSide = positionSide,
+                            reduceOnly = useReduceOnly
+                        )
+                    }.onSuccess { result ->
+                        Log.d("TradingApp", "Successfully closed position: ${position.symbol}, orderId=${result.orderId}")
+                        positions.removeAll { it.id == position.id }
+                        localPositions.removeAll { it.id == position.id }
+                        liveTradeRefreshToken += 1
+                    }.onFailure { error ->
+                        Log.e("TradingApp", "Failed to close position: ${position.symbol}, error=${error.message}", error)
+                    }
+                }
+                return
+            }
+            ChartFeedType.PEPPERSTONE -> {
+                cTraderTradingService.closePosition(position.id, position.volume.toDouble()) { success, message ->
+                    Log.d("TradingApp", "Pepperstone close result for ${position.id}: success=$success message=$message")
+                    if (success) {
+                        scope.launch {
+                            liveTradeRefreshToken += 1
+                        }
+                    }
+                }
+                return
+            }
+        }
+        positions.removeAll { it.id == position.id }
+        localPositions.removeAll { it.id == position.id }
+    }
+
+    fun modifyStreamPosition(updatedPosition: Position, tp: Float?, sl: Float?) {
+        if (chartFeedType == ChartFeedType.EXNESS) {
+            reverseBridge.modifyPosition(updatedPosition, tp, sl)
+        }
+        val idxLocal = localPositions.indexOfFirst { it.id == updatedPosition.id }
+        if (idxLocal != -1) localPositions[idxLocal] = updatedPosition
+        val idxRemote = positions.indexOfFirst { it.id == updatedPosition.id }
+        if (idxRemote != -1) positions[idxRemote] = updatedPosition
     }
 
     // Timezone list
@@ -977,7 +1542,8 @@ fun TradingApp(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Box(modifier = Modifier.weight(1f)) {
-                            TradingChart2(
+                            val renderProviderChart: @Composable (ChartFeedType, BinanceMarketType, ProviderChartData) -> Unit = { resolvedChartFeedType, resolvedBinanceMarketType, providerChartData ->
+                                TradingChart2(
                                 symbol = symbol,
                                 timeframe = timeframe,
                                 style = chartStyle,
@@ -1044,7 +1610,9 @@ fun TradingApp(
                                 volumeColorBasedOnPreviousClose = volumeColorBasedOnPreviousClose,
                                 onVolumeToggle = { showVolume = it },
                                 onIndicatorSettingsClick = { showIndicatorSettingsModal = it },
-                                chartFeedType = chartFeedType,
+                                chartFeedType = resolvedChartFeedType,
+                                binanceMarketType = BinanceMarketType.FUTURES,
+                                providerChartData = providerChartData,
                                 isMagnetEnabled = isMagnetEnabled,
                                 isLocked = isLocked,
                                 isVisible = areDrawingsVisible,
@@ -1094,14 +1662,12 @@ fun TradingApp(
                                 },
                                 onPositionDelete = { id ->
                                     val pos = positions.find { it.id == id } ?: localPositions.find { it.id == id }
-                                    pos?.let {
-                                        android.util.Log.d("TradingApp", "Closing position: ${it.id} for ${it.symbol}")
-                                        reverseBridge.closePosition(it)
-                                    }
-                                    positions.removeAll { it.id == id }
-                                    localPositions.removeAll { it.id == id }
+                                    pos?.let(::closeStreamPosition)
                                 },
                                 onAccountUpdate = { mt5AccountInfo = it },
+                                onPlaceOrder = { position, orderType, stopLimitPrice ->
+                                    placeStreamOrder(position, orderType, stopLimitPrice)
+                                },
                                 onPositionsUpdate = { newPositions ->
                                     positions.clear()
                                     positions.addAll(newPositions)
@@ -1181,10 +1747,95 @@ fun TradingApp(
                                     persistNewsAiPayload(context, sharedPrefs, newsJson)
                                 },
                                 isTradingBarVisible = showFloatingTradingButtons,
-                                reverseBridge = reverseBridge,
+                                reverseBridge = if (resolvedChartFeedType == ChartFeedType.EXNESS) reverseBridge else null,
+                                cTraderService = if (resolvedChartFeedType == ChartFeedType.PEPPERSTONE) cTraderTradingService else null,
                                 onTradeNotification = { tradeNotifications.add(it) },
                                 onIndicatorDataUpdate = { currentIndicatorData = it }
                             )
+                            }
+
+                            when (chartFeedType) {
+                                ChartFeedType.BINANCE -> {
+                                    TradingChartBinance(
+                                        symbol = symbol,
+                                        timeframe = timeframe,
+                                        tradingMode = binanceTradingMode,
+                                        marketType = BinanceMarketType.FUTURES,
+                                    ) { resolvedChartFeedType, resolvedBinanceMarketType, providerChartData ->
+                                        renderProviderChart(resolvedChartFeedType, resolvedBinanceMarketType, providerChartData)
+                                    }
+                                }
+                                ChartFeedType.PEPPERSTONE -> {
+                                    TradingChartPepperstone(
+                                        symbol = symbol,
+                                        timeframe = timeframe
+                                    ) { resolvedChartFeedType, providerChartData ->
+                                        renderProviderChart(resolvedChartFeedType, BinanceMarketType.FUTURES, providerChartData)
+                                    }
+                                }
+                                ChartFeedType.EXNESS -> {
+                                    TradingChartExness(
+                                        symbol = symbol,
+                                        timeframe = timeframe,
+                                        reverseBridge = reverseBridge,
+                                        isCalendarVisible = showCalendarPage,
+                                        calendarRequestDateIso = calendarSelectedDateIso,
+                                        calendarRequestVersion = calendarRequestVersion,
+                                        isNewsVisible = showNewsPage,
+                                        onAccountUpdate = { mt5AccountInfo = it },
+                                        onPositionsUpdate = { newPositions ->
+                                            positions.clear()
+                                            positions.addAll(newPositions)
+                                        },
+                                        onOrdersUpdate = { newOrders ->
+                                            orders.clear()
+                                            orders.addAll(newOrders)
+                                        },
+                                        onHistoryOrdersUpdate = { newHistory ->
+                                            orderHistory.clear()
+                                            orderHistory.addAll(newHistory)
+                                        },
+                                        onBalanceHistoryUpdate = { newBalanceHistory ->
+                                            balanceHistory.clear()
+                                            balanceHistory.addAll(newBalanceHistory)
+                                        },
+                                        onCalendarUpdate = { payload ->
+                                            scope.launch {
+                                                val aiJson = gson.toJson(payload.ai)
+                                                calendarDisplayPayload = payload.display
+                                                calendarAiPayloadJson = aiJson
+                                                calendarSelectedDateIso = payload.display.selectedDateIso
+                                                isCalendarLoading = false
+                                                CalendarSnapshotStore.latestDisplayPayload = payload.display
+                                                CalendarSnapshotStore.latestAiPayload = payload.ai
+                                                CalendarSnapshotStore.latestAiPayloadJson = aiJson
+                                                sharedPrefs.edit()
+                                                    .putString("calendar_display_payload", gson.toJson(payload.display))
+                                                    .putString("calendar_ai_payload", aiJson)
+                                                    .apply()
+                                            }
+                                        },
+                                        onNewsUpdate = { payload ->
+                                            android.util.Log.d("TradingApp", "Received news update: ${payload.items.size} items")
+                                            Mt5NewsStore.updateNews(payload.items)
+                                            newsItems.clear()
+                                            newsItems.addAll(payload.items)
+                                            isNewsLoading = false
+                                            val newsJson = gson.toJson(payload)
+                                            NewsSnapshotStore.latestPayload = payload
+                                            NewsSnapshotStore.latestAiPayloadJson = newsJson
+                                            persistNewsAiPayload(context, sharedPrefs, newsJson)
+                                        },
+                                        onSymbolsUpdate = { symbols ->
+                                            val mergedQuotes = mergeQuoteCatalog(symbols, chartFeedQuoteCatalog)
+                                            availableQuotes.clear()
+                                            availableQuotes.addAll(mergedQuotes)
+                                        }
+                                    ) { resolvedChartFeedType, providerChartData ->
+                                        renderProviderChart(resolvedChartFeedType, BinanceMarketType.FUTURES, providerChartData)
+                                    }
+                                }
+                            }
 
                             if (chartFeedType == ChartFeedType.EXNESS && !isConnected) {
                                 ConnectingToServerOverlay(
@@ -1322,6 +1973,12 @@ fun TradingApp(
 
             // Live Trade Panel Overlay
             if (showPaperTradingPanel) {
+                val pepperstoneQuoteResolver: (String) -> Float? = { positionSymbol ->
+                    liveQuoteSymbolKeys(positionSymbol)
+                        .firstNotNullOfOrNull { key ->
+                            symbolQuoteSnapshot[key]?.takeIf { isFreshLiveQuote(it) }?.lastPrice
+                        }
+                }
                 PaperTradingPanel(
                     onClose = {
                         if (onPaperTradingClose != null) {
@@ -1340,8 +1997,20 @@ fun TradingApp(
                     orderHistory = orderHistory,
                     balanceHistory = balanceHistory,
                     currentPrice = currentLiveQuote?.lastPrice ?: 0f,
+                    quotePriceForSymbol = pepperstoneQuoteResolver,
+                    preferSnapshotStats = chartFeedType == ChartFeedType.PEPPERSTONE,
+                    providerLabel = when (chartFeedType) {
+                        ChartFeedType.PEPPERSTONE -> "Pepperstone"
+                        ChartFeedType.EXNESS -> "Exness"
+                        ChartFeedType.BINANCE -> "Binance"
+                    },
                     accountInfo = mt5AccountInfo,
-                    backgroundColor = appBackgroundColor
+                    sourceName = liveTradeSourceName(),
+                    accountLabel = liveTradeAccountLabel,
+                    isBrokerConnected = isConnected || mt5AccountInfo != null,
+                    backgroundColor = appBackgroundColor,
+                    onMarketTypeChange = null,
+                    currentMarketType = "futures"
                 )
             }
 
@@ -1357,9 +2026,7 @@ fun TradingApp(
                     },
                     onClosePosition = {
                         val p = positions.find { it.id == pos.id } ?: localPositions.find { it.id == pos.id }
-                        p?.let { reverseBridge.closePosition(it) }
-                        positions.removeAll { it.id == pos.id }
-                        localPositions.removeAll { it.id == pos.id }
+                        p?.let(::closeStreamPosition)
                         showPositionActionsModal = false
                     },
                     onNewOrder = {
@@ -1393,12 +2060,7 @@ fun TradingApp(
                         val oldTp = pos.tp
                         val oldSl = pos.sl
                         val updatedPos = pos.copy(tp = tp, sl = sl, partialOrders = partials)
-                        reverseBridge.modifyPosition(updatedPos, tp, sl)
-                        // Update local state
-                        val idxLocal = localPositions.indexOfFirst { it.id == pos.id }
-                        if (idxLocal != -1) localPositions[idxLocal] = updatedPos
-                        val idxRemote = positions.indexOfFirst { it.id == pos.id }
-                        if (idxRemote != -1) positions[idxRemote] = updatedPos
+                        modifyStreamPosition(updatedPos, tp, sl)
 
                         if (tp != null && tp != oldTp) {
                             tradeNotifications.add(
@@ -1635,34 +2297,7 @@ fun TradingApp(
                 chartData = orderModalChartData,
                 onClose = { showOrderModal = false },
                 onPlaceOrder = { position, orderType, stopLimitPrice ->
-                    if (orderType == "Market Execution") {
-                        reverseBridge.placePosition(position)
-                        positions.add(position)
-                        tradeNotifications.add(
-                            TradeNotification(
-                                symbol = position.symbol,
-                                volume = position.volume,
-                                price = position.entryPrice,
-                                isBuy = position.type == "buy",
-                                type = "executed"
-                            )
-                        )
-                    } else {
-                        val order = Order(
-                            symbol = position.symbol,
-                            type = position.type,
-                            orderType = orderType,
-                            status = "Working",
-                            price = position.entryPrice,
-                            stopLimitPrice = stopLimitPrice,
-                            volume = position.volume,
-                            time = position.time,
-                            tp = position.tp,
-                            sl = position.sl
-                        )
-                        reverseBridge.placeOrder(order)
-                        orders.add(order)
-                    }
+                    placeStreamOrder(position, orderType, stopLimitPrice)
                 },
                 onTradingSettingsClick = {
                     showOrderModal = false
@@ -1681,34 +2316,7 @@ fun TradingApp(
                 priceChange = currentLiveQuote?.change ?: 0f,
                 onClose = { showSimpleOrderPage = false },
                 onPlaceOrder = { position, orderType, stopLimitPrice ->
-                    if (orderType == "Market Execution") {
-                        reverseBridge.placePosition(position)
-                        positions.add(position)
-                        tradeNotifications.add(
-                            TradeNotification(
-                                symbol = position.symbol,
-                                volume = position.volume,
-                                price = position.entryPrice,
-                                isBuy = position.type == "buy",
-                                type = "executed"
-                            )
-                        )
-                    } else {
-                        val order = Order(
-                            symbol = position.symbol,
-                            type = position.type,
-                            orderType = orderType,
-                            status = "Working",
-                            price = position.entryPrice,
-                            stopLimitPrice = stopLimitPrice,
-                            volume = position.volume,
-                            time = position.time,
-                            tp = position.tp,
-                            sl = position.sl
-                        )
-                        reverseBridge.placeOrder(order)
-                        orders.add(order)
-                    }
+                    placeStreamOrder(position, orderType, stopLimitPrice)
                 },
                 initialSide = orderModalInitialSide
             )

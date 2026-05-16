@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Psychology
@@ -46,32 +45,16 @@ import com.asc.markets.data.MacroEventStatus
 import com.asc.markets.data.ImpactPriority
 import com.asc.markets.data.displayTitle
 import com.asc.markets.ui.theme.*
-import com.asc.markets.ui.screens.dashboard.rememberSessionData
 import com.asc.markets.ui.screens.dashboard.rememberTechnicalVitals
 import com.asc.markets.data.remote.FinalDecisionItem
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-data class StreamItem(
-    val id: String,
-    val pair: String,
-    val tag: String,
-    val category: String,
-    val headline: String,
-    val timestampMillis: Long,
-    val severity: String,
-    val refId: String,
-    val confidence: Int,
-    val alignment: String
-)
-
 @Composable
-fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
+fun MacroStreamScreen(viewModel: ForexViewModel = viewModel()) {
     val macroEvents by viewModel.macroStreamEvents.collectAsState()
     val aiDeployments by viewModel.aiDeployments.collectAsState()
-    val sessionData = rememberSessionData()
     val vitalsData = rememberTechnicalVitals()
 
     // UI state: search and category
@@ -86,17 +69,6 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
         targetValue = 1f,
         animationSpec = infiniteRepeatable(animation = tween(durationMillis = 900, easing = LinearEasing))
     )
-
-    // lead-time mock progress (0..1)
-    var leadProgress by remember { mutableStateOf(0.35f) }
-    
-    // gently advance the leadProgress for demo - wrapped in LaunchedEffect to avoid leaking coroutines on every recomposition
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5_000)
-            leadProgress = (leadProgress + 0.03f).coerceAtMost(1f)
-        }
-    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -175,13 +147,13 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Stream list (Intelligence Stream focuses on upcoming events and confirmed signals)
+                // Stream list (Macro Stream focuses on upcoming events and confirmed signals)
                 val filtered = remember(macroEvents, query, selectedCategory) {
                     macroEvents.filter { it ->
                         val q = query.trim().lowercase()
                         val matchesQuery = q.isEmpty() || it.currency.lowercase().contains(q) || it.title.lowercase().contains(q) || it.details.lowercase().contains(q)
                         
-                        // Intelligence Stream shows UPCOMING events primarily, but can show confirmed captures based on filters
+                        // Macro Stream shows UPCOMING events primarily, but can show confirmed captures based on filters
                         val isUpcomingOrConfirmed = it.status == MacroEventStatus.UPCOMING || it.status == MacroEventStatus.CONFIRMED
                         
                         val matchesCategory = when(selectedCategory) {
@@ -214,7 +186,7 @@ fun IntelligenceStreamScreen(viewModel: ForexViewModel = viewModel()) {
                                 Column(modifier = Modifier.width(200.dp)) {
                                     val confirmedCount = macroEvents.count { it.status == MacroEventStatus.CONFIRMED }
                                     val totalEvents = macroEvents.size
-                                    Text("Intelligence Captured: $confirmedCount events", color = SlateText, fontSize = 12.sp)
+                                    Text("Events Captured: $confirmedCount", color = SlateText, fontSize = 12.sp)
                                     val progress = if(totalEvents > 0) confirmedCount.toFloat() / totalEvents.toFloat() else 1f
                                     LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(6.dp), color = Color(0xFF2EE08A), trackColor = Color(0xFF0B0B0B))
                                 }

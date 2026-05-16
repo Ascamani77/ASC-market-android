@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.UUID
 
-class IntelligenceRepository {
-    
-    fun getIntelligenceEvents(): Flow<List<IntelligenceEvent>> = flow {
+class EventStreamRepository {
+
+    fun getEvents(): Flow<List<IntelligenceEvent>> = flow {
         val now = System.currentTimeMillis()
         val events = mutableListOf<IntelligenceEvent>()
         

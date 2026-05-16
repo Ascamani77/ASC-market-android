@@ -3,10 +3,17 @@ package com.trading.app.data
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.asc.markets.data.MarketTick
 import com.asc.markets.data.NetworkConfig
 import com.asc.markets.data.SystemTelemetry
 import com.trading.app.components.SymbolQuote
 import com.trading.app.models.OHLCData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -14,6 +21,8 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONArray
 import org.json.JSONObject
+import redis.clients.jedis.JedisPool
+import redis.clients.jedis.JedisPoolConfig
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -21,18 +30,82 @@ class PepperstoneChartService(
     private val host: String,
     private val port: Int,
     private val onQuoteUpdate: (SymbolQuote) -> Unit,
-    private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> }
+    private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> },
+    // Redis configuration for AI pipeline
+    private val redisHost: String = "10.164.138.133",
+    private val redisPort: Int = 6379,
+    private val redisPassword: String? = null,
+    private val redisUseSsl: Boolean = false,
+    private val streamName: String = "market.ticks.stream",
+    private val fieldName: String = "data",
+    private val publishToRedis: Boolean = true
 ) {
     private val client = OkHttpClient.Builder()
         .pingInterval(30, TimeUnit.SECONDS)
         .build()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val json = Json { ignoreUnknownKeys = true }
     private var webSocket: WebSocket? = null
     private var activeSymbol: String? = null
     private var activeSymbols: Set<String> = emptySet()
     private var activeTimeframe: String = "1h"
     private var isClosing = false
     private var reconnectScheduled = false
+    
+    // Redis pool for publishing ticks to AI pipeline
+    private var jedisPool: JedisPool? = null
+
+    init {
+        if (publishToRedis) {
+            setupRedis()
+        }
+    }
+
+    private fun setupRedis() {
+        try {
+            val poolConfig = JedisPoolConfig().apply {
+                maxTotal = 10
+                maxIdle = 5
+                minIdle = 1
+                jmxEnabled = false
+            }
+            jedisPool = if (redisPassword.isNullOrEmpty()) {
+                JedisPool(poolConfig, redisHost, redisPort)
+            } else {
+                JedisPool(poolConfig, redisHost, redisPort, 2000, redisPassword, redisUseSsl)
+            }
+            Log.i(TAG, "Redis Pool initialized at $redisHost:$redisPort for Pepperstone ticks")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize Redis Pool: ${e.message}")
+        }
+    }
+
+    private fun publishTickToRedis(quote: SymbolQuote) {
+        if (!publishToRedis || jedisPool == null) return
+        
+        scope.launch {
+            try {
+                jedisPool?.resource?.use { jedis ->
+                    val tick = MarketTick(
+                        ts = quote.time,
+                        symbol = quote.name,
+                        bid = quote.bid.toDouble(),
+                        ask = quote.ask.toDouble(),
+                        last = quote.lastPrice.toDouble(),
+                        volume = quote.volume.toDouble(),
+                        source = "pepperstone_ctrader"
+                    )
+                    val tickJson = json.encodeToString(tick)
+                    val params = mapOf(fieldName to tickJson)
+                    jedis.xadd(streamName, redis.clients.jedis.params.XAddParams.xAddParams(), params)
+                    Log.d(TAG, "Published Pepperstone tick to Redis: ${quote.name} @ ${quote.lastPrice}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Redis publish error: ${e.message}")
+            }
+        }
+    }
 
     fun connect() {
         isClosing = false
@@ -118,6 +191,14 @@ class PepperstoneChartService(
         mainHandler.removeCallbacksAndMessages(null)
         webSocket?.close(1000, "App closing")
         webSocket = null
+        
+        // Close Redis pool
+        try {
+            jedisPool?.close()
+            jedisPool = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing Redis pool: ${e.message}")
+        }
     }
 
     private fun subscribe(symbol: String, timeframe: String, count: Int = 500, endTime: Long? = null) {
@@ -186,6 +267,7 @@ class PepperstoneChartService(
 
     private fun handleHistory(payload: JSONObject) {
         val symbol = normalizeSymbol(payload.optString("symbol", payload.optString("name", activeSymbol.orEmpty())))
+        if (symbol.isNotEmpty() && !isSubscribedSymbol(symbol)) return
         val data = payload.optJSONArray("data") ?: payload.optJSONArray("bars") ?: payload.optJSONArray("candles") ?: return
         val history = mutableListOf<OHLCData>()
         for (index in 0 until data.length()) {
@@ -213,6 +295,7 @@ class PepperstoneChartService(
                 .ifBlank { payload.optString("asset") }
         )
         if (symbol.isBlank()) return
+        if (!isSubscribedSymbol(symbol)) return
         val bid = payload.optDouble("bid", Double.NaN)
         val ask = payload.optDouble("ask", Double.NaN)
         val price = when {
@@ -240,6 +323,10 @@ class PepperstoneChartService(
             time = time
         )
         SystemTelemetry.recordTick("PEPPERSTONE_CHART", 1.0)
+        
+        // Publish to Redis for AI pipeline
+        publishTickToRedis(quote)
+        
         mainHandler.post { onQuoteUpdate(quote) }
     }
 
@@ -258,6 +345,15 @@ class PepperstoneChartService(
 
     private fun normalizeSymbol(symbol: String): String {
         return symbol.trim().uppercase(Locale.US).replace("/", "").replace("-", "").replace("_", "").replace(" ", "")
+    }
+
+    private fun isSubscribedSymbol(symbol: String): Boolean {
+        val normalized = normalizeSymbol(symbol)
+        if (normalized.isEmpty()) return false
+        if (activeSymbols.isNotEmpty()) {
+            return activeSymbols.any { normalizeSymbol(it) == normalized }
+        }
+        return activeSymbol?.let { normalizeSymbol(it) == normalized } ?: false
     }
 
     private fun firstFinite(obj: JSONObject, vararg fields: String): Double {

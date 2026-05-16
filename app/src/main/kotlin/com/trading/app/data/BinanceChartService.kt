@@ -4,10 +4,14 @@ import com.trading.app.components.SymbolQuote
 import com.trading.app.models.OHLCData
 
 class BinanceChartService(
+    private val tradingMode: BinanceTradingMode = BinanceTradingMode.LIVE,
+    private val marketType: BinanceMarketType = BinanceMarketType.FUTURES,
     private val onQuoteUpdate: (SymbolQuote) -> Unit,
     private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> }
 ) {
     private val delegate = BinanceService(
+        tradingMode = tradingMode,
+        marketType = marketType,
         onQuoteUpdate = onQuoteUpdate,
         onHistoryUpdate = onHistoryUpdate
     )
@@ -23,6 +27,8 @@ class BinanceChartService(
     fun stopActiveStream() {
         delegate.stopActiveStream()
     }
+
+    fun isRegionBlocked(): Boolean = delegate.isRegionBlocked()
 
     fun disconnect() {
         delegate.disconnect()

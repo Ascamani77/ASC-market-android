@@ -80,7 +80,7 @@ fun chartFeedQuotes(feedType: ChartFeedType): List<SymbolInfo> {
             SymbolInfo("DOGEUSDT", "Dogecoin / TetherUS", "Binance", "spot crypto", "DOGEUSDT"),
             SymbolInfo("AVAXUSDT", "Avalanche / TetherUS", "Binance", "spot crypto", "AVAXUSDT"),
             SymbolInfo("LINKUSDT", "Chainlink / TetherUS", "Binance", "spot crypto", "LINKUSDT"),
-            SymbolInfo("MATICUSDT", "Polygon / TetherUS", "Binance", "spot crypto", "MATICUSDT")
+            SymbolInfo("DOTUSDT", "Polkadot / TetherUS", "Binance", "spot crypto", "DOTUSDT")
         )
     }
 }

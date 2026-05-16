@@ -19,9 +19,11 @@ class CTraderService(
     private val onQuoteUpdate: (SymbolQuote) -> Unit = {},
     private val onPositionsUpdate: (List<Position>) -> Unit = {},
     private val onAccountUpdate: (Mt5Service.AccountInfo?) -> Unit = {},
+    private val onBalanceHistoryUpdate: (List<com.trading.app.models.BalanceRecord>) -> Unit = {},
     private val onConnectionStatusUpdate: (Boolean) -> Unit = {}
 ) {
     private val tag = "CTraderService"
+    private fun createScope() = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -31,42 +33,28 @@ class CTraderService(
     
     private var webSocket: WebSocket? = null
     private var isConnected = false
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var scope = createScope()
+    private val currentPositions = linkedMapOf<String, Position>()
+    private var cumulativeRealizedPnl: Double = 0.0
+    private val balanceHistory = mutableListOf<com.trading.app.models.BalanceRecord>()
     
     // Configuration from BuildConfig
-    private val hostType = BuildConfig.CTRADER_HOST_TYPE
-    private val clientId = BuildConfig.CTRADER_CLIENT_ID
-    private val clientSecret = BuildConfig.CTRADER_CLIENT_SECRET
-    private val accessToken = BuildConfig.CTRADER_ACCESS_TOKEN
-    private val accountId = BuildConfig.CTRADER_ACCOUNT_ID
+    private val bridgeHost = BuildConfig.CTRADER_BRIDGE_HOST
+    private val bridgePort = BuildConfig.CTRADER_BRIDGE_PORT
     
-    // API endpoints
-    private val baseUrl = if (hostType == "live") {
-        "https://live.ctraderapi.com"
-    } else {
-        "https://demo.ctraderapi.com"
-    }
-    
-    private val wsUrl = if (hostType == "live") {
-        "wss://live.ctraderapi.com"
-    } else {
-        "wss://demo.ctraderapi.com"
-    }
+    // Bridge WebSocket URL
+    private val wsUrl = "ws://$bridgeHost:$bridgePort"
     
     fun connect() {
-        if (accessToken.isBlank()) {
-            Log.e(tag, "Access token not configured")
-            return
+        if (!scope.isActive) {
+            scope = createScope()
         }
         
-        Log.i(tag, "Connecting to cTrader $hostType...")
+        Log.i(tag, "Connecting to cTrader bridge at $wsUrl...")
         
         scope.launch {
             try {
-                // First, get account info via REST API
-                fetchAccountInfo()
-                
-                // Then connect WebSocket for live updates
+                // Connect to the bridge WebSocket
                 connectWebSocket()
                 
             } catch (e: Exception) {
@@ -76,62 +64,20 @@ class CTraderService(
         }
     }
     
-    private suspend fun fetchAccountInfo() = withContext(Dispatchers.IO) {
-        try {
-            val url = "$baseUrl/v2/accounts"
-            
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $accessToken")
-                .get()
-                .build()
-            
-            val response = client.newCall(request).execute()
-            val body = response.body?.string()
-            
-            if (response.isSuccessful && body != null) {
-                Log.d(tag, "Account info received: ${body.take(200)}")
-                parseAccountInfo(body)
-            } else {
-                Log.e(tag, "Failed to fetch account info: ${response.code} - $body")
-            }
-            
-        } catch (e: Exception) {
-            Log.e(tag, "Error fetching account info: ${e.message}", e)
-        }
-    }
-    
-    private fun parseAccountInfo(json: String) {
-        try {
-            val jsonObj = JSONObject(json)
-            // Parse account data based on cTrader API response format
-            // This is a placeholder - adjust based on actual API response
-            
-            Log.d(tag, "Account info parsed successfully")
-            
-        } catch (e: Exception) {
-            Log.e(tag, "Error parsing account info: ${e.message}", e)
-        }
-    }
-    
     private fun connectWebSocket() {
         val request = Request.Builder()
             .url(wsUrl)
-            .header("Authorization", "Bearer $accessToken")
             .build()
         
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.i(tag, "WebSocket connected")
+                Log.i(tag, "WebSocket connected to cTrader bridge")
                 isConnected = true
                 onConnectionStatusUpdate(true)
-                
-                // Subscribe to account updates
-                subscribeToAccount()
             }
             
             override fun onMessage(webSocket: WebSocket, text: String) {
-                Log.d(tag, "Message received: ${text.take(200)}")
+                Log.d(tag, "Bridge message received: ${text.take(200)}")
                 handleMessage(text)
             }
             
@@ -158,22 +104,6 @@ class CTraderService(
         })
     }
     
-    private fun subscribeToAccount() {
-        if (accountId.isBlank()) {
-            Log.w(tag, "Account ID not configured, skipping subscription")
-            return
-        }
-        
-        // Subscribe to account updates
-        val subscribeMessage = JSONObject().apply {
-            put("type", "SUBSCRIBE")
-            put("accountId", accountId)
-        }
-        
-        webSocket?.send(subscribeMessage.toString())
-        Log.d(tag, "Subscribed to account: $accountId")
-    }
-    
     fun subscribe(symbol: String) {
         if (!isConnected) {
             Log.w(tag, "Not connected, cannot subscribe to $symbol")
@@ -181,7 +111,7 @@ class CTraderService(
         }
         
         val subscribeMessage = JSONObject().apply {
-            put("type", "SUBSCRIBE_SYMBOL")
+            put("action", "subscribe")
             put("symbol", symbol)
         }
         
@@ -189,18 +119,134 @@ class CTraderService(
         Log.d(tag, "Subscribed to symbol: $symbol")
     }
     
+    fun placeMarketOrder(
+        symbol: String,
+        side: String,
+        volume: Double,
+        stopLoss: Double? = null,
+        takeProfit: Double? = null,
+        onResult: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        if (!isConnected) {
+            Log.w(tag, "Not connected, cannot place order")
+            onResult(false, "Not connected to bridge")
+            return
+        }
+        
+        scope.launch {
+            try {
+                val orderMessage = JSONObject().apply {
+                    put("action", "place_order")
+                    put("symbol", symbol)
+                    put("side", side.lowercase())
+                    put("volume", volume)
+                    if (stopLoss != null && stopLoss > 0) {
+                        put("stopLoss", stopLoss)
+                    }
+                    if (takeProfit != null && takeProfit > 0) {
+                        put("takeProfit", takeProfit)
+                    }
+                }
+                
+                webSocket?.send(orderMessage.toString())
+                Log.d(tag, "Placed $side order: $symbol, volume=$volume, SL=$stopLoss, TP=$takeProfit")
+                onResult(true, "Order sent")
+                
+            } catch (e: Exception) {
+                Log.e(tag, "Error placing order: ${e.message}", e)
+                onResult(false, e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun closePosition(
+        positionId: String,
+        volume: Double,
+        onResult: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        if (!isConnected) {
+            Log.w(tag, "Not connected, cannot close position")
+            onResult(false, "Not connected to bridge")
+            return
+        }
+
+        val parsedPositionId = positionId.toLongOrNull()
+        if (parsedPositionId == null || parsedPositionId <= 0L || volume <= 0.0) {
+            Log.w(tag, "Invalid close request: positionId=$positionId volume=$volume")
+            onResult(false, "Invalid close parameters")
+            return
+        }
+
+        scope.launch {
+            try {
+                val closeMessage = JSONObject().apply {
+                    put("action", "close_position")
+                    put("positionId", parsedPositionId)
+                    put("volume", volume)
+                }
+
+                webSocket?.send(closeMessage.toString())
+                Log.d(tag, "Requested close for positionId=$parsedPositionId volume=$volume")
+                onResult(true, "Close request sent")
+            } catch (e: Exception) {
+                Log.e(tag, "Error closing position: ${e.message}", e)
+                onResult(false, e.message ?: "Unknown error")
+            }
+        }
+    }
+    
     private fun handleMessage(message: String) {
         try {
             val json = JSONObject(message)
             val type = json.optString("type", "")
             
+            Log.d(tag, "Received message type: $type")
+            
             when (type) {
-                "QUOTE" -> handleQuoteUpdate(json)
-                "POSITION" -> handlePositionUpdate(json)
-                "ACCOUNT" -> handleAccountUpdate(json)
-                "ERROR" -> {
+                "tick" -> handleQuoteUpdate(json)
+                "ACCOUNT" -> {
+                    Log.d(tag, "ACCOUNT message received: $message")
+                    handleAccountUpdate(json)
+                }
+                "POSITIONS" -> {
+                    Log.d(tag, "POSITIONS message received")
+                    handlePositionsUpdate(json)
+                }
+                "ORDER_UPDATE" -> {
+                    val status = json.optString("status", "")
+                    val orderId = json.optString("orderId", "")
+                    val profit = json.optDouble("profit", Double.NaN)
+                    if (!profit.isNaN() && status == "executed") {
+                        cumulativeRealizedPnl += profit
+                        Log.i(tag, "Order update: $status (ID: $orderId) profit=$profit, cumulativeRealizedPnl=$cumulativeRealizedPnl")
+                        val balanceBefore = json.optDouble("balanceBefore", 0.0)
+                        val balanceAfter = json.optDouble("balanceAfter", balanceBefore + profit)
+                        balanceHistory.add(
+                            com.trading.app.models.BalanceRecord(
+                                time = System.currentTimeMillis(),
+                                balanceBefore = balanceBefore,
+                                balanceAfter = balanceAfter,
+                                realizedPnl = profit,
+                                action = "PEPPERSTONE_CLOSE"
+                            )
+                        )
+                        onBalanceHistoryUpdate(balanceHistory.toList())
+                    } else {
+                        Log.i(tag, "Order update: $status (ID: $orderId)")
+                    }
+                }
+                "history" -> {
+                    // Historical candle data - could be handled if needed
+                    Log.d(tag, "Historical data received for ${json.optString("symbol")}")
+                }
+                "status" -> {
+                    val state = json.optString("state", "")
+                    val msg = json.optString("message", "")
+                    Log.i(tag, "Bridge status: $state - $msg")
+                }
+                "error" -> {
                     val error = json.optString("message", "Unknown error")
-                    Log.e(tag, "Error from server: $error")
+                    Log.e(tag, "Error from bridge: $error")
                 }
                 else -> {
                     Log.d(tag, "Unknown message type: $type")
@@ -209,6 +255,57 @@ class CTraderService(
             
         } catch (e: Exception) {
             Log.e(tag, "Error handling message: ${e.message}", e)
+        }
+    }
+    
+    private fun handlePositionsUpdate(json: JSONObject) {
+        try {
+            Log.d(tag, "handlePositionsUpdate called with JSON: $json")
+            
+            val positionsArray = json.optJSONArray("positions")
+            if (positionsArray == null) {
+                Log.w(tag, "No positions array in message")
+                return
+            }
+            
+            Log.d(tag, "Positions array length: ${positionsArray.length()}")
+            
+            val updatedPositions = mutableListOf<Position>()
+            for (i in 0 until positionsArray.length()) {
+                val posJson = positionsArray.optJSONObject(i) ?: continue
+                
+                val id = posJson.optString("id", "")
+                val symbol = posJson.optString("symbol", "")
+                val side = posJson.optString("side", "buy")
+                val volume = posJson.optDouble("volume", 0.0).toFloat()
+                val entryPrice = posJson.optDouble("entryPrice", 0.0).toFloat()
+                
+                Log.d(tag, "Position $i: id=$id, symbol=$symbol, side=$side, volume=$volume, entryPrice=$entryPrice")
+                
+                if (id.isNotBlank() && symbol.isNotBlank()) {
+                    updatedPositions.add(
+                        Position(
+                            id = id,
+                            symbol = symbol,
+                            type = side,
+                            volume = volume,
+                            entryPrice = entryPrice,
+                            time = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+            
+            Log.d(tag, "Parsed ${updatedPositions.size} positions, calling onPositionsUpdate")
+            
+            currentPositions.clear()
+            updatedPositions.forEach { currentPositions[it.id] = it }
+            onPositionsUpdate(currentPositions.values.toList())
+            
+            Log.d(tag, "Updated ${updatedPositions.size} positions, onPositionsUpdate callback completed")
+            
+        } catch (e: Exception) {
+            Log.e(tag, "Error parsing positions: ${e.message}", e)
         }
     }
     
@@ -243,11 +340,48 @@ class CTraderService(
     
     private fun handlePositionUpdate(json: JSONObject) {
         try {
-            // Parse position data based on cTrader API format
-            // This is a placeholder - adjust based on actual API response
-            
+            val positionId = json.optString("positionId")
+                .ifBlank { json.optString("id") }
+                .ifBlank { json.optString("tradeId") }
+            val symbol = json.optString("symbol").ifBlank { json.optString("symbolName") }
+            if (positionId.isBlank() || symbol.isBlank()) {
+                return
+            }
+
+            val side = json.optString("tradeSide")
+                .ifBlank { json.optString("side") }
+                .ifBlank { json.optString("type") }
+                .lowercase()
+                .let { if (it.contains("sell")) "sell" else "buy" }
+            val entryPrice = json.optDouble("price")
+                .takeIf { it > 0.0 }
+                ?: json.optDouble("entryPrice")
+                    .takeIf { it > 0.0 }
+                ?: json.optDouble("openPrice")
+            val volume = json.optDouble("volume")
+                .takeIf { it > 0.0 }
+                ?: json.optDouble("quantity")
+                    .takeIf { it > 0.0 }
+                ?: json.optDouble("lotSize")
+            val updatedPosition = Position(
+                id = positionId,
+                symbol = symbol,
+                type = side,
+                entryPrice = entryPrice.toFloat(),
+                volume = volume.toFloat(),
+                time = json.optLong("utcTimestampInMillis", System.currentTimeMillis()),
+                tp = json.optDouble("takeProfit").takeIf { it > 0.0 }?.toFloat(),
+                sl = json.optDouble("stopLoss").takeIf { it > 0.0 }?.toFloat()
+            )
+
+            val status = json.optString("status").lowercase()
+            if (status.contains("closed")) {
+                currentPositions.remove(positionId)
+            } else {
+                currentPositions[positionId] = updatedPosition
+            }
+            onPositionsUpdate(currentPositions.values.toList())
             Log.d(tag, "Position update received")
-            
         } catch (e: Exception) {
             Log.e(tag, "Error parsing position: ${e.message}", e)
         }
@@ -255,9 +389,18 @@ class CTraderService(
     
     private fun handleAccountUpdate(json: JSONObject) {
         try {
+            Log.d(tag, "handleAccountUpdate called with JSON: $json")
+            
             val balance = json.optDouble("balance", 0.0)
             val equity = json.optDouble("equity", 0.0)
             val margin = json.optDouble("margin", 0.0)
+            val bridgeRealizedPnl = json.optDouble("realizedPnl", 0.0)
+            if (bridgeRealizedPnl != 0.0) {
+                cumulativeRealizedPnl += bridgeRealizedPnl
+                Log.d(tag, "Accumulated realizedPnl from bridge: $bridgeRealizedPnl, total=$cumulativeRealizedPnl")
+            }
+            
+            Log.d(tag, "Parsed values - balance: $balance, equity: $equity, margin: $margin")
             
             val accountInfo = Mt5Service.AccountInfo(
                 balance = balance,
@@ -265,12 +408,14 @@ class CTraderService(
                 margin = margin,
                 availableFunds = (equity - margin),
                 unrealizedPnl = equity - balance,
-                realizedPnl = 0.0,
+                realizedPnl = cumulativeRealizedPnl,
                 marginBuffer = if (equity > 0) ((equity - margin) / equity * 100.0) else 100.0,
                 ordersMargin = 0.0
             )
             
+            Log.d(tag, "Calling onAccountUpdate with accountInfo: $accountInfo")
             onAccountUpdate(accountInfo)
+            Log.d(tag, "onAccountUpdate callback completed")
             
         } catch (e: Exception) {
             Log.e(tag, "Error parsing account: ${e.message}", e)
@@ -282,7 +427,14 @@ class CTraderService(
         webSocket?.close(1000, "Client disconnect")
         webSocket = null
         isConnected = false
-        scope.cancel()
+        currentPositions.clear()
+        cumulativeRealizedPnl = 0.0
+        balanceHistory.clear()
+        onPositionsUpdate(emptyList())
+        onAccountUpdate(null)
+        onBalanceHistoryUpdate(emptyList())
+        onConnectionStatusUpdate(false)
+        scope.coroutineContext.cancelChildren()
     }
     
     fun isConnected(): Boolean = isConnected

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.asc.markets.data.NetworkConfig
+import com.trading.app.data.BinanceMarketType
+import com.trading.app.data.BinanceTradingMode
 import com.trading.app.data.BinanceChartService
 import com.trading.app.data.ChartFeedType
 import com.trading.app.data.Mt5Service
@@ -456,6 +458,8 @@ fun TradingChart(
     onVolumeToggle: (Boolean) -> Unit = {},
     onIndicatorSettingsClick: (String) -> Unit = {},
     chartFeedType: ChartFeedType? = null,
+    binanceMarketType: BinanceMarketType = BinanceMarketType.FUTURES,
+    providerChartData: ProviderChartData? = null,
     isMagnetEnabled: Boolean = false,
     isLocked: Boolean = false,
     isVisible: Boolean = true,
@@ -526,10 +530,13 @@ fun TradingChart(
     onIndicatorDataUpdate: (IndicatorData) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val networkPrefs = remember { context.getSharedPreferences(NetworkConfig.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
     val mt5Host = remember { NetworkConfig.mt5Host(context) }
     val mt5Port = remember { NetworkConfig.mt5Port(context) }
     val cTraderHost = remember { NetworkConfig.cTraderHost(context) }
     val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
+    var binanceTradingMode by remember { mutableStateOf(BinanceTradingMode.current(context)) }
+    val providerManagedData = providerChartData != null
     var ohlcData by remember { mutableStateOf<List<OHLCData>>(emptyList()) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMoreHistory by remember { mutableStateOf(true) }
@@ -546,6 +553,18 @@ fun TradingChart(
     var showIndicatorsList by remember { mutableStateOf(true) }
     var showIndicatorMoreMenu by remember { mutableStateOf(false) }
     var indicatorMoreMenuTarget by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(networkPrefs, context) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == BinanceTradingMode.PREF_KEY) {
+                binanceTradingMode = BinanceTradingMode.current(context)
+            }
+        }
+        networkPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            networkPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
 
     // Indicator series state
     val rsiPaneRefs = rememberRsiPaneRefs()
@@ -676,6 +695,21 @@ fun TradingChart(
             lastChartQuoteAppliedAt = System.currentTimeMillis()
             pendingChartQuote = null
             applyQuoteToChart(quote)
+        }
+    }
+
+    LaunchedEffect(providerManagedData, providerChartData?.candles) {
+        if (providerManagedData) {
+            ohlcData = providerChartData?.candles.orEmpty()
+            isLoadingMore = providerChartData?.isLoadingMore ?: false
+            hasMoreHistory = providerChartData?.hasMoreHistory ?: true
+            updatedOnDataLoaded.value(providerChartData?.candles.orEmpty())
+        }
+    }
+
+    LaunchedEffect(providerManagedData, providerChartData?.quote) {
+        if (providerManagedData) {
+            providerChartData?.quote?.let(::applyQuoteToChart)
         }
     }
 
@@ -817,8 +851,10 @@ fun TradingChart(
         Log.d(LOG_TAG, "onHistoryUpdate ($source): received ${processedHistory.size} candles for $receivedSymbol")
     }
 
-    val binanceService = remember {
+    val binanceService = remember(binanceTradingMode, binanceMarketType) {
         BinanceChartService(
+            tradingMode = binanceTradingMode,
+            marketType = binanceMarketType,
             onQuoteUpdate = { quote: SymbolQuote ->
                 val isTarget = chartSymbolsMatch(quote.name, currentSymbol.value)
                 
@@ -946,7 +982,8 @@ fun TradingChart(
         )
     }
 
-    LaunchedEffect(chartFeedType) {
+    LaunchedEffect(chartFeedType, providerManagedData) {
+        if (providerManagedData) return@LaunchedEffect
         if (chartFeedType == null || chartFeedType == ChartFeedType.EXNESS) {
             mt5Service.connect()
             mt5Service.requestSymbols()
@@ -957,7 +994,8 @@ fun TradingChart(
         }
     }
 
-    LaunchedEffect(symbol, timeframe, chartFeedType) {
+    LaunchedEffect(symbol, timeframe, chartFeedType, binanceMarketType, providerManagedData) {
+        if (providerManagedData) return@LaunchedEffect
         mt5Service.stopActiveStream()
         binanceService.stopActiveStream()
         pepperstoneChartService.stopActiveStream()
@@ -986,6 +1024,20 @@ fun TradingChart(
                 Log.d(LOG_TAG, "Subscribing Binance-only chart route for $streamSymbol timeframe=$timeframe")
                 binanceService.streamActiveSymbol(streamSymbol)
                 binanceService.fetchHistory(streamSymbol, timeframe, null)
+                kotlinx.coroutines.delay(3500)
+                if (
+                    ohlcData.isEmpty() &&
+                    chartSymbolsMatch(currentSymbol.value, symbol) &&
+                    currentTimeframe.value.equals(timeframe, ignoreCase = true)
+                ) {
+                    if (binanceService.isRegionBlocked()) {
+                        useMt5FallbackForCrypto = true
+                        Log.w(LOG_TAG, "Binance region blocked for $streamSymbol; falling back to MT5 symbol=$symbol timeframe=$timeframe")
+                    } else {
+                        Log.w(LOG_TAG, "Binance candles unavailable for $streamSymbol; falling back to MT5 symbol=$symbol timeframe=$timeframe")
+                    }
+                    mt5Service.streamActiveSymbol(symbol, timeframe, 500)
+                }
                 return@LaunchedEffect
             }
             null -> Unit
@@ -1013,12 +1065,14 @@ fun TradingChart(
     }
 
     LaunchedEffect(isCalendarVisible, calendarRequestDateIso, calendarRequestVersion) {
+        if (providerManagedData) return@LaunchedEffect
         if (isCalendarVisible) {
             mt5Service.requestCalendar(calendarRequestDateIso)
         }
     }
 
     LaunchedEffect(isNewsVisible) {
+        if (providerManagedData) return@LaunchedEffect
         if (isNewsVisible) {
             mt5Service.requestNews()
         }
@@ -2075,10 +2129,12 @@ fun TradingChart(
 
     DisposableEffect(Unit) {
         onDispose {
-            mt5Service.disconnect()
-            binanceService.disconnect()
-            pepperstoneChartService.disconnect()
-            reverseBridge?.disconnect()
+            if (!providerManagedData) {
+                mt5Service.disconnect()
+                binanceService.disconnect()
+                pepperstoneChartService.disconnect()
+                reverseBridge?.disconnect()
+            }
         }
     }
 
@@ -2217,24 +2273,30 @@ fun TradingChart(
                         api.timeScale.subscribeVisibleTimeRangeChange { range ->
                             if (range != null && candlestickData.isNotEmpty()) {
                                 // Lazy loading logic
-                                if (!isLoadingMore && hasMoreHistory && ohlcData.size < 10000) {
+                                val loadingMoreNow = if (providerManagedData) providerChartData?.isLoadingMore == true else isLoadingMore
+                                val hasMoreNow = if (providerManagedData) providerChartData?.hasMoreHistory != false else hasMoreHistory
+                                if (!loadingMoreNow && hasMoreNow && ohlcData.size < 10000) {
                                     val firstCandleTime = ohlcData.first().time
                                     val visibleStart = (range.from as? Time.Utc)?.timestamp ?: 0L
                                     val threshold = timeframeToSeconds(timeframe) * 50 // 50 candles buffer
                                     
                                     if (visibleStart <= firstCandleTime + threshold) {
-                                        isLoadingMore = true
                                         val endTime = firstCandleTime - 1
-                                        when (chartFeedType) {
-                                            ChartFeedType.EXNESS -> mt5Service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, symbol), timeframe, endTime, 500)
-                                            ChartFeedType.PEPPERSTONE -> isLoadingMore = false
-                                            ChartFeedType.BINANCE -> binanceService.fetchHistory(chartFeedSymbolFor(ChartFeedType.BINANCE, symbol), timeframe, endTime)
-                                            null -> {
-                                                val streamSymbol = binanceStreamSymbolFor(symbol)
-                                                if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
-                                                    binanceService.fetchHistory(streamSymbol, timeframe, endTime)
-                                                } else {
-                                                    mt5Service.subscribe(streamSymbol, timeframe, endTime, 500)
+                                        if (providerManagedData) {
+                                            providerChartData?.onLoadMoreHistory?.invoke(endTime)
+                                        } else {
+                                            isLoadingMore = true
+                                            when (chartFeedType) {
+                                                ChartFeedType.EXNESS -> mt5Service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, symbol), timeframe, endTime, 500)
+                                                ChartFeedType.PEPPERSTONE -> isLoadingMore = false
+                                                ChartFeedType.BINANCE -> binanceService.fetchHistory(chartFeedSymbolFor(ChartFeedType.BINANCE, symbol), timeframe, endTime)
+                                                null -> {
+                                                    val streamSymbol = binanceStreamSymbolFor(symbol)
+                                                    if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
+                                                        binanceService.fetchHistory(streamSymbol, timeframe, endTime)
+                                                    } else {
+                                                        mt5Service.subscribe(streamSymbol, timeframe, endTime, 500)
+                                                    }
                                                 }
                                             }
                                         }

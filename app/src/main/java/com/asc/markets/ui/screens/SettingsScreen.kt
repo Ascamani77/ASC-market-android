@@ -29,6 +29,7 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import com.asc.markets.state.AssetContextStore
 import com.asc.markets.ui.screens.dashboard.getExploreItemsForContext
+import com.trading.app.data.BinanceTradingMode
 import com.trading.app.data.ChartFeedType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -242,6 +243,9 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                 var selectedFeed by remember {
                     mutableStateOf(ChartFeedType.streamCurrent(context))
                 }
+                var selectedBinanceMode by remember {
+                    mutableStateOf(BinanceTradingMode.current(context))
+                }
 
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                     Text("Stream Chart Source", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
@@ -273,7 +277,7 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                                         when (feedType) {
                                             ChartFeedType.EXNESS -> "MT5 bridge chart and Exness symbols."
                                             ChartFeedType.PEPPERSTONE -> "Pepperstone cTrader bridge chart and Pepperstone assets."
-                                            ChartFeedType.BINANCE -> "Binance spot chart and USDT crypto assets."
+                                            ChartFeedType.BINANCE -> "Binance futures chart and USDT crypto assets."
                                         },
                                         color = if (selected) Color.DarkGray else SlateMuted,
                                         fontSize = 10.sp
@@ -281,6 +285,43 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                                 }
                                 if (selected) {
                                     Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text("Binance Trading Mode", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Choose whether Binance live trading uses your real account or your demo/testnet keys from env.demo.", color = SlateMuted, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(GhostWhite, RoundedCornerShape(12.dp))
+                            .padding(4.dp)
+                    ) {
+                        BinanceTradingMode.values().forEach { mode ->
+                            val selected = selectedBinanceMode == mode
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .clickable {
+                                        selectedBinanceMode = mode
+                                        prefs.edit().putString(BinanceTradingMode.PREF_KEY, mode.prefValue).apply()
+                                    },
+                                color = if (selected) Color.White else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        mode.displayName,
+                                        color = if (selected) Color.Black else Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }

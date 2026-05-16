@@ -12,73 +12,191 @@ import org.json.JSONObject
 import java.util.Locale
 
 class BinanceService(
+    private val tradingMode: BinanceTradingMode = BinanceTradingMode.LIVE,
+    private val marketType: BinanceMarketType = BinanceMarketType.FUTURES,
     private val onQuoteUpdate: (SymbolQuote) -> Unit,
     private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> }
 ) {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .pingInterval(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
     private var webSocket: WebSocket? = null
     private val gson = Gson()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val symbols = mutableSetOf<String>()
+    private var connectionStartTime: Long = 0
+    private val reconnectRunnable = Runnable { 
+        if (!isClosing && !isRegionBlocked) {
+            Log.i("BinanceService", "24-hour reconnection triggered")
+            connect() 
+        }
+    }
+    private val streamBaseUrl: String
+        get() = when (tradingMode) {
+            BinanceTradingMode.DEMO -> "wss://demo-fstream.binance.com"
+            BinanceTradingMode.LIVE -> "wss://fstream.binance.com"
+        }
+    private val restBaseUrl: String
+        get() = when (tradingMode) {
+            BinanceTradingMode.DEMO -> "https://demo-fapi.binance.com"
+            BinanceTradingMode.LIVE -> "https://fapi.binance.com"
+        }
 
     fun connect() {
+        if (isRegionBlocked) {
+            Log.w("BinanceService", "Skipping connect: region blocked")
+            return
+        }
         if (symbols.isEmpty()) return
-        val streams = symbols.joinToString("/") { "$it@ticker" }
-        val url = "wss://stream.binance.com:9443/stream?streams=$streams"
+        isClosing = false
+        
+        // Binance Futures uses different stream format
+        // For Futures: wss://fstream.binance.com/stream?streams=btcusdt@aggTrade/btcusdt@miniTicker
+        val streams = symbols.flatMap { symbol ->
+            listOf("${symbol}@aggTrade", "${symbol}@miniTicker")
+        }.joinToString("/")
+        
+        val url = "$streamBaseUrl/stream?streams=$streams"
+        
+        Log.d("BinanceService", "Connecting to: $url")
+        Log.d("BinanceService", "Market type: FUTURES, Trading mode: $tradingMode")
+        Log.d("BinanceService", "Symbols: ${symbols.joinToString(", ")}")
         
         webSocket?.close(1000, "Reconnecting")
         
         val request = Request.Builder().url(url).build()
+        
+        // Cache for storing latest quote data per symbol
+        val quoteCache = mutableMapOf<String, SymbolQuote>()
+        
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
                 try {
                     val root = JSONObject(text)
+                    val stream = root.optString("stream", "")
                     val data = root.optJSONObject("data") ?: return
-                    val symbol = data.optString("s")
                     
-                    val quote = SymbolQuote(
-                        name = symbol, // e.g., BTCUSDT
-                        lastPrice = data.optString("c").toFloat(),
-                        change = data.optString("p").toFloat(),
-                        changePercent = data.optString("P").toFloat(),
-                        open = data.optString("o").toFloat(),
-                        high = data.optString("h").toFloat(),
-                        low = data.optString("l").toFloat(),
-                        prevClose = (data.optString("c").toDouble() - data.optString("p").toDouble()).toFloat(),
-                        bid = data.optString("b").toFloat(),
-                        ask = data.optString("a").toFloat(),
-                        volume = data.optString("v").toFloat(),
-                        time = data.optLong("E")
-                    )
-                    
-                    val latency = System.currentTimeMillis() - quote.time
-                    SystemTelemetry.recordTick("BINANCE", latency.toDouble().coerceAtLeast(1.0))
-                    
-                    mainHandler.post {
-                        onQuoteUpdate(quote)
+                    when {
+                        stream.endsWith("@aggTrade") -> {
+                            // Fast price updates (every trade)
+                            val symbol = data.optString("s")
+                            val price = data.optString("p", "0").toFloatOrNull() ?: 0f
+                            val time = data.optLong("T")
+                            
+                            // Get or create quote
+                            val existing = quoteCache[symbol] ?: SymbolQuote(
+                                name = symbol,
+                                lastPrice = price,
+                                change = 0f,
+                                changePercent = 0f,
+                                open = price,
+                                high = price,
+                                low = price,
+                                prevClose = price,
+                                bid = price,
+                                ask = price,
+                                volume = 0f,
+                                time = time
+                            )
+                            
+                            // Update with new price
+                            val updated = existing.copy(
+                                lastPrice = price,
+                                bid = price,
+                                ask = price,
+                                time = time
+                            )
+                            
+                            quoteCache[symbol] = updated
+                            
+                            mainHandler.post {
+                                onQuoteUpdate(updated)
+                            }
+                        }
+                        
+                        stream.endsWith("@miniTicker") -> {
+                            // 24h statistics (once per second)
+                            val symbol = data.optString("s")
+                            
+                            fun parsePrice(key: String, default: Float = 0f): Float {
+                                val str = data.optString(key, "")
+                                return if (str.isNotEmpty()) str.toFloatOrNull() ?: default else default
+                            }
+                            
+                            val lastPrice = parsePrice("c")
+                            val change = parsePrice("p")
+                            val changePercent = parsePrice("P")
+                            val open = parsePrice("o")
+                            val high = parsePrice("h")
+                            val low = parsePrice("l")
+                            val volume = parsePrice("v")
+                            val time = data.optLong("E")
+                            
+                            val quote = SymbolQuote(
+                                name = symbol,
+                                lastPrice = lastPrice,
+                                change = change,
+                                changePercent = changePercent,
+                                open = open,
+                                high = high,
+                                low = low,
+                                prevClose = lastPrice - change,
+                                bid = lastPrice,
+                                ask = lastPrice,
+                                volume = volume,
+                                time = time
+                            )
+                            
+                            quoteCache[symbol] = quote
+                            
+                            val latency = System.currentTimeMillis() - quote.time
+                            SystemTelemetry.recordTick("BINANCE", latency.toDouble().coerceAtLeast(1.0))
+                            
+                            mainHandler.post {
+                                onQuoteUpdate(quote)
+                            }
+                        }
                     }
                 } catch (e: Exception) {
-                    Log.e("BinanceService", "Error parsing Binance message: ${e.message}")
+                    Log.e("BinanceService", "Error parsing Binance message: ${e.message}", e)
                 }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.e("BinanceService", "Binance WebSocket Failure: ${t.message}")
-                mainHandler.postDelayed({ if (!isClosing) connect() }, 5000)
+                Log.e("BinanceService", "Binance WebSocket Failure: ${t.message}", t)
+                if (t.message?.contains("451") == true || t.message?.contains("restricted") == true) {
+                    isRegionBlocked = true
+                    Log.e("BinanceService", "Region block detected on WebSocket failure")
+                    return
+                }
+                mainHandler.postDelayed({ if (!isClosing && !isRegionBlocked) connect() }, 5000)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Log.w("BinanceService", "Binance WebSocket Closed: $reason")
+                Log.w("BinanceService", "Binance WebSocket Closed: code=$code reason=$reason")
+                if (code == 1006 || reason.isBlank()) {
+                    isRegionBlocked = true
+                    Log.e("BinanceService", "Region block detected on WebSocket close")
+                }
                 SystemTelemetry.recordConnectionEvent("BINANCE", "CONNECTION_CLOSED ($reason)")
             }
             
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.i("BinanceService", "Binance WebSocket CONNECTED (fast mode)")
                 SystemTelemetry.recordConnectionEvent("BINANCE", "WEBSOCKET_CONNECTED")
+                connectionStartTime = System.currentTimeMillis()
+                
+                // Schedule reconnection after 23.5 hours (before 24-hour limit)
+                mainHandler.removeCallbacks(reconnectRunnable)
+                mainHandler.postDelayed(reconnectRunnable, 23 * 60 * 60 * 1000L + 30 * 60 * 1000L)
             }
         })
     }
 
     private var isClosing = false
+    private var isRegionBlocked = false
+
+    fun isRegionBlocked(): Boolean = isRegionBlocked
 
     fun subscribe(symbol: String) {
         val binanceSymbol = symbol.lowercase(Locale.US)
@@ -88,6 +206,10 @@ class BinanceService(
     }
 
     fun subscribeSymbols(symbolsToSubscribe: List<String>) {
+        if (isRegionBlocked) {
+            Log.w("BinanceService", "Skipping subscribeSymbols: region blocked")
+            return
+        }
         val normalized = symbolsToSubscribe
             .asSequence()
             .map { it.trim().lowercase(Locale.US) }
@@ -106,6 +228,10 @@ class BinanceService(
     }
 
     fun streamActiveSymbol(symbol: String) {
+        if (isRegionBlocked) {
+            Log.w("BinanceService", "Skipping streamActiveSymbol: region blocked")
+            return
+        }
         val binanceSymbol = symbol.lowercase(Locale.US)
         if (symbols.size == 1 && symbols.contains(binanceSymbol) && webSocket != null) return
         symbols.clear()
@@ -133,7 +259,8 @@ class BinanceService(
             else -> "1h"
         }
         
-        var url = "https://api.binance.com/api/v3/klines?symbol=${symbol.uppercase()}&interval=$binanceInterval&limit=500"
+        val klinesEndpoint = "/fapi/v1/klines"
+        var url = "$restBaseUrl$klinesEndpoint?symbol=${symbol.uppercase()}&interval=$binanceInterval&limit=500"
         if (endTime != null) {
             url += "&endTime=${endTime * 1000L}"
         }
@@ -148,6 +275,12 @@ class BinanceService(
             override fun onResponse(call: Call, response: Response) {
                 val body = response.body?.string() ?: return
                 try {
+                    if (response.code == 451) {
+                        isRegionBlocked = true
+                        Log.e("BinanceService", "Region block detected: HTTP 451. $body")
+                        mainHandler.post { onHistoryUpdate(symbol, emptyList()) }
+                        return
+                    }
                     if (!response.isSuccessful) {
                         Log.e("BinanceService", "History HTTP ${response.code}: $body")
                         mainHandler.post { onHistoryUpdate(symbol, emptyList()) }
@@ -179,6 +312,7 @@ class BinanceService(
 
     fun disconnect() {
         isClosing = true
+        mainHandler.removeCallbacks(reconnectRunnable)
         webSocket?.close(1000, "App closing")
         webSocket = null
     }

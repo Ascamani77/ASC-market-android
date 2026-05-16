@@ -427,16 +427,24 @@ class Mt5Service(
                             onBalanceHistoryUpdate(balanceHistory)
                         }
                     } else if (type == "calendar") {
-                        val display = gson.fromJson(
-                            root.getJSONObject("display").toString(),
-                            EconomicCalendarDisplayPayload::class.java
-                        )
-                        val ai = gson.fromJson(
-                            root.getJSONObject("ai").toString(),
-                            EconomicCalendarAiPayload::class.java
-                        )
-                        dispatchToMain {
-                            onCalendarUpdate(EconomicCalendarPayload(display = display, ai = ai))
+                        Log.d(TAG, "=== CALENDAR RESPONSE RECEIVED ===")
+                        Log.d(TAG, "Calendar JSON length: ${text.length}")
+                        try {
+                            val display = gson.fromJson(
+                                root.getJSONObject("display").toString(),
+                                EconomicCalendarDisplayPayload::class.java
+                            )
+                            val ai = gson.fromJson(
+                                root.getJSONObject("ai").toString(),
+                                EconomicCalendarAiPayload::class.java
+                            )
+                            Log.d(TAG, "Calendar parsed: ${display.events.size} display events, ${ai.events.size} AI events")
+                            dispatchToMain {
+                                onCalendarUpdate(EconomicCalendarPayload(display = display, ai = ai))
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to parse calendar response", e)
+                            Log.e(TAG, "Calendar JSON sample: ${text.take(500)}")
                         }
                     } else if (type == "news") {
                         Log.i(TAG, "=== NEWS RESPONSE RECEIVED ===")

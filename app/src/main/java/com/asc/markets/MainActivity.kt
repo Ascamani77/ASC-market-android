@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
-import com.asc.markets.logic.IntelligenceViewModel
+import com.asc.markets.logic.EventStreamViewModel
 import com.asc.markets.data.AppView
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
                                 AppView.DASHBOARD, AppView.MARKETS, AppView.CALENDAR, AppView.INTELLIGENCE_STREAM -> {
                                     val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
                                     val collapseProgress by if (currentView == AppView.INTELLIGENCE_STREAM) {
-                                        val intelViewModel: IntelligenceViewModel = viewModel()
+                                        val intelViewModel: EventStreamViewModel = viewModel()
                                         intelViewModel.globalHeaderCollapse.collectAsState(initial = 0f)
                                     } else {
                                         viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
@@ -201,8 +201,8 @@ class MainActivity : ComponentActivity() {
                                     AppView.MY_SIMULATION -> MySimulationScreen(viewModel)
                                     AppView.NEWS -> MainScreen(onBackToApp = { viewModel.navigateTo(AppView.DASHBOARD) })
                                     AppView.HOME_ALERTS -> HomeAlertsScreen()
-                                    AppView.INTELLIGENCE_STREAM -> IntelligenceDashboardScreen()
-                                    AppView.MACRO_STREAM -> IntelligenceStreamScreen(viewModel)
+                                    AppView.INTELLIGENCE_STREAM -> EventStreamScreen()
+                                    AppView.MACRO_STREAM -> MacroStreamScreen(viewModel)
                                     AppView.CALENDAR -> CalendarScreen()
                                     AppView.STREAM -> StreamScreen()
                                     AppView.SENTIMENT -> SentimentScreen()

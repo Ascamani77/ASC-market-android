@@ -339,7 +339,7 @@ fun AscSidebar(
                     MenuDivider()
                     MenuItem(Icons.Default.History, "Logic Simulation") { onViewChange(AppView.BACKTEST) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Language, "Intelligence Stream") { onViewChange(AppView.INTELLIGENCE_STREAM) }
+                    MenuItem(Icons.Default.Language, "Event Stream") { onViewChange(AppView.INTELLIGENCE_STREAM) }
                     MenuDivider()
                     MenuItem(Icons.Default.Lock, "Node Data Vault") { onViewChange(AppView.DATA_VAULT) }
                 }

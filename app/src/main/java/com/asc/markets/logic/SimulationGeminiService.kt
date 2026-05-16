@@ -18,6 +18,55 @@ object SimulationGeminiService {
         }
     )
 
+    suspend fun generateEventAnalysis(eventTitle: String, actual: String, forecast: String, previous: String, importance: String): JSONObject = withContext(Dispatchers.IO) {
+        val prompt = """
+            Analyze the following macroeconomic event:
+            Title: $eventTitle
+            Actual: $actual
+            Forecast: $forecast
+            Previous: $previous
+            Importance: $importance
+            
+            Provide an analysis and severity in JSON format.
+            Include:
+            - "bias": 'long', 'short', or 'neutral'
+            - "posture": 'aggressive', 'defensive', or 'balanced'
+            - "confidence": an integer between 0 and 100
+            - "narrative_summary": a short sentence explaining the impact (e.g., "Inflation slows faster than expected.")
+            - "severity": 'critical', 'high', or 'normal'
+            - "assets": array of 2 related assets (e.g. ["USD", "UST-10Y"] or ["EUR", "GER-30"])
+            - "asset_class": 'macro', 'forex', 'stock', or 'commodity'
+            
+            Example format:
+            {
+              "bias": "short",
+              "posture": "defensive",
+              "confidence": 58,
+              "narrative_summary": "Central bank emergency meeting scheduled.",
+              "severity": "critical",
+              "assets": ["USD", "UST-10Y"],
+              "asset_class": "macro"
+            }
+        """.trimIndent()
+
+        try {
+            val response = model.generateContent(prompt)
+            val text = response.text ?: throw Exception("Empty response")
+            JSONObject(text.replace("```json", "").replace("```", "").trim())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            JSONObject().apply {
+                put("bias", "neutral")
+                put("posture", "balanced")
+                put("confidence", 50)
+                put("narrative_summary", "Awaiting AI analysis due to API error.")
+                put("severity", "normal")
+                put("assets", org.json.JSONArray(listOf("USD", "GOLD")))
+                put("asset_class", "macro")
+            }
+        }
+    }
+
     private val ASSETS = arrayOf("BTC/USD", "ETH/USD", "EUR/USD", "GBP/USD", "GOLD", "OIL")
 
     suspend fun generateTradeSignal(

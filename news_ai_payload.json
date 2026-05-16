@@ -2,275 +2,275 @@
   "type": "news",
   "items": [
     {
-      "id": 1126008643,
-      "title": "Europe: Export to US slump and tariff risks – Standard Chartered",
-      "timeLabel": "56 minutes ago",
-      "isoDateTime": "2026-05-12T21:51:00+01:00",
+      "id": 848289057,
+      "title": "Taiwan: Tech exports sustain strong growth – ING",
+      "timeLabel": "12 hours ago",
+      "isoDateTime": "2026-05-15T23:04:00+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/europe-export-to-us-slump-and-tariff-risks-standard-chartered-202605122051"
+      "detailsUrl": "https://www.fxstreet.com/news/taiwan-tech-exports-sustain-strong-growth-ing-202605152204"
     },
     {
-      "id": 1312675142,
-      "title": "United States API Weekly Crude Oil Stock came in at -2.188M below forecasts (-1.65M) in May 8",
-      "timeLabel": "1 hours ago",
-      "isoDateTime": "2026-05-12T21:41:30+01:00",
+      "id": 1174690009,
+      "title": "Singapore: NODX gains extend on AI cycle – DBS",
+      "timeLabel": "13 hours ago",
+      "isoDateTime": "2026-05-15T22:17:00+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/united-states-api-weekly-crude-oil-stock-came-in-at-2188m-below-forecasts-165m-in-may-8-202605122041"
+      "detailsUrl": "https://www.fxstreet.com/news/singapore-nodx-gains-extend-on-ai-cycle-dbs-202605152117"
     },
     {
-      "id": 138662649,
-      "title": "Aluminium: EU ETS reform raises cost risks – Commerzbank",
-      "timeLabel": "1 hours ago",
-      "isoDateTime": "2026-05-12T21:28:00+01:00",
+      "id": 354768584,
+      "title": "Japan: Energy shock lifts inflation more than GDP – ING",
+      "timeLabel": "14 hours ago",
+      "isoDateTime": "2026-05-15T21:36:00+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/aluminium-eu-ets-reform-raises-cost-risks-commerzbank-202605122028"
+      "detailsUrl": "https://www.fxstreet.com/news/japan-energy-shock-lifts-inflation-more-than-gdp-ing-202605152036"
+    },
+    {
+      "id": 235760896,
+      "title": "Forecasting the upcoming week: Markets shift focus to PMIs and central bank events",
+      "timeLabel": "14 hours ago",
+      "isoDateTime": "2026-05-15T21:32:37+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/forecasting-the-upcoming-week-markets-shift-focus-to-pmis-and-central-bank-events-202605152032"
+    },
+    {
+      "id": 971681432,
+      "title": "Asian FX: Dollar strength caps RMB-led optimism – OCBC",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:52:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/asian-fx-dollar-strength-caps-rmb-led-optimism-ocbc-202605151952"
+    },
+    {
+      "id": 2074082988,
+      "title": "United States CFTC S&P 500 NC Net Positions declined to $-143.8K from previous $-103.9K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:36+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/united-states-cftc-sp-500-nc-net-positions-declined-to-1438k-from-previous-1039k-202605151932"
+    },
+    {
+      "id": 1864995657,
+      "title": "Japan CFTC JPY NC Net Positions fell from previous ¥-61.7K to ¥-75.1K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:27+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/japan-cftc-jpy-nc-net-positions-fell-from-previous-y-617k-to-y-751k-202605151932"
+    },
+    {
+      "id": 42118382,
+      "title": "United States CFTC Gold NC Net Positions climbed from previous $163.3K to $171.6K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:22+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/united-states-cftc-gold-nc-net-positions-climbed-from-previous-1633k-to-1716k-202605151932"
+    },
+    {
+      "id": 345727004,
+      "title": "United States CFTC Oil NC Net Positions fell from previous 178.8K to 169.9K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:17+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/united-states-cftc-oil-nc-net-positions-fell-from-previous-1788k-to-1699k-202605151932"
+    },
+    {
+      "id": 891195357,
+      "title": "United Kingdom CFTC GBP NC Net Positions up to £-43.1K from previous £-63.9K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:05+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/united-kingdom-cftc-gbp-nc-net-positions-up-to-ps-431k-from-previous-ps-639k-202605151932"
+    },
+    {
+      "id": 1888348129,
+      "title": "Eurozone CFTC EUR NC Net Positions climbed from previous €32.2K to €40.2K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:32:00+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/eurozone-cftc-eur-nc-net-positions-climbed-from-previous-eu322k-to-eu402k-202605151932"
+    },
+    {
+      "id": 545311643,
+      "title": "Australia CFTC AUD NC Net Positions rose from previous $78.7K to $85K",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:31:53+01:00",
+      "countryCode": "WW",
+      "category": "FXStreet",
+      "detailsUrl": "https://www.fxstreet.com/news/australia-cftc-aud-nc-net-positions-rose-from-previous-787k-to-85k-202605151931"
     },
     {
       "id": 1700476403,
-      "title": "Silver Price Forecast: Bulls eye $90.00 as momentum surges",
-      "timeLabel": "1 hours ago",
-      "isoDateTime": "2026-05-12T21:27:33+01:00",
+      "title": "Silver Price Forecast: Crashes below $77 as RSI shifts bearish, eyes on $75",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:21:05+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
       "detailsUrl": "https://www.fxstreet.com/news/silver-price-forecast-bulls-eye-9000-as-momentum-surges-202605122027"
     },
     {
-      "id": 346478032,
-      "title": "Taiwan: Mild tightening path revised – DBS",
-      "timeLabel": "1 hours ago",
-      "isoDateTime": "2026-05-12T21:03:00+01:00",
+      "id": 1787539164,
+      "title": "Malaysia: Growth risks and steady rates – UOB",
+      "timeLabel": "15 hours ago",
+      "isoDateTime": "2026-05-15T20:09:00+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/taiwan-mild-tightening-path-revised-dbs-202605122003"
+      "detailsUrl": "https://www.fxstreet.com/news/malaysia-growth-risks-and-steady-rates-uob-202605151909"
     },
     {
-      "id": 1697041562,
-      "title": "Forex Today: Hot US CPI boosts US Dollar as Treasury yields climb",
-      "timeLabel": "2 hours ago",
-      "isoDateTime": "2026-05-12T20:46:10+01:00",
+      "id": 1724472100,
+      "title": "Chinese Yuan: Growth outlook improves on US-China talks – DBS",
+      "timeLabel": "16 hours ago",
+      "isoDateTime": "2026-05-15T19:37:00+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/forex-today-hot-us-cpi-boosts-us-dollar-as-treasury-yields-climb-202605121946"
+      "detailsUrl": "https://www.fxstreet.com/news/chinese-yuan-growth-outlook-improves-on-us-china-talks-dbs-202605151837"
     },
     {
-      "id": 303362942,
-      "title": "Fed: Neutral stance as inflation stabilizes – TD Securities",
-      "timeLabel": "2 hours ago",
-      "isoDateTime": "2026-05-12T20:40:56+01:00",
+      "id": 1427973879,
+      "title": "Gold sinks 2% as Iran war fuels fresh inflation shock",
+      "timeLabel": "16 hours ago",
+      "isoDateTime": "2026-05-15T19:26:03+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/fed-neutral-stance-as-inflation-stabilizes-td-securities-202605121940"
+      "detailsUrl": "https://www.fxstreet.com/news/gold-sinks-2-as-iran-war-fuels-fresh-inflation-shock-202605151826"
     },
     {
-      "id": 199582575,
-      "title": "GBP/USD Price Forecast: Dark-cloud cover looms as bears eye 1.3500",
-      "timeLabel": "2 hours ago",
-      "isoDateTime": "2026-05-12T20:22:09+01:00",
+      "id": 807287682,
+      "title": "US Dollar Index climbs to five-week high as hawkish Fed bets gather pace",
+      "timeLabel": "16 hours ago",
+      "isoDateTime": "2026-05-15T19:13:03+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/gbp-usd-price-forecast-dark-cloud-cover-looms-as-bears-eye-13500-202605121922"
+      "detailsUrl": "https://www.fxstreet.com/news/us-dollar-index-climbs-to-five-week-high-as-hawkish-fed-bets-gather-pace-202605151813"
     },
     {
-      "id": 275483908,
-      "title": "Malaysian Ringgit: Appreciation trend against US Dollar intact – MUFG",
-      "timeLabel": "2 hours ago",
-      "isoDateTime": "2026-05-12T20:18:20+01:00",
+      "id": 1184200829,
+      "title": "Indonesia: Rate hike expectations support Rupiah – ING",
+      "timeLabel": "17 hours ago",
+      "isoDateTime": "2026-05-15T18:45:42+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/malaysian-ringgit-appreciation-trend-against-us-dollar-intact-mufg-202605121918"
+      "detailsUrl": "https://www.fxstreet.com/news/indonesia-rate-hike-expectations-support-rupiah-ing-202605151745"
     },
     {
-      "id": 988352610,
-      "title": "Gold price sinks as hot CPI, Oil surge crush Fed cut bets",
-      "timeLabel": "2 hours ago",
-      "isoDateTime": "2026-05-12T19:57:34+01:00",
+      "id": 209499090,
+      "title": "Euro gains against British Pound amid rising UK leadership uncertainty",
+      "timeLabel": "17 hours ago",
+      "isoDateTime": "2026-05-15T18:25:24+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/gold-price-sinks-as-hot-cpi-oil-surge-crush-fed-cut-bets-202605121857"
+      "detailsUrl": "https://www.fxstreet.com/news/euro-gains-against-british-pound-amid-rising-uk-leadership-uncertainty-202605151725"
     },
     {
-      "id": 41841601,
-      "title": "ECB's Nagel: We still have quite a bit of inflation ahead of us",
-      "timeLabel": "3 hours ago",
-      "isoDateTime": "2026-05-12T19:38:46+01:00",
+      "id": 635666387,
+      "title": "United States Baker Hughes US Oil Rig Count climbed from previous 410 to 415",
+      "timeLabel": "17 hours ago",
+      "isoDateTime": "2026-05-15T18:02:43+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/ecbs-nagel-we-still-have-quite-a-bit-of-inflation-ahead-of-us-202605121838"
+      "detailsUrl": "https://www.fxstreet.com/news/united-states-baker-hughes-us-oil-rig-count-climbed-from-previous-410-to-415-202605151702"
     },
     {
-      "id": 1124118608,
-      "title": "India : Narrow demand response weighs on GST – Societe Generale",
-      "timeLabel": "3 hours ago",
-      "isoDateTime": "2026-05-12T19:36:36+01:00",
+      "id": 169480876,
+      "title": "British Pound tumbles as UK turmoil, Iran risks lift USD",
+      "timeLabel": "18 hours ago",
+      "isoDateTime": "2026-05-15T17:42:25+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/india-narrow-demand-response-weighs-on-gst-societe-generale-202605121836"
+      "detailsUrl": "https://www.fxstreet.com/news/british-pound-tumbles-as-uk-turmoil-iran-risks-lift-usd-202605151558"
     },
     {
-      "id": 756435516,
-      "title": "Fed’s Goolsbee: Don't think Fed independence is going away",
-      "timeLabel": "3 hours ago",
-      "isoDateTime": "2026-05-12T19:34:53+01:00",
+      "id": 2051404841,
+      "title": "WTI Oil extends rally as Trump signals Chinese buying, Hormuz supply risks persist",
+      "timeLabel": "18 hours ago",
+      "isoDateTime": "2026-05-15T17:12:59+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/feds-goolsbee-dont-think-fed-independence-is-going-away-202605121834"
+      "detailsUrl": "https://www.fxstreet.com/news/wti-oil-extends-rally-as-trump-signals-chinese-buying-hormuz-supply-risks-persist-202605151612"
     },
     {
-      "id": 1307209648,
-      "title": "US Dollar Index jumps after hot US CPI data reinforces hawkish Fed outlook",
-      "timeLabel": "3 hours ago",
-      "isoDateTime": "2026-05-12T19:15:44+01:00",
+      "id": 552231697,
+      "title": "Russia Consumer Price Index (MoM) registered at 0.14%, below expectations (0.3%) in April",
+      "timeLabel": "18 hours ago",
+      "isoDateTime": "2026-05-15T17:00:47+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/us-dollar-index-jumps-after-hot-us-cpi-data-reinforces-hawkish-fed-outlook-202605121815"
+      "detailsUrl": "https://www.fxstreet.com/news/russia-consumer-price-index-mom-registered-at-014-below-expectations-03-in-april-202605151600"
     },
     {
-      "id": 559797064,
-      "title": "United States Monthly Budget Statement below forecasts ($220B) in April: Actual ($215B)",
-      "timeLabel": "3 hours ago",
-      "isoDateTime": "2026-05-12T19:00:02+01:00",
+      "id": 1511504280,
+      "title": "Colombia Gross Domestic Product (YoY) in line with expectations (2.2%) in 1Q",
+      "timeLabel": "18 hours ago",
+      "isoDateTime": "2026-05-15T16:59:52+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/united-states-monthly-budget-statement-below-forecasts-220b-in-april-actual-215b-202605121800"
+      "detailsUrl": "https://www.fxstreet.com/news/colombia-gross-domestic-product-yoy-in-line-with-expectations-22-in-1q-202605151559"
     },
     {
-      "id": 1140935297,
-      "title": "Oil: Iran tensions and China demand shifts – Commerzbank",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T18:39:09+01:00",
+      "id": 2106802870,
+      "title": "United Kingdom: Leadership race shapes fiscal outlook – TD Securities",
+      "timeLabel": "19 hours ago",
+      "isoDateTime": "2026-05-15T16:14:13+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/oil-iran-tensions-and-china-demand-shifts-commerzbank-202605121739"
+      "detailsUrl": "https://www.fxstreet.com/news/united-kingdom-leadership-race-shapes-fiscal-outlook-td-securities-202605151514"
     },
     {
-      "id": 1988353176,
-      "title": "WTI Price Forecast: Oil prices remain underpinned by Hormuz tensions and tighter supply outlook",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T18:32:03+01:00",
+      "id": 623854611,
+      "title": "TLT: Potential wave V breakdown after wave IV consolidation",
+      "timeLabel": "19 hours ago",
+      "isoDateTime": "2026-05-15T16:03:32+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/wti-price-forecast-oil-prices-remain-underpinned-by-hormuz-tensions-and-tighter-supply-outlook-202605121732"
+      "detailsUrl": "https://www.fxstreet.com/news/tlt-potential-wave-v-breakdown-after-wave-iv-consolidation-202605151503"
     },
     {
-      "id": 1600797804,
-      "title": "US Dollar: Neutral range trading outlook – TD Securities",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T18:14:34+01:00",
+      "id": 1834254699,
+      "title": "Colombia Retail Sales (YoY) came in at 13.4%, above expectations (10.1%) in March",
+      "timeLabel": "19 hours ago",
+      "isoDateTime": "2026-05-15T15:59:52+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/us-dollar-neutral-range-trading-outlook-td-securities-202605121714"
+      "detailsUrl": "https://www.fxstreet.com/news/colombia-retail-sales-yoy-came-in-at-134-above-expectations-101-in-march-202605151459"
     },
     {
-      "id": 1927197325,
-      "title": "New Zealand Dollar declines amid strong US inflation as focus shifts to RBNZ outlook",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T18:07:20+01:00",
+      "id": 994808383,
+      "title": "Euro: Growth downgrades and softer outlook – Societe Generale",
+      "timeLabel": "20 hours ago",
+      "isoDateTime": "2026-05-15T15:53:30+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/new-zealand-dollar-declines-after-strong-us-inflation-as-focus-shifts-to-rbnz-outlook-202605121707"
+      "detailsUrl": "https://www.fxstreet.com/news/euro-growth-downgrades-and-softer-outlook-societe-generale-202605151453"
     },
     {
-      "id": 502739468,
-      "title": "United States 10-Year Note Auction rose from previous 4.282% to 4.468%",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T18:03:30+01:00",
+      "id": 193577750,
+      "title": "Euro falls as hawkish Fed expectations boost the US Dollar, Treasury yields",
+      "timeLabel": "20 hours ago",
+      "isoDateTime": "2026-05-15T15:49:34+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/united-states-10-year-note-auction-rose-from-previous-4282-to-4468-202605121703"
+      "detailsUrl": "https://www.fxstreet.com/news/euro-falls-as-hawkish-fed-expectations-boost-the-us-dollar-treasury-yields-202605151449"
     },
     {
-      "id": 1173692988,
-      "title": "Warsh for Fed Board squeaks through Senate 51-45, Fed Chair vote on deck for Wednesday",
-      "timeLabel": "4 hours ago",
-      "isoDateTime": "2026-05-12T17:50:15+01:00",
+      "id": 559505366,
+      "title": "Canadian Dollar falls despite increased Oil prices",
+      "timeLabel": "20 hours ago",
+      "isoDateTime": "2026-05-15T15:47:45+01:00",
       "countryCode": "WW",
       "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/warsh-for-fed-board-squeaks-through-senate-51-45-fed-chair-vote-on-deck-for-wednesday-202605121650"
-    },
-    {
-      "id": 889419116,
-      "title": "Pound Sterling Price News and Forecast:Falls as US inflation surprises, UK political turmoil weighs",
-      "timeLabel": "5 hours ago",
-      "isoDateTime": "2026-05-12T17:21:53+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/pound-sterling-price-news-and-forecast-falls-as-us-inflation-surprises-uk-political-turmoil-weighs-202605121621"
-    },
-    {
-      "id": 1738007342,
-      "title": "Dow Jones Industrial Average futures slide as CPI hits 3.8%, China trip looms",
-      "timeLabel": "5 hours ago",
-      "isoDateTime": "2026-05-12T17:21:41+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/dow-jones-industrial-average-futures-slide-as-cpi-hits-38-china-trip-looms-202605121621"
-    },
-    {
-      "id": 1793890841,
-      "title": "Australian Dollar drops as hot US CPI strengthens Fed higher-for-longer outlook",
-      "timeLabel": "5 hours ago",
-      "isoDateTime": "2026-05-12T17:04:37+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/australian-dollar-drops-as-hot-us-cpi-strengthens-fed-higher-for-longer-outlook-202605121604"
-    },
-    {
-      "id": 226784507,
-      "title": "Gold drops below $4,700 as strong US CPI lifts US Dollar and yields",
-      "timeLabel": "5 hours ago",
-      "isoDateTime": "2026-05-12T16:49:56+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/gold-reverses-gains-as-us-cpi-data-takes-center-stage-202605121126"
-    },
-    {
-      "id": 1132706115,
-      "title": "United States 52-Week Bill Auction increased to 3.65% from previous 3.56%",
-      "timeLabel": "6 hours ago",
-      "isoDateTime": "2026-05-12T16:36:15+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/united-states-52-week-bill-auction-increased-to-365-from-previous-356-202605121536"
-    },
-    {
-      "id": 2084934059,
-      "title": "Japanese Yen dips as US inflation surprise lifts Dollar, hawkish BoJ anchors JPY",
-      "timeLabel": "6 hours ago",
-      "isoDateTime": "2026-05-12T16:23:38+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/japanese-yen-dips-as-us-inflation-surprise-lifts-dollar-hawkish-boj-anchors-jpy-202605121523"
-    },
-    {
-      "id": 1963926699,
-      "title": "Euro drops against Japanese Yen as Bessent’s FX remarks boost JPY",
-      "timeLabel": "6 hours ago",
-      "isoDateTime": "2026-05-12T16:18:42+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/eur-jpy-drops-as-bessents-fx-remarks-boost-the-yen-202605121518"
-    },
-    {
-      "id": 980058310,
-      "title": "British Pound: Political risks weigh on GBP – MUFG",
-      "timeLabel": "6 hours ago",
-      "isoDateTime": "2026-05-12T16:14:04+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/british-pound-political-risks-weigh-on-gbp-mufg-202605121514"
-    },
-    {
-      "id": 959647792,
-      "title": "Canadian Dollar declines after strong US inflation data reinforces hawkish Fed outlook",
-      "timeLabel": "7 hours ago",
-      "isoDateTime": "2026-05-12T15:43:05+01:00",
-      "countryCode": "WW",
-      "category": "FXStreet",
-      "detailsUrl": "https://www.fxstreet.com/news/usd-cad-climbs-after-strong-us-inflation-data-reinforces-hawkish-fed-outlook-202605121443"
+      "detailsUrl": "https://www.fxstreet.com/news/canadian-dollar-falls-despite-increased-oil-prices-202605151447"
     }
   ],
-  "lastUpdatedIso": "2026-05-12T21:47:55.196910+00:00"
+  "lastUpdatedIso": "2026-05-16T10:55:03.962797+00:00"
 }

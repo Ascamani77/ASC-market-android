@@ -88,16 +88,6 @@ fun GlobalHeader(
             Spacer(modifier = Modifier.weight(1f))
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                // "CALENDAR" text button matching the reference image
-                Text(
-                    "CALENDAR",
-                    color = Color(0xFF94A3B8),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = InterFontFamily,
-                    modifier = Modifier.clickable { onNotifications() }
-                )
-
                 IconButton(onClick = onSearch) {
                     Icon(Icons.Default.Search, contentDescription = "Search", tint = SlateText)
                 }

@@ -10,7 +10,11 @@ import websockets
 from ctrader_open_api import Client, EndPoints, Protobuf, TcpProtocol
 from ctrader_open_api.messages.OpenApiCommonMessages_pb2 import ProtoHeartbeatEvent
 from ctrader_open_api.messages.OpenApiMessages_pb2 import *
-from ctrader_open_api.messages.OpenApiModelMessages_pb2 import ProtoOATrendbarPeriod
+from ctrader_open_api.messages.OpenApiModelMessages_pb2 import (
+    ProtoOATrendbarPeriod,
+    ProtoOAOrderType,
+    ProtoOATradeSide
+)
 from twisted.internet import reactor
 
 
@@ -93,6 +97,8 @@ subscribed_symbol_ids: Set[int] = set()
 pending_app_symbols: Set[str] = set()
 last_status = "starting"
 last_status_message = "Starting cTrader bridge"
+last_account_message: Optional[dict] = None  # Store last account message
+pending_balance_snapshot: Optional[float] = None  # Balance before last execution event
 
 
 def normalize_symbol(symbol: str) -> str:
@@ -165,11 +171,14 @@ def status_payload() -> dict:
 
 
 async def send_to_android_clients(text: str) -> None:
+    if "POSITIONS" in text:
+        print(f"[DEBUG] Broadcasting to {len(android_clients)} clients: {text[:200]}...")
     stale = []
     for socket in list(android_clients):
         try:
             await socket.send(text)
-        except Exception:
+        except Exception as e:
+            print(f"[DEBUG] Failed to send to client: {e}")
             stale.append(socket)
     for socket in stale:
         android_clients.discard(socket)
@@ -206,6 +215,9 @@ def on_error(failure) -> None:
 def on_message_received(_client, message) -> None:
     global application_authed, account_authed, account_id, symbols_loaded
     if message.payloadType == ProtoHeartbeatEvent().payloadType:
+        # On heartbeat, request updated account info if we have positions
+        if account_authed and account_id:
+            request_trader_info()
         return
 
     payload = Protobuf.extract(message)
@@ -235,6 +247,7 @@ def on_message_received(_client, message) -> None:
         account_authed = True
         set_status("account_authenticated", f"cTrader account {account_id} authenticated")
         request_symbols()
+        request_trader_info()  # Request balance info
         return
 
     if message.payloadType == ProtoOASymbolsListRes().payloadType:
@@ -256,10 +269,25 @@ def on_message_received(_client, message) -> None:
     if message.payloadType == ProtoOAGetTrendbarsRes().payloadType:
         handle_trendbar_response(payload)
         return
+    
+    if message.payloadType == ProtoOATraderRes().payloadType:
+        handle_trader_response(payload)
+        return
+    
+    if message.payloadType == ProtoOAExecutionEvent().payloadType:
+        handle_order_response(payload)
+        return
+    
+    if message.payloadType == ProtoOAReconcileRes().payloadType:
+        handle_reconcile_response(payload)
+        return
 
     if message.payloadType == ProtoOAErrorRes().payloadType:
         set_status("error", str(payload))
         return
+
+    # Log unrecognized messages so we can debug missing handlers
+    print(f"[cTrader] Unrecognized message type: {message.payloadType}, payload: {payload}")
 
 
 def send_account_auth() -> None:
@@ -278,6 +306,15 @@ def request_symbols() -> None:
     request = ProtoOASymbolsListReq()
     request.ctidTraderAccountId = account_id
     request.includeArchivedSymbols = False
+    send_request(request)
+
+
+def request_trader_info() -> None:
+    """Request account balance and margin info"""
+    if account_id is None:
+        return
+    request = ProtoOATraderReq()
+    request.ctidTraderAccountId = account_id
     send_request(request)
 
 
@@ -441,13 +478,34 @@ def first_present(payload, names: Iterable[str]) -> Optional[float]:
     return None
 
 
-def decode_price(raw: Optional[float], digits: int) -> Optional[float]:
+def decode_price(raw: Optional[float], digits: int, category: str = "FOREX") -> Optional[float]:
     if raw is None or raw <= 0:
         return None
-    if raw > 10000:
-        return raw / PRICE_SCALE
+    # cTrader ProtoOASpotEvent sends ALL symbol prices in protocol units (scaled by PRICE_SCALE).
+    # Divide whenever the raw value is large enough to be a protocol-scaled price.
+    if raw > 10000 and PRICE_SCALE > 0:
+        decoded = raw / PRICE_SCALE
+        if decoded > 0:
+            return decoded
     if digits > 0 and raw > 1000 and PRICE_SCALE <= 0:
         return raw / (10 ** digits)
+    return raw
+
+
+def decode_position_price(raw: Optional[float], digits: int, category: str = "FOREX") -> Optional[float]:
+    if raw is None or raw <= 0:
+        return None
+    normalized_category = str(category or "FOREX").upper()
+    # Pepperstone position prices may arrive either already-decoded, or still scaled.
+    # For crypto CFDs and other high-priced symbols, values can be in the millions
+    # when expressed in protocol units, so use a lower threshold than the old path.
+    if normalized_category == "FOREX" and raw > 10000:
+        if PRICE_SCALE > 0:
+            decoded = raw / PRICE_SCALE
+            if decoded > 0:
+                return decoded
+        if digits > 0:
+            return raw / (10 ** digits)
     return raw
 
 
@@ -460,8 +518,8 @@ def handle_spot_event(payload) -> None:
 
     raw_bid = first_present(payload, ["bid", "relativeBid", "currentBid"])
     raw_ask = first_present(payload, ["ask", "relativeAsk", "currentAsk"])
-    bid = decode_price(raw_bid, state.digits) if raw_bid is not None else state.last_bid
-    ask = decode_price(raw_ask, state.digits) if raw_ask is not None else state.last_ask
+    bid = decode_price(raw_bid, state.digits, state.category) if raw_bid is not None else state.last_bid
+    ask = decode_price(raw_ask, state.digits, state.category) if raw_ask is not None else state.last_ask
 
     if bid is None and ask is None:
         return
@@ -561,6 +619,332 @@ def handle_trendbar_response(payload) -> None:
         print(f"No valid candles decoded for {state.app_symbol}")
 
 
+def handle_trader_response(payload) -> None:
+    """Handle account balance and margin info"""
+    global last_account_message, pending_balance_snapshot
+    
+    print(f"[DEBUG] Raw trader response: {payload}")
+    
+    # Get the trader object (some API versions nest it, some don't)
+    trader = getattr(payload, "trader", None)
+    data_source = trader if trader is not None else payload
+    if trader is None:
+        print("[Account] No nested trader object, reading fields directly from payload")
+    
+    # Get moneyDigits to calculate the divisor
+    raw_money_digits = getattr(data_source, "moneyDigits", None)
+    money_digits = int(raw_money_digits) if raw_money_digits is not None else 2
+    divisor = 10 ** money_digits
+    
+    balance = float(getattr(data_source, "balance", 0) or 0) / divisor
+    equity = float(getattr(data_source, "equity", 0) or 0) / divisor if hasattr(data_source, "equity") else balance
+    margin_used = float(getattr(data_source, "usedMargin", 0) or 0) / divisor if hasattr(data_source, "usedMargin") else 0
+    free_margin = float(getattr(data_source, "freeMargin", 0) or 0) / divisor if hasattr(data_source, "freeMargin") else balance
+    margin_level = float(getattr(data_source, "marginLevel", 0) or 0) if hasattr(data_source, "marginLevel") else 0
+    
+    # Compute realized PnL from balance delta if an execution event just happened
+    realized_pnl = 0.0
+    if pending_balance_snapshot is not None:
+        if balance != pending_balance_snapshot:
+            realized_pnl = round(balance - pending_balance_snapshot, 2)
+            print(f"[Account] Realized PnL from balance delta: {realized_pnl:,.2f} (before={pending_balance_snapshot:,.2f}, after={balance:,.2f})")
+        else:
+            print(f"[Account] Balance unchanged after execution: {balance:,.2f}")
+        pending_balance_snapshot = None  # Consume the snapshot
+    
+    print(f"Account Balance: ${balance:,.2f}, Equity: ${equity:,.2f}, Margin: ${margin_used:,.2f}, RealizedPnL: ${realized_pnl:,.2f}")
+    
+    account_message = {
+        "type": "ACCOUNT",
+        "source": "pepperstone_ctrader",
+        "accountId": account_id,
+        "balance": balance,
+        "equity": equity,
+        "margin": margin_used,
+        "marginUsed": margin_used,
+        "freeMargin": free_margin,
+        "marginLevel": margin_level,
+        "realizedPnl": realized_pnl,
+        "currency": "USD"
+    }
+    
+    # Store the last account message
+    last_account_message = account_message
+    
+    print(f"[DEBUG] Broadcasting account message: {json.dumps(account_message)}")
+    broadcast(account_message)
+
+
+def place_market_order(symbol: str, side: str, volume: float, stop_loss: Optional[float] = None, take_profit: Optional[float] = None) -> None:
+    """Place a market order"""
+    if not account_authed or account_id is None:
+        print(f"Cannot place order: account not authenticated")
+        return
+    
+    # Resolve symbol
+    item = resolve_broker_symbol(symbol)
+    if item is None:
+        print(f"Cannot place order: symbol {symbol} not found")
+        return
+    
+    symbol_id = int(getattr(item, "symbolId", 0) or 0)
+    if symbol_id <= 0:
+        print(f"Cannot place order: invalid symbol ID for {symbol}")
+        return
+    
+    # Convert volume to cents (cTrader uses volume in cents; 1 lot = 100)
+    # Minimum order size is 0.01 lots (= 1 cent)
+    volume_in_cents = int(round(volume * 100))
+    if volume_in_cents <= 0:
+        print(f"Cannot place order: volume {volume} lots is below minimum 0.01 lots (centi-lot=0)")
+        broadcast({
+            "type": "ORDER_UPDATE",
+            "source": "pepperstone_ctrader",
+            "status": "rejected",
+            "error": f"Volume {volume} below minimum 0.01 lots"
+        })
+        return
+    
+    # Create order request
+    request = ProtoOANewOrderReq()
+    request.ctidTraderAccountId = account_id
+    request.symbolId = symbol_id
+    request.orderType = ProtoOAOrderType.MARKET
+    request.tradeSide = ProtoOATradeSide.BUY if side.lower() == "buy" else ProtoOATradeSide.SELL
+    request.volume = volume_in_cents
+    
+    # Add stop loss if provided
+    if stop_loss is not None and stop_loss > 0:
+        with state_lock:
+            state = symbol_states_by_id.get(symbol_id)
+        if state and state.digits > 0:
+            # Convert price to pips
+            stop_loss_pips = int(stop_loss * (10 ** state.digits))
+            request.stopLoss = stop_loss_pips
+    
+    # Add take profit if provided
+    if take_profit is not None and take_profit > 0:
+        with state_lock:
+            state = symbol_states_by_id.get(symbol_id)
+        if state and state.digits > 0:
+            # Convert price to pips
+            take_profit_pips = int(take_profit * (10 ** state.digits))
+            request.takeProfit = take_profit_pips
+    
+    print(f"Placing {side.upper()} order: {symbol} (symbolId={symbol_id}), volume={volume}, SL={stop_loss}, TP={take_profit}")
+    print(f"[Order] ProtoOANewOrderReq: ctidTraderAccountId={account_id}, symbolId={symbol_id}, orderType=MARKET, tradeSide={side.upper()}, volume={volume_in_cents}")
+    send_request(request)
+    
+    # Schedule delayed reconcile so positions update even if execution event is lost
+    reactor.callLater(2.0, request_positions)
+    reactor.callLater(2.0, request_trader_info)
+    reactor.callLater(5.0, request_positions)
+    reactor.callLater(5.0, request_trader_info)
+
+
+def close_position(position_id: int, volume: float) -> None:
+    """Close or partially close an existing position"""
+    if not account_authed or account_id is None:
+        print("Cannot close position: account not authenticated")
+        return
+
+    if position_id <= 0 or volume <= 0:
+        print(f"Cannot close position: invalid positionId={position_id} volume={volume}")
+        return
+
+    request = ProtoOAClosePositionReq()
+    request.ctidTraderAccountId = account_id
+    request.positionId = int(position_id)
+    request.volume = int(round(volume * 100))
+
+    print(f"Closing position {position_id} with volume={volume} (protocol volume={request.volume})")
+    send_request(request)
+    
+    # Schedule delayed reconcile so positions update even if execution event is lost
+    reactor.callLater(2.0, request_positions)
+    reactor.callLater(2.0, request_trader_info)
+    reactor.callLater(5.0, request_positions)
+    reactor.callLater(5.0, request_trader_info)
+
+
+def handle_order_response(payload) -> None:
+    """Handle order execution response"""
+    global last_account_message, pending_balance_snapshot
+    # Snapshot current balance so handle_trader_response can compute realized PnL delta
+    if last_account_message is not None:
+        pending_balance_snapshot = last_account_message.get("balance")
+        print(f"[Order] Snapshotted pre-execution balance: {pending_balance_snapshot}")
+    # Try direct fields first, then nested objects
+    order_id = (getattr(payload, "orderId", None) 
+                or getattr(getattr(payload, "order", None), "orderId", None)
+                or getattr(getattr(payload, "position", None), "positionId", None)
+                or getattr(payload, "positionId", None))
+    exec_type = getattr(payload, "executionType", None)
+    error_code = getattr(payload, "errorCode", None)
+    
+    print(f"[Order] Execution response:")
+    print(f"  - executionType: {exec_type}")
+    print(f"  - orderId: {order_id}")
+    print(f"  - positionId: {getattr(payload, 'positionId', None)}")
+    print(f"  - errorCode: {error_code}")
+    print(f"  - Full payload: {payload}")
+    
+    exec_type_str = str(exec_type).upper() if exec_type else ""
+    is_rejected = error_code is not None or "REJECT" in exec_type_str or "CANCEL" in exec_type_str
+    
+    # Extract execution event balance to compute realized PnL from balance delta
+    exec_balance = getattr(payload, "balance", None)
+    exec_equity = getattr(payload, "equity", None)
+    exec_used_margin = getattr(payload, "usedMargin", None)
+    exec_free_margin = getattr(payload, "freeMargin", None)
+    exec_margin_level = getattr(payload, "marginLevel", None)
+    exec_money_digits = getattr(payload, "moneyDigits", None)
+    
+    md = int(exec_money_digits) if exec_money_digits is not None else 2
+    div = 10 ** md
+    
+    deal_profit = None
+    balance_before = None
+    balance_after = None
+    if exec_balance is not None:
+        balance_after = float(exec_balance) / div
+        prev_balance = last_account_message.get("balance") if last_account_message else None
+        if prev_balance is not None and prev_balance != balance_after:
+            deal_profit = balance_after - prev_balance
+            balance_before = prev_balance
+            print(f"[Order] Computed realized PnL from balance delta: {deal_profit:,.2f} (before={balance_before:,.2f}, after={balance_after:,.2f})")
+    
+    if is_rejected:
+        print(f"[Order] ERROR: Order rejected with error code: {error_code}, executionType: {exec_type}")
+        broadcast({
+            "type": "ORDER_UPDATE",
+            "source": "pepperstone_ctrader",
+            "orderId": str(order_id) if order_id else None,
+            "status": "rejected",
+            "error": str(error_code) if error_code else exec_type_str
+        })
+    else:
+        # Broadcast order update to Android clients
+        order_message = {
+            "type": "ORDER_UPDATE",
+            "source": "pepperstone_ctrader",
+            "orderId": str(order_id) if order_id else None,
+            "status": "executed" if order_id else "pending"
+        }
+        if deal_profit is not None:
+            order_message["profit"] = deal_profit
+            order_message["balanceBefore"] = balance_before
+            order_message["balanceAfter"] = balance_after
+        broadcast(order_message)
+    
+    # Broadcast immediate account update from execution event
+    if exec_balance is not None:
+        updated_balance = float(exec_balance) / div
+        updated_equity = float(exec_equity) / div if exec_equity is not None else updated_balance
+        updated_margin = float(exec_used_margin) / div if exec_used_margin is not None else 0.0
+        updated_free = float(exec_free_margin) / div if exec_free_margin is not None else updated_balance
+        updated_margin_level = float(exec_margin_level) if exec_margin_level is not None else 0.0
+        
+        print(f"[Order] Immediate account update from execution event: balance={updated_balance:,.2f}, equity={updated_equity:,.2f}")
+        
+        account_message = {
+            "type": "ACCOUNT",
+            "source": "pepperstone_ctrader",
+            "accountId": account_id,
+            "balance": updated_balance,
+            "equity": updated_equity,
+            "margin": updated_margin,
+            "marginUsed": updated_margin,
+            "freeMargin": updated_free,
+            "marginLevel": updated_margin_level,
+            "currency": "USD"
+        }
+        last_account_message = account_message
+        broadcast(account_message)
+    
+    # Always request updated account info and positions after any execution event
+    print(f"[Order] Requesting updated account info and positions...")
+    request_trader_info()
+    request_positions()
+
+
+def request_positions() -> None:
+    """Request open positions"""
+    if account_id is None:
+        return
+    request = ProtoOAReconcileReq()
+    request.ctidTraderAccountId = account_id
+    send_request(request)
+
+
+def handle_reconcile_response(payload) -> None:
+    """Handle positions list response"""
+    positions = []
+    
+    for pos in getattr(payload, "position", []):
+        position_id = str(getattr(pos, "positionId", ""))
+        trade_data = getattr(pos, "tradeData", None)
+        
+        if trade_data is None:
+            continue
+        
+        symbol_id = int(getattr(trade_data, "symbolId", 0) or 0)
+        
+        with state_lock:
+            state = symbol_states_by_id.get(symbol_id)
+        
+        if state is None:
+            continue
+        
+        trade_side = getattr(trade_data, "tradeSide", "")
+        side = "buy" if trade_side == ProtoOATradeSide.BUY else "sell"
+        
+        volume = float(getattr(trade_data, "volume", 0) or 0) / 100.0  # Convert from cents
+        
+        # Get the entry price - it's stored in the position, not trade_data
+        raw_price = float(getattr(pos, "entryPrice", 0) or 0)
+        if raw_price <= 0:
+            raw_price = float(getattr(pos, "price", 0) or 0)
+        
+        entry_price = decode_position_price(raw_price, state.digits, state.category)
+        
+        # Get unrealized P&L
+        unrealized_pnl = float(getattr(pos, "grossProfit", 0) or 0)
+        money_digits = int(getattr(pos, "moneyDigits", 2) or 2)
+        if abs(unrealized_pnl) > 10000:
+            unrealized_pnl = unrealized_pnl / (10 ** money_digits)
+        
+        positions.append({
+            "id": position_id,
+            "symbol": state.app_symbol,
+            "side": side,
+            "volume": volume,
+            "entryPrice": entry_price,
+            "unrealizedPnl": unrealized_pnl
+        })
+    
+    if positions:
+        print(f"[Positions] Received {len(positions)} open positions")
+        for i, pos in enumerate(positions):
+            print(f"  Position {i+1}: {pos}")
+        broadcast({
+            "type": "POSITIONS",
+            "source": "pepperstone_ctrader",
+            "positions": positions
+        })
+        
+        # Request updated account info to get current balance/equity
+        print(f"[Positions] Requesting updated account info...")
+        request_trader_info()
+    else:
+        print(f"[Positions] No open positions")
+        broadcast({
+            "type": "POSITIONS",
+            "source": "pepperstone_ctrader",
+            "positions": []
+        })
+
+
 def run_ctrader_client() -> None:
     global client
     if not APP_CLIENT_ID or not APP_CLIENT_SECRET or not ACCESS_TOKEN:
@@ -585,9 +969,28 @@ def run_ctrader_client() -> None:
 
 async def handle_android_client(websocket, *_args) -> None:
     android_clients.add(websocket)
+    print(f"[Bridge] Android client connected from {websocket.remote_address}")
+    
     try:
+        # Send initial status
         await websocket.send(json.dumps(status_payload(), separators=(",", ":")))
-    except Exception:
+        
+        # Send last account info if available
+        if last_account_message is not None:
+            print(f"[Bridge] Sending cached account info to new client: {json.dumps(last_account_message)}")
+            await websocket.send(json.dumps(last_account_message, separators=(",", ":")))
+        elif account_authed and account_id:
+            # Request fresh account info if we don't have cached data
+            print(f"[Bridge] Requesting fresh account info for new client")
+            reactor.callFromThread(request_trader_info)
+        
+        # Request positions for new client
+        if account_authed and account_id:
+            print(f"[Bridge] Requesting positions for new client")
+            reactor.callFromThread(request_positions)
+            
+    except Exception as e:
+        print(f"[Bridge] Error sending initial data to client: {e}")
         android_clients.discard(websocket)
         return
     
@@ -622,6 +1025,44 @@ async def handle_android_client(websocket, *_args) -> None:
                     await websocket.send(json.dumps({"type": "ack", "action": "subscribe", "symbols": symbols}))
                 except Exception:
                     break
+            
+            elif action == "place_order":
+                symbol = str(payload.get("symbol", ""))
+                side = str(payload.get("side", "buy")).lower()
+                volume = float(payload.get("volume", 0.01))
+                stop_loss = payload.get("stopLoss")
+                take_profit = payload.get("takeProfit")
+                
+                if symbol and volume > 0:
+                    print(f"[Bridge] Received order request: {side.upper()} {volume} lots of {symbol}")
+                    reactor.callFromThread(place_market_order, symbol, side, volume, stop_loss, take_profit)
+                    try:
+                        await websocket.send(json.dumps({"type": "ack", "action": "place_order"}))
+                    except Exception:
+                        break
+                else:
+                    try:
+                        await websocket.send(json.dumps({"type": "error", "message": "Invalid order parameters"}))
+                    except Exception:
+                        break
+
+            elif action == "close_position":
+                position_id = int(payload.get("positionId", 0) or 0)
+                volume = float(payload.get("volume", 0.0) or 0.0)
+
+                if position_id > 0 and volume > 0:
+                    print(f"[Bridge] Received close position request: positionId={position_id}, volume={volume}")
+                    reactor.callFromThread(close_position, position_id, volume)
+                    try:
+                        await websocket.send(json.dumps({"type": "ack", "action": "close_position", "positionId": position_id}))
+                    except Exception:
+                        break
+                else:
+                    try:
+                        await websocket.send(json.dumps({"type": "error", "message": "Invalid close position parameters"}))
+                    except Exception:
+                        break
+            
             elif action == "ping":
                 try:
                     await websocket.send(json.dumps({"type": "pong", "time": int(time.time() * 1000)}))
