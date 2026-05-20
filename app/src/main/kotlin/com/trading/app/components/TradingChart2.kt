@@ -375,7 +375,7 @@ fun TradingChart2(
                                     
                                     // Place order based on feed type
                                     when (chartFeedType) {
-                                        ChartFeedType.PEPPERSTONE -> {
+                                        ChartFeedType.PEPPERSTONE_CTRADER -> {
                                             android.util.Log.d("TradingChart2", "Placing SELL order via cTrader: symbol=$symbol, volume=${newPos.volume}")
                                             cTraderService?.placeMarketOrder(
                                                 symbol = symbol,
@@ -410,8 +410,8 @@ fun TradingChart2(
                                                 }
                                             }
                                         }
-                                        ChartFeedType.BINANCE, ChartFeedType.EXNESS -> {
-                                            // For Binance and Exness, use the proper order placement flow
+                                        ChartFeedType.BINANCE, ChartFeedType.BINANCE_CONNECT, ChartFeedType.EXNESS -> {
+                                            // For Binance, Binance Connect, and Exness, use the proper order placement flow
                                             android.util.Log.d("TradingChart2", "Placing SELL order via placeStreamOrder: volume=${newPos.volume}, lotSize=$lotSize, lotSizeValue=$lotSizeValue")
                                             onPlaceOrder?.invoke(newPos, "Market Execution", null)
                                             val notification = com.trading.app.models.TradeNotification(
@@ -502,7 +502,7 @@ fun TradingChart2(
                                     
                                     // Place order based on feed type
                                     when (chartFeedType) {
-                                        ChartFeedType.PEPPERSTONE -> {
+                                        ChartFeedType.PEPPERSTONE_CTRADER -> {
                                             android.util.Log.d("TradingChart2", "Placing BUY order via cTrader: symbol=$symbol, volume=${newPos.volume}")
                                             cTraderService?.placeMarketOrder(
                                                 symbol = symbol,
@@ -537,8 +537,8 @@ fun TradingChart2(
                                                 }
                                             }
                                         }
-                                        ChartFeedType.BINANCE, ChartFeedType.EXNESS -> {
-                                            // For Binance and Exness, use the proper order placement flow
+                                        ChartFeedType.BINANCE, ChartFeedType.BINANCE_CONNECT, ChartFeedType.EXNESS -> {
+                                            // For Binance, Binance Connect, and Exness, use the proper order placement flow
                                             android.util.Log.d("TradingChart2", "Placing BUY order via placeStreamOrder: volume=${newPos.volume}, lotSize=$lotSize, lotSizeValue=$lotSizeValue")
                                             onPlaceOrder?.invoke(newPos, "Market Execution", null)
                                             val notification = com.trading.app.models.TradeNotification(

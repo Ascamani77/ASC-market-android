@@ -13,7 +13,8 @@ object AscAiTextExplainer {
         personaName: String,
         personaInstruction: String,
         deployments: LatestDeploymentsResponse?,
-        appContext: String = ""
+        appContext: String = "",
+        conversationHistory: String = ""
     ): String = withContext(Dispatchers.IO) {
         if (isGreeting(userQuery)) {
             return@withContext "This is ASC Engine v1. What can I do for you?"
@@ -23,7 +24,7 @@ object AscAiTextExplainer {
             return@withContext "ASC Engine v1 is offline: GROQ_API_KEY is not configured."
         }
 
-        val prompt = buildPrompt(userQuery, personaName, personaInstruction, deployments, appContext)
+        val prompt = buildPrompt(userQuery, personaName, personaInstruction, deployments, appContext, conversationHistory)
         val groqError = runCatching {
             GroqClient.chatCompletion(prompt)
         }
@@ -37,18 +38,40 @@ object AscAiTextExplainer {
         personaName: String,
         personaInstruction: String,
         deployments: LatestDeploymentsResponse?,
-        appContext: String
+        appContext: String,
+        conversationHistory: String
     ): String {
         val deploymentText = formatDeployments(deployments)
+        val aiContext = com.asc.markets.ai.AIContextService.contextState.value
+        val platformContext = aiContext.platformContext
+        val personaLens = buildPersonaLens(personaName, personaInstruction)
+        
+        val platformKnowledge = """
+            [PLATFORM_CONTEXT_KNOWLEDGE]
+            Current Platform Configuration:
+            - Access Permissions: ${platformContext.accessPermissions.filter { it.value }.keys.joinToString(", ")} (All unrestricted)
+            - Exclusive Data Source: ${platformContext.dataSources.filter { it.value == "Pepperstone" }.keys.joinToString(", ")} via Pepperstone.
+            - Exception: USDT pairs are sourced exclusively from Binance.
+            - Operational Directives: ${platformContext.operationalRules.joinToString(" ")}
+        """.trimIndent()
+
         return """
             You are ASC Engine v1, the in-app assistant for ASC Market.
             
-            CRITICAL: The user is asking about their LIVE APP STATE. You MUST read and use the "App state snapshot" section below.
+            $platformKnowledge
             
-            Answer the user's exact question using the app state and ASC deployment payload below.
+            CRITICAL: The user is asking about their LIVE APP STATE. You MUST read and use the "App state snapshot" section below.
+
+            Answer the user's exact question using the platform knowledge, app state, and ASC deployment payload below.
             Be concise: maximum 3 short sentences or 3 bullets unless the user asks for detail.
             Do not dump all deployment data unless asked.
             For greetings, answer exactly: This is ASC Engine v1. What can I do for you?
+            For non-greeting replies, do not repeat the greeting line.
+            If the app state snapshot is missing a requested field, answer briefly with the missing field name and the exact refresh needed.
+
+            [ACTIVE_PERSONA_LENS]
+            $personaLens
+            You must keep the facts grounded in app state, but change the reasoning, priorities, and explanation style whenever the selected persona changes.
             
             When the user asks about:
             - "how many trades" → Read active_live_trades from App state snapshot
@@ -56,6 +79,11 @@ object AscAiTextExplainer {
             - "account" or "balance" → Read balance, equity, floating_pnl from App state snapshot
             - "current view" → Read current_view from App state snapshot
             - "selected asset" → Read selected_asset from App state snapshot
+            - "balance", "equity", "pnl", "floating pnl", or "realized pnl" → Read balance, equity, floating_pnl, and realized_pnl from App state snapshot
+            - "current price", "price", "is it going up or down", "BTCUSDT", "ETHUSDT", or any symbol query → Read visible_price_context first, then selected_asset_price, then any matching market_pair entries in App state snapshot
+            - "page context" or "focused page" → Use chat_context_focus_label as the main lens, but you may still reference other pages when useful
+            - "data source" or "where is data from" → Refer to PLATFORM_CONTEXT_KNOWLEDGE
+            - "access" or "permissions" → Refer to PLATFORM_CONTEXT_KNOWLEDGE
             
             Do not create independent trading signals, prices, risk numbers, probabilities, or recommendations.
             If data is unavailable, say exactly what is unavailable and what to refresh.
@@ -67,6 +95,9 @@ object AscAiTextExplainer {
 
             App state snapshot:
             ${appContext.ifBlank { "No app state snapshot was provided." }}
+
+            Conversation history:
+            ${conversationHistory.ifBlank { "No prior conversation turns were provided." }}
 
             ASC AI deployment payload:
             $deploymentText
@@ -83,6 +114,7 @@ object AscAiTextExplainer {
         return when {
             message.contains("401") || message.contains("403") -> "Groq rejected the API key."
             message.contains("429") -> "Groq rate limit reached."
+            message.contains("Unable to resolve host", ignoreCase = true) -> "Groq is unreachable because the device cannot resolve api.groq.com. Check internet access, DNS, or firewall settings."
             message.contains("timeout", ignoreCase = true) -> "Groq request timed out."
             message.isBlank() -> "unknown Groq error."
             else -> message.lineSequence().firstOrNull()?.take(160) ?: "unknown Groq error."
@@ -146,5 +178,25 @@ object AscAiTextExplainer {
 
     private fun fmt(value: Double?): String {
         return value?.let { String.format(Locale.US, "%.4f", it) } ?: "unknown"
+    }
+
+    private fun buildPersonaLens(personaName: String, personaInstruction: String): String {
+        val normalized = personaName.trim().lowercase(Locale.US)
+        val style = when {
+            normalized.contains("macro") -> "Macro-first lens: prioritize scheduled events, regime shifts, policy tone, and broad market context before price action. Output style: start with a one-line macro verdict, then 2-3 bullets for regime, catalyst, and bias."
+            normalized.contains("smc") -> "Structure-first lens: prioritize BOS, CHoCH, market structure, liquidity sweeps, and directional control. Output style: use a structure/bias/invalidation layout with clear levels."
+            normalized.contains("liquidity") -> "Liquidity-first lens: prioritize wick behavior, stop hunts, volume anomalies, and timing around liquidity grabs. Output style: use trigger/timing/liquidity bullets and keep it punchy."
+            normalized.contains("algo") -> "Quant lens: prioritize probability, expectancy, confluence scoring, and rule-based filtering. Output style: show score, confidence, edge, and key conditions in a compact analytical format."
+            normalized.contains("sentiment") -> "Sentiment lens: prioritize crowding, positioning, risk-on/risk-off behavior, and contrarian clues. Output style: separate crowding, sentiment shift, and implication."
+            normalized.contains("prop") -> "Capital-protection lens: prioritize risk limits, safety gates, invalidation, and only the highest-quality setups. Output style: lead with approve/veto and follow with risk notes."
+            else -> "General desk lens: answer in a way that best matches the selected persona instruction. Output style: keep the reply natural but noticeably different from other desks."
+        }
+
+        return buildString {
+            appendLine("persona_name=$personaName")
+            appendLine("persona_style=$style")
+            appendLine("persona_instruction=$personaInstruction")
+            appendLine("persona_switch_rule=When the user switches personas, change the explanation lens, vocabulary, priorities, and visible output format to match the active persona.")
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.asc.markets.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import com.asc.markets.ai.AIContextService
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -214,20 +215,37 @@ object PreMoveIntelligenceStore {
         val nearestDistance = min(buyDistance, sellDistance)
         val liquidityScore = (100.0 - nearestDistance * 32.0 + compressionScore * 0.20).toInt().coerceIn(0, 100)
         val sweepProbability = (liquidityScore * 0.45 + compressionScore * 0.25 + ignitionScore * 0.30).toInt().coerceIn(0, 100)
-        val preMoveScore = (compressionScore * 0.30 + ignitionScore * 0.25 + liquidityScore * 0.25 + pressureDistance * 0.20).toInt().coerceIn(0, 100)
+        
+        // --- ASC AI INTEGRATION ---
+        val aiDecision = AIContextService.getDecisionForAsset(pair.symbol)
+        val aiScore = aiDecision?.score ?: 0
+        val aiConfidence = (aiDecision?.confidence ?: 0.0) * 100.0
+        
+        // Hybrid score: 60% Technicals, 40% ASC AI Central Intelligence
+        val technicalScore = (compressionScore * 0.30 + ignitionScore * 0.25 + liquidityScore * 0.25 + pressureDistance * 0.20)
+        val preMoveScore = if (aiDecision != null) {
+            (technicalScore * 0.6 + aiScore * 0.4).toInt().coerceIn(0, 100)
+        } else {
+            technicalScore.toInt().coerceIn(0, 100)
+        }
+        // --------------------------
+
         val bias = when {
+            aiDecision?.direction == "LONG" -> "BULLISH"
+            aiDecision?.direction == "SHORT" -> "BEARISH"
             structuralPressure >= 58 -> "BULLISH"
             structuralPressure <= 42 -> "BEARISH"
             else -> "NEUTRAL"
         }
         val state = when {
             abs(pair.changePercent) > 2.8 && compressionScore < 45 -> "LATE MOVE"
-            preMoveScore >= 78 && ignitionScore >= 60 -> "ARMED"
+            preMoveScore >= 78 && (ignitionScore >= 60 || aiConfidence >= 80) -> "ARMED"
             preMoveScore >= 62 -> "WATCH"
             compressionScore >= 70 -> "COMPRESSING"
             else -> "FILTERING"
         }
         val regime = when {
+            aiConfidence >= 85 -> "AI High Conviction"
             compressionScore >= 75 && ignitionScore >= 55 -> "Expansion candidate"
             compressionScore >= 70 -> "Compression"
             ignitionScore >= 65 -> "Transition"
@@ -268,9 +286,13 @@ object PreMoveIntelligenceStore {
             PreMoveLayer("L5 PRESSURE", passLabel(pressureDistance + 50), (pressureDistance + 50).coerceIn(0, 100), "Directional pressure is ${pressureDistance} points away from neutral."),
             PreMoveLayer("L6A IDLE FILTER", if (state == "LATE MOVE") "FAIL" else "PASS", compressionScore, "Compression prevents chasing late movement."),
             PreMoveLayer("L7 EXPANSION", passLabel(preMoveScore), preMoveScore, "Expansion probability is weighted from compression, liquidity and ignition."),
-            PreMoveLayer("RISKAI", riskGate, if (riskGate == "PASS") 90 else preMoveScore, "Execution remains gated until ignition and invalidation align.")
+            PreMoveLayer("ASC AI", if (aiDecision != null) "LIVE" else "PENDING", aiScore, aiDecision?.reason ?: "Awaiting live ASC AI central verification.")
         )
-        val reason = "$regime on $timeframeLabel with $magnet nearest, $bias structural pressure and $riskGate risk gate."
+        val reason = if (aiDecision != null) {
+            "ASC AI: ${aiDecision.reason}. $regime on $timeframeLabel."
+        } else {
+            "$regime on $timeframeLabel with $magnet nearest, $bias structural pressure and $riskGate risk gate."
+        }
         val triggers = listOf(
             "Wait for ignition score above 70 without a late-move block.",
             "Confirm sweep or rejection around ${formatLevel(pools.firstOrNull()?.level ?: pair.price)}.",

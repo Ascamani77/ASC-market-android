@@ -38,6 +38,9 @@ BRIDGE_HOST = os.getenv("CTRADER_BRIDGE_HOST", "0.0.0.0").strip()
 BRIDGE_PORT = int(os.getenv("CTRADER_BRIDGE_PORT", "8082"))
 PRICE_SCALE = float(os.getenv("CTRADER_PRICE_SCALE", "100000"))
 
+# Track which endpoint we're using for fallback
+current_endpoint_type = HOST_TYPE
+
 DEFAULT_SYMBOL_MAP = {
     "EURUSD": ["EURUSD", "EUR/USD"],
     "GBPUSD": ["GBPUSD", "GBP/USD"],
@@ -94,6 +97,7 @@ symbols_loaded = False
 broker_symbols_by_normalized: Dict[str, object] = {}
 symbol_states_by_id: Dict[int, SymbolState] = {}
 subscribed_symbol_ids: Set[int] = set()
+subscribed_live_trendbars: Dict[int, int] = {}
 pending_app_symbols: Set[str] = set()
 last_status = "starting"
 last_status_message = "Starting cTrader bridge"
@@ -145,6 +149,7 @@ def send_request(request) -> None:
     if client is None:
         print("cTrader client is not initialized")
         return
+    print(f"[DEBUG] Sending request: {type(request).__name__}")
     deferred = client.send(request)
     deferred.addErrback(on_error)
 
@@ -194,6 +199,7 @@ def broadcast(payload: dict) -> None:
 
 def connected(_client) -> None:
     set_status("connected", "Connected to cTrader Open API demo endpoint")
+    print(f"[DEBUG] Sending application auth request with clientId (len={len(APP_CLIENT_ID)}) and clientSecret (len={len(APP_CLIENT_SECRET)})")
     request = ProtoOAApplicationAuthReq()
     request.clientId = APP_CLIENT_ID
     request.clientSecret = APP_CLIENT_SECRET
@@ -209,11 +215,24 @@ def disconnected(_client, reason) -> None:
 
 
 def on_error(failure) -> None:
-    set_status("error", str(failure))
+    error_str = str(failure)
+    print(f"[ERROR] Request failed: {error_str}")
+    
+    # Check for timeout errors
+    if "TimeoutError" in error_str or "timed out" in error_str.lower():
+        print("[ERROR] Request timed out - this may indicate:")
+        print("  1. ACCESS_TOKEN is invalid or expired")
+        print("  2. ACCOUNT_ID (47312778) doesn't match the access token")
+        print("  3. Network connectivity issues to cTrader")
+        print("  4. cTrader API is slow or unresponsive")
+        if not account_authed:
+            print("[ERROR] Account auth timed out - verify ACCESS_TOKEN and ACCOUNT_ID")
+    
+    set_status("error", error_str)
 
 
 def on_message_received(_client, message) -> None:
-    global application_authed, account_authed, account_id, symbols_loaded
+    global application_authed, account_authed, account_id, symbols_loaded, current_endpoint_type
     if message.payloadType == ProtoHeartbeatEvent().payloadType:
         # On heartbeat, request updated account info if we have positions
         if account_authed and account_id:
@@ -231,6 +250,39 @@ def on_message_received(_client, message) -> None:
             send_request(request)
         else:
             send_account_auth()
+        return
+    
+    if message.payloadType == ProtoOAErrorRes().payloadType:
+        error_code = getattr(payload, "errorCode", "UNKNOWN")
+        description = getattr(payload, "description", "")
+        print(f"[ERROR] cTrader API Error: errorCode={error_code}, description={description}")
+        print(f"[ERROR] Full error payload: {payload}")
+        
+        # Handle ALREADY_LOGGED_IN - we're already authenticated, proceed
+        if error_code == "ALREADY_LOGGED_IN":
+            print("[INFO] Application already authenticated, proceeding to account auth")
+            application_authed = True
+            if account_id is None:
+                request = ProtoOAGetAccountListByAccessTokenReq()
+                request.accessToken = ACCESS_TOKEN
+                send_request(request)
+            else:
+                send_account_auth()
+            return
+        
+        # If we get CANT_ROUTE_REQUEST on application auth, try switching endpoint
+        if error_code == "CANT_ROUTE_REQUEST" and not application_authed:
+            global current_endpoint_type
+            if current_endpoint_type == "demo":
+                print("[ERROR] CANT_ROUTE_REQUEST on demo endpoint - trying live endpoint as fallback")
+                current_endpoint_type = "live"
+                # Reconnect with live endpoint
+                reactor.callLater(1.0, reconnect_with_endpoint, "live")
+            elif current_endpoint_type == "live":
+                print("[ERROR] CANT_ROUTE_REQUEST on live endpoint too - credentials may be invalid")
+                print("[ERROR] Please verify your CTRADER_CLIENT_ID and CTRADER_CLIENT_SECRET in Pepperstone portal")
+        
+        set_status("error", f"{error_code}: {description}")
         return
 
     if message.payloadType == ProtoOAGetAccountListByAccessTokenRes().payloadType:
@@ -282,10 +334,6 @@ def on_message_received(_client, message) -> None:
         handle_reconcile_response(payload)
         return
 
-    if message.payloadType == ProtoOAErrorRes().payloadType:
-        set_status("error", str(payload))
-        return
-
     # Log unrecognized messages so we can debug missing handlers
     print(f"[cTrader] Unrecognized message type: {message.payloadType}, payload: {payload}")
 
@@ -294,6 +342,7 @@ def send_account_auth() -> None:
     if account_id is None:
         set_status("error", "CTRADER_ACCOUNT_ID is missing and account auto-discovery failed")
         return
+    print(f"[DEBUG] Sending account auth for account_id={account_id} with accessToken (len={len(ACCESS_TOKEN)})")
     request = ProtoOAAccountAuthReq()
     request.ctidTraderAccountId = account_id
     request.accessToken = ACCESS_TOKEN
@@ -409,6 +458,22 @@ def request_historical_candles(symbol: str, timeframe: str = "1h", count: int = 
     
     print(f"Requesting {count} {timeframe} candles for {symbol} (symbolId={symbol_id})")
     send_request(request)
+
+    # Live trendbars are required for ongoing candle updates.
+    # cTrader sends live trendbars via the spot stream after this subscription.
+    current_period = int(period)
+    with state_lock:
+        previous_period = subscribed_live_trendbars.get(symbol_id)
+        if previous_period == current_period:
+            return
+        subscribed_live_trendbars[symbol_id] = current_period
+
+    live_request = ProtoOASubscribeLiveTrendbarReq()
+    live_request.ctidTraderAccountId = account_id
+    live_request.symbolId = symbol_id
+    live_request.period = period
+    print(f"Subscribing live trendbars for {symbol} (symbolId={symbol_id}, period={timeframe})")
+    send_request(live_request)
 
 
 def process_pending_history_requests() -> None:
@@ -538,6 +603,54 @@ def handle_spot_event(payload) -> None:
         or getattr(payload, "spotTimestamp", 0)
         or int(time.time() * 1000)
     )
+
+    trendbars = getattr(payload, "trendbar", [])
+    if trendbars:
+        candles = []
+        for bar in trendbars:
+            timestamp = int(getattr(bar, "utcTimestampInMinutes", 0) or 0) * 60 * 1000
+            if timestamp <= 0:
+                continue
+
+            low_raw = float(getattr(bar, "low", 0) or 0)
+            delta_open = float(getattr(bar, "deltaOpen", 0) or 0)
+            delta_high = float(getattr(bar, "deltaHigh", 0) or 0)
+            delta_close = float(getattr(bar, "deltaClose", 0) or 0)
+            volume = float(getattr(bar, "volume", 0) or 0)
+
+            if low_raw <= 0:
+                continue
+
+            divisor = 10 ** state.digits if state.digits > 0 else 100000
+            low_price = low_raw / divisor
+            open_price = (low_raw + delta_open) / divisor
+            high_price = (low_raw + delta_high) / divisor
+            close_price = (low_raw + delta_close) / divisor
+
+            if not all([open_price > 0, high_price > 0, low_price > 0, close_price > 0]):
+                continue
+
+            candles.append(
+                {
+                    "time": timestamp,
+                    "open": open_price,
+                    "high": high_price,
+                    "low": low_price,
+                    "close": close_price,
+                    "volume": volume,
+                }
+            )
+
+        if candles:
+            broadcast(
+                {
+                    "type": "history",
+                    "source": "pepperstone_ctrader",
+                    "symbol": state.app_symbol,
+                    "displaySymbol": display_symbol(state.app_symbol),
+                    "data": candles,
+                }
+            )
 
     broadcast(
         {
@@ -957,7 +1070,7 @@ def run_ctrader_client() -> None:
     print(f"[DEBUG] ACCOUNT_ID: {account_id}")
     print(f"[DEBUG] HOST_TYPE: {HOST_TYPE}")
 
-    host = EndPoints.PROTOBUF_LIVE_HOST if HOST_TYPE == "live" else EndPoints.PROTOBUF_DEMO_HOST
+    host = EndPoints.PROTOBUF_LIVE_HOST if current_endpoint_type == "live" else EndPoints.PROTOBUF_DEMO_HOST
     print(f"[DEBUG] Connecting to: {host}:{EndPoints.PROTOBUF_PORT}")
     client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
     client.setConnectedCallback(connected)
@@ -965,6 +1078,31 @@ def run_ctrader_client() -> None:
     client.setMessageReceivedCallback(on_message_received)
     client.startService()
     reactor.run(installSignalHandlers=False)
+
+
+def reconnect_with_endpoint(endpoint_type: str) -> None:
+    """Reconnect to cTrader with a different endpoint (demo or live)"""
+    global client, current_endpoint_type
+    print(f"[RECONNECT] Switching to {endpoint_type} endpoint and reconnecting...")
+    
+    # Stop current client
+    if client:
+        try:
+            client.stopService()
+        except Exception as e:
+            print(f"[RECONNECT] Error stopping client: {e}")
+    
+    # Update endpoint type
+    current_endpoint_type = endpoint_type
+    
+    # Restart with new endpoint
+    host = EndPoints.PROTOBUF_LIVE_HOST if endpoint_type == "live" else EndPoints.PROTOBUF_DEMO_HOST
+    print(f"[RECONNECT] Connecting to: {host}:{EndPoints.PROTOBUF_PORT}")
+    client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
+    client.setConnectedCallback(connected)
+    client.setDisconnectedCallback(disconnected)
+    client.setMessageReceivedCallback(on_message_received)
+    client.startService()
 
 
 async def handle_android_client(websocket, *_args) -> None:
@@ -1068,6 +1206,23 @@ async def handle_android_client(websocket, *_args) -> None:
                     await websocket.send(json.dumps({"type": "pong", "time": int(time.time() * 1000)}))
                 except Exception:
                     break
+            elif action == "get_account":
+                if last_account_message is not None:
+                    try:
+                        await websocket.send(json.dumps(last_account_message, separators=(",", ":")))
+                    except Exception:
+                        break
+                elif account_authed and account_id:
+                    reactor.callFromThread(request_trader_info)
+                    try:
+                        await websocket.send(json.dumps({"type": "ack", "action": "get_account"}))
+                    except Exception:
+                        break
+                else:
+                    try:
+                        await websocket.send(json.dumps({"type": "error", "message": "cTrader account is not authenticated yet"}))
+                    except Exception:
+                        break
             else:
                 try:
                     await websocket.send(json.dumps({"type": "error", "message": f"Unsupported action: {action}"}))

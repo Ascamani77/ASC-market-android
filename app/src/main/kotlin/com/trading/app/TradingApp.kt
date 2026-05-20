@@ -30,6 +30,7 @@ import com.trading.app.data.Mt5Service
 import com.trading.app.data.Mt5ReverseBridge
 import com.trading.app.data.BinanceTradingMode
 import com.trading.app.data.BinanceMarketType
+import com.trading.app.data.BinanceConnectService
 import com.trading.app.data.PaperTradingAccountSnapshot
 import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.data.BinanceService
@@ -163,7 +164,7 @@ private fun persistNewsAiPayload(
 fun TradingApp(
     startInPaperTradingPanel: Boolean = false,
     onPaperTradingClose: (() -> Unit)? = null,
-    streamFeedType: ChartFeedType = ChartFeedType.PEPPERSTONE,
+    streamFeedType: ChartFeedType = ChartFeedType.PEPPERSTONE_CTRADER,
     stateNamespace: String = "stream_${streamFeedType.prefValue}"
 ) {
     val context = LocalContext.current
@@ -357,14 +358,16 @@ fun TradingApp(
 
     fun liveTradeSourceName(): String = when (chartFeedType) {
         ChartFeedType.BINANCE -> if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Demo Trade" else "Binance Live Trade"
+        ChartFeedType.BINANCE_CONNECT -> "Binance Connect (View Only)"
         ChartFeedType.EXNESS -> "Exness Live Trade"
-        ChartFeedType.PEPPERSTONE -> "Pepperstone Live Trade"
+        ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader Live"
     }
 
     fun liveTradeDefaultAccountLabel(): String = when (chartFeedType) {
         ChartFeedType.BINANCE -> if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Futures Demo" else "Binance Futures Live"
+        ChartFeedType.BINANCE_CONNECT -> "Binance Connect (No Trading)"
         ChartFeedType.EXNESS -> "Exness MT5"
-        ChartFeedType.PEPPERSTONE -> "Pepperstone cTrader"
+        ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader"
     }
 
     fun binanceTradingSymbol(symbol: String): String {
@@ -446,7 +449,7 @@ fun TradingApp(
             redisPort = redisPort,
             publishToRedis = true,
             onQuoteUpdate = { quote ->
-                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                if (chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER) {
                     cacheSelectedSourceQuote(quote)
                 }
             },
@@ -467,6 +470,17 @@ fun TradingApp(
         )
     }
 
+    val binanceConnectQuoteService = remember {
+        BinanceConnectService(
+            onQuoteUpdate = { quote ->
+                if (chartFeedType == ChartFeedType.BINANCE_CONNECT) {
+                    cacheSelectedSourceQuote(quote)
+                }
+            },
+            onHistoryUpdate = { _, _ -> }
+        )
+    }
+
     val binanceTradingService = remember(binanceTradingMode) { BinanceTradingService(binanceTradingMode) }
     val binanceFuturesService = remember(binanceTradingMode) { BinanceFuturesService(binanceTradingMode) }
 
@@ -474,6 +488,7 @@ fun TradingApp(
         onDispose {
             pepperstoneQuoteService.disconnect()
             binanceQuoteService.disconnect()
+            binanceConnectQuoteService.disconnect()
         }
     }
 
@@ -491,16 +506,25 @@ fun TradingApp(
             ChartFeedType.EXNESS -> {
                 pepperstoneQuoteService.stopActiveStream()
                 binanceQuoteService.stopActiveStream()
+                binanceConnectQuoteService.stopActiveStream()
                 mt5Service.updateWatchlist(watchlistSymbols.ifEmpty { sourceSymbols })
             }
-            ChartFeedType.PEPPERSTONE -> {
+            ChartFeedType.PEPPERSTONE_CTRADER -> {
                 binanceQuoteService.stopActiveStream()
+                binanceConnectQuoteService.stopActiveStream()
                 pepperstoneQuoteService.subscribeSymbols(sourceSymbols, timeframe)
             }
             ChartFeedType.BINANCE -> {
                 pepperstoneQuoteService.stopActiveStream()
+                binanceConnectQuoteService.stopActiveStream()
                 Log.d("BinanceService", "Subscribing to Binance symbols: ${sourceSymbols.joinToString(", ")}")
                 binanceQuoteService.subscribeSymbols(sourceSymbols)
+            }
+            ChartFeedType.BINANCE_CONNECT -> {
+                pepperstoneQuoteService.stopActiveStream()
+                binanceQuoteService.stopActiveStream()
+                Log.d("BinanceConnect", "Subscribing Binance Connect quote symbols: ${sourceSymbols.joinToString(", ")}")
+                binanceConnectQuoteService.subscribeSymbols(sourceSymbols)
             }
         }
     }
@@ -537,7 +561,7 @@ fun TradingApp(
     val cTraderTradingService = remember {
         CTraderService(
             onQuoteUpdate = { quote ->
-                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                if (chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER) {
                     cacheSelectedSourceQuote(quote)
                 }
             },
@@ -560,7 +584,7 @@ fun TradingApp(
                 balanceHistory.addAll(newBalanceHistory)
             },
             onConnectionStatusUpdate = { connected ->
-                if (chartFeedType == ChartFeedType.PEPPERSTONE) {
+                if (chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER) {
                     isConnected = connected
                 }
             }
@@ -633,7 +657,7 @@ fun TradingApp(
                 ((livePrice - position.entryPrice) * position.volume * (if (position.type == "buy") 1f else -1f)).toDouble()
             }
             val accountInfo = mt5AccountInfo
-            val floatingPnl = if (chartFeedType == ChartFeedType.PEPPERSTONE && paperPositions.isNotEmpty()) {
+            val floatingPnl = if (chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER && paperPositions.isNotEmpty()) {
                 calculatedFloatingPnl
             } else {
                 accountInfo?.unrealizedPnl ?: calculatedFloatingPnl
@@ -642,7 +666,7 @@ fun TradingApp(
             val hasLiveAccountData = accountInfo != null || latestBalance != null
             val balance = accountInfo?.balance ?: latestBalance ?: 0.0
             val equity = when {
-                chartFeedType == ChartFeedType.PEPPERSTONE && paperPositions.isNotEmpty() -> balance + calculatedFloatingPnl
+                chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER && paperPositions.isNotEmpty() -> balance + calculatedFloatingPnl
                 accountInfo?.equity != null -> accountInfo.equity
                 hasLiveAccountData || paperPositions.isNotEmpty() -> balance + floatingPnl
                 else -> 0.0
@@ -718,7 +742,7 @@ fun TradingApp(
                 cTraderTradingService.disconnect()
                 mt5Service.connect()
             }
-            ChartFeedType.PEPPERSTONE -> {
+            ChartFeedType.PEPPERSTONE_CTRADER -> {
                 reverseBridge.disconnect()
                 mt5Service.disconnect()
                 cTraderTradingService.connect()
@@ -728,6 +752,13 @@ fun TradingApp(
                 mt5Service.disconnect()
                 cTraderTradingService.disconnect()
                 isConnected = binanceTradingService.isConfigured()
+            }
+            ChartFeedType.BINANCE_CONNECT -> {
+                // Binance Connect is view-only, no trading connections needed
+                reverseBridge.disconnect()
+                mt5Service.disconnect()
+                cTraderTradingService.disconnect()
+                Log.d("BinanceConnect", "View-only mode - no trading connections")
             }
         }
     }
@@ -908,7 +939,7 @@ fun TradingApp(
                 ChartFeedType.EXNESS -> {
                     liveTradeAccountLabel = "Exness MT5"
                 }
-                ChartFeedType.PEPPERSTONE -> {
+                ChartFeedType.PEPPERSTONE_CTRADER -> {
                     liveTradeAccountLabel = "Pepperstone cTrader"
                     cTraderTradingService.subscribe(brokerSymbolForTicker(symbol))
                 }
@@ -1067,7 +1098,7 @@ fun TradingApp(
                     }
                 }
             }
-            ChartFeedType.PEPPERSTONE -> {
+            ChartFeedType.PEPPERSTONE_CTRADER -> {
                 if (orderType == "Market Execution") {
                     cTraderTradingService.placeMarketOrder(
                         symbol = brokerSymbolForTicker(position.symbol),
@@ -1106,6 +1137,10 @@ fun TradingApp(
                         )
                     )
                 }
+            }
+            ChartFeedType.BINANCE_CONNECT -> {
+                // View-only mode, no trading allowed
+                Log.w("BinanceConnect", "Cannot place order - Binance Connect is view-only")
             }
         }
     }
@@ -1148,7 +1183,7 @@ fun TradingApp(
                 }
                 return
             }
-            ChartFeedType.PEPPERSTONE -> {
+            ChartFeedType.PEPPERSTONE_CTRADER -> {
                 cTraderTradingService.closePosition(position.id, position.volume.toDouble()) { success, message ->
                     Log.d("TradingApp", "Pepperstone close result for ${position.id}: success=$success message=$message")
                     if (success) {
@@ -1157,6 +1192,11 @@ fun TradingApp(
                         }
                     }
                 }
+                return
+            }
+            ChartFeedType.BINANCE_CONNECT -> {
+                // View-only mode, no trading allowed
+                Log.w("BinanceConnect", "Cannot close position - Binance Connect is view-only")
                 return
             }
         }
@@ -1611,7 +1651,7 @@ fun TradingApp(
                                 onVolumeToggle = { showVolume = it },
                                 onIndicatorSettingsClick = { showIndicatorSettingsModal = it },
                                 chartFeedType = resolvedChartFeedType,
-                                binanceMarketType = BinanceMarketType.FUTURES,
+                                binanceMarketType = resolvedBinanceMarketType,
                                 providerChartData = providerChartData,
                                 isMagnetEnabled = isMagnetEnabled,
                                 isLocked = isLocked,
@@ -1748,7 +1788,7 @@ fun TradingApp(
                                 },
                                 isTradingBarVisible = showFloatingTradingButtons,
                                 reverseBridge = if (resolvedChartFeedType == ChartFeedType.EXNESS) reverseBridge else null,
-                                cTraderService = if (resolvedChartFeedType == ChartFeedType.PEPPERSTONE) cTraderTradingService else null,
+                                cTraderService = if (resolvedChartFeedType == ChartFeedType.PEPPERSTONE_CTRADER) cTraderTradingService else null,
                                 onTradeNotification = { tradeNotifications.add(it) },
                                 onIndicatorDataUpdate = { currentIndicatorData = it }
                             )
@@ -1765,8 +1805,16 @@ fun TradingApp(
                                         renderProviderChart(resolvedChartFeedType, resolvedBinanceMarketType, providerChartData)
                                     }
                                 }
-                                ChartFeedType.PEPPERSTONE -> {
-                                    TradingChartPepperstone(
+                                ChartFeedType.BINANCE_CONNECT -> {
+                                    TradingChartBinanceConnect(
+                                        symbol = symbol,
+                                        timeframe = timeframe
+                                    ) { resolvedChartFeedType, resolvedBinanceMarketType, providerChartData ->
+                                        renderProviderChart(resolvedChartFeedType, resolvedBinanceMarketType, providerChartData)
+                                    }
+                                }
+                                ChartFeedType.PEPPERSTONE_CTRADER -> {
+                                    TradingChartPepperstoneCTrader(
                                         symbol = symbol,
                                         timeframe = timeframe
                                     ) { resolvedChartFeedType, providerChartData ->
@@ -1998,11 +2046,12 @@ fun TradingApp(
                     balanceHistory = balanceHistory,
                     currentPrice = currentLiveQuote?.lastPrice ?: 0f,
                     quotePriceForSymbol = pepperstoneQuoteResolver,
-                    preferSnapshotStats = chartFeedType == ChartFeedType.PEPPERSTONE,
+                    preferSnapshotStats = chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER,
                     providerLabel = when (chartFeedType) {
-                        ChartFeedType.PEPPERSTONE -> "Pepperstone"
+                        ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader"
                         ChartFeedType.EXNESS -> "Exness"
                         ChartFeedType.BINANCE -> "Binance"
+                        ChartFeedType.BINANCE_CONNECT -> "Binance Connect"
                     },
                     accountInfo = mt5AccountInfo,
                     sourceName = liveTradeSourceName(),

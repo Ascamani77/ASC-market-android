@@ -305,6 +305,8 @@ fun AscSidebar(
                     MenuDivider()
                     MenuItem(Icons.Default.List, "Quotes Feed") { onViewChange(AppView.QUOTES) }
                     MenuDivider()
+                    MenuItem(Icons.Default.Schedule, "Market Status") { onViewChange(AppView.MARKET_STATUS) }
+                    MenuDivider()
                     MenuItem(Icons.AutoMirrored.Outlined.MenuBook, "Analysis & Opinion") { onViewChange(AppView.NEWS) }
                 }
 

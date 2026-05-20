@@ -81,6 +81,7 @@ class BinanceService(
                             // Fast price updates (every trade)
                             val symbol = data.optString("s")
                             val price = data.optString("p", "0").toFloatOrNull() ?: 0f
+                            val quantity = data.optString("q", "0").toFloatOrNull() ?: 0f
                             val time = data.optLong("T")
                             
                             // Get or create quote
@@ -95,7 +96,7 @@ class BinanceService(
                                 prevClose = price,
                                 bid = price,
                                 ask = price,
-                                volume = 0f,
+                                volume = quantity,
                                 time = time
                             )
                             
@@ -104,6 +105,7 @@ class BinanceService(
                                 lastPrice = price,
                                 bid = price,
                                 ask = price,
+                                volume = quantity,
                                 time = time
                             )
                             

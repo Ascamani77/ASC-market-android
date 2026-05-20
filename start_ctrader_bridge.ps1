@@ -9,15 +9,15 @@ Write-Host ""
 # Set environment variables from local.properties
 $env:CTRADER_CLIENT_ID = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
 $env:CTRADER_CLIENT_SECRET = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
-$env:CTRADER_ACCESS_TOKEN = "q0HVrfY6YmugDpSmWvEd99-Ewu0hPgSqOcWB5otnzac"
-$env:CTRADER_ACCOUNT_ID = "47312778"
-$env:CTRADER_HOST_TYPE = "demo"
+$env:CTRADER_ACCESS_TOKEN = "bz5h7SrzyS_xb8udgcckRcGJU2D9FgIMCAkegWiRFeE"
+$env:CTRADER_ACCOUNT_ID = "47341092"
+$env:CTRADER_HOST_TYPE = "live"
 $env:CTRADER_BRIDGE_PORT = "8082"
 
 Write-Host "OK Environment variables configured" -ForegroundColor Green
-Write-Host "  - Host Type: demo" -ForegroundColor Gray
-Write-Host "  - Account ID: 47312778" -ForegroundColor Gray
-Write-Host "  - Bridge Port: 8082" -ForegroundColor Gray
+Write-Host "  - Host Type: $($env:CTRADER_HOST_TYPE)" -ForegroundColor Gray
+Write-Host "  - Account ID: $($env:CTRADER_ACCOUNT_ID)" -ForegroundColor Gray
+Write-Host "  - Bridge Port: $($env:CTRADER_BRIDGE_PORT)" -ForegroundColor Gray
 Write-Host ""
 
 # Check if Python is installed
@@ -52,3 +52,6 @@ Write-Host ""
 
 # Start the bridge
 python .\ctrader_bridge.py
+
+
+

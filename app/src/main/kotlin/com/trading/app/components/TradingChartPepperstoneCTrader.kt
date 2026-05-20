@@ -13,17 +13,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.asc.markets.data.NetworkConfig
 import com.trading.app.data.ChartFeedType
-import com.trading.app.data.PepperstoneChartService
+import com.trading.app.data.PepperstoneCTraderChartService
 import com.trading.app.data.chartFeedSymbolFor
 import com.trading.app.models.OHLCData
 
+/**
+ * Independent Pepperstone cTrader Chart Wrapper
+ * This is a completely independent chart implementation that uses its own service instance
+ * and state management, separate from the standard Pepperstone chart.
+ */
 @Composable
-fun TradingChartPepperstone(
+fun TradingChartPepperstoneCTrader(
     symbol: String,
     timeframe: String,
     content: @Composable (ChartFeedType, ProviderChartData) -> Unit
 ) {
-    key(ChartFeedType.PEPPERSTONE, symbol, timeframe) {
+    key(ChartFeedType.PEPPERSTONE_CTRADER, symbol, timeframe) {
         val context = LocalContext.current
         val cTraderHost = remember { NetworkConfig.cTraderHost(context) }
         val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
@@ -33,13 +38,16 @@ fun TradingChartPepperstone(
         var hasMoreHistory by remember { mutableStateOf(true) }
         val currentSymbol by rememberUpdatedState(symbol)
 
+        // Create independent service instance
         val service = remember(cTraderHost, cTraderPort) {
-            PepperstoneChartService(
+            Log.d("TradingChartPepperstoneCTrader", "Creating new independent service instance")
+            PepperstoneCTraderChartService(
                 host = cTraderHost,
                 port = cTraderPort,
                 onQuoteUpdate = { incomingQuote ->
                     if (providerSymbolsMatch(incomingQuote.name, currentSymbol)) {
                         quote = providerDisplayQuote(incomingQuote, currentSymbol, candles)
+                        Log.d("TradingChartPepperstoneCTrader", "Quote update: ${incomingQuote.name} @ ${incomingQuote.lastPrice}")
                     }
                 },
                 onHistoryUpdate = { receivedSymbol, history ->
@@ -48,14 +56,15 @@ fun TradingChartPepperstone(
                         candles = merged
                         isLoadingMore = false
                         if (history.size < 500) hasMoreHistory = false
-                        Log.d("TradingChartPepperstone", "Loaded ${history.size} candles for $receivedSymbol")
+                        Log.d("TradingChartPepperstoneCTrader", "Loaded ${history.size} candles for $receivedSymbol (total: ${candles.size})")
                     }
                 }
             )
         }
 
         LaunchedEffect(symbol, timeframe, cTraderHost, cTraderPort) {
-            val streamSymbol = chartFeedSymbolFor(ChartFeedType.PEPPERSTONE, symbol)
+            val streamSymbol = chartFeedSymbolFor(ChartFeedType.PEPPERSTONE_CTRADER, symbol)
+            Log.d("TradingChartPepperstoneCTrader", "Starting stream for $streamSymbol, timeframe: $timeframe")
             candles = emptyList()
             quote = null
             isLoadingMore = false
@@ -66,12 +75,13 @@ fun TradingChartPepperstone(
 
         DisposableEffect(service) {
             onDispose {
+                Log.d("TradingChartPepperstoneCTrader", "Disposing service")
                 service.disconnect()
             }
         }
 
         content(
-            ChartFeedType.PEPPERSTONE,
+            ChartFeedType.PEPPERSTONE_CTRADER,
             ProviderChartData(
                 candles = candles,
                 quote = quote,
@@ -80,7 +90,9 @@ fun TradingChartPepperstone(
                 onLoadMoreHistory = { endTime ->
                     if (!isLoadingMore && hasMoreHistory) {
                         isLoadingMore = true
-                        service.fetchHistory(chartFeedSymbolFor(ChartFeedType.PEPPERSTONE, symbol), timeframe, endTime, 500)
+                        val fetchSymbol = chartFeedSymbolFor(ChartFeedType.PEPPERSTONE_CTRADER, symbol)
+                        Log.d("TradingChartPepperstoneCTrader", "Loading more history for $fetchSymbol, endTime: $endTime")
+                        service.fetchHistory(fetchSymbol, timeframe, endTime, 500)
                     }
                 }
             )

@@ -4,7 +4,8 @@ import android.content.Context
 import com.asc.markets.data.NetworkConfig
 
 enum class BinanceMarketType(val prefValue: String, val displayName: String) {
-    FUTURES("futures", "Futures");
+    FUTURES("futures", "Futures"),
+    SPOT("spot", "Spot");
 
     companion object {
         const val PREF_KEY = "binance_market_type"

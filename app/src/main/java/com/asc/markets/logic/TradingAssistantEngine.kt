@@ -39,14 +39,14 @@ object TradingAssistantEngine {
         if (armCmd.containsMatchIn(text)) {
             safetyLockActive = false
             armed = true
-            return "[CONFIRMATION] Surveillance pipeline armed. Macro Intelligence Stream enabled." to null
+            return "Surveillance is armed now. Macro Intelligence Stream is ready." to null
         }
 
         // Set algorithm
         setAlgoCmd.find(text)?.let { m ->
             val algo = m.groupValues[1].uppercase()
             executionAlgo = algo
-            return "[CONFIRMATION] Surveillance algorithm set to $algo." to null
+            return "I set the surveillance algorithm to $algo." to null
         }
 
         // Trade command
@@ -56,16 +56,16 @@ object TradingAssistantEngine {
             val lots = m.groupValues[3].toDoubleOrNull() ?: 0.0
 
             if (safetyLockActive || !armed) {
-                return "[REJECTION] Surveillance locked — ARM SURVEILLANCE required before dispatch." to null
+                return "I can’t dispatch that yet because surveillance is locked. Arm surveillance first." to null
             }
 
             // basic validation
             if (lots <= 0.0) {
-                return "[REJECTION] Invalid lot size." to null
+                return "That lot size isn’t valid." to null
             }
 
             val execRes = executeInstitutionalTrade(side, pair, lots, executionAlgo)
-            return (if (execRes.success) "[CONFIRMATION] ${execRes.message}" else "[REJECTION] ${execRes.message}") to execRes
+            return (if (execRes.success) execRes.message else "I couldn’t dispatch that trade: ${execRes.message}") to execRes
         }
 
         // Fallback to AI chat for non-command inputs
@@ -98,14 +98,14 @@ object TradingAssistantEngine {
             if (BuildConfig.GROQ_API_KEY.isNotBlank()) {
                 val prompt = com.asc.markets.ai.AiPrompts.buildAnalysisPrompt(question)
                 val resp = GroqClient.chatCompletion(prompt)
-                return "[ANALYSIS] " + resp
+                return resp.trim()
             }
         } catch (t: Throwable) {
             // fall through to local stub on error
         }
 
         delay(300)
-        return "[ANALYSIS] (synthetic) Response: The inquiry '$question' requires market data; provide live quotes for full clinical analysis."
+        return "I can help with that, but I need live market data first. Please share the symbol or refresh the chart so I can answer clearly."
     }
 
     private fun generateClinicalAudit(side: String, pair: String, lots: Double, algo: String): String {

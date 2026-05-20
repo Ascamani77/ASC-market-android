@@ -7,6 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.asc.markets.data.*
 import com.asc.markets.ui.screens.dashboard.provideForexExplore
 import com.asc.markets.data.ForexDataPoint
+import com.trading.app.data.CalendarSnapshotStore
+import com.trading.app.data.ChartFeedType
+import com.trading.app.data.NewsSnapshotStore
+import com.trading.app.data.PaperTradingSnapshotStore
+import com.trading.app.data.Mt5Service
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -45,7 +50,6 @@ import com.asc.markets.network.TiingoIexWebSocketManager
 
 import com.trading.app.data.DerivService
 import com.trading.app.data.FredService
-import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.models.BondData
 import java.util.Locale
 import org.json.JSONArray
@@ -58,20 +62,39 @@ data class CommandCenterStatus(
     val lastActionAtMillis: Long = 0L
 )
 
+data class AscChatSession(
+    val id: String,
+    val title: String,
+    val createdAtMillis: Long,
+    val messages: List<ChatMessage> = emptyList()
+)
+
 class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         private const val TIINGO_REST_REFRESH_MS = 60 * 60_000L
         private const val COMBINED_FALLBACK_RETRY_MS = 5_000L
+        private const val GLOBAL_CHAT_CONTEXT_ID = "GLOBAL"
+        private const val CHAT_SESSIONS_KEY = "chat_sessions"
+        private const val CHAT_ACTIVE_SESSION_ID_KEY = "chat_active_session_id"
     }
 
     private val myApp = application as com.asc.markets.MyApp
     private val aiRepository = myApp.aiRepository
     val aiDeployments: StateFlow<LatestDeploymentsResponse?> = aiRepository.deployments
     private val chatPrefs = application.getSharedPreferences("asc_engine_chat", Context.MODE_PRIVATE)
-    private val _ascChatMessages = MutableStateFlow(loadAscChatMessages())
+    private val initialAscChatSessions = loadAscChatSessions()
+    private val _ascChatSessions = MutableStateFlow(initialAscChatSessions)
+    val ascChatSessions = _ascChatSessions.asStateFlow()
+    private val _ascChatSessionId = MutableStateFlow(loadAscChatSessionId(initialAscChatSessions))
+    val ascChatSessionId = _ascChatSessionId.asStateFlow()
+    private val _ascChatMessages = MutableStateFlow(loadActiveAscChatMessages(initialAscChatSessions, _ascChatSessionId.value))
     val ascChatMessages = _ascChatMessages.asStateFlow()
     private val _ascChatResponding = MutableStateFlow(false)
     val ascChatResponding = _ascChatResponding.asStateFlow()
+    private val _ascChatPersonaId = MutableStateFlow(loadAscChatPersonaId())
+    val ascChatPersonaId = _ascChatPersonaId.asStateFlow()
+    private val _ascChatContextPageId = MutableStateFlow(loadAscChatContextPageId())
+    val ascChatContextPageId = _ascChatContextPageId.asStateFlow()
 
     fun fetchLatestDeployments() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -249,6 +272,9 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             .distinctBy { it.symbol }
     )
     val cryptoPairs = _cryptoPairs.asStateFlow()
+
+    private val _preMoveCandidates = MutableStateFlow<List<PreMoveCandidate>>(emptyList())
+    val preMoveCandidates = _preMoveCandidates.asStateFlow()
 
     private val _isInitializing = MutableStateFlow(true)
     val isInitializing = _isInitializing.asStateFlow()
@@ -461,6 +487,26 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun buildTerminalHistory(limit: Int = 12): String {
+        val messages = _terminalLogs.value
+            .dropLast(1)
+            .takeLast(limit)
+
+        if (messages.isEmpty()) return "No previous terminal turns."
+
+        return buildString {
+            appendLine("Recent terminal turns:")
+            messages.asReversed().forEach { message ->
+                val speaker = when (message.role.lowercase(Locale.US)) {
+                    "user" -> "User"
+                    "model", "assistant" -> "ASC Terminal"
+                    else -> message.role.replaceFirstChar { ch -> ch.titlecase(Locale.US) }
+                }
+                appendLine("$speaker: ${message.content}")
+            }
+        }
+    }
+
     // Dashboard tab target (string name of DashboardTab) allows external callers to set which
     // top-tab the Dashboard should show when navigated to (e.g., Home button -> COMMAND_CENTER)
     private val _dashboardTabTarget = MutableStateFlow("COMMAND_CENTER")
@@ -470,7 +516,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     val activeAlgo = _activeAlgo.asStateFlow()
 
     private val _terminalLogs = MutableStateFlow<List<ChatMessage>>(listOf(
-        ChatMessage(role = "model", content = "[SYSTEM BOOT] Local Analytical Node initialized. Protocol L14 active.")
+        ChatMessage(role = "model", content = "Local Analytical Node is ready. Protocol L14 is active.")
     ))
     val terminalLogs = _terminalLogs.asStateFlow()
 
@@ -481,9 +527,9 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     // In-app notifications (persisted elsewhere later). Track seen/unseen state here.
     private val _inAppNotifications = MutableStateFlow<List<com.asc.markets.data.NotificationModel>>(
         listOf(
-            com.asc.markets.data.NotificationModel(id = "n1", type = "SYSTEM", msg = "Analytical engine updated — new model deployed.", time = "2m ago", severity = "INFO", seen = false),
+            com.asc.markets.data.NotificationModel(id = "n1", type = "SYSTEM", msg = "Analytical engine updated � new model deployed.", time = "2m ago", severity = "INFO", seen = false),
             com.asc.markets.data.NotificationModel(id = "n2", type = "TRADE", msg = "Order #4521 executed: 100 BTC @ 42,100.", time = "12m ago", severity = "WARNING", seen = false),
-            com.asc.markets.data.NotificationModel(id = "n3", type = "SECURITY", msg = "Login from new device — location: Berlin.", time = "1h ago", severity = "CRITICAL", seen = false)
+            com.asc.markets.data.NotificationModel(id = "n3", type = "SECURITY", msg = "Login from new device � location: Berlin.", time = "1h ago", severity = "CRITICAL", seen = false)
         )
     )
     val inAppNotifications = _inAppNotifications.asStateFlow()
@@ -493,7 +539,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _alertNotificationCount = MutableStateFlow(calculateAlertNotificationCount(_inAppNotifications.value))
     val alertNotificationCount = _alertNotificationCount.asStateFlow()
 
-    // Filtered list intended for the MacroStream view — ensure ~90% UPCOMING vs CONFIRMED
+    // Filtered list intended for the MacroStream view � ensure ~90% UPCOMING vs CONFIRMED
     private val _macroStreamEvents = MutableStateFlow<List<MacroEvent>>(computeMacroStreamList(_allMacroEvents.value))
     val macroStreamEvents = _macroStreamEvents.asStateFlow()
 
@@ -565,13 +611,23 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private val mt5BridgeClient: MT5BridgeClient by lazy {
         val bridgeUrl = NetworkConfig.mt5BridgeUrl(getApplication())
-        MT5BridgeClient(bridgeUrl = bridgeUrl, scope = viewModelScope, brokerSuffix = "m")
+        MT5BridgeClient(
+            bridgeUrl = bridgeUrl,
+            scope = viewModelScope,
+            brokerSuffix = "m",
+            onAccountUpdate = { account ->
+                emitBrokerAccountLog("EXNESS", account)
+            }
+        )
     }
 
     private val cTraderBridgeClient: CTraderBridgeClient by lazy {
         CTraderBridgeClient(
             bridgeUrl = NetworkConfig.cTraderBridgeUrl(getApplication()),
-            scope = viewModelScope
+            scope = viewModelScope,
+            onAccountUpdate = { account ->
+                emitBrokerAccountLog("PEPPERSTONE", account)
+            }
         )
     }
 
@@ -622,6 +678,8 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             .takeIf { it.isNotBlank() }
             ?.let { apiKey -> TiingoIexRestClient(apiKey, getApplication()) }
     }
+
+    private var lastBrokerAccountLog: String? = null
 
     init {
         CombinedFallbackStore.setManualEnabled(
@@ -691,6 +749,12 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 MarketDataStore.updatePair(pair)
                 PriceStreamManager.updatePrice(pair.symbol, pair.price)
                 markPrimaryLiveDataRestored()
+            }
+        }
+
+        viewModelScope.launch {
+            PreMoveIntelligenceStore.candidates.collect { candidates ->
+                _preMoveCandidates.value = candidates
             }
         }
 
@@ -899,7 +963,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             binanceWsManager.accountStatus.collect { statusJson ->
-                _terminalLogs.value = listOf(ChatMessage(role = "model", content = "[BINANCE] Account Status: $statusJson")) + _terminalLogs.value
+                _terminalLogs.value = listOf(ChatMessage(role = "model", content = "Binance account status: $statusJson")) + _terminalLogs.value
             }
         }
 
@@ -1431,35 +1495,57 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         
         viewModelScope.launch {
             val upper = text.uppercase()
+            val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
             val response = when {
                 upper == "ARM" || upper == "ARM SURVEILLANCE" || upper == "ARM_SURVEILLANCE" -> {
                     _isArmed.value = true
                     TradingAssistantEngine.armed = true
                     TradingAssistantEngine.safetyLockActive = false
-                    "[SECURITY] PIPELINE ARMED via Local Node."
+                    "Surveillance is armed now."
                 }
                 upper == "DISARM" || upper == "DISARM SURVEILLANCE" || upper == "DISARM_SURVEILLANCE" -> {
                     _isArmed.value = false
                     TradingAssistantEngine.armed = false
                     TradingAssistantEngine.safetyLockActive = true
-                    "[SECURITY] PIPELINE DISARMED. Surveillance lock restored."
+                    "Surveillance is disarmed now."
                 }
                 upper == "ACCOUNT" -> {
-                    binanceWsManager.fetchAccountStatus()
-                    "[SYSTEM] Requesting Binance account status..."
+                    when (ChartFeedType.streamCurrent(getApplication())) {
+                        ChartFeedType.BINANCE -> {
+                            binanceWsManager.fetchAccountStatus()
+                            "I�m requesting Binance account status now."
+                        }
+                        ChartFeedType.BINANCE_CONNECT -> {
+                            "Binance Connect is view-only mode. No account data available."
+                        }
+ChartFeedType.EXNESS -> {
+                            mt5BridgeClient.requestAccountStatus()
+                            "I�m requesting Exness account status now."
+                        }
+                        ChartFeedType.PEPPERSTONE_CTRADER -> {
+                            cTraderBridgeClient.requestAccountStatus()
+                            "I�m requesting Pepperstone account status now."
+                        }
+                    }
+                }
+                shouldAnswerTerminalSnapshotDirectly(text) -> {
+                    buildTerminalSnapshotReply(text, latest)
                 }
                 upper == "RUN AI" || upper == "RUN ASC AI" || upper == "RUN PIPELINE" || upper == "RUN ASC PIPELINE" -> {
                     aiRepository.runAiPipeline().fold(
                         onSuccess = { resp ->
-                            "[ASC_AI] Pipeline completed=${resp.success}. Decisions=${resp.final_decision.size}. ${resp.message ?: "Latest deployments refreshed."}"
+                            if (resp.success) {
+                                "I ran the ASC AI pipeline and refreshed ${resp.final_decision.size} decisions. ${resp.message ?: "Latest deployments refreshed."}"
+                            } else {
+                                "I ran the ASC AI pipeline, but it returned an unsuccessful response. ${resp.message ?: "Please try refreshing again."}"
+                            }
                         },
                         onFailure = { err ->
-                            "[ASC_AI_REJECTION] Pipeline failed: ${err.message ?: "unknown error"}"
+                            "I couldn�t run the ASC AI pipeline: ${err.message ?: "unknown error"}"
                         }
                     )
                 }
                 upper == "ASC" || upper == "ASC STATUS" || upper == "AI STATUS" || upper == "DEPLOYMENTS" || upper == "REFRESH AI" -> {
-                    val latest = aiRepository.fetchLatestDeployments().getOrNull() ?: aiDeployments.value
                     buildTerminalAscSummary(latest)
                 }
                 isDeepTerminalCommand(upper) -> {
@@ -1468,12 +1554,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                     result.first
                 }
                 else -> {
-                    val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
-                    "[ASC_AI_TERMINAL]\n" + AscAiTextExplainer.explain(
+                    val terminalHistory = buildTerminalHistory()
+                    AscAiTextExplainer.explain(
                         userQuery = text,
                         personaName = "Terminal Desk",
-                        personaInstruction = "Deep operator terminal. Explain ASC AI deployment state, selected assets, decision labels, risk, entry windows, exit plans, live tick state, and what the system is waiting for. Do not create a new signal.",
-                        deployments = latest
+                        personaInstruction = "Deep operator terminal. Explain ASC AI deployment state, selected assets, decision labels, risk, entry windows, exit plans, live tick state, and what the system is waiting for. Do not create a new signal. Use plain human-readable headings only. Do not use brackets or underscore-separated writeups.",
+                        deployments = latest,
+                        appContext = buildChatAppContext(latest),
+                        conversationHistory = terminalHistory
                     )
                 }
             }
@@ -1508,17 +1596,30 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         val text = userQuery.trim()
         if (text.isBlank() || _ascChatResponding.value) return
 
-        appendAscChatMessage(ChatMessage(role = "user", content = text))
+        val userMessage = ChatMessage(role = "user", content = text)
+        val shouldRenameActiveSession = _ascChatMessages.value.none { it.role.equals("user", ignoreCase = true) }
+        if (shouldRenameActiveSession) {
+            updateActiveAscChatSession { session ->
+                session.copy(
+                    title = buildAscChatSessionTitleFromPrompt(text),
+                    messages = (session.messages + userMessage).takeLast(80)
+                )
+            }
+        } else {
+            appendAscChatMessage(userMessage)
+        }
         _ascChatResponding.value = true
 
         viewModelScope.launch {
             val latest = aiDeployments.value ?: aiRepository.fetchLatestDeployments().getOrNull()
+            val conversationHistory = buildAscChatHistory()
             val response = AscAiTextExplainer.explain(
                 userQuery = text,
                 personaName = personaName,
                 personaInstruction = personaInstruction,
                 deployments = latest,
-                appContext = buildChatAppContext(latest)
+                appContext = buildChatAppContext(latest),
+                conversationHistory = conversationHistory
             )
             appendAscChatMessage(ChatMessage(role = "model", content = response))
             _ascChatResponding.value = false
@@ -1529,30 +1630,953 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         appendAscChatMessage(ChatMessage(role = "model", content = content))
     }
 
-    fun clearAscChatMessages() {
+    private fun pushTerminalLog(content: String) {
+        viewModelScope.launch {
+            _terminalLogs.value = listOf(ChatMessage(role = "model", content = content)) + _terminalLogs.value
+        }
+    }
+
+    private fun emitBrokerAccountLog(brokerName: String, account: Mt5Service.AccountInfo) {
+        val content = "$brokerName account status: ${formatAccountSummary(account)}"
+        if (content == lastBrokerAccountLog) return
+        lastBrokerAccountLog = content
+        pushTerminalLog(content)
+    }
+
+    private fun formatAccountSummary(account: Mt5Service.AccountInfo): String {
+        return "balance ${chatFmt(account.balance)}, equity ${chatFmt(account.equity)}, floating PnL ${chatFmt(account.unrealizedPnl)}, realized PnL ${chatFmt(account.realizedPnl)}, margin ${chatFmt(account.margin)}, free margin ${chatFmt(account.availableFunds)}, orders margin ${chatFmt(account.ordersMargin)}, margin buffer ${chatFmt(account.marginBuffer)}"
+    }
+
+    fun setAscChatPersona(personaId: String) {
+        val resolvedId = ANALYST_MODELS.firstOrNull { it.id == personaId }?.id ?: ANALYST_MODELS.first().id
+        _ascChatPersonaId.value = resolvedId
+        chatPrefs.edit().putString("persona_id", resolvedId).apply()
+    }
+
+    fun setAscChatContextPage(page: AppView) {
+        val resolvedPage = AppView.values().firstOrNull { it.name == page.name } ?: AppView.CHAT
+        _ascChatContextPageId.value = resolvedPage.name
+        chatPrefs.edit().putString("chat_context_page_id", resolvedPage.name).apply()
+    }
+
+    fun clearAscChatContextPage() {
+        _ascChatContextPageId.value = GLOBAL_CHAT_CONTEXT_ID
+        chatPrefs.edit().putString("chat_context_page_id", GLOBAL_CHAT_CONTEXT_ID).apply()
+    }
+
+    fun startNewAscChatSession() {
+        val newSession = AscChatSession(
+            id = java.util.UUID.randomUUID().toString(),
+            title = "New Chat",
+            createdAtMillis = System.currentTimeMillis(),
+            messages = emptyList()
+        )
+        _ascChatSessions.value = listOf(newSession) + _ascChatSessions.value
+        _ascChatSessionId.value = newSession.id
         _ascChatMessages.value = emptyList()
-        persistAscChatMessages()
+        persistAscChatState()
+    }
+
+    fun setActiveAscChatSession(sessionId: String) {
+        val session = _ascChatSessions.value.firstOrNull { it.id == sessionId } ?: return
+        _ascChatSessionId.value = session.id
+        _ascChatMessages.value = session.messages
+        persistAscChatState()
+    }
+
+    fun deleteAscChatSession(sessionId: String) {
+        val remainingSessions = _ascChatSessions.value.filterNot { it.id == sessionId }
+        if (remainingSessions.isEmpty()) {
+            val replacement = createEmptyAscChatSession()
+            _ascChatSessions.value = listOf(replacement)
+            _ascChatSessionId.value = replacement.id
+            _ascChatMessages.value = replacement.messages
+            persistAscChatState()
+            return
+        }
+
+        val activeSessionId = _ascChatSessionId.value
+        val nextActiveSessionId = when {
+            activeSessionId == sessionId -> remainingSessions.first().id
+            remainingSessions.any { it.id == activeSessionId } -> activeSessionId
+            else -> remainingSessions.first().id
+        }
+
+        _ascChatSessions.value = remainingSessions
+        _ascChatSessionId.value = nextActiveSessionId
+        _ascChatMessages.value = remainingSessions.firstOrNull { it.id == nextActiveSessionId }?.messages ?: emptyList()
+        persistAscChatState()
+    }
+
+    fun activeAscChatSessionTitle(): String {
+        return _ascChatSessions.value.firstOrNull { it.id == _ascChatSessionId.value }?.title ?: "Chat"
+    }
+
+    fun clearAscChatMessages() {
+        updateActiveAscChatSession { session -> session.copy(messages = emptyList()) }
     }
 
     private fun appendAscChatMessage(message: ChatMessage) {
-        _ascChatMessages.value = (_ascChatMessages.value + message).takeLast(80)
-        persistAscChatMessages()
+        updateActiveAscChatSession { session ->
+            session.copy(messages = (session.messages + message).takeLast(80))
+        }
     }
 
-    private fun persistAscChatMessages() {
+    private fun buildAscChatHistory(limit: Int = 12): String {
+        val messages = _ascChatMessages.value
+            .dropLast(1)
+            .takeLast(limit)
+
+        if (messages.isEmpty()) return "No previous conversation turns."
+
+        return buildString {
+            appendLine("Recent conversation turns:")
+            messages.forEach { message ->
+                val speaker = when (message.role.lowercase(Locale.US)) {
+                    "user" -> "User"
+                    "model", "assistant" -> "ASC Engine"
+                    else -> message.role.replaceFirstChar { ch -> ch.titlecase(Locale.US) }
+                }
+                appendLine("$speaker: ${message.content}")
+            }
+        }
+    }
+
+    private fun shouldAnswerTerminalSnapshotDirectly(text: String): Boolean {
+        val normalized = text.trim().lowercase(Locale.US)
+        val keywords = listOf(
+            "balance",
+            "equity",
+            "pnl",
+            "profit",
+            "loss",
+            "account",
+            "trade",
+            "trades",
+            "order",
+            "orders",
+            "position",
+            "positions",
+            "deployment",
+            "deployments",
+            "status",
+            "refresh",
+            "pipeline",
+            "armed",
+            "disarm",
+            "prompt",
+            "chat",
+            "help"
+        )
+        return keywords.any { normalized.contains(it) }
+    }
+
+    private fun buildTerminalSnapshotReply(text: String, deployments: LatestDeploymentsResponse?): String {
+        val normalized = text.trim().lowercase(Locale.US)
+        val snapshot = PaperTradingSnapshotStore.snapshot
+
+        val asksForAccount = listOf("balance", "equity", "pnl", "profit", "loss", "account").any { normalized.contains(it) }
+        if (asksForAccount) {
+            if (!snapshot.hasLiveAccountData && snapshot.balance == 0.0 && snapshot.equity == 0.0 && snapshot.activeTrades == 0 && snapshot.activeOrders == 0) {
+                return "I don�t have live account data yet. Please refresh the app state, then ask me again."
+            }
+
+            return buildString {
+                append("Here�s your account snapshot: ")
+                append("balance ${chatFmt(snapshot.balance)}, ")
+                append("equity ${chatFmt(snapshot.equity)}, ")
+                append("floating PnL ${chatFmt(snapshot.floatingPnl)}, ")
+                append("realized PnL ${chatFmt(snapshot.realizedPnl)}, ")
+                append("active trades ${snapshot.activeTrades}, ")
+                append("active orders ${snapshot.activeOrders}.")
+            }
+        }
+
+        val asksForDeployment = listOf("deployment", "deployments", "status", "pipeline", "refresh", "armed", "disarm").any { normalized.contains(it) }
+        if (asksForDeployment) {
+            return buildTerminalAscSummary(deployments)
+        }
+
+        if (listOf("prompt", "chat", "help").any { normalized.contains(it) }) {
+            return "You can just talk to me naturally. Try asking about your balance, trades, deployments, risk, or current chart, and I�ll answer in plain language."
+        }
+
+        return "Ask me naturally about your balance, trades, deployments, risk, or current chart, and I�ll answer in plain language."
+    }
+
+    private fun persistAscChatState() {
         val jsonArray = JSONArray()
-        _ascChatMessages.value.forEach { message ->
+        _ascChatSessions.value.forEach { session ->
             jsonArray.put(JSONObject().apply {
-                put("id", message.id)
-                put("role", message.role)
-                put("content", message.content)
-                put("timestamp", message.timestamp)
+                put("id", session.id)
+                put("title", session.title)
+                put("createdAtMillis", session.createdAtMillis)
+                val messagesArray = JSONArray()
+                session.messages.forEach { message ->
+                    messagesArray.put(JSONObject().apply {
+                        put("id", message.id)
+                        put("role", message.role)
+                        put("content", message.content)
+                        put("timestamp", message.timestamp)
+                    })
+                }
+                put("messages", messagesArray)
             })
         }
-        chatPrefs.edit().putString("messages", jsonArray.toString()).apply()
+        chatPrefs.edit()
+            .putString(CHAT_SESSIONS_KEY, jsonArray.toString())
+            .putString(CHAT_ACTIVE_SESSION_ID_KEY, _ascChatSessionId.value)
+            .putString("messages", JSONArray().apply {
+                _ascChatMessages.value.forEach { message ->
+                    put(JSONObject().apply {
+                        put("id", message.id)
+                        put("role", message.role)
+                        put("content", message.content)
+                        put("timestamp", message.timestamp)
+                    })
+                }
+            }.toString())
+            .apply()
     }
 
-    private fun loadAscChatMessages(): List<ChatMessage> {
+    private fun updateActiveAscChatSession(transform: (AscChatSession) -> AscChatSession) {
+        val currentId = _ascChatSessionId.value
+        val nextSessions = _ascChatSessions.value.map { session ->
+            if (session.id == currentId) transform(session) else session
+        }
+        val activeSession = nextSessions.firstOrNull { it.id == currentId } ?: return
+        _ascChatSessions.value = nextSessions
+        _ascChatMessages.value = activeSession.messages
+        persistAscChatState()
+    }
+
+    private fun loadAscChatPersonaId(): String {
+        val saved = chatPrefs.getString("persona_id", ANALYST_MODELS.first().id) ?: ANALYST_MODELS.first().id
+        return ANALYST_MODELS.firstOrNull { it.id == saved }?.id ?: ANALYST_MODELS.first().id
+    }
+
+    private fun loadAscChatContextPageId(): String {
+        val saved = chatPrefs.getString("chat_context_page_id", AppView.CHAT.name) ?: AppView.CHAT.name
+        return when {
+            saved == GLOBAL_CHAT_CONTEXT_ID -> GLOBAL_CHAT_CONTEXT_ID
+            AppView.values().any { it.name == saved } -> saved
+            else -> AppView.CHAT.name
+        }
+    }
+
+    private fun buildSharedCalendarContext(): String {
+        val display = CalendarSnapshotStore.latestDisplayPayload
+        val ai = CalendarSnapshotStore.latestAiPayload
+
+        if (display == null && ai == null) return "calendar_shared_context=unavailable"
+
+        val nextHolidayDisplay = display?.events?.firstOrNull {
+            val title = it.title.lowercase(Locale.US)
+            title.contains("holiday") || title.contains("bank holiday")
+        }
+        val nextHolidayAi = if (nextHolidayDisplay == null) {
+            ai?.events?.firstOrNull {
+                val title = it.title.lowercase(Locale.US)
+                title.contains("holiday") || title.contains("bank holiday")
+            }
+        } else {
+            null
+        }
+
+        return buildString {
+            appendLine("calendar_shared_context_available=true")
+            display?.let { payload ->
+                appendLine("calendar_shared_source=display")
+                appendLine("calendar_shared_selected_date=${payload.selectedDateIso}")
+                appendLine("calendar_shared_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
+                appendLine("calendar_shared_header=${payload.headerDateLabel}")
+                appendLine("calendar_shared_event_count=${payload.events.size}")
+            } ?: ai?.let { payload ->
+                appendLine("calendar_shared_source=ai")
+                appendLine("calendar_shared_selected_date=${payload.selectedDateIso}")
+                appendLine("calendar_shared_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
+                appendLine("calendar_shared_event_count=${payload.events.size}")
+            }
+
+            ai?.let { payload ->
+                appendLine("calendar_shared_source=ai")
+                appendLine("calendar_shared_selected_date=${payload.selectedDateIso}")
+                appendLine("calendar_shared_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
+                appendLine("calendar_shared_event_count_ai=${payload.events.size}")
+            }
+
+            nextHolidayDisplay?.let { event ->
+                appendLine("calendar_shared_next_holiday=${event.releaseTimeLabel} ${event.currencyCode} ${event.title}")
+            }
+
+            nextHolidayAi?.let { event ->
+                appendLine("calendar_shared_next_holiday_ai=${event.isoDateTime} ${event.currencyCode} ${event.title}")
+            }
+
+            display?.events?.take(3)?.forEach { event ->
+                appendLine(
+                    "calendar_shared_display_event=${event.releaseTimeLabel} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance}"
+                )
+            }
+
+            ai?.events?.take(3)?.forEach { event ->
+                appendLine(
+                    "calendar_shared_event=${event.isoDateTime} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance}"
+                )
+            }
+        }
+    }
+
+    private fun buildSharedNewsContext(): String {
+        val payload = NewsSnapshotStore.latestPayload ?: return "news_shared_context=unavailable"
+
+        return buildString {
+            appendLine("news_shared_context_available=true")
+            appendLine("news_shared_type=${payload.type}")
+            appendLine("news_shared_last_updated=${payload.lastUpdatedIso}")
+            appendLine("news_shared_item_count=${payload.items.size}")
+            payload.items.take(3).forEach { item ->
+                appendLine("news_shared_item=${item.timeLabel} ${item.countryCode} ${item.category} ${item.title}")
+            }
+        }
+    }
+
+    private fun buildSharedMacroContext(): String {
+        val allEvents = _allMacroEvents.value
+        val streamEvents = _macroStreamEvents.value
+
+        if (allEvents.isEmpty() && streamEvents.isEmpty()) {
+            return "macro_shared_context=unavailable"
+        }
+
+        return buildString {
+            appendLine("macro_shared_context_available=true")
+            appendLine("macro_shared_total_events=${allEvents.size}")
+            appendLine("macro_shared_stream_events=${streamEvents.size}")
+            appendLine("macro_shared_upcoming_count=${allEvents.count { it.status == MacroEventStatus.UPCOMING }}")
+            appendLine("macro_shared_confirmed_count=${allEvents.count { it.status == MacroEventStatus.CONFIRMED }}")
+            streamEvents.take(4).forEach { event ->
+                appendLine(
+                    "macro_shared_event=${event.displayTitle()} currency=${event.currency} priority=${event.priority} status=${event.status}"
+                )
+            }
+        }
+    }
+
+    private fun buildSharedMarketStateContext(): String {
+        val marketState = _marketState.value ?: return "market_state_shared_context=unavailable"
+        val lastClose = marketState.chartData.lastOrNull()?.close
+
+        return buildString {
+            appendLine("market_state_shared_context_available=true")
+            appendLine("market_state_shared_symbol=${marketState.symbol}")
+            appendLine("market_state_shared_bias=${marketState.technicalBias}")
+            appendLine("market_state_shared_confidence=${marketState.confidence}")
+            appendLine("market_state_shared_safety_blocked=${marketState.safetyBlocked}")
+            appendLine("market_state_shared_chart_points=${marketState.chartData.size}")
+            if (lastClose != null) {
+                appendLine("market_state_shared_last_close=${chatFmt(lastClose)}")
+            }
+        }
+    }
+
+    private fun buildSharedWatchlistContext(): String {
+        val items = _watchlistItems.value
+        if (items.isEmpty()) return "watchlist_shared_context=unavailable"
+
+        val visibleItems = items.take(4)
+        return buildString {
+            appendLine("watchlist_shared_context_available=true")
+            appendLine("watchlist_shared_total=${items.size}")
+            appendLine("watchlist_shared_analyzing=${_isWatchlistAnalyzing.value}")
+            appendLine("watchlist_shared_filter=${_watchlistCategoryFilter.value ?: "ALL"}")
+            appendLine("watchlist_shared_sort=${_watchlistSortMode.value}")
+            visibleItems.forEach { item ->
+                appendLine(
+                    "watchlist_shared_item=${item.assetName} status=${item.status} confidence=${item.confidence} move_probability=${item.moveProbability} volatility=${item.volatilityScore} category=${item.category} news_risk=${item.newsRisk} trigger=${item.triggerEvent} time_to_event=${item.timeToEvent}"
+                )
+            }
+        }
+    }
+
+    private fun buildSharedDashboardContext(): String {
+        val selected = _selectedPair.value
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        val status = _commandCenterStatus.value
+
+        return buildString {
+            appendLine("dashboard_shared_context_available=true")
+            appendLine("dashboard_shared_target=${_dashboardTabTarget.value}")
+            appendLine("dashboard_shared_selected_pair=${selected.symbol}")
+            appendLine("dashboard_shared_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("dashboard_shared_selected_pair_change=${chatFmt(selected.changePercent)}")
+            appendLine("dashboard_shared_command_status_loading=${status.isLoading}")
+            appendLine("dashboard_shared_command_status_connected=${status.isConnected ?: "unknown"}")
+            appendLine("dashboard_shared_command_status_message=${status.lastMessage}")
+            appendLine("dashboard_shared_account_balance=${chatFmt(snapshot.balance)}")
+            appendLine("dashboard_shared_account_equity=${chatFmt(snapshot.equity)}")
+            appendLine("dashboard_shared_account_floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("dashboard_shared_account_active_trades=${snapshot.activeTrades}")
+            appendLine("dashboard_shared_account_active_orders=${snapshot.activeOrders}")
+            appendLine("dashboard_shared_account_current_trade=${snapshot.currentTradeSymbol ?: "none"}")
+        }
+    }
+
+    private fun buildSharedTradeContext(): String {
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        if (!snapshot.isConnected && snapshot.balance == 0.0 && snapshot.equity == 0.0 && snapshot.activeTrades == 0 && snapshot.activeOrders == 0) {
+            return "trade_shared_context=unavailable"
+        }
+
+        return buildString {
+            appendLine("trade_shared_context_available=true")
+            appendLine("trade_shared_connected=${snapshot.isConnected}")
+            appendLine("trade_shared_balance=${chatFmt(snapshot.balance)}")
+            appendLine("trade_shared_equity=${chatFmt(snapshot.equity)}")
+            appendLine("trade_shared_floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("trade_shared_realized_pnl=${chatFmt(snapshot.realizedPnl)}")
+            appendLine("trade_shared_open_risk=${chatFmt(snapshot.openRisk)}")
+            appendLine("trade_shared_open_risk_pct=${chatFmt(snapshot.openRiskPct)}")
+            appendLine("trade_shared_active_trades=${snapshot.activeTrades}")
+            appendLine("trade_shared_active_orders=${snapshot.activeOrders}")
+            appendLine("trade_shared_current_trade=${snapshot.currentTradeSymbol ?: "none"}")
+        }
+    }
+
+    private fun buildSharedQuotesContext(): String {
+        val livePairs = mergedMarketPairs()
+            .filter { it.price.isFinite() && it.price > 0.0 }
+            .take(8)
+
+        if (livePairs.isEmpty()) return "quotes_shared_context=unavailable"
+
+        return buildString {
+            appendLine("quotes_shared_context_available=true")
+            appendLine("quotes_shared_count=${livePairs.size}")
+            livePairs.forEach { pair ->
+                appendLine("quotes_shared_pair=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+        }
+    }
+
+    private fun buildSharedMarketWatchContext(): String {
+        val candidates = _preMoveCandidates.value.take(4)
+        if (candidates.isEmpty()) return "market_watch_shared_context=unavailable"
+
+        return buildString {
+            appendLine("market_watch_shared_context_available=true")
+            appendLine("market_watch_shared_count=${candidates.size}")
+            candidates.forEach { candidate ->
+                appendLine(
+                    "market_watch_shared_candidate=${candidate.symbol} score=${candidate.preMoveScore} compression=${candidate.compressionScore} ignition=${candidate.ignitionScore} regime=${candidate.regime} state=${candidate.state} risk_gate=${candidate.riskGate}"
+                )
+            }
+        }
+    }
+
+    private fun buildSharedPageContextSummary(): String {
+        return buildString {
+            appendLine(buildSharedCalendarContext())
+            appendLine(buildSharedNewsContext())
+            appendLine(buildSharedMacroContext())
+            appendLine(buildSharedMarketStateContext())
+            appendLine(buildSharedWatchlistContext())
+            appendLine(buildSharedDashboardContext())
+            appendLine(buildSharedTradeContext())
+            appendLine(buildSharedQuotesContext())
+            appendLine(buildSharedMarketWatchContext())
+        }
+    }
+
+    private fun buildFocusedPageContext(page: AppView?): String {
+        return when (page) {
+            null -> buildGlobalFocusedContext()
+            AppView.CALENDAR -> buildCalendarFocusedContext()
+            AppView.NEWS -> buildNewsFocusedContext()
+            AppView.MACRO_STREAM -> buildMacroFocusedContext()
+            AppView.MARKET_STATUS -> buildMarketStatusFocusedContext()
+            AppView.WATCHLIST -> buildWatchlistFocusedContext()
+            AppView.DASHBOARD -> buildDashboardFocusedContext()
+            AppView.TRADE -> buildTradeFocusedContext()
+            AppView.QUOTES -> buildQuotesFocusedContext()
+            AppView.MARKET_WATCH -> buildMarketWatchFocusedContext()
+            AppView.MARKETS -> buildMarketsFocusedContext()
+            AppView.STREAM, AppView.INTELLIGENCE_STREAM, AppView.SENTIMENT -> buildStreamFocusedContext()
+            AppView.ALERTS, AppView.NOTIFICATIONS, AppView.HOME_ALERTS, AppView.MY_ALERTS -> buildNotificationsFocusedContext()
+            AppView.LIQUIDITY_HUB -> buildLiquidityFocusedContext()
+            AppView.ANALYSIS_RESULTS -> buildAnalysisResultsFocusedContext()
+            AppView.TRADE_DASHBOARD -> buildTradeDashboardFocusedContext()
+            AppView.POST_MOVE_AUDIT, AppView.TRADE_RECONSTRUCTION -> buildAuditFocusedContext(page)
+            AppView.MARKET_VIEW -> buildMarketsFocusedContext()
+            AppView.BACKTEST, AppView.MULTI_TIMEFRAME, AppView.FULL_CHART, AppView.SIMULATION, AppView.MY_SIMULATION,
+            AppView.DATA_HUB, AppView.DATA_VAULT, AppView.DIAGNOSTICS, AppView.EDUCATION, AppView.PROFILE,
+            AppView.SETTINGS, AppView.SIDEBAR_PAGE, AppView.CHAT, AppView.AI_TERMINAL, AppView.PAPER_TRADING,
+            AppView.TRADING_ASSISTANT, AppView.PORTFOLIO_MANAGER -> buildOperationalFocusedContext(page)
+            else -> buildGenericFocusedContext(page)
+        }
+    }
+
+    private fun buildGlobalFocusedContext(): String {
+        return buildString {
+            appendLine("focus_mode=GLOBAL")
+            appendLine("focus_hint=Use the shared context summaries as the primary lens. No page-specific focus is currently selected.")
+            appendLine("focus_available_pages=${AppView.values().joinToString(", ") { it.toAiContextLabel() }}")
+        }
+    }
+
+    fun dedicatedChatContextPages(): List<AppView> {
+        return listOf(
+            AppView.CALENDAR,
+            AppView.NEWS,
+            AppView.MACRO_STREAM,
+            AppView.MARKET_STATUS,
+            AppView.WATCHLIST,
+            AppView.DASHBOARD,
+            AppView.TRADE,
+            AppView.QUOTES,
+            AppView.MARKET_WATCH,
+            AppView.MARKETS,
+            AppView.STREAM,
+            AppView.INTELLIGENCE_STREAM,
+            AppView.SENTIMENT,
+            AppView.ALERTS,
+            AppView.NOTIFICATIONS,
+            AppView.HOME_ALERTS,
+            AppView.MY_ALERTS,
+            AppView.LIQUIDITY_HUB,
+            AppView.ANALYSIS_RESULTS,
+            AppView.TRADE_DASHBOARD,
+            AppView.POST_MOVE_AUDIT,
+            AppView.TRADE_RECONSTRUCTION,
+            AppView.MARKET_VIEW,
+            AppView.BACKTEST,
+            AppView.MULTI_TIMEFRAME,
+            AppView.FULL_CHART,
+            AppView.SIMULATION,
+            AppView.MY_SIMULATION,
+            AppView.DATA_HUB,
+            AppView.DATA_VAULT,
+            AppView.DIAGNOSTICS,
+            AppView.EDUCATION,
+            AppView.PROFILE,
+            AppView.SETTINGS,
+            AppView.SIDEBAR_PAGE,
+            AppView.CHAT,
+            AppView.AI_TERMINAL,
+            AppView.PAPER_TRADING,
+            AppView.TRADING_ASSISTANT,
+            AppView.PORTFOLIO_MANAGER
+        )
+    }
+
+    private fun buildCalendarFocusedContext(): String {
+        val display = CalendarSnapshotStore.latestDisplayPayload
+        val ai = CalendarSnapshotStore.latestAiPayload
+
+        if (display == null && ai == null) {
+            return "No calendar snapshot is currently available."
+        }
+
+        return buildString {
+            appendLine("calendar_context_available=true")
+            display?.let { payload ->
+                appendLine("calendar_display_source=${payload.sourceLabel}")
+                appendLine("calendar_display_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
+                appendLine("calendar_display_selected_date=${payload.selectedDateIso}")
+                appendLine("calendar_display_header=${payload.headerDateLabel}")
+                appendLine("calendar_display_last_updated=${payload.lastUpdatedIso}")
+                appendLine("calendar_display_event_count=${payload.events.size}")
+                payload.events.take(8).forEach { event ->
+                    appendLine(
+                        "calendar_display_event=${event.releaseTimeLabel} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance} impact_direction=${event.impactDirection} all_day=${event.isAllDay} speech_or_report=${event.isSpeechOrReport}"
+                    )
+                }
+            }
+            ai?.let { payload ->
+                appendLine("calendar_ai_source=${payload.source}")
+                appendLine("calendar_ai_generated_at=${payload.generatedAtIso}")
+                appendLine("calendar_ai_selected_date=${payload.selectedDateIso}")
+                appendLine("calendar_ai_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
+                appendLine("calendar_ai_event_count=${payload.events.size}")
+                payload.events.take(8).forEach { event ->
+                    appendLine(
+                        "calendar_ai_event=${event.isoDateTime} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance} impact_direction=${event.impactDirection} processed=${event.processed}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun buildNewsFocusedContext(): String {
+        val payload = NewsSnapshotStore.latestPayload
+            ?: return "No news snapshot is currently available."
+
+        return buildString {
+            appendLine("news_context_available=true")
+            appendLine("news_context_type=${payload.type}")
+            appendLine("news_context_last_updated=${payload.lastUpdatedIso}")
+            appendLine("news_context_item_count=${payload.items.size}")
+            payload.items.take(8).forEach { item ->
+                appendLine("news_item=${item.timeLabel} ${item.countryCode} ${item.category} ${item.title}")
+            }
+        }
+    }
+
+    private fun buildMacroFocusedContext(): String {
+        val allEvents = _allMacroEvents.value
+        val streamEvents = _macroStreamEvents.value
+
+        if (allEvents.isEmpty() && streamEvents.isEmpty()) {
+            return "No macro stream snapshot is currently available."
+        }
+
+        return buildString {
+            appendLine("macro_context_available=true")
+            appendLine("macro_context_total_events=${allEvents.size}")
+            appendLine("macro_context_stream_events=${streamEvents.size}")
+            streamEvents.take(8).forEach { event ->
+                appendLine(
+                    "macro_event=${event.displayTitle()} currency=${event.currency} priority=${event.priority} status=${event.status} source=${event.source}"
+                )
+            }
+        }
+    }
+
+    private fun buildMarketStatusFocusedContext(): String {
+        val marketState = _marketState.value
+        if (marketState == null) {
+            return buildSharedMarketStateContext()
+        }
+
+        return buildString {
+            appendLine("market_status_context_available=true")
+            appendLine("market_status_symbol=${marketState.symbol}")
+            appendLine("market_status_bias=${marketState.technicalBias}")
+            appendLine("market_status_confidence=${marketState.confidence}")
+            appendLine("market_status_safety_blocked=${marketState.safetyBlocked}")
+            appendLine("market_status_chart_points=${marketState.chartData.size}")
+            marketState.chartData.takeLast(3).forEach { point ->
+                appendLine("market_status_close=${chatFmt(point.close)}")
+            }
+        }
+    }
+
+    private fun buildWatchlistFocusedContext(): String {
+        val visibleItems = _watchlistItems.value
+            .sortedWith(compareByDescending<WatchlistItem> { it.confidence }.thenByDescending { it.moveProbability })
+            .take(8)
+
+        if (visibleItems.isEmpty()) return "watchlist_context=unavailable"
+
+        return buildString {
+            appendLine("watchlist_context_available=true")
+            appendLine("watchlist_context_total=${_watchlistItems.value.size}")
+            appendLine("watchlist_context_sort=${_watchlistSortMode.value}")
+            appendLine("watchlist_context_filter=${_watchlistCategoryFilter.value ?: "ALL"}")
+            appendLine("watchlist_context_compact=${_watchlistCompactMode.value}")
+            visibleItems.forEach { item ->
+                appendLine(
+                    "watchlist_item=${item.assetName} status=${item.status} confidence=${item.confidence} move_probability=${item.moveProbability} volatility=${item.volatilityScore} premove=${item.preMoveSignal} trigger=${item.triggerEvent} time_to_event=${item.timeToEvent} rationale=${item.rationale}"
+                )
+            }
+        }
+    }
+
+    private fun buildDashboardFocusedContext(): String {
+        val selected = _selectedPair.value
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        val status = _commandCenterStatus.value
+        val livePairs = mergedMarketPairs().filter { it.price.isFinite() && it.price > 0.0 }.take(6)
+
+        return buildString {
+            appendLine("dashboard_context_available=true")
+            appendLine("dashboard_selected_pair=${selected.symbol}")
+            appendLine("dashboard_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("dashboard_selected_pair_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("dashboard_balance=${chatFmt(snapshot.balance)}")
+            appendLine("dashboard_equity=${chatFmt(snapshot.equity)}")
+            appendLine("dashboard_floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("dashboard_active_trades=${snapshot.activeTrades}")
+            appendLine("dashboard_active_orders=${snapshot.activeOrders}")
+            appendLine("dashboard_current_trade=${snapshot.currentTradeSymbol ?: "none"}")
+            appendLine("dashboard_pipeline_loading=${status.isLoading}")
+            appendLine("dashboard_pipeline_connected=${status.isConnected ?: "unknown"}")
+            appendLine("dashboard_pipeline_last_message=${status.lastMessage}")
+            livePairs.forEach { pair ->
+                appendLine("dashboard_live_pair=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+        }
+    }
+
+    private fun buildTradeFocusedContext(): String {
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        return buildString {
+            appendLine("trade_context_available=true")
+            appendLine("trade_connected=${snapshot.isConnected}")
+            appendLine("trade_balance=${chatFmt(snapshot.balance)}")
+            appendLine("trade_equity=${chatFmt(snapshot.equity)}")
+            appendLine("trade_floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("trade_realized_pnl=${chatFmt(snapshot.realizedPnl)}")
+            appendLine("trade_open_risk=${chatFmt(snapshot.openRisk)}")
+            appendLine("trade_open_risk_pct=${chatFmt(snapshot.openRiskPct)}")
+            appendLine("trade_active_trades=${snapshot.activeTrades}")
+            appendLine("trade_active_orders=${snapshot.activeOrders}")
+            appendLine("trade_current_trade=${snapshot.currentTradeSymbol ?: "none"}")
+            appendLine("trade_current_side=${snapshot.currentTradeSide ?: "none"}")
+            appendLine("trade_current_entry=${chatFmt(snapshot.currentTradeEntryPrice)}")
+            appendLine("trade_current_price=${chatFmt(snapshot.currentTradePrice)}")
+            appendLine("trade_current_pnl=${chatFmt(snapshot.currentTradePnl)}")
+        }
+    }
+
+    private fun buildQuotesFocusedContext(): String {
+        val livePairs = mergedMarketPairs()
+            .filter { it.price.isFinite() && it.price > 0.0 }
+            .take(12)
+
+        if (livePairs.isEmpty()) return "quotes_context=unavailable"
+
+        return buildString {
+            appendLine("quotes_context_available=true")
+            appendLine("quotes_context_count=${livePairs.size}")
+            livePairs.forEach { pair ->
+                appendLine("quote=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+        }
+    }
+
+    private fun buildMarketWatchFocusedContext(): String {
+        val candidates = _preMoveCandidates.value
+            .sortedByDescending { it.preMoveScore }
+            .take(8)
+
+        if (candidates.isEmpty()) return "market_watch_context=unavailable"
+
+        return buildString {
+            appendLine("market_watch_context_available=true")
+            appendLine("market_watch_context_total=${_preMoveCandidates.value.size}")
+            candidates.forEach { candidate ->
+                appendLine(
+                    "market_watch_candidate=${candidate.symbol} score=${candidate.preMoveScore} compression=${candidate.compressionScore} ignition=${candidate.ignitionScore} regime=${candidate.regime} state=${candidate.state} risk_gate=${candidate.riskGate}"
+                )
+            }
+        }
+    }
+
+    private fun buildMarketsFocusedContext(): String {
+        val selected = _selectedPair.value
+        val marketState = _marketState.value
+        val livePairs = mergedMarketPairs().filter { it.price.isFinite() && it.price > 0.0 }.take(10)
+
+        return buildString {
+            appendLine("markets_context_available=true")
+            appendLine("markets_selected_pair=${selected.symbol}")
+            appendLine("markets_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("markets_selected_pair_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("markets_selected_pair_category=${selected.category}")
+            appendLine("markets_state_symbol=${marketState?.symbol ?: "none"}")
+            appendLine("markets_state_bias=${marketState?.technicalBias ?: "unknown"}")
+            appendLine("markets_state_confidence=${marketState?.confidence ?: 0}")
+            appendLine("markets_state_points=${marketState?.chartData?.size ?: 0}")
+            livePairs.forEach { pair ->
+                appendLine("markets_pair=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+        }
+    }
+
+    private fun buildStreamFocusedContext(): String {
+        val news = NewsSnapshotStore.latestPayload
+        val macroEvents = _macroStreamEvents.value.take(8)
+
+        return buildString {
+            appendLine("stream_context_available=true")
+            appendLine("stream_news_type=${news?.type ?: "none"}")
+            appendLine("stream_news_updated=${news?.lastUpdatedIso ?: "none"}")
+            appendLine("stream_news_count=${news?.items?.size ?: 0}")
+            news?.items?.take(5)?.forEach { item ->
+                appendLine("stream_news_item=${item.timeLabel} ${item.countryCode} ${item.category} ${item.title}")
+            }
+            appendLine("stream_macro_count=${_macroStreamEvents.value.size}")
+            macroEvents.forEach { event ->
+                appendLine("stream_macro_event=${event.displayTitle()} currency=${event.currency} priority=${event.priority} status=${event.status}")
+            }
+            appendLine("stream_notifications_unread=${_unreadCount.value}")
+        }
+    }
+
+    private fun buildNotificationsFocusedContext(): String {
+        val notifications = _inAppNotifications.value.take(8)
+        return buildString {
+            appendLine("notifications_context_available=true")
+            appendLine("notifications_unread=${_unreadCount.value}")
+            appendLine("notifications_alert=${_alertNotificationCount.value}")
+            appendLine("notifications_total=${_inAppNotifications.value.size}")
+            notifications.forEach { notification ->
+                appendLine("notification=${notification.type} severity=${notification.severity} seen=${notification.seen} message=${notification.msg}")
+            }
+        }
+    }
+
+    private fun buildLiquidityFocusedContext(): String {
+        val selected = _selectedPair.value
+        val marketState = _marketState.value
+        val topWatchlist = _watchlistItems.value.maxByOrNull { it.confidence }
+
+        return buildString {
+            appendLine("liquidity_context_available=true")
+            appendLine("liquidity_selected_pair=${selected.symbol}")
+            appendLine("liquidity_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("liquidity_selected_pair_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("liquidity_market_bias=${marketState?.technicalBias ?: "unknown"}")
+            appendLine("liquidity_market_confidence=${marketState?.confidence ?: 0}")
+            topWatchlist?.let { item ->
+                appendLine("liquidity_top_watchlist=${item.assetName} status=${item.status} confidence=${item.confidence} move_probability=${item.moveProbability} trigger=${item.triggerEvent}")
+            }
+        }
+    }
+
+    private fun buildAnalysisResultsFocusedContext(): String {
+        val selected = _selectedPair.value
+        val marketState = _marketState.value
+        val topWatchlist = _watchlistItems.value.maxByOrNull { it.moveProbability }
+
+        return buildString {
+            appendLine("analysis_context_available=true")
+            appendLine("analysis_selected_pair=${selected.symbol}")
+            appendLine("analysis_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("analysis_selected_pair_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("analysis_market_bias=${marketState?.technicalBias ?: "unknown"}")
+            appendLine("analysis_market_confidence=${marketState?.confidence ?: 0}")
+            topWatchlist?.let { item ->
+                appendLine("analysis_top_watchlist=${item.assetName} status=${item.status} confidence=${item.confidence} move_probability=${item.moveProbability}")
+            }
+        }
+    }
+
+    private fun buildTradeDashboardFocusedContext(): String {
+        val snapshot = PaperTradingSnapshotStore.snapshot
+        val status = _commandCenterStatus.value
+
+        return buildString {
+            appendLine("trade_dashboard_context_available=true")
+            appendLine("trade_dashboard_connected=${snapshot.isConnected}")
+            appendLine("trade_dashboard_balance=${chatFmt(snapshot.balance)}")
+            appendLine("trade_dashboard_equity=${chatFmt(snapshot.equity)}")
+            appendLine("trade_dashboard_floating_pnl=${chatFmt(snapshot.floatingPnl)}")
+            appendLine("trade_dashboard_open_risk=${chatFmt(snapshot.openRisk)}")
+            appendLine("trade_dashboard_active_trades=${snapshot.activeTrades}")
+            appendLine("trade_dashboard_active_orders=${snapshot.activeOrders}")
+            appendLine("trade_dashboard_pipeline_loading=${status.isLoading}")
+            appendLine("trade_dashboard_pipeline_message=${status.lastMessage}")
+        }
+    }
+
+    private fun buildAuditFocusedContext(page: AppView): String {
+        val records = _auditRecords.value.take(8)
+        return buildString {
+            appendLine("audit_context_available=true")
+            appendLine("audit_context_page=${page.name}")
+            appendLine("audit_context_count=${_auditRecords.value.size}")
+            records.forEach { record ->
+                appendLine("audit_record=${record.headline} impact=${record.impact} confidence=${record.confidence} assets=${record.assets} status=${record.status} audited=${record.audited}")
+            }
+        }
+    }
+
+    private fun buildOperationalFocusedContext(page: AppView): String {
+        val selected = _selectedPair.value
+        val status = _commandCenterStatus.value
+        val marketState = _marketState.value
+        return buildString {
+            appendLine("operational_context_available=true")
+            appendLine("operational_page=${page.name}")
+            appendLine("operational_focus=${page.toAiContextLabel()}")
+            appendLine("operational_selected_pair=${selected.symbol}")
+            appendLine("operational_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("operational_pipeline_loading=${status.isLoading}")
+            appendLine("operational_pipeline_connected=${status.isConnected ?: "unknown"}")
+            appendLine("operational_pipeline_message=${status.lastMessage}")
+            appendLine("operational_market_bias=${marketState?.technicalBias ?: "unknown"}")
+            appendLine("operational_market_confidence=${marketState?.confidence ?: 0}")
+            appendLine("operational_unread_notifications=${_unreadCount.value}")
+            appendLine("operational_watchlist_count=${_watchlistItems.value.size}")
+        }
+    }
+
+    private fun buildGenericFocusedContext(page: AppView): String {
+        val selected = _selectedPair.value
+        return buildString {
+            appendLine("generic_context_available=true")
+            appendLine("generic_page=${page.name}")
+            appendLine("generic_focus_label=${page.toAiContextLabel()}")
+            appendLine("generic_selected_pair=${selected.symbol}")
+            appendLine("generic_selected_pair_price=${chatFmt(selected.price)}")
+            appendLine("generic_help=Use the shared context summaries together with this page lens.")
+        }
+    }
+
+    private fun loadAscChatSessions(): List<AscChatSession> {
+        val raw = chatPrefs.getString(CHAT_SESSIONS_KEY, null)
+        if (!raw.isNullOrBlank()) {
+            return runCatching {
+                val array = JSONArray(raw)
+                buildList {
+                    for (index in 0 until array.length()) {
+                        val item = array.optJSONObject(index) ?: continue
+                        val id = item.optString("id").takeIf { it.isNotBlank() } ?: java.util.UUID.randomUUID().toString()
+                        val title = item.optString("title").takeIf { it.isNotBlank() } ?: "Chat"
+                        val createdAtMillis = item.optLong("createdAtMillis", System.currentTimeMillis())
+                        val messagesArray = item.optJSONArray("messages") ?: JSONArray()
+                        val messages = buildList {
+                            for (messageIndex in 0 until messagesArray.length()) {
+                                val messageItem = messagesArray.optJSONObject(messageIndex) ?: continue
+                                val role = messageItem.optString("role").takeIf { it.isNotBlank() } ?: continue
+                                val content = messageItem.optString("content").takeIf { it.isNotBlank() } ?: continue
+                                add(
+                                    ChatMessage(
+                                        id = messageItem.optString("id").takeIf { it.isNotBlank() } ?: java.util.UUID.randomUUID().toString(),
+                                        role = role,
+                                        content = content,
+                                        timestamp = messageItem.optLong("timestamp", System.currentTimeMillis())
+                                    )
+                                )
+                            }
+                        }.takeLast(80)
+                        add(
+                            AscChatSession(
+                                id = id,
+                                title = title,
+                                createdAtMillis = createdAtMillis,
+                                messages = messages
+                            )
+                        )
+                    }
+                }.ifEmpty { listOf(createEmptyAscChatSession()) }
+            }.getOrElse {
+                loadLegacyAscChatSessions()
+            }
+        }
+
+        return loadLegacyAscChatSessions()
+    }
+
+    private fun loadLegacyAscChatSessions(): List<AscChatSession> {
+        val legacyMessages = loadLegacyAscChatMessages()
+        return if (legacyMessages.isNotEmpty()) {
+            listOf(
+                AscChatSession(
+                    id = java.util.UUID.randomUUID().toString(),
+                    title = "Old Chat",
+                    createdAtMillis = System.currentTimeMillis(),
+                    messages = legacyMessages
+                )
+            )
+        } else {
+            listOf(createEmptyAscChatSession())
+        }
+    }
+
+    private fun loadLegacyAscChatMessages(): List<ChatMessage> {
         val raw = chatPrefs.getString("messages", null) ?: return emptyList()
         return runCatching {
             val array = JSONArray(raw)
@@ -1574,22 +2598,110 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         }.getOrDefault(emptyList())
     }
 
+    private fun loadAscChatSessionId(sessions: List<AscChatSession>): String {
+        val saved = chatPrefs.getString(CHAT_ACTIVE_SESSION_ID_KEY, null)
+        return when {
+            saved != null && sessions.any { it.id == saved } -> saved
+            sessions.isNotEmpty() -> sessions.first().id
+            else -> createEmptyAscChatSession().id
+        }
+    }
+
+    private fun loadActiveAscChatMessages(
+        sessions: List<AscChatSession>,
+        sessionId: String
+    ): List<ChatMessage> {
+        return sessions.firstOrNull { it.id == sessionId }?.messages
+            ?: sessions.firstOrNull()?.messages
+            ?: emptyList()
+    }
+
+    private fun createEmptyAscChatSession(): AscChatSession {
+        return AscChatSession(
+            id = java.util.UUID.randomUUID().toString(),
+            title = "New Chat",
+            createdAtMillis = System.currentTimeMillis(),
+            messages = emptyList()
+        )
+    }
+
+    private fun buildAscChatSessionTitleFromPrompt(prompt: String): String {
+        val words = prompt
+            .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+            .trim()
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+
+        if (words.isEmpty()) return "New Chat"
+
+        val titleWords = when {
+            words.size >= 8 -> words.take(8)
+            words.size >= 3 -> words.take(words.size.coerceAtMost(8))
+            words.size == 2 -> words + "Chat"
+            else -> listOf(words.first(), "Chat", "Session")
+        }
+
+        return titleWords.joinToString(" ")
+            .replaceFirstChar { ch -> ch.titlecase(Locale.US) }
+    }
+
     private fun buildChatAppContext(deployments: LatestDeploymentsResponse?): String {
         val snapshot = PaperTradingSnapshotStore.snapshot
         val selected = _selectedPair.value
         val status = _commandCenterStatus.value
+        val priceStreamEntries = PriceStreamManager.priceUpdates.value.entries
+            .asSequence()
+            .filter { it.value.isFinite() && it.value > 0.0 }
+            .sortedBy { it.key }
+            .take(24)
+            .toList()
         val livePairs = mergedMarketPairs()
             .filter { it.price.isFinite() && it.price > 0.0 }
             .take(12)
+        val visiblePricePairs = livePairs.take(8)
         val currentTrade = snapshot.currentTradeSymbol?.let { symbol ->
             "${snapshot.currentTradeSide ?: "UNKNOWN"} $symbol volume=${chatFmt(snapshot.currentTradeVolume)} entry=${chatFmt(snapshot.currentTradeEntryPrice)} price=${chatFmt(snapshot.currentTradePrice)} pnl=${chatFmt(snapshot.currentTradePnl)}"
         } ?: "none"
 
         return buildString {
             appendLine("current_view=${_currentView.value}")
+            appendLine("shared_context_start")
+            appendLine(buildSharedPageContextSummary())
+            appendLine("shared_context_end")
+            appendLine("shared_context_policy=These summaries are always available background context for every page selection.")
+            appendLine("price_stream_snapshot_start")
+            appendLine("price_stream_snapshot_available=${priceStreamEntries.isNotEmpty()}")
+            appendLine("price_stream_snapshot_rule=For any current price question, search the price stream snapshot for a matching symbol before using a fallback.")
+            priceStreamEntries.forEach { (symbol, price) ->
+                appendLine("price_stream_price=$symbol price=${chatFmt(price)}")
+            }
+            appendLine("price_stream_snapshot_end")
+            appendLine("visible_price_context_start")
+            appendLine("visible_price_context_available=${visiblePricePairs.isNotEmpty()}")
+            appendLine("visible_price_context_rule=For current price questions, check the visible price context first. Use any matching symbol shown here, not only the selected asset.")
+            visiblePricePairs.forEach { pair ->
+                appendLine("visible_price=${pair.symbol} price=${chatFmt(pair.price)} change_pct=${chatFmt(pair.changePercent)} category=${pair.category}")
+            }
+            appendLine("visible_price_context_end")
+            val chatContextPage = AppView.values().firstOrNull { it.name == _ascChatContextPageId.value }
+            if (chatContextPage == null) {
+                appendLine("chat_context_focus=GLOBAL")
+                appendLine("chat_context_focus_label=Global Context")
+            } else {
+                appendLine("chat_context_focus=${chatContextPage.name}")
+                appendLine("chat_context_focus_label=${chatContextPage.toAiContextLabel()}")
+            }
+            appendLine("chat_context_policy=Use the selected page as the main lens when one is selected, but you may still reference other pages in the app when useful.")
+            appendLine("chat_context_focus_hint=If the focused page has a dedicated snapshot, read it first and answer from it before falling back to the shared app state.")
+            appendLine("chat_context_payload_start")
+            appendLine(buildFocusedPageContext(chatContextPage))
+            appendLine("chat_context_payload_end")
+            appendLine("available_pages=${AppView.values().joinToString(", ") { it.toAiContextLabel() }}")
             appendLine("selected_asset=${selected.symbol}")
             appendLine("selected_asset_price=${chatFmt(selected.price)}")
             appendLine("selected_asset_change_pct=${chatFmt(selected.changePercent)}")
+            appendLine("active_persona_id=${_ascChatPersonaId.value}")
+            appendLine("active_persona_name=${ANALYST_MODELS.firstOrNull { it.id == _ascChatPersonaId.value }?.name ?: "unknown"}")
             appendLine("account_connected=${snapshot.isConnected}")
             appendLine("has_live_account_data=${snapshot.hasLiveAccountData}")
             appendLine("has_live_trade_data=${snapshot.hasLiveTradeData}")
@@ -1673,17 +2785,20 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun buildTerminalAscSummary(deployments: LatestDeploymentsResponse?): String {
         val decisions = deployments?.final_decision.orEmpty()
-        if (deployments == null) return "[ASC_AI] No deployment payload loaded. Run REFRESH AI or RUN ASC AI."
+        if (deployments == null) return "I don�t have the latest deployment data yet. Try Refresh AI or Run ASC AI."
         if (decisions.isEmpty()) {
-            return "[ASC_AI] Latest deployment loaded but no final decisions are available. success=${deployments.success}, count=${deployments.count}, last_updated=${deployments.last_updated ?: "unknown"}"
+            return "I loaded the latest deployment data, but there are no final decisions yet. success=${deployments.success}, count=${deployments.count}, last_updated=${deployments.last_updated ?: "unknown"}"
         }
         return buildString {
-            appendLine("[ASC_AI] Latest deployment status")
-            appendLine("success=${deployments.success}")
-            appendLine("count=${deployments.count}")
-            appendLine("last_updated=${deployments.last_updated ?: "unknown"}")
+            appendLine("Here�s the latest ASC deployment summary:")
+            appendLine(if (deployments.success) "It completed successfully." else "It did not complete successfully.")
+            appendLine("Total decisions: ${deployments.count}.")
+            appendLine("Last updated: ${deployments.last_updated ?: "unknown"}.")
             decisions.take(5).forEachIndexed { index, decision ->
-                appendLine("${index + 1}. ${decision.asset_1 ?: "UNKNOWN"} ${decision.journal_direction ?: "WAIT"} ${decision.portfolio_decision_label ?: decision.journal_label ?: "NO_LABEL"} bucket=${decision.portfolio_deployment_bucket ?: "unknown"} risk=${decision.final_risk_pct ?: decision.recommended_risk_pct ?: 0.0} entry=${decision.entry_window ?: "unknown"}")
+                appendLine(
+                    "${index + 1}. ${decision.asset_1 ?: "UNKNOWN"} is ${decision.journal_direction ?: "WAIT"} with ${decision.portfolio_decision_label ?: decision.journal_label ?: "NO_LABEL"}, " +
+                        "bucket ${decision.portfolio_deployment_bucket ?: "unknown"}, risk ${decision.final_risk_pct ?: decision.recommended_risk_pct ?: 0.0}, entry ${decision.entry_window ?: "unknown"}."
+                )
             }
         }
     }
@@ -1839,7 +2954,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _pendingExecutionTarget.value = target
         _executionOptInRequested.value = true
         _terminalLogs.value = listOf(
-            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in requested for ${target.name} at ${System.currentTimeMillis()}")
+            ChatMessage(role = "model", content = "I asked for execution confirmation for ${target.name} at ${System.currentTimeMillis()}.")
         ) + _terminalLogs.value
     }
 
@@ -1850,7 +2965,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _executionOptInRequested.value = false
         _userOverrideCount.value = _userOverrideCount.value + 1
         _terminalLogs.value = listOf(
-            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in confirmed at ${System.currentTimeMillis()}")
+            ChatMessage(role = "model", content = "Execution access was confirmed at ${System.currentTimeMillis()}.")
         ) + _terminalLogs.value
 
         // Persist an encrypted audit record for the opt-in event
@@ -1875,7 +2990,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _pendingExecutionTarget.value = null
         _executionOptInRequested.value = false
         _terminalLogs.value = listOf(
-            ChatMessage(role = "model", content = "[AUDIT] Execution opt-in cancelled at ${System.currentTimeMillis()}")
+            ChatMessage(role = "model", content = "Execution access request was cancelled at ${System.currentTimeMillis()}.")
         ) + _terminalLogs.value
     }
 
@@ -1894,7 +3009,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
                 _userOverrideCount.value = _userOverrideCount.value + 1
             }
         } catch (_: Exception) {
-            // ignore persistence failure — runtime flag still set
+            // ignore persistence failure � runtime flag still set
         }
     }
 

@@ -15,6 +15,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.delay
+import com.asc.markets.ai.AIContextService
+import com.asc.markets.ai.ImpactLevel
+import kotlinx.coroutines.flow.combine
 
 sealed class EventStreamUiState {
     object Loading : EventStreamUiState()
@@ -34,12 +37,21 @@ class EventStreamViewModel : ViewModel() {
     val globalHeaderCollapse: StateFlow<Float> = _globalHeaderCollapse.asStateFlow()
 
     init {
-        // Initial fetch happens once on creation
+        // Observe both calendar events and AI context
+        viewModelScope.launch {
+            combine(
+                AIContextService.contextState,
+                _watchlist // Or any other local state that should trigger a refresh
+            ) { aiContext, _ ->
+                fetchEvents(isPullToRefresh = true)
+            }.collect {}
+        }
+        
         fetchEvents()
     }
 
     fun refresh() {
-        // Called by pull-to-refresh, uses special flag to prevent blanking screen
+        AIContextService.refresh()
         fetchEvents(isPullToRefresh = true)
     }
 
@@ -57,13 +69,11 @@ class EventStreamViewModel : ViewModel() {
 
     private fun fetchEvents(isPullToRefresh: Boolean = false) {
         viewModelScope.launch {
-            // Only show full-screen loading if it's not a background refresh
             if (!isPullToRefresh) {
                 _uiState.value = EventStreamUiState.Loading
             }
             
             try {
-                // Small delay to allow any pending calendar updates
                 delay(300)
                 
                 var calendarEvents = mutableListOf<EconomicCalendarDisplayEvent>()
@@ -108,25 +118,24 @@ class EventStreamViewModel : ViewModel() {
                     }.sortedBy { it.isoDateTime }.take(50)
 
                     if (filteredEvents.isNotEmpty()) {
-                        val intelligenceEvents = mutableListOf<IntelligenceEvent>()
-                        val jobs = filteredEvents.map { event ->
-                            async {
-                                val timestamp = try {
-                                    dateFormat.parse(event.isoDateTime)?.time ?: System.currentTimeMillis()
-                                } catch (e: Exception) { System.currentTimeMillis() }
-                                
-                                val aiAnalysis = SimulationGeminiService.generateEventAnalysis(
-                                    eventTitle = event.title,
-                                    actual = event.actual,
-                                    forecast = event.forecast,
-                                    previous = event.previous,
-                                    importance = event.importance
-                                )
-                                
-                                mapToIntelligenceEvent(event, aiAnalysis, timestamp)
+                        val aiContext = AIContextService.contextState.value
+                        
+                        val intelligenceEvents = filteredEvents.map { event ->
+                            val timestamp = try {
+                                dateFormat.parse(event.isoDateTime)?.time ?: System.currentTimeMillis()
+                            } catch (e: Exception) { System.currentTimeMillis() }
+                            
+                            // 1. Try to find a matching news impact headline
+                            val matchingNews = aiContext.newsImpacts.find { 
+                                it.headline.contains(event.title, ignoreCase = true) || 
+                                event.title.contains(it.headline, ignoreCase = true)
                             }
+                            
+                            // 2. Try to find a matching asset decision
+                            val matchingDecision = AIContextService.getDecisionForAsset(event.currencyCode)
+                            
+                            mapToIntelligenceEvent(event, matchingNews, matchingDecision, timestamp)
                         }
-                        intelligenceEvents.addAll(jobs.awaitAll())
                         _uiState.value = EventStreamUiState.Success(intelligenceEvents)
                         return@launch
                     }
@@ -142,29 +151,37 @@ class EventStreamViewModel : ViewModel() {
 
     private fun mapToIntelligenceEvent(
         event: EconomicCalendarDisplayEvent,
-        aiAnalysis: org.json.JSONObject,
+        newsImpact: com.asc.markets.ai.NewsImpact?,
+        aiDecision: com.asc.markets.ai.AIDecision?,
         timestamp: Long
     ): IntelligenceEvent {
-        val biasStr = aiAnalysis.optString("bias", "neutral")
-        val postureStr = aiAnalysis.optString("posture", "balanced")
-        val confidence = aiAnalysis.optInt("confidence", 50)
-        val summary = aiAnalysis.optString("narrative_summary", "Event detected.")
-        val severityStr = aiAnalysis.optString("severity", "normal")
-        val assetClassStr = aiAnalysis.optString("asset_class", "macro")
-        val assetsArray = aiAnalysis.optJSONArray("assets")
+        // Use real AI data if available, otherwise default to "Awaiting Analysis" instead of fake 50%
+        val biasStr = newsImpact?.let { "neutral" } ?: aiDecision?.direction?.lowercase() ?: "neutral"
+        val postureStr = if (newsImpact?.impact == ImpactLevel.HIGH) "defensive" else "balanced"
         
-        val assets = mutableListOf<String>()
-        if (assetsArray != null) {
-            for (i in 0 until assetsArray.length()) {
-                assets.add(assetsArray.getString(i))
-            }
+        // Use real confidence if available
+        val confidence = when {
+            newsImpact != null -> (newsImpact.aiConfidence * 100).toInt()
+            aiDecision != null -> (aiDecision.confidence * 100).toInt()
+            else -> 0 // 0 indicates "No AI Data" instead of fake 50%
         }
-        if (assets.isEmpty()) {
-            assets.add(event.currencyCode)
+        
+        val summary = newsImpact?.headline ?: aiDecision?.reason ?: "Awaiting live ASC AI verification for ${event.title}."
+        val severity = when (newsImpact?.impact) {
+            ImpactLevel.HIGH -> IntelligenceSeverity.critical
+            ImpactLevel.MEDIUM -> IntelligenceSeverity.high
+            else -> IntelligenceSeverity.normal
         }
 
-        val assetClass = try { AssetClass.valueOf(assetClassStr.lowercase()) } catch(e: Exception) { AssetClass.macro }
-        val severity = try { IntelligenceSeverity.valueOf(severityStr.lowercase()) } catch(e: Exception) { IntelligenceSeverity.normal }
+        val assetClass = when (newsImpact?.assetType) {
+            "forex" -> AssetClass.forex
+            "crypto" -> AssetClass.forex // IntelligenceEvent uses specific categories
+            "stocks" -> AssetClass.stock
+            "commodities" -> AssetClass.commodity
+            else -> AssetClass.macro
+        }
+
+        val assets = newsImpact?.affectedAssets ?: listOf(event.currencyCode)
 
         val unlockState = when (event.impactDirection) {
             1 -> IntelligenceUnlockState.HARD_UNLOCK
@@ -175,8 +192,8 @@ class EventStreamViewModel : ViewModel() {
         return IntelligenceEvent(
             id = event.id.toString(),
             asset_class = assetClass,
-            source = "ASC-AI-CALENDAR",
-            source_type = SourceType.derived,
+            source = if (newsImpact != null || aiDecision != null) "ASC-CENTRAL-AI" else "ASC-AI-PENDING",
+            source_type = if (newsImpact != null || aiDecision != null) SourceType.real else SourceType.derived,
             event_type = IntelligenceEventType.release,
             timestamp_utc = timestamp,
             assets_affected = assets,
@@ -192,11 +209,11 @@ class EventStreamViewModel : ViewModel() {
                 rationale = summary
             ),
             confidence_score = confidence.toDouble(),
-            execution_regime = RegimeState.REGIME_NEUTRAL,
-            visual_state = VisualState.NEUTRAL,
+            execution_regime = if (confidence > 70) RegimeState.VOLATILE else RegimeState.REGIME_NEUTRAL,
+            visual_state = if (confidence > 80) VisualState.HIGH_CONVICTION else VisualState.NEUTRAL,
             persistence_count = 1,
             transition_status = TransitionStatus.active,
-            volatility_confirmed = false,
+            volatility_confirmed = confidence > 60,
             severity = severity,
             safety_gate = false,
             unlock_state = unlockState,

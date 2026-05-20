@@ -1,6 +1,7 @@
 package com.asc.markets.data
 
 import java.util.UUID
+import java.util.Locale
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
@@ -12,7 +13,30 @@ enum class AppView {
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
     POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW,
     TRADE_DASHBOARD, SIDEBAR_PAGE, WATCHLIST, SIMULATION, MY_SIMULATION, AI_TERMINAL,
-    PAPER_TRADING, QUOTES
+    PAPER_TRADING, QUOTES, MARKET_STATUS
+}
+
+fun AppView.toAiContextLabel(): String {
+    return name.split('_').joinToString(" ") { segment ->
+        when (segment.uppercase(Locale.US)) {
+            "AI" -> "AI"
+            "USD" -> "USD"
+            "USDT" -> "USDT"
+            "BTC" -> "BTC"
+            "ETH" -> "ETH"
+            "XAU" -> "XAU"
+            "XAG" -> "XAG"
+            "SPX" -> "SPX"
+            "DXY" -> "DXY"
+            else -> segment.lowercase(Locale.US).replaceFirstChar { ch ->
+                ch.titlecase(Locale.US)
+            }
+        }
+    }
+}
+
+fun buildAiPageAccessPermissions(): Map<String, Boolean> {
+    return AppView.values().associate { it.toAiContextLabel() to true }
 }
 
 data class ForexPair(

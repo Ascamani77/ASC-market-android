@@ -537,18 +537,19 @@ fun TradingChart(
     val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
     var binanceTradingMode by remember { mutableStateOf(BinanceTradingMode.current(context)) }
     val providerManagedData = providerChartData != null
-    var ohlcData by remember { mutableStateOf<List<OHLCData>>(emptyList()) }
-    var isLoadingMore by remember { mutableStateOf(false) }
-    var hasMoreHistory by remember { mutableStateOf(true) }
-    var useMt5FallbackForCrypto by remember { mutableStateOf(false) }
+    var ohlcData by remember(chartFeedType) { mutableStateOf<List<OHLCData>>(emptyList()) }
+    var isLoadingMore by remember(chartFeedType) { mutableStateOf(false) }
+    var hasMoreHistory by remember(chartFeedType) { mutableStateOf(true) }
+    var useMt5FallbackForCrypto by remember(chartFeedType) { mutableStateOf(false) }
     
     val candlestickData by remember {
         derivedStateOf { ohlcData.map(OHLCData::toCandlestickData) }
     }
-    var currentQuoteState by remember { mutableStateOf<SymbolQuote?>(null) }
+    var currentQuoteState by remember(chartFeedType) { mutableStateOf<SymbolQuote?>(null) }
     var mainPriceScaleWidthPx by remember { mutableFloatStateOf(0f) }
-    var seriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var chartsViewApi by remember { mutableStateOf<ChartsView?>(null) }
+    var seriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var chartsViewApi by remember(chartFeedType) { mutableStateOf<ChartsView?>(null) }
+    var hasFittedInitialHistory by remember(chartFeedType) { mutableStateOf(false) }
     var showMarketStatus by remember { mutableStateOf(false) }
     var showIndicatorsList by remember { mutableStateOf(true) }
     var showIndicatorMoreMenu by remember { mutableStateOf(false) }
@@ -568,26 +569,26 @@ fun TradingChart(
 
     // Indicator series state
     val rsiPaneRefs = rememberRsiPaneRefs()
-    var ema10SeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var ema20SeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var sma1SeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var sma2SeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var vwapBandFillSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var vwapBandMaskSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var vwapUpperSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var vwapSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var vwapLowerSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var atrSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var bbBandFillSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var bbBandMaskSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var bbUpperSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var bbMiddleSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var bbLowerSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var macdLineSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var macdSignalSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var macdHistogramSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var volumeSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
-    var volumeMaSeriesApi by remember { mutableStateOf<SeriesApi?>(null) }
+    var ema10SeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var ema20SeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var sma1SeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var sma2SeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var vwapBandFillSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var vwapBandMaskSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var vwapUpperSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var vwapSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var vwapLowerSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var atrSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var bbBandFillSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var bbBandMaskSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var bbUpperSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var bbMiddleSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var bbLowerSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var macdLineSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var macdSignalSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var macdHistogramSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var volumeSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
+    var volumeMaSeriesApi by remember(chartFeedType) { mutableStateOf<SeriesApi?>(null) }
 
     fun resetChartSeriesHandles() {
         chartsViewApi = null
@@ -613,6 +614,10 @@ fun TradingChart(
         macdHistogramSeriesApi = null
         volumeSeriesApi = null
         volumeMaSeriesApi = null
+    }
+
+    LaunchedEffect(symbol, timeframe, chartFeedType, providerManagedData) {
+        hasFittedInitialHistory = false
     }
 
     // Indicator Price Lines state
@@ -665,6 +670,11 @@ fun TradingChart(
 
     fun applyQuoteToChart(quote: SymbolQuote) {
         currentQuoteState = quote
+        if (providerManagedData && ohlcData.isEmpty()) {
+            updatedOnQuoteUpdate.value(quote)
+            updatedOnAnyQuoteUpdate.value(quote)
+            return
+        }
         ohlcData = applyTickToCandles(
             candles = ohlcData,
             timeframe = currentTimeframe.value,
@@ -678,7 +688,12 @@ fun TradingChart(
 
     fun scheduleChartQuote(quote: SymbolQuote) {
         val now = System.currentTimeMillis()
-        if (now - lastChartQuoteAppliedAt < CHART_TICK_THROTTLE_MS) {
+        val throttleMs = if (chartFeedType == ChartFeedType.BINANCE || chartFeedType == ChartFeedType.BINANCE_CONNECT) {
+            0L
+        } else {
+            CHART_TICK_THROTTLE_MS
+        }
+        if (now - lastChartQuoteAppliedAt < throttleMs) {
             pendingChartQuote = quote
             return
         }
@@ -689,7 +704,12 @@ fun TradingChart(
 
     LaunchedEffect(pendingChartQuote) {
         val quote = pendingChartQuote ?: return@LaunchedEffect
-        val waitMs = (CHART_TICK_THROTTLE_MS - (System.currentTimeMillis() - lastChartQuoteAppliedAt)).coerceAtLeast(0L)
+        val throttleMs = if (chartFeedType == ChartFeedType.BINANCE || chartFeedType == ChartFeedType.BINANCE_CONNECT) {
+            0L
+        } else {
+            CHART_TICK_THROTTLE_MS
+        }
+        val waitMs = (throttleMs - (System.currentTimeMillis() - lastChartQuoteAppliedAt)).coerceAtLeast(0L)
         kotlinx.coroutines.delay(waitMs)
         if (pendingChartQuote == quote) {
             lastChartQuoteAppliedAt = System.currentTimeMillis()
@@ -1006,6 +1026,7 @@ fun TradingChart(
         isLoadingMore = false
         hasMoreHistory = true
         useMt5FallbackForCrypto = false
+        hasFittedInitialHistory = false
         when (chartFeedType) {
             ChartFeedType.EXNESS -> {
                 val streamSymbol = chartFeedSymbolFor(ChartFeedType.EXNESS, symbol)
@@ -1013,9 +1034,9 @@ fun TradingChart(
                 mt5Service.streamActiveSymbol(streamSymbol, timeframe, 500)
                 return@LaunchedEffect
             }
-            ChartFeedType.PEPPERSTONE -> {
-                val streamSymbol = chartFeedSymbolFor(ChartFeedType.PEPPERSTONE, symbol)
-                Log.d(LOG_TAG, "Subscribing Pepperstone chart route for $streamSymbol timeframe=$timeframe")
+            ChartFeedType.PEPPERSTONE_CTRADER -> {
+                val streamSymbol = chartFeedSymbolFor(chartFeedType, symbol)
+                Log.d(LOG_TAG, "Subscribing ${chartFeedType.displayName} chart route for $streamSymbol timeframe=$timeframe")
                 pepperstoneChartService.streamActiveSymbol(streamSymbol, timeframe, 500)
                 return@LaunchedEffect
             }
@@ -1038,6 +1059,12 @@ fun TradingChart(
                     }
                     mt5Service.streamActiveSymbol(symbol, timeframe, 500)
                 }
+                return@LaunchedEffect
+            }
+            ChartFeedType.BINANCE_CONNECT -> {
+                // BINANCE_CONNECT is handled by TradingChartBinanceConnect component
+                // This branch should not be reached in TradingChart
+                Log.w(LOG_TAG, "BINANCE_CONNECT should use TradingChartBinanceConnect component")
                 return@LaunchedEffect
             }
             null -> Unit
@@ -1110,6 +1137,17 @@ fun TradingChart(
                         mainSeriesApi?.setData(candlestickData)
                     }
                 }
+            }
+            if (!hasFittedInitialHistory && ohlcData.size > 1) {
+                chartsViewApi?.api?.timeScale?.let { timeScale ->
+                    timeScale.fitContent()
+                    timeScale.applyOptions(
+                        TimeScaleOptions(
+                            barSpacing = 6f
+                        )
+                    )
+                }
+                hasFittedInitialHistory = true
             }
 
             updateInlineRsiPaneData(
@@ -2249,7 +2287,8 @@ fun TradingChart(
                                 borderColor = chartSettings.canvas.scaleLineColor.toIntColor(),
                                 visible = true,
                                 timeVisible = true,
-                                rightOffset = 15f
+                                rightOffset = 15f,
+                                barSpacing = 6f
                             )
                             handleScroll = HandleScrollOptions(
                                 pressedMouseMove = true,
@@ -2288,8 +2327,9 @@ fun TradingChart(
                                             isLoadingMore = true
                                             when (chartFeedType) {
                                                 ChartFeedType.EXNESS -> mt5Service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, symbol), timeframe, endTime, 500)
-                                                ChartFeedType.PEPPERSTONE -> isLoadingMore = false
+                                                ChartFeedType.PEPPERSTONE_CTRADER -> isLoadingMore = false
                                                 ChartFeedType.BINANCE -> binanceService.fetchHistory(chartFeedSymbolFor(ChartFeedType.BINANCE, symbol), timeframe, endTime)
+                                                ChartFeedType.BINANCE_CONNECT -> isLoadingMore = false
                                                 null -> {
                                                     val streamSymbol = binanceStreamSymbolFor(symbol)
                                                     if (streamSymbol.endsWith("USDT", ignoreCase = true)) {
@@ -2784,7 +2824,8 @@ fun TradingChart(
                             borderColor = chartSettings.canvas.scaleLineColor.toIntColor(),
                             visible = true,
                             timeVisible = true,
-                            rightOffset = 15f
+                            rightOffset = 15f,
+                            barSpacing = 6f
                         )
                         handleScroll = HandleScrollOptions(
                             pressedMouseMove = true,
@@ -2893,8 +2934,8 @@ fun TradingChart(
         Column(
             modifier = Modifier
                 .padding(
-                    start = 12.dp,
-                    top = chartSettings.canvas.marginTop.dp,
+                    start = 4.dp,
+                    top = 4.dp,
                     end = chartSettings.canvas.marginRight.dp,
                     bottom = chartSettings.canvas.marginBottom.dp
                 )
@@ -2913,7 +2954,7 @@ fun TradingChart(
                             SymbolInfo(ticker = symbol, name = "", type = type)
                         }
                         AssetIcon(symbolInfo, size = 24)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
                     Text(
                         text = if (chartSettings.statusLine.titleMode == "Description") getFullSymbolName(symbol) else symbol,
@@ -2944,9 +2985,9 @@ fun TradingChart(
 
             currentQuoteState?.let { quote ->
                 val color = if (quote.change >= 0) ComposeColor(0xFF089981) else ComposeColor(0xFFF05252)
-                val statusFontSize = 16.sp
+                val statusFontSize = 12.8.sp  // Reduced by 20% from 16sp
                 
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 0.dp)) {
                     Text(
                         text = formatPrice(quote.lastPrice, symbol),
                         color = color,
@@ -3343,7 +3384,7 @@ fun IndicatorStatusItem(
 ) {
     Box(
         modifier = Modifier
-            .padding(top = 4.dp)
+            .padding(top = 1.dp)
             .then(
                 if (isSelected) Modifier
                     .border(1.dp, ComposeColor(0xFF2962FF), RoundedCornerShape(4.dp))

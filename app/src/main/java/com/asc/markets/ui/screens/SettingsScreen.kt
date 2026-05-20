@@ -276,8 +276,9 @@ fun SettingsDetailContent(section: SettingsSection, viewModel: ForexViewModel) {
                                     Text(
                                         when (feedType) {
                                             ChartFeedType.EXNESS -> "MT5 bridge chart and Exness symbols."
-                                            ChartFeedType.PEPPERSTONE -> "Pepperstone cTrader bridge chart and Pepperstone assets."
+                                            ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader bridge chart with dedicated connection."
                                             ChartFeedType.BINANCE -> "Binance futures chart and USDT crypto assets."
+                                            ChartFeedType.BINANCE_CONNECT -> "Public Binance WebSocket for real-time crypto charts (view-only)."
                                         },
                                         color = if (selected) Color.DarkGray else SlateMuted,
                                         fontSize = 10.sp

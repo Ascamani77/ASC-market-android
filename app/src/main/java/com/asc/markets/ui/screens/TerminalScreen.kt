@@ -153,7 +153,12 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 // timestamp aligned to the same side as the bubble content
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
-                                    Text(ts, color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                                    Text(
+                                        text = ts,
+                                        color = if (log.role == "model") SlateText else Color.White,
+                                        fontSize = 10.sp,
+                                        fontFamily = InterFontFamily
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(6.dp))

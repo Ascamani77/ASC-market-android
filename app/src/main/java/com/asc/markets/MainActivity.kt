@@ -235,6 +235,7 @@ class MainActivity : ComponentActivity() {
                                     AppView.SETTINGS -> SettingsScreen(viewModel)
                                     AppView.PAPER_TRADING -> PaperTradingScreen(viewModel)
                                     AppView.QUOTES -> QuotesScreen(viewModel)
+                                    AppView.MARKET_STATUS -> MarketStatusScreen()
                                     AppView.SIDEBAR_PAGE -> {
                                         // Render sidebar contents as a full page (replicates modal drawer content)
                                         val unreadAlertNotifications by viewModel.alertNotificationCount.collectAsState(initial = 0)

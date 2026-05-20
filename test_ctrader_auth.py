@@ -44,24 +44,10 @@ def on_error(failure):
     print(f"\n✗ Error: {failure}")
     reactor.stop()
 
-def on_message_received(_client, message):
-    payload = Protobuf.extract(message)
-    print(f"\n✓ Message received: {type(payload).__name__}")
     
     if isinstance(payload, ProtoOAApplicationAuthRes):
-        print("✓✓✓ APPLICATION AUTHENTICATED SUCCESSFULLY ✓✓✓")
+    print(f"\n✓ Message received: {type(payload).__name__}")
         reactor.stop()
     elif isinstance(payload, ProtoOAErrorRes):
-        print(f"✗✗✗ ERROR: {payload.errorCode} - {payload.description}")
-        reactor.stop()
-    else:
-        print(f"Payload: {payload}")
-
-client_obj = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
-client_obj.setConnectedCallback(connected)
-client_obj.setDisconnectedCallback(disconnected)
-client_obj.setMessageReceivedCallback(on_message_received)
-
-print("\nStarting cTrader client...")
-client_obj.startService()
+        print("✓✓✓ APPLICATION AUTHENTICATED SUCCESSFULLY ✓✓✓")
 reactor.run()

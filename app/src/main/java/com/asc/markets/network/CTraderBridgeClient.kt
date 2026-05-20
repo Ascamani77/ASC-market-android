@@ -6,6 +6,7 @@ import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.SystemTelemetry
+import com.trading.app.data.Mt5Service
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -26,7 +27,8 @@ import org.json.JSONObject
 
 class CTraderBridgeClient(
     private val bridgeUrl: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val onAccountUpdate: (Mt5Service.AccountInfo) -> Unit = {}
 ) {
     companion object {
         private const val TAG = "CTraderBridge"
@@ -53,6 +55,7 @@ class CTraderBridgeClient(
     val connectionState: SharedFlow<ConnectionState> = _connectionState
 
     private val lastPriceAtMillisBySymbol = ConcurrentHashMap<String, Long>()
+    private val pendingActions = ArrayDeque<String>()
     private var webSocket: WebSocket? = null
     private var reconnectJob: Job? = null
     private var targetSymbols: List<String> = emptyList()
@@ -66,7 +69,7 @@ class CTraderBridgeClient(
             .filter { it.isNotBlank() }
             .distinct()
 
-        if (targetSymbols.isEmpty()) {
+        if (targetSymbols.isEmpty() && pendingActions.isEmpty()) {
             Log.w(TAG, "cTrader bridge not started: no target symbols")
             return
         }
@@ -82,7 +85,10 @@ class CTraderBridgeClient(
                 Log.i(TAG, "Pepperstone cTrader bridge connected")
                 SystemTelemetry.recordConnectionEvent("CTRADER", "WEBSOCKET_CONNECTED")
                 _connectionState.tryEmit(ConnectionState.CONNECTED)
-                sendSubscribe(webSocket)
+                if (targetSymbols.isNotEmpty()) {
+                    sendSubscribe(webSocket)
+                }
+                flushPendingActions(webSocket)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -121,9 +127,31 @@ class CTraderBridgeClient(
         }
     }
 
+    private fun handleAccount(payload: JSONObject) {
+        onAccountUpdate(
+            Mt5Service.AccountInfo(
+                balance = payload.optDouble("balance", 0.0),
+                equity = payload.optDouble("equity", 0.0),
+                unrealizedPnl = payload.optDouble("unrealizedPnl", 0.0),
+                realizedPnl = payload.optDouble("realizedPnl", 0.0),
+                margin = payload.optDouble("margin", 0.0),
+                availableFunds = payload.optDouble("freeMargin", payload.optDouble("availableFunds", 0.0)),
+                ordersMargin = payload.optDouble("ordersMargin", 0.0),
+                marginBuffer = payload.optDouble("marginLevel", payload.optDouble("marginBuffer", 0.0))
+            )
+        )
+    }
+
     fun hasAnyRecentPrice(maxAgeMs: Long = RECENT_PRICE_MAX_AGE_MS): Boolean {
         val now = System.currentTimeMillis()
         return lastPriceAtMillisBySymbol.values.any { timestamp -> now - timestamp <= maxAgeMs }
+    }
+
+    fun requestAccountStatus() {
+        sendAction("get_account", emptyMap())
+        if (webSocket == null) {
+            connect(targetSymbols)
+        }
     }
 
     fun disconnect() {
@@ -149,6 +177,7 @@ class CTraderBridgeClient(
         when (messageType) {
             "tick", "quote", "price_update", "market_tick", "snapshot" -> handleTick(payload)
             "ticks", "quotes", "prices" -> handleTickArray(payload.optJSONArray(messageType))
+            "account" -> handleAccount(payload)
             "status" -> Log.i(TAG, "cTrader status=${payload.optString("state")} message=${payload.optString("message")}")
             "error" -> Log.w(TAG, "cTrader bridge error: ${payload.optString("message")}")
             "ack", "pong" -> Unit
@@ -244,6 +273,35 @@ class CTraderBridgeClient(
                 put("symbols", JSONArray(targetSymbols))
             }.toString()
         )
+    }
+
+    private fun sendAction(action: String, params: Map<String, Any>) {
+        val message = JSONObject().apply {
+            put("action", action)
+            params.forEach { (key, value) ->
+                put(key, value)
+            }
+        }.toString()
+        val activeSocket = webSocket
+        if (activeSocket?.send(message) == true) {
+            return
+        }
+        synchronized(pendingActions) {
+            pendingActions.addLast(message)
+        }
+    }
+
+    private fun flushPendingActions(socket: WebSocket? = webSocket) {
+        val activeSocket = socket ?: return
+        synchronized(pendingActions) {
+            while (pendingActions.isNotEmpty()) {
+                val next = pendingActions.removeFirst()
+                if (!activeSocket.send(next)) {
+                    pendingActions.addFirst(next)
+                    break
+                }
+            }
+        }
     }
 
     private fun scheduleReconnect() {

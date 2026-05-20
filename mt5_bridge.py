@@ -1238,6 +1238,37 @@ async def handle_client(websocket):
                             }
                             await websocket.send(json.dumps(payload))
 
+                    elif action == "get_account":
+                        account = mt5.account_info()
+                        terminal = mt5.terminal_info()
+                        if account and terminal:
+                            await websocket.send(
+                                json.dumps(
+                                    {
+                                        "type": "account",
+                                        "source": "exness_mt5",
+                                        "balance": float(account.balance),
+                                        "equity": float(account.equity),
+                                        "unrealizedPnl": float(account.profit),
+                                        "realizedPnl": 0.0,
+                                        "margin": float(account.margin),
+                                        "availableFunds": float(account.margin_free),
+                                        "ordersMargin": 0.0,
+                                        "marginBuffer": 0.0,
+                                        "trade_allowed": terminal.trade_allowed,
+                                    }
+                                )
+                            )
+                        else:
+                            await websocket.send(
+                                json.dumps(
+                                    {
+                                        "type": "error",
+                                        "message": "Unable to read MT5 account info"
+                                    }
+                                )
+                            )
+
                     elif action == "place_order":
                         matched_symbol = resolve_symbol(data.get("symbol", ""))
                         side = data.get("type", "buy").lower()

@@ -2,13 +2,15 @@ package com.asc.markets.logic
 
 import kotlinx.coroutines.*
 import okhttp3.*
+import com.trading.app.data.Mt5Service
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class MT5BridgeClient(
     private val bridgeUrl: String,  // e.g., "192.168.1.100:62100"
     private val scope: CoroutineScope = GlobalScope,
-    private val brokerSuffix: String = "m"
+    private val brokerSuffix: String = "m",
+    private val onAccountUpdate: (Mt5Service.AccountInfo) -> Unit = {}
 ) {
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -19,6 +21,10 @@ class MT5BridgeClient(
     private var wsClient: OkHttpClient? = null
     private var ws: WebSocket? = null
     private val priceUpdates = mutableMapOf<String, (bid: Double, ask: Double, time: Long, volume: Int) -> Unit>()
+    @Volatile
+    private var pendingAccountRequest: Boolean = false
+    @Volatile
+    private var webSocketOpen: Boolean = false
 
     suspend fun getTick(symbol: String): TickData? = withContext(Dispatchers.IO) {
         try {
@@ -37,6 +43,18 @@ class MT5BridgeClient(
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    fun requestAccountStatus() {
+        pendingAccountRequest = true
+        if (webSocketOpen) {
+            sendWebSocketMessage("get_account", "")
+            pendingAccountRequest = false
+            return
+        }
+        if (ws == null) {
+            connectWebSocket()
         }
     }
 
@@ -89,15 +107,36 @@ class MT5BridgeClient(
 
             ws = wsClient!!.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
+                    webSocketOpen = true
                     priceUpdates.keys.forEach { cleanSymbol ->
                         val brokerSymbol = if (brokerSuffix.isNotBlank() && !cleanSymbol.endsWith(brokerSuffix, ignoreCase = true)) "$cleanSymbol$brokerSuffix" else cleanSymbol
                         sendWebSocketMessage("subscribe", brokerSymbol)
+                    }
+                    if (pendingAccountRequest) {
+                        sendWebSocketMessage("get_account", "")
+                        pendingAccountRequest = false
                     }
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     try {
                         val json = JSONObject(text)
+                        val type = json.optString("type", "").lowercase()
+                        if (type == "account") {
+                            onAccountUpdate(
+                                Mt5Service.AccountInfo(
+                                    balance = json.optDouble("balance", 0.0),
+                                    equity = json.optDouble("equity", 0.0),
+                                    unrealizedPnl = json.optDouble("unrealizedPnl", 0.0),
+                                    realizedPnl = json.optDouble("realizedPnl", 0.0),
+                                    margin = json.optDouble("margin", 0.0),
+                                    availableFunds = json.optDouble("availableFunds", json.optDouble("freeMargin", 0.0)),
+                                    ordersMargin = json.optDouble("ordersMargin", 0.0),
+                                    marginBuffer = json.optDouble("marginBuffer", json.optDouble("marginLevel", 0.0))
+                                )
+                            )
+                            return
+                        }
                         val rawSymbol = json.optString("symbol") ?: return
                         val cleanSymbol = if (brokerSuffix.isNotBlank() && rawSymbol.endsWith(brokerSuffix, ignoreCase = true)) {
                             rawSymbol.removeSuffix(brokerSuffix)
@@ -119,6 +158,8 @@ class MT5BridgeClient(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     android.util.Log.e("MT5Bridge", "WebSocket failure: ${t.message}")
+                    webSocketOpen = false
+                    this@MT5BridgeClient.ws = null
                     scope.launch { 
                         delay(5000)
                         if (!manuallyDisconnected) connectWebSocket() 
@@ -127,6 +168,8 @@ class MT5BridgeClient(
                 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     android.util.Log.i("MT5Bridge", "WebSocket closed: $reason")
+                    webSocketOpen = false
+                    this@MT5BridgeClient.ws = null
                 }
             })
         } catch (e: Exception) { 
@@ -143,13 +186,16 @@ class MT5BridgeClient(
         } catch (_: Exception) {
         } finally {
             ws = null
+            webSocketOpen = false
         }
     }
 
     private fun sendWebSocketMessage(action: String, symbol: String) {
         ws?.send(JSONObject().apply {
             put("action", action)
-            put("symbol", symbol)
+            if (symbol.isNotBlank()) {
+                put("symbol", symbol)
+            }
         }.toString())
     }
 

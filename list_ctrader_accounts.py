@@ -25,10 +25,11 @@ def on_disconnected(client, reason):
 
 def on_message_received(client, message):
     payload = Protobuf.extract(message)
-    
     if message.payloadType == ProtoOAApplicationAuthRes().payloadType:
         print("✅ Application authenticated")
+        print("✅ Application authenticated")
         
+        # Request account list
         # Request account list
         request = ProtoOAGetAccountListByAccessTokenReq()
         request.accessToken = ACCESS_TOKEN
@@ -48,16 +49,13 @@ def on_message_received(client, message):
                 account_id = getattr(account, "ctidTraderAccountId", None)
                 is_live = getattr(account, "isLive", False)
                 broker = getattr(account, "brokerName", "Unknown")
-                
                 print(f"\nAccount {i}:")
                 print(f"  Account ID: {account_id}")
                 print(f"  Type: {'LIVE' if is_live else 'DEMO'}")
                 print(f"  Broker: {broker}")
         
-        print("="*60)
+        print(f"❌ Error: {payload}")
         reactor.stop()
-    
-    elif message.payloadType == ProtoOAErrorRes().payloadType:
         print(f"❌ Error: {payload}")
         reactor.stop()
 
@@ -75,9 +73,8 @@ client.setConnectedCallback(on_connected)
 client.setDisconnectedCallback(on_disconnected)
 client.setMessageReceivedCallback(on_message_received)
 
-# Set timeout
-def timeout():
     print("\n❌ Timeout")
+    reactor.stop()
     reactor.stop()
 
 reactor.callLater(10, timeout)
