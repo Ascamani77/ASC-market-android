@@ -15,6 +15,9 @@ interface AiApiService {
     @POST("update-market")
     suspend fun updateMarket(@Body request: MarketUpdateRequest): Map<String, Any>
 
+    @POST("analyze-chart")
+    suspend fun analyzeChart(@Body request: ChartAnalysisRequest): RunAiResponse
+
     @GET("latest-deployments")
     suspend fun getLatestDeployments(): LatestDeploymentsResponse
 }

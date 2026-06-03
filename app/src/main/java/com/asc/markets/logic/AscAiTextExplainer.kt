@@ -3,6 +3,7 @@ package com.asc.markets.logic
 import com.asc.markets.backend.GroqClient
 import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.data.remote.LatestDeploymentsResponse
+import com.asc.markets.data.remote.RunAiResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -27,6 +28,101 @@ object AscAiTextExplainer {
         val prompt = buildPrompt(userQuery, personaName, personaInstruction, deployments, appContext, conversationHistory)
         val groqError = runCatching {
             GroqClient.chatCompletion(prompt)
+        }
+        groqError.getOrNull()?.let { return@withContext it }
+
+        return@withContext "ASC Engine v1 is unavailable: ${shortError(groqError.exceptionOrNull())}"
+    }
+
+    suspend fun explainChartAnalysis(
+        analysisResult: RunAiResponse,
+        personaName: String,
+        personaInstruction: String,
+        currentMarketData: String = "",
+        userParameters: String = ""
+    ): String = withContext(Dispatchers.IO) {
+        if (!GroqClient.isKeyConfigured()) {
+            return@withContext "ASC Engine v1 is offline: GROQ_API_KEY is not configured."
+        }
+
+        val aiContext = com.asc.markets.ai.AIContextService.contextState.value
+        val platformContext = aiContext.platformContext
+        val personaLens = buildPersonaLens(personaName, personaInstruction)
+        
+        val deploymentText = buildString {
+            appendLine("success=${analysisResult.success}")
+            analysisResult.final_decision.forEachIndexed { index: Int, item: FinalDecisionItem ->
+                appendLine(formatDecision(index + 1, item))
+            }
+        }
+
+        val prompt = """
+            You are ASC Engine v1, the in-app assistant for ASC Market.
+            
+            [PLATFORM_CONTEXT_KNOWLEDGE]
+            Current Platform Configuration:
+            - Access Permissions: ${platformContext.accessPermissions.filter { it.value }.keys.joinToString(", ")} (All unrestricted)
+            - Exclusive Data Source: ${platformContext.dataSources.filter { it.value == "Pepperstone" }.keys.joinToString(", ")} via Pepperstone.
+            - Exception: USDT pairs are sourced exclusively from Binance.
+            - Operational Directives: ${platformContext.operationalRules.joinToString(" ")}
+
+            [ACTIVE_PERSONA_LENS]
+            $personaLens
+
+            The user has uploaded a technical chart screenshot (MT5/TradingView).
+            The ASC AI (internal vision/analysis engine) has processed the image and produced the raw analytical payload below.
+            
+            YOUR TASK:
+            1. Read the ASC AI deployment payload from the uploaded chart image.
+            2. Compare the chart analysis with the CURRENT LIVE MARKET DATA below.
+            3. Consider the user's trading parameters and risk settings.
+            4. Provide a professional trading signal with:
+               - BIAS: Clear directional bias (LONG/SHORT/NEUTRAL) based on chart + current market
+               - ENTRY: Suggested entry zone or trigger condition
+               - STOP LOSS: Risk management level
+               - TAKE PROFIT: Target zones
+               - CONFIDENCE: Your confidence level (0-100%)
+               - REASONING: 3-4 bullets explaining why this setup is valid NOW
+            5. Use the Active Persona Lens to guide your tone and priorities.
+            6. Be actionable and specific - this should be a tradeable signal.
+            7. If the chart analysis conflicts with current market conditions, explain the discrepancy.
+            8. Do not mention that you are an LLM or that you are summarizing a payload.
+            9. Speak as if you are ASC Engine v1 presenting a live trading recommendation.
+
+            [CURRENT LIVE MARKET DATA]
+            ${currentMarketData.ifBlank { "No current market data available. Analysis based on chart only." }}
+
+            [USER TRADING PARAMETERS]
+            ${userParameters.ifBlank { "No user parameters provided. Using default risk management." }}
+
+            [ASC AI CHART ANALYSIS PAYLOAD]
+            $deploymentText
+            
+            Format your response as:
+            
+            🎯 SIGNAL: [LONG/SHORT/NEUTRAL]
+            
+            📊 CHART ANALYSIS:
+            [What the uploaded chart shows]
+            
+            📈 CURRENT MARKET:
+            [How current price action compares to the chart]
+            
+            💡 TRADE SETUP:
+            • Entry: [specific level or condition]
+            • Stop Loss: [specific level]
+            • Take Profit: [target zones]
+            • Confidence: [0-100%]
+            
+            🔍 REASONING:
+            [3-4 bullets explaining the setup]
+            
+            ⚠️ RISK NOTE:
+            [Any warnings or conditions to watch]
+        """.trimIndent()
+
+        val groqError = runCatching {
+            GroqClient.chatCompletion(prompt, model = "llama-3.3-70b-versatile")
         }
         groqError.getOrNull()?.let { return@withContext it }
 

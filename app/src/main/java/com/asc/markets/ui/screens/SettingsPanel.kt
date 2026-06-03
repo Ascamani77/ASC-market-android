@@ -562,7 +562,7 @@ private fun AssetUniversePanel(settings: UserSettings) {
         Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
             Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                 AssetRow("XAU/USD", "GOLD / US DOLLAR", "2,342.50", "+0.53%", true)
-                AssetRow("USOIL", "WTI CRUDE OIL", "82.14", "-1.44%", false)
+                AssetRow("Crude-F", "WTI CRUDE OIL", "82.14", "-1.44%", false)
             }
         }
 

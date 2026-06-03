@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -31,7 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.asc.markets.data.AppView
+import com.asc.markets.data.QuickAccessManager
+import com.asc.markets.data.QuickAccessItem
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -43,9 +46,18 @@ fun AscSidebar(
     onViewChange: (AppView) -> Unit,
     onClose: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    
+    // Initialize QuickAccessManager
+    LaunchedEffect(Unit) {
+        QuickAccessManager.initialize(context)
+    }
+    
+    val quickAccessItems by QuickAccessManager.quickAccessItems.collectAsState()
+    var showRemoveDialog by remember { mutableStateOf<QuickAccessItem?>(null) }
 
     Surface(
         color = PureBlack,
@@ -54,10 +66,16 @@ fun AscSidebar(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header: Avatar, Name, Offline status, Search, Settings (DeepBlack Background)
+            // Header: Avatar, Name, Offline status, Search, Settings
             Surface(
-                color = DeepBlack,
-                modifier = Modifier.fillMaxWidth()
+                color = Color.White.copy(alpha = 0.035f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.06f),
+                        shape = RoundedCornerShape(0.dp)
+                    )
             ) {
                 Row(
                     modifier = Modifier
@@ -189,84 +207,90 @@ fun AscSidebar(
             ) {
                 // QUICK ACCESS Section
                 SectionHeader("Quick Access")
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.GppGood,
-                            label = "Post-Move Recon",
-                            onClick = { onViewChange(AppView.TRADE_RECONSTRUCTION) }
-                        )
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.Memory,
-                            label = "AI Intel",
-                            onClick = { onViewChange(AppView.CHAT) }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.GridView,
-                            label = "Trade Dashboard",
-                            onClick = { onViewChange(AppView.TRADE_DASHBOARD) }
-                        )
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.CalendarMonth,
-                            label = "Event Calendar",
-                            onClick = { onViewChange(AppView.CALENDAR) }
-                        )
-                    }
-                    QuickAccessCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Outlined.NotificationsNone,
-                        label = "Vigilance Setup",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
-                        onClick = { onViewChange(AppView.ALERTS) }
+                
+                // Show remove dialog
+                if (showRemoveDialog != null) {
+                    AlertDialog(
+                        onDismissRequest = { showRemoveDialog = null },
+                        title = { Text("Remove from Quick Access?", color = Color.White) },
+                        text = { Text("Remove \"${showRemoveDialog?.label}\" from Quick Access? You can add it back later from the menu sections below.", color = Color.White.copy(alpha = 0.7f)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showRemoveDialog?.let { item ->
+                                    QuickAccessManager.removeFromQuickAccess(context, item.id)
+                                }
+                                showRemoveDialog = null
+                            }) {
+                                Text("Remove", color = Color(0xFFEF4444))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRemoveDialog = null }) {
+                                Text("Cancel", color = Color.White)
+                            }
+                        },
+                        containerColor = Color(0xFF121212),
+                        tonalElevation = 0.dp
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                }
+                
+                // Render Quick Access items dynamically
+                if (quickAccessItems.isEmpty()) {
+                    // Show empty state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.PlayCircleOutline,
-                            label = "AI Simulation",
-                            onClick = { onViewChange(AppView.SIMULATION) }
-                        )
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.ShowChart,
-                            label = "My Simulation",
-                            onClick = { onViewChange(AppView.MY_SIMULATION) }
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.TouchApp,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "No Quick Access items",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                "Long press any menu item below to add",
+                                color = Color.Gray.copy(alpha = 0.7f),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
-                    Row(
+                } else {
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Terminal,
-                            label = "AI Terminal",
-                            onClick = { onViewChange(AppView.AI_TERMINAL) }
-                        )
-                        QuickAccessCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.AutoMirrored.Filled.ShowChart,
-                            label = "AI Sentiment",
-                            onClick = { onViewChange(AppView.SENTIMENT) }
-                        )
+                        // Render items in rows of 2
+                        quickAccessItems.chunked(2).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowItems.forEach { item ->
+                                    QuickAccessCard(
+                                        modifier = Modifier.weight(1f),
+                                        icon = item.icon,
+                                        label = item.label,
+                                        badgeText = if (item.appView == AppView.ALERTS || item.appView == AppView.MY_ALERTS) 
+                                            alertBadgeCount.takeIf { it > 0 }?.toString() else null,
+                                        onClick = { onViewChange(item.appView) },
+                                        onLongClick = { showRemoveDialog = item }
+                                    )
+                                }
+                                // Add spacer if odd number of items in row
+                                if (rowItems.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -278,22 +302,29 @@ fun AscSidebar(
                     MenuItem(
                         icon = Icons.Default.Notifications,
                         label = "Vigilance Setup",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
+                        appView = AppView.ALERTS
                     ) { onViewChange(AppView.ALERTS) }
                     MenuDivider()
                     MenuItem(
                         icon = Icons.Default.List,
                         label = "My Alerts",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
+                        appView = AppView.MY_ALERTS
                     ) { onViewChange(AppView.MY_ALERTS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation") { onViewChange(AppView.SIMULATION) }
+                    MenuItem(
+                        icon = Icons.Default.NotificationsActive,
+                        label = "Notification",
+                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
+                        appView = AppView.NOTIFICATIONS
+                    ) { onViewChange(AppView.NOTIFICATIONS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Timeline, "My Simulation") { onViewChange(AppView.MY_SIMULATION) }
+                    MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation", appView = AppView.SIMULATION) { onViewChange(AppView.SIMULATION) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Terminal, "AI Terminal") { onViewChange(AppView.AI_TERMINAL) }
+                    MenuItem(Icons.Default.Timeline, "Backtest", appView = AppView.MY_SIMULATION) { onViewChange(AppView.MY_SIMULATION) }
                     MenuDivider()
-                    MenuItem(Icons.AutoMirrored.Filled.ShowChart, "AI Sentiment") { onViewChange(AppView.SENTIMENT) }
+                    MenuItem(Icons.AutoMirrored.Filled.ShowChart, "AI Sentiment", appView = AppView.SENTIMENT) { onViewChange(AppView.SENTIMENT) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -301,13 +332,13 @@ fun AscSidebar(
                 // LIVE MARKETS Section
                 SectionHeader("LIVE MARKETS")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.BarChart, "Markets Overview") { onViewChange(AppView.MARKETS) }
+                    MenuItem(Icons.Default.BarChart, "Markets Overview", appView = AppView.MARKETS) { onViewChange(AppView.MARKETS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.List, "Quotes Feed") { onViewChange(AppView.QUOTES) }
+                    MenuItem(Icons.Default.List, "Quotes Feed", appView = AppView.QUOTES) { onViewChange(AppView.QUOTES) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Schedule, "Market Status") { onViewChange(AppView.MARKET_STATUS) }
+                    MenuItem(Icons.Default.Schedule, "Market Status", appView = AppView.MARKET_STATUS) { onViewChange(AppView.MARKET_STATUS) }
                     MenuDivider()
-                    MenuItem(Icons.AutoMirrored.Outlined.MenuBook, "Analysis & Opinion") { onViewChange(AppView.NEWS) }
+                    MenuItem(Icons.Outlined.MenuBook, "Analysis & Opinion", appView = AppView.ANALYSIS_OPINION) { onViewChange(AppView.ANALYSIS_OPINION) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -315,19 +346,17 @@ fun AscSidebar(
                 // MARKET INTELLIGENCE Section
                 SectionHeader("MARKET INTELLIGENCE")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.Language, "Macro Stream") { onViewChange(AppView.MACRO_STREAM) }
+                    MenuItem(Icons.Default.Visibility, "Market Watch", appView = AppView.MARKET_WATCH) { onViewChange(AppView.MARKET_WATCH) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Visibility, "Market Watch") { onViewChange(AppView.MARKET_WATCH) }
+                    MenuItem(Icons.Default.AddPhotoAlternate, "Chart Analysis Node", appView = AppView.CHART_ANALYSIS) { onViewChange(AppView.CHART_ANALYSIS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Timeline, "Analysis Node") { onViewChange(AppView.ANALYSIS_RESULTS) }
+                    MenuItem(Icons.Default.Layers, "Liquidity Maps", appView = AppView.LIQUIDITY_HUB) { onViewChange(AppView.LIQUIDITY_HUB) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Layers, "Liquidity Maps") { onViewChange(AppView.LIQUIDITY_HUB) }
+                    MenuItem(Icons.Default.GridView, "Multi-Timeframe Analysis", appView = AppView.MULTI_TIMEFRAME) { onViewChange(AppView.MULTI_TIMEFRAME) }
                     MenuDivider()
-                    MenuItem(Icons.Default.GridView, "Order Flow Delta") { onViewChange(AppView.MULTI_TIMEFRAME) }
+                    MenuItem(Icons.Default.Shield, "System Diagnostics", appView = AppView.DIAGNOSTICS) { onViewChange(AppView.DIAGNOSTICS) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Shield, "Micro-Jitter Monitor") { onViewChange(AppView.DIAGNOSTICS) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.List, "Market Data Bus") { onViewChange(AppView.DATA_HUB) }
+                    MenuItem(Icons.Default.List, "Market Data Bus", appView = AppView.DATA_HUB) { onViewChange(AppView.DATA_HUB) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -335,15 +364,13 @@ fun AscSidebar(
                 // INTELLIGENCE & DECISION Section
                 SectionHeader("INTELLIGENCE & DECISION")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.Memory, "AI Intel") { onViewChange(AppView.CHAT) }
+                    MenuItem(Icons.Default.Memory, "AI Intel", appView = AppView.CHAT) { onViewChange(AppView.CHAT) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Notifications, "Vigilance Nodes") { onViewChange(AppView.ALERTS) }
+                    MenuItem(Icons.Default.History, "Logic Simulation", appView = AppView.BACKTEST) { onViewChange(AppView.BACKTEST) }
                     MenuDivider()
-                    MenuItem(Icons.Default.History, "Logic Simulation") { onViewChange(AppView.BACKTEST) }
+                    MenuItem(Icons.Default.Language, "Event Stream", appView = AppView.INTELLIGENCE_STREAM) { onViewChange(AppView.INTELLIGENCE_STREAM) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Language, "Event Stream") { onViewChange(AppView.INTELLIGENCE_STREAM) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Lock, "Node Data Vault") { onViewChange(AppView.DATA_VAULT) }
+                    MenuItem(Icons.Default.Lock, "Node Data Vault", appView = AppView.DATA_VAULT) { onViewChange(AppView.DATA_VAULT) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -351,17 +378,13 @@ fun AscSidebar(
                 // PORTFOLIO & OPERATIONS Section
                 SectionHeader("PORTFOLIO & OPERATIONS")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.AttachMoney, "Active Inventory") { onViewChange(AppView.PORTFOLIO_MANAGER) }
+                    MenuItem(Icons.Default.AttachMoney, "Active Inventory", appView = AppView.PORTFOLIO_MANAGER) { onViewChange(AppView.PORTFOLIO_MANAGER) }
                     MenuDivider()
-                    MenuItem(Icons.Default.CurrencyExchange, "Live Trade") { onViewChange(AppView.PAPER_TRADING) }
+                    MenuItem(Icons.Default.CurrencyExchange, "Live Trade", appView = AppView.PAPER_TRADING) { onViewChange(AppView.PAPER_TRADING) }
                     MenuDivider()
-                    MenuItem(Icons.Default.Language, "Raw Feed") { onViewChange(AppView.NEWS) }
+                    MenuItem(Icons.Default.CalendarToday, "Event Calendar", appView = AppView.CALENDAR) { onViewChange(AppView.CALENDAR) }
                     MenuDivider()
-                    MenuItem(Icons.Default.CalendarToday, "Event Calendar") { onViewChange(AppView.CALENDAR) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.GridView, "Trade Dashboard") { onViewChange(AppView.TRADE_DASHBOARD) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Terminal, "Terminal Desk") { onViewChange(AppView.TRADING_ASSISTANT) }
+                    MenuItem(Icons.Default.Smartphone, "Push Notification", appView = AppView.PUSH_SETTINGS) { onViewChange(AppView.PUSH_SETTINGS) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -369,11 +392,11 @@ fun AscSidebar(
                 // EXECUTION POST REVIEW Section
                 SectionHeader("EXECUTION POST REVIEW")
                 MenuGroupContainer {
-                    MenuItem(Icons.AutoMirrored.Filled.ReceiptLong, "Trade Ledger") { onViewChange(AppView.TRADE) }
+                    MenuItem(Icons.AutoMirrored.Filled.ReceiptLong, "Trade Ledger", appView = AppView.TRADE) { onViewChange(AppView.TRADE) }
                     MenuDivider()
-                    MenuItem(Icons.Default.List, "Post-Move Audit") { onViewChange(AppView.POST_MOVE_AUDIT) }
+                    MenuItem(Icons.Default.List, "Post-Move Audit", appView = AppView.POST_MOVE_AUDIT) { onViewChange(AppView.POST_MOVE_AUDIT) }
                     MenuDivider()
-                    MenuItem(Icons.Default.AssignmentReturned, "Post-Move Reconstruction") { onViewChange(AppView.TRADE_RECONSTRUCTION) }
+                    MenuItem(Icons.Default.AssignmentReturned, "Post-Move Reconstruction", appView = AppView.TRADE_RECONSTRUCTION) { onViewChange(AppView.TRADE_RECONSTRUCTION) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -381,7 +404,7 @@ fun AscSidebar(
                 // LEGAL Section
                 SectionHeader("LEGAL")
                 MenuGroupContainer {
-                    MenuItem(Icons.Default.Shield, "Risk Disclosure") { onViewChange(AppView.EDUCATION) }
+                    MenuItem(Icons.Default.Shield, "Risk Disclosure", appView = AppView.EDUCATION) { onViewChange(AppView.EDUCATION) }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -446,15 +469,19 @@ fun QuickAccessCard(
     icon: ImageVector,
     label: String,
     badgeText: String? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     Surface(
-        color = DeepBlack,
+        color = Color.White.copy(alpha = 0.035f),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
         modifier = modifier
             .height(64.dp)
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier
@@ -513,9 +540,9 @@ fun QuickAccessCard(
 @Composable
 fun MenuGroupContainer(content: @Composable ColumnScope.() -> Unit) {
     Surface(
-        color = DeepBlack,
+        color = Color.White.copy(alpha = 0.035f),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
         modifier = Modifier
             .fillMaxWidth()
     ) {
@@ -528,12 +555,58 @@ fun MenuItem(
     icon: ImageVector,
     label: String,
     badgeText: String? = null,
+    appView: AppView,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val isInQuickAccess = QuickAccessManager.isInQuickAccess(appView)
+    var showDialog by remember { mutableStateOf(false) }
+    
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(if (isInQuickAccess) "Remove from Quick Access?" else "Add to Quick Access?", color = Color.White) },
+            text = { 
+                Text(
+                    if (isInQuickAccess) 
+                        "Remove \"$label\" from Quick Access?" 
+                    else 
+                        "Add \"$label\" to Quick Access for faster navigation?",
+                    color = Color.White.copy(alpha = 0.7f)
+                ) 
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (isInQuickAccess) {
+                        val item = QuickAccessManager.getItemByAppView(appView)
+                        item?.let { QuickAccessManager.removeFromQuickAccess(context, it.id) }
+                    } else {
+                        val item = QuickAccessManager.getItemByAppView(appView)
+                        item?.let { QuickAccessManager.addToQuickAccess(context, it) }
+                    }
+                    showDialog = false
+                }) {
+                    Text(if (isInQuickAccess) "Remove" else "Add", 
+                         color = if (isInQuickAccess) Color(0xFFEF4444) else Color(0xFF2962FF))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Cancel", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF121212),
+            tonalElevation = 0.dp
+        )
+    }
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showDialog = true }
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -570,6 +643,16 @@ fun MenuItem(
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+            // Show indicator if in Quick Access
+            if (isInQuickAccess) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = "In Quick Access",
+                    tint = Color(0xFFFFA500),
+                    modifier = Modifier.size(14.dp)
+                )
             }
         }
         Icon(

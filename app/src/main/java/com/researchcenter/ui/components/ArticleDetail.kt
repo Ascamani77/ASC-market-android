@@ -38,6 +38,9 @@ fun ArticleDetail(
     isBookmarked: Boolean,
     onBackClick: () -> Unit,
     onBookmarkClick: () -> Unit,
+    screenTitle: String = "Raw Feed",
+    insightLabel: String = "INTELLIGENCE DIGEST",
+    showAiExplanation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -47,7 +50,7 @@ fun ArticleDetail(
             TopAppBar(
                 title = {
                     Text(
-                        "Raw Feed",
+                        screenTitle,
                         color = White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -190,7 +193,7 @@ fun ArticleDetail(
                         color = White.copy(alpha = 0.1f)
                     )
                     Text(
-                        "INTELLIGENCE DIGEST",
+                        insightLabel,
                         color = Gray400,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -205,6 +208,34 @@ fun ArticleDetail(
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+                if (showAiExplanation && !aiExplanation.isNullOrBlank()) {
+                    Surface(
+                        color = Color(0xFF121820),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Analyst take",
+                                color = Gray400,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = aiExplanation,
+                                color = White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+                }
 
                 // Content Body
                 Text(

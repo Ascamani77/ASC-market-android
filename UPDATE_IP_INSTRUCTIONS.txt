@@ -1,0 +1,23 @@
+﻿# Update Network Configuration Script
+# This updates the app to connect to your PC's current IP address
+
+Write-Host "Current Network Configuration:" -ForegroundColor Cyan
+Write-Host "  Your PC IP: 192.168.1.198" -ForegroundColor Green
+Write-Host "  Default in app: 10.76.160.133" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Services should be accessible at:" -ForegroundColor Cyan
+Write-Host "  Redis:          192.168.1.198:6379" -ForegroundColor White
+Write-Host "  AI Backend:     http://192.168.1.198:8000" -ForegroundColor White
+Write-Host "  cTrader Live:   192.168.1.198:8082" -ForegroundColor White
+Write-Host "  cTrader Demo:   192.168.1.198:8083" -ForegroundColor White
+Write-Host ""
+Write-Host "To fix the connection:" -ForegroundColor Yellow
+Write-Host "1. Open the app on your Android device" -ForegroundColor White
+Write-Host "2. Go to Settings" -ForegroundColor White
+Write-Host "3. Update the following:" -ForegroundColor White
+Write-Host "   - Backend URL: http://192.168.1.198:8000" -ForegroundColor Green
+Write-Host "   - cTrader Host: 192.168.1.198" -ForegroundColor Green
+Write-Host "   - cTrader Port: 8082" -ForegroundColor Green
+Write-Host "   - cTrader Demo Host: 192.168.1.198" -ForegroundColor Green
+Write-Host "   - cTrader Demo Port: 8083" -ForegroundColor Green
+Write-Host ""

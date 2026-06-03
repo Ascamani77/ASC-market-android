@@ -37,7 +37,7 @@ class PepperstoneCTraderChartService(
     private val onQuoteUpdate: (SymbolQuote) -> Unit,
     private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> },
     // Redis configuration for AI pipeline
-    private val redisHost: String = "10.164.138.133",
+    private val redisHost: String = "192.168.1.198",
     private val redisPort: Int = 6379,
     private val redisPassword: String? = null,
     private val redisUseSsl: Boolean = false,
@@ -119,7 +119,7 @@ class PepperstoneCTraderChartService(
         val request = Request.Builder().url(url).build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                SystemTelemetry.recordConnectionEvent("PEPPERSTONE_CTRADER_CHART", "WEBSOCKET_CONNECTED")
+                SystemTelemetry.recordConnectionEvent("CTRADER_LIVE", "WEBSOCKET_CONNECTED")
                 Log.i(TAG, "Pepperstone cTrader WebSocket connected")
                 if (activeSymbols.isNotEmpty()) {
                     subscribe(activeSymbols, activeTimeframe)
@@ -134,12 +134,12 @@ class PepperstoneCTraderChartService(
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "Pepperstone cTrader chart WebSocket failure: ${t.message}")
-                SystemTelemetry.recordConnectionEvent("PEPPERSTONE_CTRADER_CHART", "CONNECTION_FAILED")
+                SystemTelemetry.recordConnectionEvent("CTRADER_LIVE", "CONNECTION_FAILED")
                 scheduleReconnect()
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                SystemTelemetry.recordConnectionEvent("PEPPERSTONE_CTRADER_CHART", "CONNECTION_CLOSED ($reason)")
+                SystemTelemetry.recordConnectionEvent("CTRADER_LIVE", "CONNECTION_CLOSED ($reason)")
                 if (!isClosing) scheduleReconnect()
             }
         })
@@ -329,7 +329,7 @@ class PepperstoneCTraderChartService(
             volume = payload.optDouble("volume", 0.0).toFloat().takeIf { it.isFinite() } ?: 0f,
             time = time
         )
-        SystemTelemetry.recordTick("PEPPERSTONE_CTRADER_CHART", 1.0)
+        SystemTelemetry.recordTick("CTRADER_LIVE", 5.0)  // Changed from PEPPERSTONE_CTRADER_CHART to match telemetry tracking
         
         // Publish to Redis for AI pipeline
         publishTickToRedis(quote)

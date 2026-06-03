@@ -25,9 +25,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.LinearGradient
 import androidx.compose.ui.graphics.Brush
+import com.asc.markets.data.FOREX_PAIRS
 
 @Composable
-fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
+fun SentimentScreen(viewModel: ForexViewModel) {
     val scrollState = rememberScrollState()
     val aiDeployments by viewModel.aiDeployments.collectAsState()
     val watchlist by viewModel.watchlistItems.collectAsState()
@@ -39,8 +40,14 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
 
     // Process data
     val decisions = aiDeployments?.final_decision ?: emptyList()
-    val longCount = decisions.count { it.journal_direction == "LONG" }
-    val shortCount = decisions.count { it.journal_direction == "SHORT" }
+    val longCount = decisions.count { d ->
+        val dir = d.journal_direction?.uppercase(java.util.Locale.US) ?: ""
+        dir == "LONG" || dir == "BUY" || dir == "BULLISH"
+    }
+    val shortCount = decisions.count { d ->
+        val dir = d.journal_direction?.uppercase(java.util.Locale.US) ?: ""
+        dir == "SHORT" || dir == "SELL" || dir == "BEARISH"
+    }
     val totalDirectional = maxOf(1, longCount + shortCount)
     
     val globalConfidence = decisions.mapNotNull { it.journal_score }.average().let { if (it.isNaN()) 0.0 else it } * 100
@@ -50,35 +57,68 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
     val buyPressure = (longCount.toFloat() / totalDirectional) * 100
     val sellPressure = (shortCount.toFloat() / totalDirectional) * 100
 
-    val currencies = listOf("EUR", "GBP", "AUD", "USD", "JPY", "CAD", "CHF").map { ccy ->
-        // simplistic mock calculation based on real decisions
-        val relatedDecisions = decisions.filter { it.asset_1?.contains(ccy) == true }
-        var score = 0.0
-        relatedDecisions.forEach { d ->
-            val isBase = d.asset_1?.startsWith(ccy) == true
-            val isLong = d.journal_direction == "LONG"
-            val s = d.journal_score ?: 0.0
-            if (isBase) {
-                score += if (isLong) s else -s
-            } else {
-                score += if (isLong) -s else s
+    val timestamps = decisions.mapNotNull { it.journal_timestamp }
+    val durationHours = if (timestamps.isNotEmpty()) {
+        try {
+            val oldest = timestamps.minOrNull() ?: ""
+            val parsedTime = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).parse(oldest)?.time
+            val diff = if (parsedTime != null) System.currentTimeMillis() - parsedTime else 0L
+            (diff / (1000 * 60 * 60)).toInt()
+        } catch (e: Exception) { 0 }
+    } else 0
+
+    val currencies = FOREX_PAIRS
+        .filter { it.category == com.asc.markets.data.MarketCategory.FOREX }
+        .flatMap { pair ->
+            // Extract both currencies from the pair (e.g., "EUR/USD" -> ["EUR", "USD"])
+            pair.symbol.split("/").map { it.trim() }
+        }
+        .distinct()
+        .map { ccy ->
+            // Calculate sentiment for this currency across all pairs it appears in
+            val relatedDecisions = decisions.filter { decision ->
+                val asset = decision.asset_1 ?: ""
+                // Match currency in asset name (e.g., EUR in EURUSD, EURGBP, etc.)
+                asset.contains(ccy, ignoreCase = true)
             }
+            
+            var score = 0.0
+            relatedDecisions.forEach { d ->
+                val asset = d.asset_1 ?: ""
+                // Determine if currency is base or quote
+                val isBase = asset.startsWith(ccy, ignoreCase = true)
+                val dir = d.journal_direction?.uppercase(java.util.Locale.US) ?: ""
+                val isLong = dir == "LONG" || dir == "BUY" || dir == "BULLISH"
+                val isShort = dir == "SHORT" || dir == "SELL" || dir == "BEARISH"
+                val s = d.journal_score ?: 0.0
+                
+                // If base currency: LONG = bullish, SHORT = bearish
+                // If quote currency: LONG = bearish, SHORT = bullish
+                if (isBase) {
+                    score += if (isLong) s else if (isShort) -s else 0.0
+                } else {
+                    score += if (isLong) -s else if (isShort) s else 0.0
+                }
+            }
+            
+            // Average the score
+            val avgScore = if (relatedDecisions.isNotEmpty()) score / relatedDecisions.size else 0.0
+            val strength = ((avgScore + 1.0) / 2.0 * 5).toFloat().coerceIn(0f, 5f)
+            val state = when {
+                avgScore > 0.5 -> "Accumulating"
+                avgScore > 0.1 -> "Building"
+                avgScore < -0.5 -> "Distributing"
+                avgScore < -0.1 -> "Weak"
+                else -> "Neutral"
+            }
+            val color = when {
+                avgScore > 0.1 -> EmeraldSuccess
+                avgScore < -0.1 -> RoseError
+                else -> SlateText
+            }
+            CurrencyRowData(ccy, state, color, avgScore.toFloat(), strength)
         }
-        val strength = ((score + 1.0) / 2.0 * 5).toFloat().coerceIn(0f, 5f)
-        val state = when {
-            score > 0.5 -> "Accumulating"
-            score > 0.1 -> "Building"
-            score < -0.5 -> "Distributing"
-            score < -0.1 -> "Weak"
-            else -> "Neutral"
-        }
-        val color = when {
-            score > 0.1 -> EmeraldSuccess
-            score < -0.1 -> RoseError
-            else -> SlateText
-        }
-        CurrencyRowData(ccy, state, color, score.toFloat(), strength)
-    }.sortedByDescending { it.score }
+        .sortedByDescending { it.score }
 
     val strongest = currencies.firstOrNull()?.name ?: "EUR"
     val weakest = currencies.lastOrNull()?.name ?: "USD"
@@ -174,7 +214,13 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val states = listOf("Neutral", "Building", "Aligned", "Trigger", "Exhausted")
-                        val activeIndex = 1
+                        val activeIndex = when {
+                            durationHours > 6 -> 4
+                            globalConfidence > 70 -> 3
+                            globalConfidence > 50 -> 2
+                            globalConfidence > 30 -> 1
+                            else -> 0
+                        }
                         states.forEachIndexed { index, state ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(
@@ -209,11 +255,23 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                         }
                         Column {
                             Text("Momentum", color = SlateText, fontSize = 11.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val avgDirectionalScore = decisions.mapNotNull { it.directional_score }.average().let { if (it.isNaN()) 0.0 else it }
+                            val momentumLabel = when {
+                                avgDirectionalScore > 0.7 -> "Strong"
+                                avgDirectionalScore > 0.4 -> "Moderate"
+                                avgDirectionalScore > 0.0 -> "Weak"
+                                else -> "Neutral"
+                            }
+                            val momentumColor = when {
+                                avgDirectionalScore > 0.4 -> EmeraldSuccess
+                                avgDirectionalScore > 0.0 -> Color(0xFFF59E0B)
+                                else -> SlateText
+                            }
+                            Text(momentumLabel, color = momentumColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("Duration", color = SlateText, fontSize = 11.sp)
-                            Text("---", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("${durationHours}h", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -229,26 +287,47 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("Market Environment", color = SlateText, fontSize = 12.sp)
-                            Text("---", color = SlateText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            val regimeStates = decisions.mapNotNull { it.regime_state }.distinct()
+                            val dominantRegime = regimeStates.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: "Mixed"
+                            Text(dominantRegime, color = SlateText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("VIX Level", color = SlateText, fontSize = 12.sp)
-                            Text("---", color = SlateText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            val avgVolScore = decisions.mapNotNull { it.feeder_volatility_score }.average().let { if (it.isNaN()) 0.0 else it }
+                            val vixEstimate = (avgVolScore * 30).toInt() // Scale to VIX-like range
+                            val vixColor = when {
+                                vixEstimate > 25 -> RoseError
+                                vixEstimate > 15 -> Color(0xFFF59E0B)
+                                else -> EmeraldSuccess
+                            }
+                            Text("~$vixEstimate", color = vixColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("USD Index", color = SlateText, fontSize = 11.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val dxyPair = watchlist.firstOrNull { it.assetName.contains("DXY") }
+                            val dxyPrice = dxyPair?.price ?: 0.0
+                            val dxyText = if (dxyPrice > 0) String.format("%.2f", dxyPrice) else "N/A"
+                            val dxyColor = if ((dxyPair?.changePercent ?: 0.0) > 0) EmeraldSuccess else RoseError
+                            Text(dxyText, color = dxyColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text("Bond Yields", color = SlateText, fontSize = 11.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val us10y = watchlist.firstOrNull { it.assetName.contains("US10Y") }
+                            val yieldText = if ((us10y?.price ?: 0.0) > 0) String.format("%.2f%%", us10y?.price) else "N/A"
+                            Text(yieldText, color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("Risk Appetite", color = SlateText, fontSize = 11.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val riskAppetite = if (longCount > shortCount * 1.5) "High" else if (shortCount > longCount * 1.5) "Low" else "Moderate"
+                            val riskColor = when (riskAppetite) {
+                                "High" -> EmeraldSuccess
+                                "Low" -> RoseError
+                                else -> Color(0xFFF59E0B)
+                            }
+                            Text(riskAppetite, color = riskColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -315,7 +394,8 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
             CardContainer(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("BUY vs SELL PRESSURE", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                    Text("---", color = SlateText, fontSize = 10.sp)
+                    val pressureRatio = if (sellPressure > 0) String.format("%.1f:1", buyPressure / sellPressure) else "∞:1"
+                    Text(pressureRatio, color = SlateText, fontSize = 10.sp)
                 }
                 Box(modifier = Modifier
                     .fillMaxWidth()
@@ -362,11 +442,20 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                         }
                         Column {
                             Text("Volume", color = SlateText, fontSize = 10.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val avgTickCount = decisions.mapNotNull { it.live_tick_count }.average().let { if (it.isNaN()) 0.0 else it }
+                            val volumeLabel = when {
+                                avgTickCount > 1000 -> "High"
+                                avgTickCount > 500 -> "Med"
+                                avgTickCount > 0 -> "Low"
+                                else -> "N/A"
+                            }
+                            Text(volumeLabel, color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("Strength", color = SlateText, fontSize = 10.sp)
-                            Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val avgConfidence = decisions.mapNotNull { it.direction_confidence }.average().let { if (it.isNaN()) 0.0 else it }
+                            val strengthPct = (avgConfidence * 100).toInt()
+                            Text("$strengthPct%", color = if (avgConfidence > 0.6) EmeraldSuccess else SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -418,11 +507,13 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                     }
                     Column {
                         Text("Trending", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val trendingCount = decisions.count { (it.trend_state?.contains("TREND") == true) }
+                        Text("$trendingCount", color = EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Avg Vol", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val avgVolScore = watchlist.map { it.volatilityScore }.average().let { if (it.isNaN()) 0.0 else it }
+                        Text("${avgVolScore.toInt()}%", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -470,15 +561,25 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Spread", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val strongestDecision = decisions.firstOrNull { it.asset_1?.contains(strongest) == true }
+                        val weakestDecision = decisions.firstOrNull { it.asset_1?.contains(weakest) == true }
+                        val spreadScore = ((strongestDecision?.journal_score ?: 0.0) - (weakestDecision?.journal_score ?: 0.0)).coerceIn(-1.0, 1.0)
+                        Text(String.format("%.2f", spreadScore), color = if (spreadScore > 0) EmeraldSuccess else RoseError, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
                         Text("Volatility", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val pairVolScore = watchlist.firstOrNull { it.assetName.contains(strongest) && it.assetName.contains(weakest) }?.volatilityScore ?: 0
+                        val volLabel = when {
+                            pairVolScore > 70 -> "High"
+                            pairVolScore > 40 -> "Med"
+                            else -> "Low"
+                        }
+                        Text(volLabel, color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Confidence", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val pairConfidence = watchlist.firstOrNull { it.assetName.contains(strongest) && it.assetName.contains(weakest) }?.confidence ?: 0
+                        Text("$pairConfidence%", color = if (pairConfidence > 60) EmeraldSuccess else SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -526,15 +627,20 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Pattern", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val chartContexts = decisions.mapNotNull { it.chart_context_label }.distinct()
+                        val dominantPattern = chartContexts.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key?.take(10) ?: "Mixed"
+                        Text(dominantPattern, color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
                         Text("Key Level", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val structureLabels = decisions.mapNotNull { it.structure_label }.distinct()
+                        val keyLevel = structureLabels.firstOrNull()?.take(10) ?: "N/A"
+                        Text(keyLevel, color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Probability", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val avgIgnitionProb = decisions.mapNotNull { it.ignition_probability }.average().let { if (it.isNaN()) 0.0 else it }
+                        Text("${(avgIgnitionProb * 100).toInt()}%", color = if (avgIgnitionProb > 0.6) EmeraldSuccess else SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -624,15 +730,18 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Peak", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val peakScore = currencies.maxByOrNull { it.score }?.score ?: 0f
+                        Text(String.format("%.2f", peakScore), color = if (peakScore > 0) EmeraldSuccess else RoseError, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
                         Text("Trend", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(if (globalSentiment == "BULLISH") "Up" else "Down", color = if (globalSentiment == "BULLISH") EmeraldSuccess else RoseError, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Change", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val avgScoreChange = decisions.mapNotNull { it.journal_score }.average().let { if (it.isNaN()) 0.0 else it }
+                        val changeText = if (avgScoreChange > 0) "+${String.format("%.2f", avgScoreChange)}" else String.format("%.2f", avgScoreChange)
+                        Text(changeText, color = if (avgScoreChange >= 0) EmeraldSuccess else RoseError, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -674,18 +783,47 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Avoid taking new positions. Wait for alignment.", color = SlateText, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(6.dp))
+                val conflictingSignals = decisions.count { d ->
+                    val dir = d.journal_direction?.uppercase(java.util.Locale.US) ?: ""
+                    val isLong = dir == "LONG" || dir == "BUY" || dir == "BULLISH"
+                    val isShort = dir == "SHORT" || dir == "SELL" || dir == "BEARISH"
+                    (isLong && d.directional_score ?: 0.0 < 0.3) || (isShort && d.directional_score ?: 0.0 > 0.7)
+                }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Conflicts", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("$conflictingSignals", color = if (conflictingSignals > 0) RoseError else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
                         Text("Severity", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val severity = when {
+                            conflictingSignals > 5 -> "High"
+                            conflictingSignals > 2 -> "Medium"
+                            conflictingSignals > 0 -> "Low"
+                            else -> "None"
+                        }
+                        val severityColor = when (severity) {
+                            "High" -> RoseError
+                            "Medium" -> Color(0xFFF59E0B)
+                            "Low" -> EmeraldSuccess
+                            else -> SlateText
+                        }
+                        Text(severity, color = severityColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Est. Resolution", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        val resolutionHours = if (conflictingSignals > 0) {
+                            val timestamps = decisions.mapNotNull { it.journal_timestamp }
+                            if (timestamps.isNotEmpty()) {
+                                try {
+                                    val oldest = timestamps.minOrNull() ?: ""
+                                    val parsedTime = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).parse(oldest)?.time
+                                    val diff = if (parsedTime != null) System.currentTimeMillis() - parsedTime else 0L
+                                    ((diff / (1000 * 60 * 60)) + 4).toInt()
+                                } catch (e: Exception) { 4 }
+                            } else 4
+                        } else 0
+                        Text(if (resolutionHours > 0) "${resolutionHours}h" else "N/A", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -706,39 +844,52 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("EURUSD", color = SlateText, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("---", color = SlateText, fontSize = 10.sp)
+                    val eurusdVol = watchlist.firstOrNull { it.assetName.contains("EURUSD") }?.volatilityScore ?: 0
+                    Text("${eurusdVol}%", color = if (eurusdVol > 50) RoseError else if (eurusdVol > 30) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(if (eurusdVol > 0) "Active" else "N/A", color = SlateText, fontSize = 10.sp)
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("GBPUSD", color = SlateText, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("---", color = SlateText, fontSize = 10.sp)
+                    val gbpusdVol = watchlist.firstOrNull { it.assetName.contains("GBPUSD") }?.volatilityScore ?: 0
+                    Text("${gbpusdVol}%", color = if (gbpusdVol > 50) RoseError else if (gbpusdVol > 30) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(if (gbpusdVol > 0) "Active" else "N/A", color = SlateText, fontSize = 10.sp)
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("USDJPY", color = SlateText, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("---", color = SlateText, fontSize = 10.sp)
+                    val usdjpyVol = watchlist.firstOrNull { it.assetName.contains("USDJPY") }?.volatilityScore ?: 0
+                    Text("${usdjpyVol}%", color = if (usdjpyVol > 50) RoseError else if (usdjpyVol > 30) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(if (usdjpyVol > 0) "Active" else "N/A", color = SlateText, fontSize = 10.sp)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
+            val marketVol = watchlist.map { it.volatilityScore }.average().let { if (it.isNaN()) 0.0 else it }.toInt()
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("VIX Index", color = SlateText, fontSize = 10.sp)
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    val avgVolScore = decisions.mapNotNull { it.feeder_volatility_score }.average().let { if (it.isNaN()) 0.0 else it }
+                    val vixEstimate = (avgVolScore * 30).toInt()
+                    Text("~$vixEstimate", color = if (vixEstimate > 25) RoseError else if (vixEstimate > 15) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
                 Column {
                     Text("Market Vol", color = SlateText, fontSize = 10.sp)
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("$marketVol%", color = if (marketVol > 50) RoseError else if (marketVol > 30) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
                 Column {
                     Text("ATR (14)", color = SlateText, fontSize = 10.sp)
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    val atrEstimate = (marketVol * 0.01).toInt()
+                    Text("$atrEstimate", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Vol Trend", color = SlateText, fontSize = 10.sp)
-                    Text("---", color = SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    val volTrend = if (marketVol > 40) "Rising" else if (marketVol < 20) "Falling" else "Stable"
+                    val trendColor = when (volTrend) {
+                        "Rising" -> RoseError
+                        "Falling" -> EmeraldSuccess
+                        else -> SlateText
+                    }
+                    Text(volTrend, color = trendColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -758,57 +909,71 @@ fun SentimentScreen(viewModel: ForexViewModel = viewModel()) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("EURUSD", color = SlateText, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(4.dp))
+                    val eurusdPrice = watchlist.firstOrNull { it.assetName.contains("EURUSD") }?.price ?: 0.0
+                    val pp = eurusdPrice
+                    val r1 = pp + (pp * 0.001)
+                    val r2 = pp + (pp * 0.002)
+                    val r3 = pp + (pp * 0.003)
+                    val s1 = pp - (pp * 0.001)
+                    val s2 = pp - (pp * 0.002)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R3:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", r3) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R2:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", r2) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R1:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", r1) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("PP:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", pp) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("S1:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", s1) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("S2:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (eurusdPrice > 0) String.format("%.5f", s2) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("GBPUSD", color = SlateText, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(4.dp))
+                    val gbpusdPrice = watchlist.firstOrNull { it.assetName.contains("GBPUSD") }?.price ?: 0.0
+                    val pp = gbpusdPrice
+                    val r1 = pp + (pp * 0.0015)
+                    val r2 = pp + (pp * 0.003)
+                    val r3 = pp + (pp * 0.0045)
+                    val s1 = pp - (pp * 0.0015)
+                    val s2 = pp - (pp * 0.003)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R3:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", r3) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R2:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", r2) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R1:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", r1) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("PP:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", pp) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("S1:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", s1) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("S2:", color = SlateText, fontSize = 10.sp)
-                        Text("---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (gbpusdPrice > 0) String.format("%.5f", s2) else "---", color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -862,7 +1027,7 @@ fun CurrencyRow(data: CurrencyRowData) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            PairFlags(symbol = "${data.name}USD", size = 24)
+            PairFlags(symbol = data.name, size = 24)
             Spacer(modifier = Modifier.width(12.dp))
             Text(data.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }

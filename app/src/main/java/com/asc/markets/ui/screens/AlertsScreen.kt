@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.VigilanceNodeEngine
-import com.asc.markets.data.AuditRecord
 import com.asc.markets.logic.VigilanceNode
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
@@ -46,6 +45,11 @@ fun AlertsScreen(viewModel: ForexViewModel) {
         40 + (selectedConfirmations.size * 15).coerceAtMost(60)
     }
 
+    fun registerNode(node: VigilanceNode) {
+        activeNodes.add(0, node)
+        viewModel.registerVigilanceNode(node, prefix = "Alert armed")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,13 +69,12 @@ fun AlertsScreen(viewModel: ForexViewModel) {
             }
             Column {
                 Text("VIGILANCE SETUP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("CONFIGURE & DEPLOY VIGILANCE NODES", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Text("TRADING-TYPE ALERT LOGIC WITH MULTI-CONDITION DEPLOYMENT", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
             }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        
-        // Mode Toggle Parity
+
         Row(modifier = Modifier.fillMaxWidth().background(PureBlack, RoundedCornerShape(12.dp)).padding(4.dp)) {
             listOf(true to "SMART ALERT", false to "SIMPLE").forEach { (mode, label) ->
                 val active = isSmartMode == mode
@@ -94,50 +97,11 @@ fun AlertsScreen(viewModel: ForexViewModel) {
 
         if (isSmartMode) {
             SmartCalibration(logicScore, selectedConfirmations, viewModel) { node ->
-                activeNodes.add(0, node)
-                // Append an AuditRecord for the deployed node so Post-Move Audit shows it
-                try {
-                    val impact = when {
-                        node.confidenceScore >= 75 -> "CRITICAL"
-                        node.confidenceScore >= 50 -> "HIGH"
-                        else -> "INFO"
-                    }
-                    viewModel.appendAuditRecord(AuditRecord(
-                        id = node.id,
-                        headline = node.description.ifEmpty { node.trigger },
-                        impact = impact,
-                        confidence = node.confidenceScore,
-                        assets = node.pair,
-                        status = "ACTIVE",
-                        timeUtc = System.currentTimeMillis(),
-                        reasoning = node.description,
-                        nodeId = node.id,
-                        integrityHash = ""
-                    ))
-                } catch (_: Exception) { }
+                registerNode(node)
             }
         } else {
             SimpleCalibration { node ->
-                activeNodes.add(0, node)
-                try {
-                    val impact = when {
-                        node.confidenceScore >= 75 -> "CRITICAL"
-                        node.confidenceScore >= 50 -> "HIGH"
-                        else -> "INFO"
-                    }
-                    viewModel.appendAuditRecord(AuditRecord(
-                        id = node.id,
-                        headline = node.description.ifEmpty { node.trigger },
-                        impact = impact,
-                        confidence = node.confidenceScore,
-                        assets = node.pair,
-                        status = "ACTIVE",
-                        timeUtc = System.currentTimeMillis(),
-                        reasoning = node.description,
-                        nodeId = node.id,
-                        integrityHash = ""
-                    ))
-                } catch (_: Exception) { }
+                registerNode(node)
             }
         }
 
@@ -681,6 +645,10 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
     var selectedTimeframe by remember { mutableStateOf("H1") }
     var selectedDirection by remember { mutableStateOf("BOTH") }
     var priceLevel by remember { mutableStateOf("1.0850") }
+    var thresholdValue by remember { mutableStateOf("75") }
+    var comparisonMode by remember { mutableStateOf("ABOVE") }
+    var selectedAiPhase by remember { mutableStateOf("PRE-MOVE") }
+    var selectedVolatilityState by remember { mutableStateOf("EXPANDING") }
     var rsiPeriod by remember { mutableStateOf("14") }
     var rsiLevel by remember { mutableStateOf("70") }
     var maFastPeriod by remember { mutableStateOf("9") }
@@ -699,8 +667,25 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
         // Crypto
         "BTC/USDT","ETH/USDT","BNB/USDT"
     )
-    val triggers = listOf("PRICE_THRESHOLD", "RSI_LEVEL", "MA_CROSS", "TRENDLINE_BREAK")
+    val triggers = listOf(
+        "PRICE_THRESHOLD" to "Price Threshold",
+        "RSI_LEVEL" to "RSI Level",
+        "MA_CROSS" to "MA Cross",
+        "TRENDLINE_BREAK" to "Trendline Break",
+        "AI_LINE_CROSS_PRICE" to "AI Line Crosses Price",
+        "AI_LINE_TOUCH_PRICE" to "AI Line Touches Price",
+        "VOLATILITY_SCORE" to "Volatility Score",
+        "AI_PROGRESSIVE_SCALE" to "AI Progressive Scale",
+        "AI_PHASE_STATE" to "AI Phase State",
+        "VOLATILITY_STATE" to "Volatility State",
+        "ORDERBOOK_IMBALANCE" to "Orderbook Imbalance",
+        "LIQUIDATION_RISK" to "Liquidation Risk",
+        "CURRENCY_STRENGTH" to "Currency Strength"
+    )
     val timeframes = listOf("M5", "M15", "H1", "H4", "D1")
+    val comparisonOptions = listOf("ABOVE", "BELOW")
+    val aiPhaseOptions = listOf("NOISE", "STRUCTURE", "COMPRESSION", "PRE-MOVE", "EXPANSION")
+    val volatilityStateOptions = listOf("DEAD", "COMPRESSED", "NORMAL", "EXPANDING", "BURST", "EXPLOSIVE")
     
     InfoBox {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -803,7 +788,7 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
             Text("TRIGGER TYPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
             Spacer(modifier = Modifier.height(8.dp))
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                triggers.forEach { trigger ->
+                triggers.forEach { (trigger, label) ->
                     Surface(
                         modifier = Modifier.fillMaxWidth().height(40.dp).clickable { selectedTrigger = trigger },
                         color = if (selectedTrigger == trigger) Color.White.copy(alpha = 0.05f) else Color.Transparent,
@@ -811,7 +796,7 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedTrigger == trigger) IndigoAccent.copy(alpha = 0.3f) else Color.Transparent)
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                            Text(trigger, color = if (selectedTrigger == trigger) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text(label, color = if (selectedTrigger == trigger) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
                 }
@@ -929,6 +914,178 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
+                "VOLATILITY_SCORE", "AI_PROGRESSIVE_SCALE" -> {
+                    val fieldLabel = if (selectedTrigger == "VOLATILITY_SCORE") "VOLATILITY SCORE" else "AI SCALE SCORE"
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(fieldLabel, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            color = Color.White.copy(alpha = 0.02f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.foundation.text.BasicTextField(
+                                    value = thresholdValue,
+                                    onValueChange = { thresholdValue = it },
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = androidx.compose.ui.text.TextStyle(
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontFamily = InterFontFamily,
+                                        fontWeight = FontWeight.Black
+                                    ),
+                                    singleLine = true
+                                )
+                                Text("0-100", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            comparisonOptions.forEach { option ->
+                                val isSelected = comparisonMode == option
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(36.dp).clickable { comparisonMode = option },
+                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(option, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "AI_PHASE_STATE" -> {
+                    Text("AI PHASE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        aiPhaseOptions.chunked(2).forEach { row ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                row.forEach { phase ->
+                                    val isSelected = selectedAiPhase == phase
+                                    Surface(
+                                        modifier = Modifier.weight(1f).height(38.dp).clickable { selectedAiPhase = phase },
+                                        color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(phase, color = if (isSelected) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                        }
+                                    }
+                                }
+                                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "VOLATILITY_STATE" -> {
+                    Text("VOLATILITY STATE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        volatilityStateOptions.chunked(2).forEach { row ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                row.forEach { state ->
+                                    val isSelected = selectedVolatilityState == state
+                                    Surface(
+                                        modifier = Modifier.weight(1f).height(38.dp).clickable { selectedVolatilityState = state },
+                                        color = if (isSelected) EmeraldSuccess.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.02f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) EmeraldSuccess.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.05f))
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(state, color = if (isSelected) EmeraldSuccess else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "AI_LINE_CROSS_PRICE", "AI_LINE_TOUCH_PRICE" -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White.copy(alpha = 0.02f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("AI PRE-MOVE CHART LINKED", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("This alert arms when the AI line crosses or touches the live price line for the selected symbol and timeframe.", color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "ORDERBOOK_IMBALANCE", "CURRENCY_STRENGTH" -> {
+                    val fieldLabel = if (selectedTrigger == "ORDERBOOK_IMBALANCE") "IMBALANCE %" else "STRENGTH SCORE"
+                    val limitRange = if (selectedTrigger == "ORDERBOOK_IMBALANCE") "0-100" else "0-100"
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(fieldLabel, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            color = Color.White.copy(alpha = 0.02f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.foundation.text.BasicTextField(
+                                    value = thresholdValue,
+                                    onValueChange = { thresholdValue = it },
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = androidx.compose.ui.text.TextStyle(
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontFamily = InterFontFamily,
+                                        fontWeight = FontWeight.Black
+                                    ),
+                                    singleLine = true
+                                )
+                                Text(limitRange, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            comparisonOptions.forEach { option ->
+                                val isSelected = comparisonMode == option
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(36.dp).clickable { comparisonMode = option },
+                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(option, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                "LIQUIDATION_RISK" -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = RoseError.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.2f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("LIQUIDATION RISK MONITOR", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                            Text("This alert arms when the current price drops within 2% of the estimated liquidation level for the selected pair based on margin.", color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
             
             // Cooldown
@@ -969,9 +1126,11 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
             
             Button(
                 onClick = {
-                    val priceLevelValue = if (selectedTrigger == "PRICE_THRESHOLD" && priceLevel.isNotEmpty()) {
-                        priceLevel.toDoubleOrNull()
-                    } else null
+                    val priceLevelValue = when (selectedTrigger) {
+                        "PRICE_THRESHOLD" -> priceLevel.takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+                        "VOLATILITY_SCORE", "AI_PROGRESSIVE_SCALE", "ORDERBOOK_IMBALANCE", "CURRENCY_STRENGTH" -> thresholdValue.takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+                        else -> null
+                    }
                     
                     val node = VigilanceNodeEngine.createSimpleAlert(
                         pair = selectedPair,
@@ -983,6 +1142,9 @@ fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
                         rsiLevel = rsiLevel.toIntOrNull() ?: 70,
                         maFastPeriod = maFastPeriod.toIntOrNull() ?: 9,
                         maSlowPeriod = maSlowPeriod.toIntOrNull() ?: 21,
+                        comparisonMode = comparisonMode,
+                        phaseState = if (selectedTrigger == "AI_PHASE_STATE") selectedAiPhase else "ANY",
+                        volatilityState = if (selectedTrigger == "VOLATILITY_STATE") selectedVolatilityState else "ANY",
                         cooldownMinutes = cooldownMinutes
                     )
                     onNodeDeployed(node)

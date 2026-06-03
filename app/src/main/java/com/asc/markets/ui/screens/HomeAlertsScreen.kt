@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.data.AppView
 import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.data.remote.LatestDeploymentsResponse
@@ -25,7 +24,7 @@ import com.asc.markets.ui.theme.*
 import kotlin.math.roundToInt
 
 @Composable
-fun HomeAlertsScreen(viewModel: ForexViewModel = viewModel()) {
+fun HomeAlertsScreen(viewModel: ForexViewModel) {
     val aiResponseState = viewModel.aiDeployments.collectAsState()
     val aiResponse: LatestDeploymentsResponse? = aiResponseState.value
     val allSignals = aiResponse?.final_decision ?: emptyList<FinalDecisionItem>()

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -140,7 +141,9 @@ fun getFullSymbolName(symbol: String): String {
         "AUDUSD" -> "Australian Dollar / US Dollar"
         "USDCAD" -> "U.S. Dollar / Canadian Dollar"
         "USDCHF" -> "U.S. Dollar / Swiss Franc"
+        "Crude-F" -> "WTI Crude Oil"
         "USOIL" -> "WTI Crude Oil"
+        "Brent-F" -> "Brent Crude Oil"
         "BRENTOIL" -> "Brent Crude Oil"
         "XAUUSD" -> "Gold / US Dollar"
         "XAGUSD" -> "Silver / US Dollar"
@@ -1037,6 +1040,12 @@ fun TradingChart(
             ChartFeedType.PEPPERSTONE_CTRADER -> {
                 val streamSymbol = chartFeedSymbolFor(chartFeedType, symbol)
                 Log.d(LOG_TAG, "Subscribing ${chartFeedType.displayName} chart route for $streamSymbol timeframe=$timeframe")
+                pepperstoneChartService.streamActiveSymbol(streamSymbol, timeframe, 500)
+                return@LaunchedEffect
+            }
+            ChartFeedType.PEPPERSTONE_DEMO -> {
+                val streamSymbol = chartFeedSymbolFor(chartFeedType, symbol)
+                Log.d(LOG_TAG, "Subscribing ${chartFeedType.displayName} DEMO chart route for $streamSymbol timeframe=$timeframe")
                 pepperstoneChartService.streamActiveSymbol(streamSymbol, timeframe, 500)
                 return@LaunchedEffect
             }
@@ -2328,6 +2337,7 @@ fun TradingChart(
                                             when (chartFeedType) {
                                                 ChartFeedType.EXNESS -> mt5Service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, symbol), timeframe, endTime, 500)
                                                 ChartFeedType.PEPPERSTONE_CTRADER -> isLoadingMore = false
+                                                ChartFeedType.PEPPERSTONE_DEMO -> isLoadingMore = false
                                                 ChartFeedType.BINANCE -> binanceService.fetchHistory(chartFeedSymbolFor(ChartFeedType.BINANCE, symbol), timeframe, endTime)
                                                 ChartFeedType.BINANCE_CONNECT -> isLoadingMore = false
                                                 null -> {
@@ -2925,6 +2935,49 @@ fun TradingChart(
                         null,
                         tint = ComposeColor(0xFF787B86),
                         modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        // Countdown Timer Overlay (positioned on right side near current price)
+        if (chartSettings.scales.countdown && currentQuoteState != null) {
+            val countdown by produceState(initialValue = "", currentQuoteState, timeframe) {
+                while (true) {
+                    val now = System.currentTimeMillis() / 1000
+                    val timeframeSeconds = timeframeToSeconds(timeframe)
+                    val elapsed = now % timeframeSeconds
+                    val remaining = timeframeSeconds - elapsed
+                    
+                    val hours = remaining / 3600
+                    val minutes = (remaining % 3600) / 60
+                    val seconds = remaining % 60
+                    
+                    value = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    delay(1000)
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (currentQuoteState!!.change >= 0) ComposeColor(0xCC089981) else ComposeColor(0xCCF05252))
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatPrice(currentQuoteState!!.lastPrice, symbol),
+                        color = ComposeColor.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = countdown,
+                        color = ComposeColor.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }

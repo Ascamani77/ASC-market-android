@@ -59,8 +59,8 @@ class DerivService(
         // Commodities
         "frxXAUUSD" to "XAU/USD", // Gold
         "frxXAGUSD" to "XAG/USD", // Silver
-        "frxUKOIL" to "BROUSD", // Brent Crude Oil
-        "frxUSOIL" to "USOIL",   // WTI Crude Oil
+        "frxUKOIL" to "Brent-F", // Brent Crude Oil
+        "frxUSOIL" to "Crude-F",   // WTI Crude Oil
         // Indices
         "OTC_NDX" to "NAS100",   // US Tech 100
         "OTC_DJI" to "US30",     // Wall Street 30
@@ -483,13 +483,13 @@ class DerivService(
                 textHints = listOf("silver/usd", "silver", "xag"),
                 marketHint = "commodities"
             )
-            "USOIL", "WTIUSD", "CRUDE" -> findActiveSymbol(
-                codeHints = listOf("WTIUSD", "WTIOUSD", "USOIL"),
+            "USOIL", "Crude-F", "WTIUSD", "CRUDE" -> findActiveSymbol(
+                codeHints = listOf("WTIUSD", "WTIOUSD", "USOIL", "Crude-F"),
                 textHints = listOf("wti/usd", "wti", "us oil", "west texas", "crude"),
                 marketHint = "commodities"
             )
-            "BROUSD", "BRENT" -> findActiveSymbol(
-                codeHints = listOf("BRNUSD", "UKOIL", "BROUSD", "BRENT"),
+            "BROUSD", "BRENT", "Brent-F", "UKOIL" -> findActiveSymbol(
+                codeHints = listOf("BRNUSD", "UKOIL", "BROUSD", "BRENT", "Brent-F"),
                 textHints = listOf("brn/usd", "brent oil", "brent", "uk oil"),
                 marketHint = "commodities"
             )

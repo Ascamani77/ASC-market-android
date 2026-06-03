@@ -1,5 +1,6 @@
 package com.asc.markets.ui.screens.dashboard
 
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -19,25 +20,40 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.AccumulationRadarTimeframe
 import com.asc.markets.data.BinanceDataStore
 import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.NetworkConfig
+import com.asc.markets.data.TimedPrice
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.Instrument
 import com.asc.markets.ui.components.InstrumentIcon
@@ -70,20 +86,48 @@ fun CurrencyStrengthPanel(density: MarketCompareDensity = MarketCompareDensity.F
 
 @Composable
 fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FULL) {
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+    }
     val assetContext by AssetContextStore.context.collectAsState()
     val marketPairs by MarketDataStore.allPairs.collectAsState()
     val binancePairs by BinanceDataStore.allPairs.collectAsState()
     val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
     val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
+    val marketTimedPriceHistory by MarketDataStore.timedPriceHistory.collectAsState()
     val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
+    val binanceTimedPriceHistory by BinanceDataStore.timedPriceHistory.collectAsState()
     val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
+    val fallbackTimedPriceHistory by CombinedFallbackDataStore.timedPriceHistory.collectAsState()
     val allPairs = (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
     val priceHistory = marketPriceHistory + binancePriceHistory + fallbackPriceHistory
+    val timedPriceHistory = marketTimedPriceHistory + binanceTimedPriceHistory + fallbackTimedPriceHistory
+    val radarTimeframeState = remember {
+        mutableStateOf(AccumulationRadarTimeframe.current(context))
+    }
+    androidx.compose.runtime.DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+            if (key == AccumulationRadarTimeframe.PREF_KEY) {
+                radarTimeframeState.value = AccumulationRadarTimeframe.fromPref(
+                    sharedPreferences.getString(AccumulationRadarTimeframe.PREF_KEY, AccumulationRadarTimeframe.DAY_1.prefValue)
+                )
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+    val radarTimeframe = radarTimeframeState.value
 
     val scopedPairs = allPairs
         .filter { pair -> pairInContext(pair.category, assetContext) }
         .sortedByDescending { abs(it.changePercent) }
     val leaders = scopedPairs.take(8)
+    val accumulationRadarItems = remember(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe) {
+        buildAccumulationRadarItems(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe)
+    }
 
     val breadth = rememberBreadth(scopedPairs)
     val buySell = rememberBuySellPressure(scopedPairs)
@@ -113,11 +157,11 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         SectionHeader("ACCUMULATION RADAR (PRE-MOVE)")
-                        TimeRangeChips()
+                        FixedTimeRangeChip(radarTimeframe.displayName)
                     }
                     Spacer8()
-                    leaders.take(6).forEach { pair ->
-                        TopMoverRow(pair, priceHistory) // Pass real price history
+                    accumulationRadarItems.take(5).forEach { item ->
+                        TopMoverRow(item)
                     }
                 }
             }
@@ -362,15 +406,13 @@ private fun StrengthSlider(value: Float, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TopMoverRow(pair: ForexPair, priceHistory: Map<String, List<Double>>) {
-    val history = priceHistory[pair.symbol].orEmpty()
-    val sparkPoints = if (history.isNotEmpty()) {
-        val min = history.minOrNull() ?: 0.0
-        val max = history.maxOrNull() ?: 1.0
-        val range = (max - min).takeIf { it > 0 } ?: 1.0
-        history.map { ((it - min) / range).toFloat() }
-    } else {
-        emptyList()
+private fun TopMoverRow(item: AccumulationRadarItem) {
+    val pair = item.pair
+    val changePercent = item.changePercent
+    val changeColor = when {
+        changePercent > 0.03 -> BullColor
+        changePercent < -0.03 -> BearColor
+        else -> NeutralColor
     }
 
     Row(
@@ -401,18 +443,19 @@ private fun TopMoverRow(pair: ForexPair, priceHistory: Map<String, List<Double>>
 
         // Change %
         Text(
-            text = String.format("%+.2f%%", pair.changePercent),
-            color = if (pair.changePercent >= 0) BullColor else BearColor,
+            text = String.format(Locale.US, "%+.2f%%", changePercent),
+            color = changeColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.width(70.dp)
         )
 
         // Real Sparkline
-        if (sparkPoints.isNotEmpty()) {
+        if (item.sparkPoints.isNotEmpty()) {
             MiniSparklineStrip(
-                points = sparkPoints,
-                color = if (pair.changePercent >= 0) BullColor else BearColor
+                points = item.sparkPoints,
+                color = changeColor,
+                modifier = Modifier.weight(1f)
             )
         } else {
             Box(modifier = Modifier.weight(1f).height(26.dp)) // Placeholder
@@ -600,40 +643,87 @@ private fun MeterScale() {
 }
 
 @Composable
-private fun TimeRangeChips() {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        listOf("1D", "1W", "1M", "3M", "1Y").forEachIndexed { index, label ->
-            val selected = index == 0
-            Box(
-                modifier = Modifier
-                    .then(
-                        if (selected) Modifier.background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
-                        else Modifier
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    label,
-                    color = if (selected) Color.White else Color.Gray,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+private fun FixedTimeRangeChip(label: String) {
+    Box(
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            label,
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Composable
-private fun MiniSparklineStrip(points: List<Float>, color: Color) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(26.dp)) {
+private fun MiniSparklineStrip(points: List<Float>, color: Color, modifier: Modifier = Modifier.fillMaxWidth()) {
+    val transition = rememberInfiniteTransition(label = "sparkline-tip")
+    val tipPulse by transition.animateFloat(
+        initialValue = 0.78f,
+        targetValue = 1.16f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkline-tip-scale"
+    )
+    val tipAlpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkline-tip-alpha"
+    )
+    Canvas(modifier = modifier.height(26.dp)) {
         if (points.size < 2) return@Canvas
         val step = size.width / (points.size - 1)
-        var prev = Offset(0f, size.height * (1f - points.first().coerceIn(0.02f, 0.98f)))
-        for (i in 1 until points.size) {
-            val next = Offset(i * step, size.height * (1f - points[i].coerceIn(0.02f, 0.98f)))
-            drawLine(color = color, start = prev, end = next, strokeWidth = 2.2f)
-            prev = next
+        val normalizedPoints = points.map { it.coerceIn(0.06f, 0.94f) }
+        val linePath = Path().apply {
+            moveTo(0f, size.height * (1f - normalizedPoints.first()))
+            for (i in 1 until normalizedPoints.size) {
+                lineTo(i * step, size.height * (1f - normalizedPoints[i]))
+            }
         }
+        val fillPath = Path().apply {
+            addPath(linePath)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.28f), color.copy(alpha = 0.02f)),
+                startY = 0f,
+                endY = size.height
+            )
+        )
+        drawPath(
+            path = linePath,
+            color = color,
+            style = Stroke(width = 2.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+        val lastPoint = Offset(size.width, size.height * (1f - normalizedPoints.last()))
+        drawCircle(
+            color = color.copy(alpha = 0.16f * tipAlpha),
+            radius = 7.5f * tipPulse,
+            center = lastPoint
+        )
+        drawCircle(
+            color = color.copy(alpha = 0.28f + (0.28f * tipAlpha)),
+            radius = 4.4f * tipPulse,
+            center = lastPoint
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.92f),
+            radius = 1.9f,
+            center = lastPoint
+        )
     }
 }
 
@@ -684,6 +774,12 @@ private fun pairInContext(category: MarketCategory, context: AssetContext): Bool
 private data class Breadth(val advancing: Int, val neutral: Int, val declining: Int)
 private data class BuySell(val buyPressure: Float, val sellPressure: Float)
 private data class PricePositionRow(val symbol: String, val position: Float)
+private data class AccumulationRadarItem(
+    val pair: ForexPair,
+    val changePercent: Double,
+    val sparkPoints: List<Float>,
+    val accumulationScore: Float
+)
 
 private fun rememberBreadth(pairs: List<ForexPair>): Breadth {
     val adv = pairs.count { it.changePercent > 0.03 }
@@ -748,6 +844,225 @@ private fun rememberUsdStrength(pairs: List<ForexPair>): Float {
     if (usdPairs.isEmpty()) return 0f
     val avg = usdPairs.map { it.changePercent }.average().toFloat()
     return (avg / 1.5f).coerceIn(-1f, 1f)
+}
+
+private fun buildAccumulationRadarItems(
+    pairs: List<ForexPair>,
+    priceHistory: Map<String, List<Double>>,
+    timedPriceHistory: Map<String, List<TimedPrice>>,
+    timeframe: AccumulationRadarTimeframe
+): List<AccumulationRadarItem> {
+    val rankedItems = pairs.map { pair ->
+        val sampledPrices = resolveAccumulationPrices(pair, priceHistory, timedPriceHistory, timeframe)
+        val sparkPoints = normalizeSparklinePoints(sampledPrices)
+        val dayChangePercent = when {
+            sampledPrices.size >= 2 && sampledPrices.first() > 0.0 ->
+                ((sampledPrices.last() - sampledPrices.first()) / sampledPrices.first()) * 100.0
+            else -> pair.changePercent
+        }
+        AccumulationRadarItem(
+            pair = pair,
+            changePercent = dayChangePercent,
+            sparkPoints = sparkPoints,
+            accumulationScore = accumulationRadarScore(sampledPrices, dayChangePercent, timeframe)
+        )
+    }.sortedByDescending { it.accumulationScore }
+
+    val filteredItems = rankedItems.filter {
+        it.accumulationScore >= 0.45f && abs(it.changePercent) <= accumulationDriftLimit(timeframe)
+    }
+
+    return when {
+        filteredItems.size >= 5 -> filteredItems.take(5)
+        filteredItems.size >= 3 -> {
+            val fallbackItems = rankedItems.filterNot { candidate ->
+                filteredItems.any { it.pair.symbol == candidate.pair.symbol }
+            }
+            (filteredItems + fallbackItems).take(5)
+        }
+        else -> rankedItems.take(5)
+    }
+}
+
+private fun resolveAccumulationPrices(
+    pair: ForexPair,
+    priceHistory: Map<String, List<Double>>,
+    timedPriceHistory: Map<String, List<TimedPrice>>,
+    timeframe: AccumulationRadarTimeframe
+): List<Double> {
+    val timedHistory = timedHistoryForSymbol(pair.symbol, timedPriceHistory)
+        .filter { it.timestampMillis > 0L && it.price.isFinite() && it.price > 0.0 }
+        .sortedBy { it.timestampMillis }
+
+    if (timedHistory.isNotEmpty()) {
+        val sampledPrices = sampleTimeframePrices(timedHistory, timeframe)
+        if (sampledPrices.size >= 8) {
+            return sampledPrices
+        }
+    }
+
+    val rawHistory = priceHistoryForSymbol(pair.symbol, priceHistory)
+        .filter { it.isFinite() && it > 0.0 }
+    if (rawHistory.isNotEmpty()) {
+        return downsamplePrices(rawHistory, timeframe.bucketCount)
+    }
+
+    return listOf(pair.price, pair.price)
+}
+
+private fun timedHistoryForSymbol(
+    symbol: String,
+    timedPriceHistory: Map<String, List<TimedPrice>>
+): List<TimedPrice> {
+    return timedPriceHistory[symbol]
+        ?: timedPriceHistory.entries.firstOrNull { MarketDataStore.matchesSymbol(it.key, symbol) }?.value
+        ?: emptyList()
+}
+
+private fun priceHistoryForSymbol(
+    symbol: String,
+    priceHistory: Map<String, List<Double>>
+): List<Double> {
+    return priceHistory[symbol]
+        ?: priceHistory.entries.firstOrNull { MarketDataStore.matchesSymbol(it.key, symbol) }?.value
+        ?: emptyList()
+}
+
+private fun sampleTimeframePrices(
+    history: List<TimedPrice>,
+    timeframe: AccumulationRadarTimeframe
+): List<Double> {
+    if (history.isEmpty()) return emptyList()
+
+    val sortedHistory = history.sortedBy { it.timestampMillis }
+    val endTime = sortedHistory.last().timestampMillis
+    val startTime = endTime - timeframe.windowMillis
+    val window = sortedHistory.filter { it.timestampMillis >= startTime }
+    if (window.isEmpty()) return emptyList()
+
+    val seedPrice = sortedHistory.lastOrNull { it.timestampMillis < startTime }?.price ?: window.first().price
+    val seededHistory = buildList {
+        add(TimedPrice(startTime, seedPrice))
+        addAll(window)
+    }.sortedBy { it.timestampMillis }
+    val bucketCount = timeframe.bucketCount
+    val intervalMillis = (timeframe.windowMillis.toDouble() / (bucketCount - 1).coerceAtLeast(1)).toLong()
+
+    return List(bucketCount) { index ->
+        val sampleTime = if (index == bucketCount - 1) endTime else startTime + (intervalMillis * index)
+        interpolatedPriceAt(seededHistory, sampleTime)
+    }
+}
+
+private fun downsamplePrices(prices: List<Double>, targetCount: Int): List<Double> {
+    if (prices.isEmpty()) return emptyList()
+    if (prices.size <= targetCount) return smoothPrices(prices)
+
+    val lastIndex = prices.lastIndex
+    val sampled = List(targetCount) { index ->
+        val position = (index.toDouble() / (targetCount - 1).coerceAtLeast(1)) * lastIndex
+        prices[position.toInt().coerceIn(0, lastIndex)]
+    }
+    return smoothPrices(sampled)
+}
+
+private fun smoothPrices(prices: List<Double>): List<Double> {
+    if (prices.size < 3) return prices
+    return prices.indices.map { index ->
+        val fromIndex = (index - 1).coerceAtLeast(0)
+        val toIndex = (index + 1).coerceAtMost(prices.lastIndex)
+        prices.subList(fromIndex, toIndex + 1).average()
+    }
+}
+
+private fun interpolatedPriceAt(history: List<TimedPrice>, timestampMillis: Long): Double {
+    if (history.isEmpty()) return 0.0
+    if (timestampMillis <= history.first().timestampMillis) return history.first().price
+    if (timestampMillis >= history.last().timestampMillis) return history.last().price
+
+    for (index in 1 until history.size) {
+        val previous = history[index - 1]
+        val next = history[index]
+        if (timestampMillis <= next.timestampMillis) {
+            val duration = (next.timestampMillis - previous.timestampMillis).takeIf { it > 0L } ?: return next.price
+            val progress = ((timestampMillis - previous.timestampMillis).toDouble() / duration.toDouble())
+                .coerceIn(0.0, 1.0)
+            return previous.price + ((next.price - previous.price) * progress)
+        }
+    }
+
+    return history.last().price
+}
+
+private fun normalizeSparklinePoints(prices: List<Double>): List<Float> {
+    if (prices.size < 2) return emptyList()
+    val smoothedPrices = smoothPrices(prices)
+    val minPrice = smoothedPrices.minOrNull() ?: return emptyList()
+    val maxPrice = smoothedPrices.maxOrNull() ?: return emptyList()
+    val range = (maxPrice - minPrice).takeIf { it > 0.0 } ?: return List(smoothedPrices.size) { 0.5f }
+    return smoothedPrices.map { price ->
+        (((price - minPrice) / range).toFloat()).coerceIn(0.08f, 0.92f)
+    }
+}
+
+private fun accumulationRadarScore(
+    prices: List<Double>,
+    changePercent: Double,
+    timeframe: AccumulationRadarTimeframe
+): Float {
+    if (prices.size < 8) return 0.15f
+
+    val safeLastPrice = prices.lastOrNull()?.takeIf { it.isFinite() && it > 0.0 } ?: return 0.15f
+    val highPrice = prices.maxOrNull() ?: safeLastPrice
+    val lowPrice = prices.minOrNull() ?: safeLastPrice
+    val driftLimit = accumulationDriftLimit(timeframe)
+    val rangeLimit = accumulationRangeLimit(timeframe)
+    val stepLimit = accumulationStepLimit(timeframe)
+    val rangePercent = ((highPrice - lowPrice) / safeLastPrice).coerceIn(0.0, rangeLimit)
+    val compressionScore = (1.0 - (rangePercent / rangeLimit)).toFloat().coerceIn(0f, 1f)
+    val driftScore = (1.0 - (abs(changePercent) / driftLimit)).toFloat().coerceIn(0f, 1f)
+    val averageStepPercent = prices.zipWithNext { previous, next ->
+        if (previous > 0.0) abs((next - previous) / previous) else 0.0
+    }.average()
+    val smoothnessScore = (1.0 - (averageStepPercent / stepLimit)).toFloat().coerceIn(0f, 1f)
+    val coverageScore = (prices.size / timeframe.bucketCount.toFloat()).coerceIn(0.35f, 1f)
+
+    return (
+        (compressionScore * 0.45f) +
+            (driftScore * 0.35f) +
+            (smoothnessScore * 0.15f) +
+            (coverageScore * 0.05f)
+        ).coerceIn(0f, 1f)
+}
+
+private fun accumulationDriftLimit(timeframe: AccumulationRadarTimeframe): Double = when (timeframe) {
+    AccumulationRadarTimeframe.MIN_5 -> 0.35
+    AccumulationRadarTimeframe.MIN_15 -> 0.65
+    AccumulationRadarTimeframe.MIN_30 -> 0.9
+    AccumulationRadarTimeframe.HOUR_1 -> 1.2
+    AccumulationRadarTimeframe.HOUR_4 -> 1.8
+    AccumulationRadarTimeframe.HOUR_12 -> 2.6
+    AccumulationRadarTimeframe.DAY_1 -> 3.5
+}
+
+private fun accumulationRangeLimit(timeframe: AccumulationRadarTimeframe): Double = when (timeframe) {
+    AccumulationRadarTimeframe.MIN_5 -> 0.01
+    AccumulationRadarTimeframe.MIN_15 -> 0.018
+    AccumulationRadarTimeframe.MIN_30 -> 0.026
+    AccumulationRadarTimeframe.HOUR_1 -> 0.04
+    AccumulationRadarTimeframe.HOUR_4 -> 0.07
+    AccumulationRadarTimeframe.HOUR_12 -> 0.095
+    AccumulationRadarTimeframe.DAY_1 -> 0.12
+}
+
+private fun accumulationStepLimit(timeframe: AccumulationRadarTimeframe): Double = when (timeframe) {
+    AccumulationRadarTimeframe.MIN_5 -> 0.0025
+    AccumulationRadarTimeframe.MIN_15 -> 0.004
+    AccumulationRadarTimeframe.MIN_30 -> 0.006
+    AccumulationRadarTimeframe.HOUR_1 -> 0.008
+    AccumulationRadarTimeframe.HOUR_4 -> 0.011
+    AccumulationRadarTimeframe.HOUR_12 -> 0.013
+    AccumulationRadarTimeframe.DAY_1 -> 0.015
 }
 
 private fun normalizeChange(pct: Double): Float = (pct / 1.5).toFloat().coerceIn(-1f, 1f)

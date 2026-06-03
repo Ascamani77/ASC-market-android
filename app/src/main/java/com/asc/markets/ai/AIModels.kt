@@ -12,7 +12,8 @@ data class AIDecision(
     val asset: String,                    // e.g., "EURUSD", "BTCUSDT"
     val direction: String,                // "LONG", "SHORT", "NEUTRAL"
     val confidence: Double,               // 0.0 to 1.0
-    val score: Int,                       // 0 to 100
+    val score: Int,                       // 0 to 100 (journal_score)
+    val preMoveScore: Double,             // 0.0 to 1.0 (pre_move_ai_score from backend)
     val reason: String,                   // Human-readable explanation
     val deploymentBucket: String,         // "HIGH", "MEDIUM", "LOW"
     val timestamp: Long                   // Unix timestamp

@@ -1,6 +1,7 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -44,7 +45,8 @@ enum class DashboardTab {
     ANALYTICAL_QUALITY, 
     MARKET_PSYCHOLOGY, 
     METHODOLOGY,
-    EXECUTION_LEDGER
+    EXECUTION_LEDGER,
+    AI_STATUS
 }
 
 @Composable
@@ -84,6 +86,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
                         DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab(viewModel)
                         DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab(viewModel)
                         DashboardTab.METHODOLOGY -> EducationTab(viewModel)
+                        DashboardTab.AI_STATUS -> AiStatusTab(viewModel)
                 }
             }
         }
@@ -97,8 +100,14 @@ fun DashboardTopNavbar(
 ) {
     val context = LocalContext.current
     Surface(
-        color = Color(0xFF141414), // Dark gray background matching the image style
-        modifier = Modifier.fillMaxWidth()
+        color = Color.White.copy(alpha = 0.035f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.06f),
+                shape = RoundedCornerShape(0.dp)
+            )
     ) {
         Column {
             LazyRow(
@@ -117,6 +126,7 @@ fun DashboardTopNavbar(
                         DashboardTab.MARKET_PSYCHOLOGY -> "Psychology"
                         DashboardTab.METHODOLOGY -> "Logic"
                         DashboardTab.EXECUTION_LEDGER -> "Audit"
+                        DashboardTab.AI_STATUS -> "AI Status"
                     }
 
                     Column(

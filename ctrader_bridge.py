@@ -50,6 +50,7 @@ DEFAULT_SYMBOL_MAP = {
     "XAUUSD": ["XAUUSD", "XAU/USD", "GOLD"],
     "XAGUSD": ["XAGUSD", "XAG/USD", "SILVER"],
     "USOIL": ["USOIL", "Crude-F", "XTIUSD", "WTI", "WTIUSD", "US OIL", "USOil"],
+    "UKOIL": ["UKOIL", "Brent-F", "BRENTCMDUSD", "BRENT", "UK OIL", "UKOil"],
     "DXY": ["DXY", "USDX", "US Dollar Index"],
     "NAS100": ["NAS100", "US100", "USTEC", "US Tech 100", "US 100"],
     "US30": ["US30", "DJI", "Wall Street 30", "US Dow 30"],
@@ -72,6 +73,7 @@ APP_CATEGORY = {
     "XAUUSD": "COMMODITIES",
     "XAGUSD": "COMMODITIES",
     "USOIL": "COMMODITIES",
+    "UKOIL": "COMMODITIES",
     "DXY": "COMMODITIES",
     "NAS100": "INDICES",
     "US30": "INDICES",
@@ -103,6 +105,12 @@ last_status = "starting"
 last_status_message = "Starting cTrader bridge"
 last_account_message: Optional[dict] = None  # Store last account message
 pending_balance_snapshot: Optional[float] = None  # Balance before last execution event
+
+# Reconnection and Watchdog state
+reconnecting = False
+last_tick_received_time = time.time()
+heartbeat_interval = 25  # seconds
+watchdog_interval = 60   # seconds
 
 
 def normalize_symbol(symbol: str) -> str:
@@ -198,20 +206,68 @@ def broadcast(payload: dict) -> None:
 
 
 def connected(_client) -> None:
-    set_status("connected", "Connected to cTrader Open API demo endpoint")
+    set_status("connected", f"Connected to cTrader Open API {current_endpoint_type} endpoint")
     print(f"[DEBUG] Sending application auth request with clientId (len={len(APP_CLIENT_ID)}) and clientSecret (len={len(APP_CLIENT_SECRET)})")
     request = ProtoOAApplicationAuthReq()
     request.clientId = APP_CLIENT_ID
     request.clientSecret = APP_CLIENT_SECRET
     send_request(request)
+    
+    # Start heartbeat and watchdog if not already started
+    reactor.callLater(heartbeat_interval, send_proactive_heartbeat)
+    reactor.callLater(watchdog_interval, run_watchdog)
+
+
+def send_proactive_heartbeat() -> None:
+    """Send a heartbeat to keep the connection alive"""
+    if client and client.protocol:
+        # ProtoHeartbeatEvent is actually an event, but we can send a simple request to keep connection alive
+        # A ProtoOATraderReq is a good lightweight request for this
+        if account_authed and account_id:
+            request_trader_info()
+        else:
+            # If not authed yet, just send a simple ping-like request
+            request = ProtoOAVersionReq()
+            send_request(request)
+    
+    # Schedule next heartbeat
+    reactor.callLater(heartbeat_interval, send_proactive_heartbeat)
+
+
+def run_watchdog() -> None:
+    """Check if we've received ticks recently, if not, reconnect"""
+    global last_tick_received_time, reconnecting
+    
+    # Only run watchdog if we are supposedly "live"
+    if account_authed and symbols_loaded and not reconnecting:
+        now = time.time()
+        # If no ticks for 2 minutes, assume connection is dead
+        if now - last_tick_received_time > 120:
+            print(f"[WATCHDOG] DATA FREEZE DETECTED: No ticks for {int(now - last_tick_received_time)}s. Reconnecting...")
+            perform_reconnect()
+            return
+
+    # Schedule next check
+    reactor.callLater(watchdog_interval, run_watchdog)
 
 
 def disconnected(_client, reason) -> None:
-    global application_authed, account_authed, symbols_loaded
+    global application_authed, account_authed, symbols_loaded, reconnecting
     application_authed = False
     account_authed = False
     symbols_loaded = False
     set_status("disconnected", str(reason))
+    
+    if not reconnecting:
+        reconnecting = True
+        print(f"[RECONNECT] Connection lost: {reason}. Retrying in 5 seconds...")
+        reactor.callLater(5, perform_reconnect)
+
+
+def perform_reconnect() -> None:
+    global reconnecting
+    reconnecting = False
+    reconnect_with_endpoint(current_endpoint_type)
 
 
 def on_error(failure) -> None:
@@ -575,6 +631,9 @@ def decode_position_price(raw: Optional[float], digits: int, category: str = "FO
 
 
 def handle_spot_event(payload) -> None:
+    global last_tick_received_time
+    last_tick_received_time = time.time()
+    
     symbol_id = int(getattr(payload, "symbolId", 0) or 0)
     with state_lock:
         state = symbol_states_by_id.get(symbol_id)

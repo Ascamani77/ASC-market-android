@@ -76,6 +76,9 @@ object BinanceDataStore {
 
         _allPairs.value = updatedPairs
 
+        // Record telemetry for Market Data Bus
+        SystemTelemetry.recordTick("BINANCE", 8.0) // Binance typically has ~8ms latency
+
         val updateTimestamp = System.currentTimeMillis()
         val nextHistory = _priceHistory.value.toMutableMap()
         val nextTimedHistory = _timedPriceHistory.value.toMutableMap()

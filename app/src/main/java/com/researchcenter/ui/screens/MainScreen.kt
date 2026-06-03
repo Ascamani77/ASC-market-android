@@ -29,6 +29,7 @@ import com.researchcenter.data.models.ViewMode
 import com.researchcenter.ui.components.ArticleDetail
 import com.researchcenter.ui.components.NewsList
 import com.researchcenter.ui.viewmodel.NewsViewModel
+import com.researchcenter.ui.viewmodel.NewsViewModelFactory
 import com.researchcenter.util.Constants
 import com.researchcenter.ui.theme.Black
 import com.researchcenter.ui.theme.Gray400
@@ -41,7 +42,7 @@ import java.util.Calendar
 
 @Composable
 fun MainScreen(
-    viewModel: NewsViewModel = viewModel(),
+    viewModel: NewsViewModel = viewModel(factory = NewsViewModelFactory(LocalContext.current)),
     onBackToApp: () -> Unit = {}
 ) {
     val context = LocalContext.current

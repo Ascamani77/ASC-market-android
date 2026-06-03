@@ -8,6 +8,7 @@ import java.util.Locale
 enum class ChartFeedType(val prefValue: String, val displayName: String) {
     EXNESS("exness", "Exness"),
     PEPPERSTONE_CTRADER("pepperstone_ctrader", "Pepperstone cTrader"),
+    PEPPERSTONE_DEMO("pepperstone_demo", "Pepperstone Demo"),
     BINANCE("binance", "Binance"),
     BINANCE_CONNECT("binance_connect", "Binance Connect");
 
@@ -54,7 +55,9 @@ fun chartFeedQuotes(feedType: ChartFeedType): List<SymbolInfo> {
             SymbolInfo("USDCHF", "U.S. Dollar / Swiss Franc", "Exness", "forex", "USDCHFm"),
             SymbolInfo("XAUUSD", "Gold / U.S. Dollar", "Exness", "commodity cfd", "XAUUSDm"),
             SymbolInfo("XAGUSD", "Silver / U.S. Dollar", "Exness", "commodity cfd", "XAGUSDm"),
+            SymbolInfo("Crude-F", "WTI Crude Oil", "Exness", "commodity cfd", "USOILm"),
             SymbolInfo("USOIL", "WTI Crude Oil", "Exness", "commodity cfd", "USOILm"),
+            SymbolInfo("Brent-F", "Brent Crude Oil", "Exness", "commodity cfd", "UKOILm"),
             SymbolInfo("BRENTOIL", "Brent Crude Oil", "Exness", "commodity cfd", "UKOILm"),
             SymbolInfo("SPX", "S&P 500 Index", "Exness", "index", "US500m"),
             SymbolInfo("NASDAQ100", "Nasdaq 100 Index", "Exness", "index", "USTECm"),
@@ -70,12 +73,33 @@ fun chartFeedQuotes(feedType: ChartFeedType): List<SymbolInfo> {
             SymbolInfo("USDCHF", "U.S. Dollar / Swiss Franc", "Pepperstone", "forex", "USDCHF"),
             SymbolInfo("XAUUSD", "Gold / U.S. Dollar", "Pepperstone", "commodity cfd", "XAUUSD"),
             SymbolInfo("XAGUSD", "Silver / U.S. Dollar", "Pepperstone", "commodity cfd", "XAGUSD"),
-            SymbolInfo("USOIL", "WTI Crude Oil", "Pepperstone", "commodity cfd", "USOIL"),
+            SymbolInfo("Crude-F", "WTI Crude Oil", "Pepperstone", "commodity cfd", "Crude-F"),
+            SymbolInfo("USOIL", "WTI Crude Oil", "Pepperstone", "commodity cfd", "Crude-F"),
+            SymbolInfo("Brent-F", "Brent Crude Oil", "Pepperstone", "commodity cfd", "Brent-F"),
             SymbolInfo("BTCUSD", "Bitcoin / U.S. Dollar", "Pepperstone", "crypto cfd", "BTCUSD"),
             SymbolInfo("ETHUSD", "Ethereum / U.S. Dollar", "Pepperstone", "crypto cfd", "ETHUSD"),
             SymbolInfo("NAS100", "Nasdaq 100 Index", "Pepperstone", "index", "NAS100"),
             SymbolInfo("US30", "Dow Jones Industrial Average", "Pepperstone", "index", "US30"),
             SymbolInfo("SPX500", "S&P 500 Index", "Pepperstone", "index", "SPX500")
+        )
+        ChartFeedType.PEPPERSTONE_DEMO -> listOf(
+            SymbolInfo("EURUSD", "Euro / U.S. Dollar", "Pepperstone Demo", "forex", "EURUSD"),
+            SymbolInfo("GBPUSD", "British Pound / U.S. Dollar", "Pepperstone Demo", "forex", "GBPUSD"),
+            SymbolInfo("USDJPY", "U.S. Dollar / Japanese Yen", "Pepperstone Demo", "forex", "USDJPY"),
+            SymbolInfo("AUDUSD", "Australian Dollar / U.S. Dollar", "Pepperstone Demo", "forex", "AUDUSD"),
+            SymbolInfo("USDCAD", "U.S. Dollar / Canadian Dollar", "Pepperstone Demo", "forex", "USDCAD"),
+            SymbolInfo("NZDUSD", "New Zealand Dollar / U.S. Dollar", "Pepperstone Demo", "forex", "NZDUSD"),
+            SymbolInfo("USDCHF", "U.S. Dollar / Swiss Franc", "Pepperstone Demo", "forex", "USDCHF"),
+            SymbolInfo("XAUUSD", "Gold / U.S. Dollar", "Pepperstone Demo", "commodity cfd", "XAUUSD"),
+            SymbolInfo("XAGUSD", "Silver / U.S. Dollar", "Pepperstone Demo", "commodity cfd", "XAGUSD"),
+            SymbolInfo("Crude-F", "WTI Crude Oil", "Pepperstone Demo", "commodity cfd", "Crude-F"),
+            SymbolInfo("USOIL", "WTI Crude Oil", "Pepperstone Demo", "commodity cfd", "Crude-F"),
+            SymbolInfo("Brent-F", "Brent Crude Oil", "Pepperstone Demo", "commodity cfd", "Brent-F"),
+            SymbolInfo("BTCUSD", "Bitcoin / U.S. Dollar", "Pepperstone Demo", "crypto cfd", "BTCUSD"),
+            SymbolInfo("ETHUSD", "Ethereum / U.S. Dollar", "Pepperstone Demo", "crypto cfd", "ETHUSD"),
+            SymbolInfo("NAS100", "Nasdaq 100 Index", "Pepperstone Demo", "index", "NAS100"),
+            SymbolInfo("US30", "Dow Jones Industrial Average", "Pepperstone Demo", "index", "US30"),
+            SymbolInfo("SPX500", "S&P 500 Index", "Pepperstone Demo", "index", "SPX500")
         )
         ChartFeedType.BINANCE -> listOf(
             SymbolInfo("BTCUSDT", "Bitcoin / TetherUS", "Binance", "spot crypto", "BTCUSDT"),
@@ -114,6 +138,7 @@ fun chartFeedSymbolFor(feedType: ChartFeedType, symbol: String): String {
         ChartFeedType.BINANCE -> normalized
         ChartFeedType.BINANCE_CONNECT -> normalized
         ChartFeedType.PEPPERSTONE_CTRADER -> normalized.removeSuffix("M")
+        ChartFeedType.PEPPERSTONE_DEMO -> normalized.removeSuffix("M")
         else -> normalized.removeSuffix("M")
     }
 }

@@ -20,6 +20,9 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
@@ -76,11 +79,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         private const val GLOBAL_CHAT_CONTEXT_ID = "GLOBAL"
         private const val CHAT_SESSIONS_KEY = "chat_sessions"
         private const val CHAT_ACTIVE_SESSION_ID_KEY = "chat_active_session_id"
+        private const val AI_DEPLOYMENTS_POLL_INTERVAL_MS = 5_000L // Poll AI deployments every 5 seconds
     }
 
     private val myApp = application as com.asc.markets.MyApp
     private val aiRepository = myApp.aiRepository
     val aiDeployments: StateFlow<LatestDeploymentsResponse?> = aiRepository.deployments
+    val aiDecisions = aiDeployments.map { it?.final_decision.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val chatPrefs = application.getSharedPreferences("asc_engine_chat", Context.MODE_PRIVATE)
     private val initialAscChatSessions = loadAscChatSessions()
     private val _ascChatSessions = MutableStateFlow(initialAscChatSessions)
@@ -258,6 +264,23 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRiskAccepted = MutableStateFlow(false)
     val isRiskAccepted = _isRiskAccepted.asStateFlow()
 
+    // Risk disclosure setting: when true, show disclaimer on app startup
+    private val _showRiskDisclosure = MutableStateFlow(
+        getApplication<Application>()
+            .getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            .getBoolean("show_risk_disclosure", true)
+    )
+    val showRiskDisclosure = _showRiskDisclosure.asStateFlow()
+
+    fun setShowRiskDisclosure(show: Boolean) {
+        _showRiskDisclosure.value = show
+        getApplication<Application>()
+            .getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("show_risk_disclosure", show)
+            .apply()
+    }
+
     private val _selectedPair = MutableStateFlow(
         BinanceDataStore.pairSnapshot("BTC/USDT") ?: provideForexExplore().first()
     )
@@ -288,71 +311,8 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _promoteMacroStream = MutableStateFlow(false)
     val promoteMacroStream = _promoteMacroStream.asStateFlow()
 
-    // Watchlist data (AI-curated)
-    private val _watchlistItems = MutableStateFlow<List<WatchlistItem>>(listOf(
-        WatchlistItem(
-            assetName = "EURUSD",
-            status = "Volatility Compression",
-            confidence = 85,
-            newsRisk = "High (CPI in 1h)",
-            moveProbability = 76,
-            priority = 1,
-            preMoveSignal = "Accumulation",
-            volatilityScore = 45,
-            triggerEvent = "US CPI",
-            timeToEvent = "42 mins",
-            price = 1.0850,
-            changePercent = 0.12,
-            category = MarketCategory.FOREX,
-            rationale = "AI detects tight range compression on H1 with accumulation signature. US CPI in 42 mins expected to catalyze directional expansion.",
-            isNew = false
-        ),
-        WatchlistItem(
-            assetName = "BTCUSD",
-            status = "Liquidity Build",
-            confidence = 72,
-            newsRisk = "Low",
-            moveProbability = 68,
-            priority = 2,
-            preMoveSignal = "Compression",
-            volatilityScore = 84,
-            price = 64230.50,
-            changePercent = 2.45,
-            category = MarketCategory.CRYPTO,
-            rationale = "Large resting liquidity clusters identified above 64.8k and below 63.2k. Order-book depth expanding. Breakout probability rising as volume profile compresses.",
-            isNew = true
-        ),
-        WatchlistItem(
-            assetName = "NAS100",
-            status = "Trend Expansion",
-            confidence = 64,
-            newsRisk = "Medium",
-            moveProbability = 61,
-            priority = 3,
-            preMoveSignal = "Expansion",
-            volatilityScore = 92,
-            price = 17850.25,
-            changePercent = -0.85,
-            category = MarketCategory.INDICES,
-            rationale = "Tech sector rotation driving volatility expansion. NAS100 breaking above prior session VWAP with momentum divergence flagged by the AI regime engine.",
-            isNew = false
-        ),
-        WatchlistItem(
-            assetName = "XAUUSD",
-            status = "Trend Alignment",
-            confidence = 78,
-            newsRisk = "Low",
-            moveProbability = 55,
-            priority = 4,
-            preMoveSignal = "Trend Alignment",
-            volatilityScore = 67,
-            price = 2345.80,
-            changePercent = 0.45,
-            category = MarketCategory.COMMODITIES,
-            rationale = "Gold holding above 2330 structural support. DXY weakness and real-yield compression align with long-bias model. Low event risk today.",
-            isNew = false
-        )
-    ))
+    // Watchlist data (AI-curated) - loaded from JSON
+    private val _watchlistItems = MutableStateFlow<List<WatchlistItem>>(emptyList())
     val watchlistItems = _watchlistItems.asStateFlow()
 
     enum class WatchlistSortMode { PROBABILITY, CONFIDENCE, VOLATILITY, TIME_TO_EVENT }
@@ -375,6 +335,75 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastWatchlistUpdate = MutableStateFlow(System.currentTimeMillis())
     val lastWatchlistUpdate = _lastWatchlistUpdate.asStateFlow()
 
+    init {
+        loadWatchlistFromAI()
+    }
+
+    private fun loadWatchlistFromAI() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Try loading from assets first
+                val jsonString = try {
+                    getApplication<Application>().assets.open("ai_watchlist.json").bufferedReader().use { it.readText() }
+                } catch (e: Exception) {
+                    // Fallback to external storage
+                    val file = java.io.File(getApplication<Application>().filesDir.parent, "ai_watchlist.json")
+                    if (file.exists()) file.readText() else null
+                }
+                
+                if (jsonString != null) {
+                    val watchlistData = parseWatchlistJson(jsonString)
+                    _watchlistItems.value = watchlistData
+                    _lastWatchlistUpdate.value = System.currentTimeMillis()
+                    android.util.Log.i("ForexViewModel", "✅ Loaded ${watchlistData.size} items from AI watchlist")
+                } else {
+                    android.util.Log.w("ForexViewModel", "⚠️ AI watchlist not found, using empty list")
+                    _watchlistItems.value = emptyList()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ForexViewModel", "Failed to load AI watchlist: ${e.message}", e)
+                _watchlistItems.value = emptyList()
+            }
+        }
+    }
+
+    private fun parseWatchlistJson(json: String): List<WatchlistItem> {
+        val jsonObject = JSONObject(json)
+        val itemsArray = jsonObject.getJSONArray("items")
+        val items = mutableListOf<WatchlistItem>()
+        
+        for (i in 0 until itemsArray.length()) {
+            val item = itemsArray.getJSONObject(i)
+            items.add(
+                WatchlistItem(
+                    id = item.getString("id"),
+                    assetName = item.getString("assetName"),
+                    status = item.getString("status"),
+                    confidence = item.getInt("confidence"),
+                    newsRisk = item.getString("newsRisk"),
+                    moveProbability = item.getInt("moveProbability"),
+                    priority = item.getInt("priority"),
+                    preMoveSignal = item.getString("preMoveSignal"),
+                    volatilityScore = item.getInt("volatilityScore"),
+                    triggerEvent = item.optString("triggerEvent", ""),
+                    timeToEvent = item.optString("timeToEvent", ""),
+                    price = item.optDouble("price", 0.0),
+                    changePercent = item.optDouble("changePercent", 0.0),
+                    category = try {
+                        MarketCategory.valueOf(item.getString("category"))
+                    } catch (e: Exception) {
+                        MarketCategory.FOREX
+                    },
+                    rationale = item.optString("rationale", ""),
+                    isNew = item.optBoolean("isNew", false),
+                    addedAt = item.optLong("addedAt", System.currentTimeMillis())
+                )
+            )
+        }
+        
+        return items
+    }
+
     fun setWatchlistSort(mode: WatchlistSortMode) { _watchlistSortMode.value = mode }
     fun setWatchlistCategoryFilter(category: MarketCategory?) { _watchlistCategoryFilter.value = category }
     fun toggleWatchlistCompactMode() { _watchlistCompactMode.value = !_watchlistCompactMode.value }
@@ -382,10 +411,13 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     fun unhideAllWatchlistItems() { _hiddenWatchlistIds.value = emptySet() }
     fun refreshWatchlist() {
         _isWatchlistAnalyzing.value = true
+        _lastWatchlistUpdate.value = System.currentTimeMillis()
+        
+        // Reload from AI
+        loadWatchlistFromAI()
+        
         viewModelScope.launch {
-            delay(1200)
-            _watchlistItems.value = _watchlistItems.value.map { it.copy(isNew = false) }
-            _lastWatchlistUpdate.value = System.currentTimeMillis()
+            delay(1000)  // Simulate analysis
             _isWatchlistAnalyzing.value = false
         }
     }
@@ -525,18 +557,13 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
     val allMacroEvents = _allMacroEvents.asStateFlow()
 
     // In-app notifications (persisted elsewhere later). Track seen/unseen state here.
-    private val _inAppNotifications = MutableStateFlow<List<com.asc.markets.data.NotificationModel>>(
-        listOf(
-            com.asc.markets.data.NotificationModel(id = "n1", type = "SYSTEM", msg = "Analytical engine updated � new model deployed.", time = "2m ago", severity = "INFO", seen = false),
-            com.asc.markets.data.NotificationModel(id = "n2", type = "TRADE", msg = "Order #4521 executed: 100 BTC @ 42,100.", time = "12m ago", severity = "WARNING", seen = false),
-            com.asc.markets.data.NotificationModel(id = "n3", type = "SECURITY", msg = "Login from new device � location: Berlin.", time = "1h ago", severity = "CRITICAL", seen = false)
-        )
-    )
+    private val _inAppNotifications = MutableStateFlow<List<com.asc.markets.data.NotificationModel>>(emptyList())
+    private val _inAppNotifications_OLD_DUMMY = MutableStateFlow<List<com.asc.markets.data.NotificationModel>>(emptyList())
     val inAppNotifications = _inAppNotifications.asStateFlow()
 
-    private val _unreadCount = MutableStateFlow( _inAppNotifications.value.count { !it.seen } )
+    private val _unreadCount = MutableStateFlow(0)
     val unreadCount = _unreadCount.asStateFlow()
-    private val _alertNotificationCount = MutableStateFlow(calculateAlertNotificationCount(_inAppNotifications.value))
+    private val _alertNotificationCount = MutableStateFlow(0)
     val alertNotificationCount = _alertNotificationCount.asStateFlow()
 
     // Filtered list intended for the MacroStream view � ensure ~90% UPCOMING vs CONFIRMED
@@ -770,7 +797,7 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             delay(1000)
             // Subscribe to FOREX, commodities, and indices via Deriv (primary source)
-            listOf("EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "XAU/USD", "XAG/USD", "USOIL", "NAS100", "US30", "SPX500").forEach { symbol ->
+            listOf("EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "XAU/USD", "XAG/USD", "Crude-F", "Brent-F", "NAS100", "US30", "SPX500").forEach { symbol ->
                 derivService.subscribe(symbol)
             }
         }
@@ -1158,6 +1185,18 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
             // Initial AI deployments fetch
             aiRepository.fetchLatestDeployments()
 
+            // Start periodic AI deployments polling for real-time updates
+            viewModelScope.launch(Dispatchers.IO) {
+                while (isActive) {
+                    delay(AI_DEPLOYMENTS_POLL_INTERVAL_MS) // Poll every 5 seconds for real-time updates
+                    try {
+                        aiRepository.fetchLatestDeployments()
+                    } catch (e: Exception) {
+                        android.util.Log.e("ForexViewModel", "Error fetching AI deployments: ${e.message}")
+                    }
+                }
+            }
+
             // Synchronize AI state with Dashboard Data Providers for legacy widget compatibility
             viewModelScope.launch {
                 aiDeployments.filterNotNull().collect { res ->
@@ -1224,6 +1263,53 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _inAppNotifications.value = updated
         _unreadCount.value = 0
         _alertNotificationCount.value = 0
+    }
+
+    fun appendInAppNotification(notification: com.asc.markets.data.NotificationModel) {
+        val updated = listOf(notification) + _inAppNotifications.value
+        _inAppNotifications.value = updated
+        _unreadCount.value = updated.count { !it.seen }
+        _alertNotificationCount.value = calculateAlertNotificationCount(updated)
+    }
+
+    /**
+     * Centralised helper: register a VigilanceNode by appending both an AuditRecord
+     * and an in-app notification.  Call this from AlertsScreen / CreateAlertScreen
+     * instead of duplicating the logic in each Composable.
+     */
+    fun registerVigilanceNode(node: com.asc.markets.logic.VigilanceNode, prefix: String = "Alert") {
+        val impact = when {
+            node.confidenceScore >= 75 -> "CRITICAL"
+            node.confidenceScore >= 50 -> "HIGH"
+            else -> "INFO"
+        }
+        appendAuditRecord(
+            com.asc.markets.data.AuditRecord(
+                id = node.id,
+                headline = node.description.ifEmpty { node.trigger },
+                impact = impact,
+                confidence = node.confidenceScore,
+                assets = node.pair,
+                status = "ACTIVE",
+                timeUtc = System.currentTimeMillis(),
+                reasoning = node.description,
+                nodeId = node.id,
+                integrityHash = ""
+            )
+        )
+        appendInAppNotification(
+            com.asc.markets.data.NotificationModel(
+                id = java.util.UUID.randomUUID().toString(),
+                type = "ALERT",
+                msg = "$prefix: ${node.description.ifEmpty { node.trigger }}",
+                time = "Just now",
+                severity = impact,
+                seen = false,
+                symbol = node.pair,
+                timeframe = node.timeframe,
+                targetView = com.asc.markets.data.AppView.TRADING_ASSISTANT.name
+            )
+        )
     }
 
     private fun calculateAlertNotificationCount(
@@ -1437,6 +1523,14 @@ class ForexViewModel(application: Application) : AndroidViewModel(application) {
         _selectedPair.value = livePairSnapshot(pair.symbol) ?: pair
         _currentView.value = AppView.DASHBOARD
     }
+    
+    /**
+     * Select a pair without changing the current view (no navigation).
+     * Use this when updating selection from within a screen that should stay active.
+     */
+    fun selectPairNoNavigate(pair: ForexPair) {
+        _selectedPair.value = livePairSnapshot(pair.symbol) ?: pair
+    }
 
     fun selectPairBySymbol(symbol: String) {
         val pair = livePairSnapshot(symbol)
@@ -1524,7 +1618,11 @@ ChartFeedType.EXNESS -> {
                         }
                         ChartFeedType.PEPPERSTONE_CTRADER -> {
                             cTraderBridgeClient.requestAccountStatus()
-                            "I�m requesting Pepperstone account status now."
+                            "I'm requesting Pepperstone account status now."
+                        }
+                        ChartFeedType.PEPPERSTONE_DEMO -> {
+                            cTraderBridgeClient.requestAccountStatus()
+                            "I'm requesting Pepperstone Demo account status now."
                         }
                     }
                 }
@@ -1913,13 +2011,31 @@ ChartFeedType.EXNESS -> {
                 appendLine("calendar_shared_next_holiday_ai=${event.isoDateTime} ${event.currencyCode} ${event.title}")
             }
 
-            display?.events?.take(3)?.forEach { event ->
+            val sortedDisplayEvents = display?.events?.sortedWith(compareByDescending<com.trading.app.models.EconomicCalendarDisplayEvent> {
+                when (it.importance.lowercase(Locale.US)) {
+                    "high" -> 3
+                    "medium" -> 2
+                    "low" -> 1
+                    else -> 0
+                }
+            }.thenBy { it.releaseTimeLabel }) ?: emptyList()
+
+            sortedDisplayEvents.take(15).forEach { event ->
                 appendLine(
                     "calendar_shared_display_event=${event.releaseTimeLabel} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance}"
                 )
             }
 
-            ai?.events?.take(3)?.forEach { event ->
+            val sortedAiEvents = ai?.events?.sortedWith(compareByDescending<com.trading.app.models.EconomicCalendarAiEvent> {
+                when (it.importance.lowercase(Locale.US)) {
+                    "high" -> 3
+                    "medium" -> 2
+                    "low" -> 1
+                    else -> 0
+                }
+            }.thenBy { it.isoDateTime }) ?: emptyList()
+
+            sortedAiEvents.take(15).forEach { event ->
                 appendLine(
                     "calendar_shared_event=${event.isoDateTime} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance}"
                 )
@@ -2092,7 +2208,7 @@ ChartFeedType.EXNESS -> {
         return when (page) {
             null -> buildGlobalFocusedContext()
             AppView.CALENDAR -> buildCalendarFocusedContext()
-            AppView.NEWS -> buildNewsFocusedContext()
+            AppView.NEWS, AppView.ANALYSIS_OPINION -> buildNewsFocusedContext()
             AppView.MACRO_STREAM -> buildMacroFocusedContext()
             AppView.MARKET_STATUS -> buildMarketStatusFocusedContext()
             AppView.WATCHLIST -> buildWatchlistFocusedContext()
@@ -2102,7 +2218,7 @@ ChartFeedType.EXNESS -> {
             AppView.MARKET_WATCH -> buildMarketWatchFocusedContext()
             AppView.MARKETS -> buildMarketsFocusedContext()
             AppView.STREAM, AppView.INTELLIGENCE_STREAM, AppView.SENTIMENT -> buildStreamFocusedContext()
-            AppView.ALERTS, AppView.NOTIFICATIONS, AppView.HOME_ALERTS, AppView.MY_ALERTS -> buildNotificationsFocusedContext()
+            AppView.ALERTS, AppView.CREATE_ALERT, AppView.NOTIFICATIONS, AppView.PUSH_SETTINGS, AppView.HOME_ALERTS, AppView.MY_ALERTS -> buildNotificationsFocusedContext()
             AppView.LIQUIDITY_HUB -> buildLiquidityFocusedContext()
             AppView.ANALYSIS_RESULTS -> buildAnalysisResultsFocusedContext()
             AppView.TRADE_DASHBOARD -> buildTradeDashboardFocusedContext()
@@ -2128,6 +2244,7 @@ ChartFeedType.EXNESS -> {
         return listOf(
             AppView.CALENDAR,
             AppView.NEWS,
+            AppView.ANALYSIS_OPINION,
             AppView.MACRO_STREAM,
             AppView.MARKET_STATUS,
             AppView.WATCHLIST,
@@ -2140,7 +2257,9 @@ ChartFeedType.EXNESS -> {
             AppView.INTELLIGENCE_STREAM,
             AppView.SENTIMENT,
             AppView.ALERTS,
+            AppView.CREATE_ALERT,
             AppView.NOTIFICATIONS,
+            AppView.PUSH_SETTINGS,
             AppView.HOME_ALERTS,
             AppView.MY_ALERTS,
             AppView.LIQUIDITY_HUB,
@@ -2186,7 +2305,17 @@ ChartFeedType.EXNESS -> {
                 appendLine("calendar_display_header=${payload.headerDateLabel}")
                 appendLine("calendar_display_last_updated=${payload.lastUpdatedIso}")
                 appendLine("calendar_display_event_count=${payload.events.size}")
-                payload.events.take(8).forEach { event ->
+                
+                val sortedEvents = payload.events.sortedWith(compareByDescending<com.trading.app.models.EconomicCalendarDisplayEvent> {
+                    when (it.importance.lowercase(Locale.US)) {
+                        "high" -> 3
+                        "medium" -> 2
+                        "low" -> 1
+                        else -> 0
+                    }
+                }.thenBy { it.releaseTimeLabel })
+                
+                sortedEvents.take(25).forEach { event ->
                     appendLine(
                         "calendar_display_event=${event.releaseTimeLabel} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance} impact_direction=${event.impactDirection} all_day=${event.isAllDay} speech_or_report=${event.isSpeechOrReport}"
                     )
@@ -2198,7 +2327,17 @@ ChartFeedType.EXNESS -> {
                 appendLine("calendar_ai_selected_date=${payload.selectedDateIso}")
                 appendLine("calendar_ai_range=${payload.rangeStartIso} -> ${payload.rangeEndIso}")
                 appendLine("calendar_ai_event_count=${payload.events.size}")
-                payload.events.take(8).forEach { event ->
+                
+                val sortedEvents = payload.events.sortedWith(compareByDescending<com.trading.app.models.EconomicCalendarAiEvent> {
+                    when (it.importance.lowercase(Locale.US)) {
+                        "high" -> 3
+                        "medium" -> 2
+                        "low" -> 1
+                        else -> 0
+                    }
+                }.thenBy { it.isoDateTime })
+                
+                sortedEvents.take(25).forEach { event ->
                     appendLine(
                         "calendar_ai_event=${event.isoDateTime} ${event.currencyCode} ${event.title} actual=${event.actual} forecast=${event.forecast} previous=${event.previous} importance=${event.importance} impact_direction=${event.impactDirection} processed=${event.processed}"
                     )
@@ -3064,3 +3203,4 @@ ChartFeedType.EXNESS -> {
         tiingoFxManager?.disconnect()
     }
 }
+

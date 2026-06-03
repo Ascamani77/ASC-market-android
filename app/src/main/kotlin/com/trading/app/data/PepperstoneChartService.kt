@@ -32,7 +32,7 @@ class PepperstoneChartService(
     private val onQuoteUpdate: (SymbolQuote) -> Unit,
     private val onHistoryUpdate: (String, List<OHLCData>) -> Unit = { _, _ -> },
     // Redis configuration for AI pipeline
-    private val redisHost: String = "10.164.138.133",
+    private val redisHost: String = "192.168.1.198",
     private val redisPort: Int = 6379,
     private val redisPassword: String? = null,
     private val redisUseSsl: Boolean = false,

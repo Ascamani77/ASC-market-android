@@ -89,7 +89,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text(
-                                    "UNIFIED DATA\nBUS",
+                                    "Unified Data\nBus",
                                     color = Color.White,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
@@ -99,7 +99,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 Spacer(modifier = Modifier.height(4.dp))
 
                                 Text(
-                                    "CORE REPOSITORY\nHEARTBEAT",
+                                    "Core Repository\nHeartbeat",
                                     color = SlateText,
                                     fontSize = 11.sp,
                                     lineHeight = 13.sp
@@ -111,7 +111,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 horizontalAlignment = Alignment.End
                             ) {
                                 Text(
-                                    "TOTAL THROUGHPUT",
+                                    "Total Throughput",
                                     color = SlateText,
                                     fontSize = 10.sp
                                 )
@@ -132,7 +132,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    "AGG. LATENCY",
+                                    "Agg. Latency",
                                     color = SlateText,
                                     fontSize = 10.sp
                                 )
@@ -164,7 +164,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "REPOSITORY FLOW MONITOR",
+                        "Repository Flow Monitor",
                         color = IndigoAccent,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -190,7 +190,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                         ) {
                             if (logs.isEmpty()) {
                                 Text(
-                                    "WAITING FOR EVENTS...",
+                                    "Waiting for events...",
                                     color = SlateText,
                                     fontSize = 10.sp
                                 )
@@ -207,7 +207,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                     LogLine(log.level, "[$timeStr] ${log.message}", color)
                                 }
                             }
-                            LogLine("[WAIT]", "LISTENING_FOR_EVENT_REDUX...", Color(0xFF9E9E9E))
+                            LogLine("[WAIT]", "Listening for event redux...", Color(0xFF9E9E9E))
                         }
                     }
                 }
@@ -235,7 +235,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                "THROUGHPUT PULSE",
+                                "Throughput Pulse",
                                 color = IndigoAccent,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -274,7 +274,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        "BUFFER LOAD",
+                                        "Buffer Load",
                                         color = SlateText,
                                         fontSize = 9.sp
                                     )
@@ -284,7 +284,7 @@ fun DataHubScreen(viewModel: ForexViewModel = viewModel()) {
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                "NODE CAPACITY OPTIMIZED FOR 100K\nEVENTS/SEC. CURRENT LOAD IS NOMINAL\nFOR STANDARD LIQUIDITY SESSIONS.",
+                                "Node capacity optimized for 100K\nevents/sec. Current load is nominal\nfor standard liquidity sessions.",
                                 color = SlateText,
                                 fontSize = 9.sp,
                                 lineHeight = 11.sp,
@@ -311,6 +311,11 @@ fun RelayCard(relay: com.asc.markets.data.RelayData) {
         relay.buffer > 80 -> Color(0xFFFFC700)
         else -> Color(0xFF2EE08A)
     }
+    
+    // Determine if relay is active based on buffer > 0 or latency > 0
+    val isActive = relay.buffer > 0.0 || relay.latency > 0.0
+    val statusColor = if (isActive) Color(0xFF00D050) else Color(0xFF666666)
+    val statusText = if (isActive) "ACTIVE" else "IDLE"
 
     Surface(
         modifier = Modifier
@@ -339,15 +344,23 @@ fun RelayCard(relay: com.asc.markets.data.RelayData) {
                     fontWeight = FontWeight.Bold
                 )
 
-                // Green status indicator
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(
-                            color = Color(0xFF00D050),
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        statusText,
+                        color = statusColor,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                color = statusColor,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -361,28 +374,37 @@ fun RelayCard(relay: com.asc.markets.data.RelayData) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "LATENCY",
+                    "Latency",
                     color = SlateText,
                     fontSize = 10.sp
                 )
 
                 Text(
-                    "${relay.latency}MS",
-                    color = Color.White,
+                    if (isActive) "${relay.latency.toInt()}MS" else "—",
+                    color = if (isActive) Color.White else Color(0xFF666666),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            // Latency progress bar
-            LinearProgressIndicator(
-                progress = (relay.latency / 50).coerceAtMost(1.0).toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp),
-                color = Color(0xFF5E9cff),
-                trackColor = Color(0xFF1B1B2F)
-            )
+            // Latency progress bar (only show if active)
+            if (isActive) {
+                LinearProgressIndicator(
+                    progress = (relay.latency / 50).coerceAtMost(1.0).toFloat(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = Color(0xFF5E9cff),
+                    trackColor = Color(0xFF1B1B2F)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Color(0xFF1B1B2F), RoundedCornerShape(2.dp))
+                )
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -395,32 +417,41 @@ fun RelayCard(relay: com.asc.markets.data.RelayData) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "SATURATING BUFFER",
+                    "Buffer Load",
                     color = SlateText,
                     fontSize = 10.sp
                 )
 
                 Text(
-                    "${relay.buffer}%",
-                    color = Color.White,
+                    if (isActive) "${relay.buffer.toInt()}%" else "—",
+                    color = if (isActive) Color.White else Color(0xFF666666),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            // Buffer progress bar
-            LinearProgressIndicator(
-                progress = (relay.buffer / 100).toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp),
-                color = bufferColor,
-                trackColor = Color(0xFF1B1B2F)
-            )
+            // Buffer progress bar (only show if active)
+            if (isActive) {
+                LinearProgressIndicator(
+                    progress = (relay.buffer / 100).toFloat(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = bufferColor,
+                    trackColor = Color(0xFF1B1B2F)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Color(0xFF1B1B2F), RoundedCornerShape(2.dp))
+                )
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Footer with ID and ACTIVE RELAY
+            // Footer with ID and status
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -435,7 +466,7 @@ fun RelayCard(relay: com.asc.markets.data.RelayData) {
                 )
 
                 Text(
-                    "ACTIVE RELAY",
+                    if (isActive) "Relay Active" else "Standby",
                     color = SlateText,
                     fontSize = 9.sp
                 )

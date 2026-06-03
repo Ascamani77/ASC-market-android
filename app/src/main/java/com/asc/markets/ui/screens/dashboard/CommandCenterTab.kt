@@ -134,7 +134,7 @@ fun CommandCenterTab(viewModel: ForexViewModel) {
             )
         }
 
-        // 3. TOP AI SIGNALS (Compact)
+        // TOP AI SIGNALS (Compact)
         item {
             CompactSignalsWidget(topSignals, viewModel)
         }
@@ -562,29 +562,245 @@ private fun PreMoveIntelligenceBoard(
                     PreMoveScale("MTF Alignment", mtfAlignment, "Mixed", "Aligned", EmeraldSuccess)
                 }
             }
-
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IntelligenceTile("1 Ignition", percentText(ignition), "Pre-move decile $decile", ignition, EmeraldSuccess, Modifier.weight(1f))
                 IntelligenceTile("2 Confluence", "$confluenceCount/$confluenceTotal", percentText(confluence), confluence, IndigoAccent, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IntelligenceTile("3 Entry Timing", entryWindow, "Quality ${percentText(entryQuality)}", entryQuality, EmeraldSuccess, Modifier.weight(1f))
-                IntelligenceTile("4 Exit Logic", exitPlan, "Pressure ${percentText(exitPressure)}", exitPressure, if (exitPressure >= 0.62f) RoseError else IndigoAccent, Modifier.weight(1f))
+                IntelligenceTile("3 Entry Timing", aiStatusDisplayText(entryWindow), "Quality ${percentText(entryQuality)}", entryQuality, EmeraldSuccess, Modifier.weight(1f))
+                IntelligenceTile("4 Exit Logic", aiStatusDisplayText(exitPlan), "Pressure ${percentText(exitPressure)}", exitPressure, if (exitPressure >= 0.62f) RoseError else IndigoAccent, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IntelligenceTile("5 Position Size", percentText(positionScale), "${riskPercentText(riskPct)} • ${moneyText(riskAmount)}", positionScale, EmeraldSuccess, Modifier.weight(1f))
-                IntelligenceTile("6 Correlation", correlationRegime, correlationWarning, correlationRisk, if (correlationRisk >= 0.7f) RoseError else IndigoAccent, Modifier.weight(1f))
+                IntelligenceTile("6 Correlation", aiStatusDisplayText(correlationRegime), aiStatusDisplayText(correlationWarning), correlationRisk, if (correlationRisk >= 0.7f) RoseError else IndigoAccent, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IntelligenceTile("7 Regime", "Persist ${percentText(persistence)}", "Shift ${percentText(transition)}", persistence, IndigoAccent, Modifier.weight(1f))
-                IntelligenceTile("8 Structure", structuralLabel, "Pressure ${percentText(structural)}", structural, if (structural >= 0.72f) RoseError else IndigoAccent, Modifier.weight(1f))
+                IntelligenceTile("8 Structure", aiStatusDisplayText(structuralLabel), "Pressure ${percentText(structural)}", structural, if (structural >= 0.72f) RoseError else IndigoAccent, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IntelligenceTile("9 Direction", direction, "Score ${directionScoreText(directionalRaw)} • Conf ${percentText(directionConfidence)}", directionalScale, if (directionalRaw < -0.05f) RoseError else if (directionalRaw > 0.05f) EmeraldSuccess else Color.White, Modifier.weight(1f))
-                IntelligenceTile("10 Live / TF", timeframe, "$liveStatus • $liveCount ticks", if (liveStatus == "OFFLINE") 0.12f else mtfAlignment, if (liveStatus == "OFFLINE") RoseError else IndigoAccent, Modifier.weight(1f))
+                IntelligenceTile("10 Live / TF", timeframe, "${aiStatusDisplayText(liveStatus)} • $liveCount ticks", if (liveStatus == "OFFLINE") 0.12f else mtfAlignment, if (liveStatus == "OFFLINE") RoseError else IndigoAccent, Modifier.weight(1f))
             }
         }
     }
+}
+
+@Composable
+private fun AiReasoningStatusWidget(signal: FinalDecisionItem?) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val finalState = signal?.final_trade_state?.uppercase(Locale.US) ?: "REJECTED"
+    val rawReason = signal?.final_trade_reason?.takeIf { it.isNotBlank() }
+        ?: signal?.portfolio_decision_reason.orEmpty()
+    val reasons = rawReason
+        .split(" | ")
+        .mapNotNull { item ->
+            val formatted = aiStatusDisplayText(item, "")
+            formatted.takeIf { it.isNotBlank() }
+        }
+    val headerColor = when (finalState) {
+        "TRADE_CANDIDATE" -> EmeraldSuccess
+        "MANUAL_REVIEW" -> Color(0xFFF59E0B)
+        else -> RoseError
+    }
+
+    InfoBox(minHeight = if (isExpanded) 408.dp else 78.dp) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("AI REASONING", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        "${signal?.asset_1 ?: "SCANNING"} • ${aiStatusDisplayText(finalState)}",
+                        color = headerColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Surface(
+                    color = headerColor.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, headerColor.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        text = if (isExpanded) "COLLAPSE" else "EXPAND",
+                        color = headerColor,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            if (isExpanded) {
+                HorizontalDivider(color = headerColor.copy(alpha = 0.18f), thickness = 1.dp)
+                AiReasoningGateGrid(signal = signal)
+                AiReasoningFactorsSection(reasons = reasons, finalState = finalState, headerColor = headerColor)
+                AiReasoningFeederStatesSection(signal = signal)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiReasoningGateGrid(signal: FinalDecisionItem?) {
+    val gates = listOf(
+        Triple("ENTRY", aiStatusDisplayText(signal?.entry_state, "No Entry"), signal?.entry_state == "READY"),
+        Triple("CONFLUENCE", aiStatusDisplayText(signal?.confluence_state, "No Confluence"), signal?.confluence_state == "TRADEABLE_SETUP"),
+        Triple("PLAN", aiStatusDisplayText(signal?.plan_state, "No Plan"), signal?.plan_state == "PLAN_READY"),
+        Triple("EXECUTION", aiStatusDisplayText(signal?.execution_status, "Blocked"), signal?.execution_status == "READY"),
+        Triple("SIGNAL", aiStatusDisplayText(signal?.signal_quality_state, "No Signal Quality"), signal?.signal_quality_state in listOf("STRONG_SIGNAL", "ELITE_SIGNAL")),
+        Triple("RISK", aiStatusDisplayText(signal?.feeder_risk_state, "Risk Off"), signal?.feeder_risk_state != "RISK_OFF")
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("CRITICAL GATES", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        gates.chunked(2).forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (title, state, passed) ->
+                    AiReasoningGateTile(
+                        title = title,
+                        state = state,
+                        passed = passed,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (row.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiReasoningGateTile(
+    title: String,
+    state: String,
+    passed: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color = if (passed) EmeraldSuccess else RoseError
+    val meter = if (passed) 0.96f else 0.16f
+    Surface(
+        modifier = modifier,
+        color = Color.White.copy(alpha = 0.035f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.18f))
+    ) {
+        Column(modifier = Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(title, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(state, color = color, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (passed) "Gate Passed" else "Gate Blocking", color = Color.Gray, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(meter)
+                        .fillMaxHeight()
+                        .background(color, RoundedCornerShape(4.dp))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiReasoningFactorsSection(reasons: List<String>, finalState: String, headerColor: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (finalState == "TRADE_CANDIDATE") "APPROVAL FACTORS" else "BLOCKING FACTORS", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        if (reasons.isEmpty()) {
+            Text("No reasoning data available", color = Color.Gray, fontSize = 10.sp)
+        } else {
+            reasons.take(8).forEach { reason ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = headerColor.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, headerColor.copy(alpha = 0.15f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("▸", color = headerColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(reason, color = Color.White, fontSize = 10.sp, lineHeight = 14.sp)
+                    }
+                }
+            }
+            if (reasons.size > 8) {
+                Text("+ ${reasons.size - 8} more factors", color = SlateText, fontSize = 9.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiReasoningFeederStatesSection(signal: FinalDecisionItem?) {
+    val feederStates = listOf(
+        "REGIME" to aiStatusDisplayText(signal?.regime_state, "Unknown"),
+        "VOLATILITY" to aiStatusDisplayText(signal?.feeder_volatility_state, "Unknown"),
+        "STRUCTURE" to aiStatusDisplayText(signal?.structure_state, "Unknown"),
+        "TREND" to aiStatusDisplayText(signal?.trend_state, "Unknown"),
+        "LIQUIDITY" to aiStatusDisplayText(signal?.feeder_liquidity_state, "Unknown"),
+        "INDICATOR" to aiStatusDisplayText(signal?.feeder_indicator_state, "Unknown")
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("KEY FEEDER STATES", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White.copy(alpha = 0.025f),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+        ) {
+            Column(modifier = Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                feederStates.forEach { (label, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(value, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun aiStatusDisplayText(value: String?, fallback: String = "Unknown"): String {
+    val raw = value?.trim().orEmpty()
+    if (raw.isBlank()) return fallback
+    val parts = raw.split("=", limit = 2)
+    return if (parts.size == 2) {
+        "${aiStatusWords(parts[0])}: ${aiStatusWords(parts[1])}"
+    } else {
+        aiStatusWords(raw)
+    }
+}
+
+private fun aiStatusWords(raw: String): String {
+    return raw
+        .trim()
+        .split(Regex("[_\\s]+"))
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { token ->
+            val upper = token.uppercase(Locale.US)
+            when {
+                upper in setOf("AI", "USD", "USDT", "BTC", "ETH", "XAU", "XAG", "ATR", "MTF", "TF", "FX", "BOS", "CHOCH") -> upper
+                token.any { it.isDigit() } -> upper
+                else -> token.lowercase(Locale.US).replaceFirstChar { ch -> ch.titlecase(Locale.US) }
+            }
+        }
 }
 
 @Composable
@@ -752,7 +968,7 @@ private fun TopSignalVisualRow(signal: FinalDecisionItem, rank: Int) {
                     Text(signal.asset_1 ?: "---", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1)
                     Text(bias, color = color, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
-                Text(signal.journal_label ?: signal.portfolio_decision_label ?: "pre-move candidate", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(aiStatusDisplayText(signal.journal_label ?: signal.portfolio_decision_label, "Pre Move Candidate"), color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             SignalStrengthMiniChart(score = ignition, color = color, modifier = Modifier.width(72.dp).height(30.dp))
             Column(horizontalAlignment = Alignment.End) {

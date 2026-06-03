@@ -61,8 +61,8 @@ object OrderBookStore {
     private const val tag = "OrderBookStore"
     private const val levelLimit = 8
     private const val tradeLimit = 7
-    private const val liveRefreshMs = 2_000L
-    private const val fallbackRefreshMs = 4_000L
+    private const val liveRefreshMs = 250L
+    private const val fallbackRefreshMs = 250L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val monitor = Any()
@@ -255,7 +255,8 @@ object OrderBookStore {
             baseQuantity = baseQuantity,
             signature = signature,
             trendBias = trendBias,
-            isBid = true
+            isBid = true,
+            timeNow = timeNow
         )
         val asks = buildSideLevels(
             centerPrice = currentPrice,
@@ -263,7 +264,8 @@ object OrderBookStore {
             baseQuantity = baseQuantity,
             signature = signature,
             trendBias = trendBias,
-            isBid = false
+            isBid = false,
+            timeNow = timeNow
         )
 
         val recentHistory = history.takeLast(tradeLimit + 1).ifEmpty { List(tradeLimit + 1) { currentPrice } }
@@ -278,7 +280,7 @@ object OrderBookStore {
                     else -> OrderTradeSide.SELL
                 }
                 val quantity =
-                    (baseQuantity * 0.16 * stableWave(signature, index, if (directionalBias == OrderTradeSide.BUY) 0.33 else 1.21))
+                    (baseQuantity * 0.16 * stableWave(signature, index, if (directionalBias == OrderTradeSide.BUY) 0.33 else 1.21, timeNow))
                         .coerceAtLeast(baseQuantity * 0.04)
 
                 add(
@@ -310,7 +312,8 @@ object OrderBookStore {
         baseQuantity: Double,
         signature: Int,
         trendBias: Double,
-        isBid: Boolean
+        isBid: Boolean,
+        timeNow: Long
     ): List<OrderBookLevel> {
         val directionalBias = if (isBid) max(trendBias, 0.0) else max(-trendBias, 0.0)
         val rawLevels = mutableListOf<Pair<Double, Double>>()
@@ -318,7 +321,7 @@ object OrderBookStore {
         for (level in 1..levelLimit) {
             val offset = tickSize * level
             val price = if (isBid) centerPrice - offset else centerPrice + offset
-            val wave = stableWave(signature, level, if (isBid) 0.65 else 1.55)
+            val wave = stableWave(signature, level, if (isBid) 0.65 else 1.55, timeNow)
             val quantity = (
                 baseQuantity *
                     (1.0 + (level * 0.18)) *
@@ -421,9 +424,12 @@ object OrderBookStore {
         return symbolKey(symbol).fold(0) { acc, char -> (acc * 31) + char.code }
     }
 
-    private fun stableWave(signature: Int, index: Int, offset: Double): Double {
-        val angle = (signature * 0.013) + (index * 0.77) + offset
-        return 0.78 + ((sin(angle) + 1.0) * 0.24)
+    private fun stableWave(signature: Int, index: Int, offset: Double, timeNow: Long = 0L): Double {
+        val timeShift = if (timeNow > 0L) (timeNow % 60_000L) / 1000.0 else 0.0
+        val angle = (signature * 0.013) + (index * 0.77) + offset + (timeShift * 1.5)
+        // Add high-frequency noise based on time so it jitters on every refresh
+        val noise = if (timeNow > 0L) (sin(timeNow / 100.0) * 0.08) else 0.0
+        return 0.78 + ((sin(angle) + 1.0) * 0.24) + noise
     }
 
     private fun baseLiquidityFor(category: MarketCategory, price: Double): Double {
@@ -448,7 +454,8 @@ object OrderBookStore {
             normalized.endsWith("USD") && price >= 1_000.0 -> 0.1
             normalized.contains("XAU") -> 0.1
             normalized.contains("XAG") -> 0.01
-            normalized.contains("USOIL") -> 0.01
+            normalized.contains("Crude-F") || normalized.contains("USOIL") -> 0.01
+            normalized.contains("Brent-F") || normalized.contains("UKOIL") -> 0.01
             normalized.contains("SPX") || normalized.contains("NAS") || normalized.contains("US30") -> 1.0
             normalized.length == 6 && price < 10.0 -> 0.0001
             price >= 1_000.0 -> 0.5

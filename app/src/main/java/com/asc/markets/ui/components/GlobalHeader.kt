@@ -38,7 +38,7 @@ fun GlobalHeader(
     unreadCount: Int = 0
 ) {
     Surface(
-        color = Color.Transparent,
+        color = PureBlack,
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)

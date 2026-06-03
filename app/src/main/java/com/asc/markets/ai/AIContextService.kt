@@ -290,6 +290,7 @@ object AIContextService {
                     direction = item.optString("journal_direction", "NEUTRAL").uppercase(),
                     confidence = item.optDouble("journal_confidence", 0.5),
                     score = item.optInt("journal_score", 50),
+                    preMoveScore = item.optDouble("pre_move_ai_score", 0.0),
                     reason = item.optString("portfolio_decision_reason", "No reason provided"),
                     deploymentBucket = item.optString("portfolio_deployment_bucket", "MEDIUM").uppercase(),
                     timestamp = System.currentTimeMillis()

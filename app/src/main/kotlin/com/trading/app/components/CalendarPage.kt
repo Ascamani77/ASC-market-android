@@ -69,12 +69,6 @@ fun CalendarPage(
             .background(Color(0xFF000000))
             .statusBarsPadding()
     ) {
-        CalendarHeader(
-            title = "Tradays",
-            onBack = onBack,
-            onRefresh = onRefresh
-        )
-
         MonthStripHeader(
             monthLabel = monthLabel,
             onPreviousMonth = onPreviousMonth,

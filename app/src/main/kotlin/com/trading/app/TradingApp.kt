@@ -164,7 +164,7 @@ private fun persistNewsAiPayload(
 fun TradingApp(
     startInPaperTradingPanel: Boolean = false,
     onPaperTradingClose: (() -> Unit)? = null,
-    streamFeedType: ChartFeedType = ChartFeedType.PEPPERSTONE_CTRADER,
+    streamFeedType: ChartFeedType = ChartFeedType.PEPPERSTONE_DEMO,
     stateNamespace: String = "stream_${streamFeedType.prefValue}"
 ) {
     val context = LocalContext.current
@@ -359,8 +359,9 @@ fun TradingApp(
     fun liveTradeSourceName(): String = when (chartFeedType) {
         ChartFeedType.BINANCE -> if (binanceTradingMode == BinanceTradingMode.DEMO) "Binance Demo Trade" else "Binance Live Trade"
         ChartFeedType.BINANCE_CONNECT -> "Binance Connect (View Only)"
-        ChartFeedType.EXNESS -> "Exness Live Trade"
+        ChartFeedType.EXNESS -> "Exness Live"
         ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader Live"
+        ChartFeedType.PEPPERSTONE_DEMO -> "Pepperstone Demo"
     }
 
     fun liveTradeDefaultAccountLabel(): String = when (chartFeedType) {
@@ -368,6 +369,7 @@ fun TradingApp(
         ChartFeedType.BINANCE_CONNECT -> "Binance Connect (No Trading)"
         ChartFeedType.EXNESS -> "Exness MT5"
         ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader"
+        ChartFeedType.PEPPERSTONE_DEMO -> "Pepperstone Demo"
     }
 
     fun binanceTradingSymbol(symbol: String): String {
@@ -402,6 +404,14 @@ fun TradingApp(
     val cTraderHost = remember { NetworkConfig.cTraderHost(context) }
     val cTraderPort = remember { NetworkConfig.cTraderPort(context) }
 
+    // Trading States
+    val positions = remember { mutableStateListOf<Position>() }
+    val localPositions = remember { mutableStateListOf<Position>() }
+    val orders = remember { mutableStateListOf<Order>() }
+    val orderHistory = remember { mutableStateListOf<Order>() }
+    val balanceHistory = remember { mutableStateListOf<BalanceRecord>() }
+    var mt5AccountInfo by remember { mutableStateOf<Mt5Service.AccountInfo?>(null) }
+
     val reverseBridge = remember { 
         Mt5ReverseBridge(
             pcIpAddress = mt5Host,
@@ -433,13 +443,46 @@ fun TradingApp(
                     com.asc.markets.data.CombinedFallbackDataStore.updatePair(updatedPair)
                 }
             },
-            onConnectionStatusUpdate = { isConnected = it }
+            onAccountUpdate = { accountInfo ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    mt5AccountInfo = accountInfo
+                }
+            },
+            onPositionsUpdate = { newPositions ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    positions.clear()
+                    positions.addAll(newPositions)
+                }
+            },
+            onOrdersUpdate = { newOrders ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    orders.clear()
+                    orders.addAll(newOrders)
+                }
+            },
+            onHistoryOrdersUpdate = { newHistory ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    orderHistory.clear()
+                    orderHistory.addAll(newHistory)
+                }
+            },
+            onBalanceHistoryUpdate = { newBalanceHistory ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    balanceHistory.clear()
+                    balanceHistory.addAll(newBalanceHistory)
+                }
+            },
+            onConnectionStatusUpdate = { connected ->
+                if (chartFeedType == ChartFeedType.EXNESS) {
+                    isConnected = connected
+                }
+            }
         )
     }
 
     val pepperstoneQuoteService = remember {
         val prefs = context.getSharedPreferences("asc_prefs", android.content.Context.MODE_PRIVATE)
-        val redisHost = prefs.getString("redis_host", "10.164.138.133") ?: "10.164.138.133"
+        val redisHost = prefs.getString("redis_host", "192.168.1.198") ?: "192.168.1.198"
         val redisPort = prefs.getInt("redis_port", 6379)
         
         PepperstoneChartService(
@@ -509,7 +552,7 @@ fun TradingApp(
                 binanceConnectQuoteService.stopActiveStream()
                 mt5Service.updateWatchlist(watchlistSymbols.ifEmpty { sourceSymbols })
             }
-            ChartFeedType.PEPPERSTONE_CTRADER -> {
+            ChartFeedType.PEPPERSTONE_CTRADER, ChartFeedType.PEPPERSTONE_DEMO -> {
                 binanceQuoteService.stopActiveStream()
                 binanceConnectQuoteService.stopActiveStream()
                 pepperstoneQuoteService.subscribeSymbols(sourceSymbols, timeframe)
@@ -530,15 +573,23 @@ fun TradingApp(
     }
 
     LaunchedEffect(symbol, timeframe) {
-        val newPair = symbol to timeframe
-        val exists = recentPairs.any { it.first == symbol && it.second == timeframe }
-        // Only add to history if it's a new pair. Don't reorder existing ones to avoid UI jumping.
-        if (!exists) {
-            recentPairs.add(0, newPair)
-            if (recentPairs.size > 10) {
-                recentPairs.removeAt(recentPairs.size - 1)
+        // Ensure the symbol is valid for the current chart feed before adding to recent history
+        val isValidSymbol = availableQuotes.any { 
+            it.ticker.equals(symbol, ignoreCase = true) || 
+            it.brokerSymbol.equals(symbol, ignoreCase = true) 
+        }
+
+        if (isValidSymbol) {
+            val newPair = symbol to timeframe
+            val exists = recentPairs.any { it.first == symbol && it.second == timeframe }
+            // Only add to history if it's a new pair. Don't reorder existing ones to avoid UI jumping.
+            if (!exists) {
+                recentPairs.add(0, newPair)
+                if (recentPairs.size > 10) {
+                    recentPairs.removeAt(recentPairs.size - 1)
+                }
+                sharedPrefs.edit().putString(streamScopedKey("recent_pairs"), gson.toJson(recentPairs.toList())).apply()
             }
-            sharedPrefs.edit().putString(streamScopedKey("recent_pairs"), gson.toJson(recentPairs.toList())).apply()
         }
 
         val normalizedSymbol = symbol.trim()
@@ -550,14 +601,9 @@ fun TradingApp(
     val history = remember { mutableStateListOf<ChartSnapshot>() }
     val redoStack = remember { mutableStateListOf<ChartSnapshot>() }
     val userAlerts = remember { mutableStateOf(emptyList<UserAlert>()) }
-    val positions = remember { mutableStateListOf<Position>() }
-    val localPositions = remember { mutableStateListOf<Position>() }
-    val orders = remember { mutableStateListOf<Order>() }
-    val orderHistory = remember { mutableStateListOf<Order>() }
-    val balanceHistory = remember { mutableStateListOf<BalanceRecord>() }
-    var mt5AccountInfo by remember { mutableStateOf<Mt5Service.AccountInfo?>(null) }
     var liveTradeAccountLabel by remember(chartFeedType, binanceTradingMode) { mutableStateOf(liveTradeDefaultAccountLabel()) }
     var liveTradeRefreshToken by remember(streamStateNamespace) { mutableIntStateOf(0) }
+
     val cTraderTradingService = remember {
         CTraderService(
             onQuoteUpdate = { quote ->
@@ -719,7 +765,8 @@ fun TradingApp(
                 currentTradePriceChangePct = currentTradeQuote?.changePercent?.toDouble(),
                 currentTradePnl = currentTradePnl,
                 currentTradePnlPct = currentTradePnlPct,
-                currentQuoteUpdatedMillis = currentTradeQuote?.time?.takeIf { it > 0L } ?: if (currentTradeQuote != null) System.currentTimeMillis() else 0L
+                currentQuoteUpdatedMillis = currentTradeQuote?.time?.takeIf { it > 0L } ?: if (currentTradeQuote != null) System.currentTimeMillis() else 0L,
+                allPositions = paperPositions
             )
         }
     }
@@ -742,7 +789,7 @@ fun TradingApp(
                 cTraderTradingService.disconnect()
                 mt5Service.connect()
             }
-            ChartFeedType.PEPPERSTONE_CTRADER -> {
+            ChartFeedType.PEPPERSTONE_CTRADER, ChartFeedType.PEPPERSTONE_DEMO -> {
                 reverseBridge.disconnect()
                 mt5Service.disconnect()
                 cTraderTradingService.connect()
@@ -1098,7 +1145,7 @@ fun TradingApp(
                     }
                 }
             }
-            ChartFeedType.PEPPERSTONE_CTRADER -> {
+            ChartFeedType.PEPPERSTONE_CTRADER, ChartFeedType.PEPPERSTONE_DEMO -> {
                 if (orderType == "Market Execution") {
                     cTraderTradingService.placeMarketOrder(
                         symbol = brokerSymbolForTicker(position.symbol),
@@ -1183,7 +1230,7 @@ fun TradingApp(
                 }
                 return
             }
-            ChartFeedType.PEPPERSTONE_CTRADER -> {
+            ChartFeedType.PEPPERSTONE_CTRADER, ChartFeedType.PEPPERSTONE_DEMO -> {
                 cTraderTradingService.closePosition(position.id, position.volume.toDouble()) { success, message ->
                     Log.d("TradingApp", "Pepperstone close result for ${position.id}: success=$success message=$message")
                     if (success) {
@@ -1212,6 +1259,22 @@ fun TradingApp(
         if (idxLocal != -1) localPositions[idxLocal] = updatedPosition
         val idxRemote = positions.indexOfFirst { it.id == updatedPosition.id }
         if (idxRemote != -1) positions[idxRemote] = updatedPosition
+    }
+
+    // Kill Switch Listener
+    DisposableEffect(sharedPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "kill_switch_trigger") {
+                Log.w("TradingApp", "!!! KILL-SWITCH TRIGGERED !!! Closing all active positions.")
+                (positions + localPositions).toList().forEach { pos ->
+                    closeStreamPosition(pos)
+                }
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
 
     // Timezone list
@@ -1821,6 +1884,14 @@ fun TradingApp(
                                         renderProviderChart(resolvedChartFeedType, BinanceMarketType.FUTURES, providerChartData)
                                     }
                                 }
+                                ChartFeedType.PEPPERSTONE_DEMO -> {
+                                    TradingChartPepperstoneDemo(
+                                        symbol = symbol,
+                                        timeframe = timeframe
+                                    ) { resolvedChartFeedType, providerChartData ->
+                                        renderProviderChart(resolvedChartFeedType, BinanceMarketType.FUTURES, providerChartData)
+                                    }
+                                }
                                 ChartFeedType.EXNESS -> {
                                     TradingChartExness(
                                         symbol = symbol,
@@ -1964,6 +2035,12 @@ fun TradingApp(
 
                     val renderBottomBar = @Composable {
                         if (isTimezonePaneVisible) {
+                            // Filter recent pairs to only show those valid for the current chart feed
+                            val currentFeedSymbols = availableQuotes.map { it.ticker.uppercase(Locale.US) }.toSet()
+                            val filteredRecentPairs = recentPairs.filter { (symbol, _) ->
+                                symbol.uppercase(Locale.US) in currentFeedSymbols
+                            }
+
                             BottomBar(
                                 onRangeClick = { handleRangeChange(it) },
                                 onGoToClick = { showGoToDateModal = true },
@@ -1976,7 +2053,7 @@ fun TradingApp(
                                     }
                                 },
                                 activeTab = if (isBottomPanelVisible) activeTab else null,
-                                recentPairs = if (chartSettings.scales.hideAssetLastViewedPane) emptyList() else recentPairs,
+                                recentPairs = if (chartSettings.scales.hideAssetLastViewedPane) emptyList() else filteredRecentPairs,
                                 currentSymbol = symbol,
                                 currentTimeframe = timeframe,
                                 onPairSelect = { s: String, t: String ->
@@ -1987,6 +2064,7 @@ fun TradingApp(
                                 settings = chartSettings,
                                 currentQuote = currentLiveQuote,
                                 recentPairQuotes = recentPairQuotes,
+                                availableQuotes = availableQuotes,
                                 onAccountUpdate = { mt5AccountInfo = it },
                                 onVisibleSymbolsChanged = { symbols: List<String> ->
                                     visibleRecentSymbols.clear()
@@ -2046,9 +2124,10 @@ fun TradingApp(
                     balanceHistory = balanceHistory,
                     currentPrice = currentLiveQuote?.lastPrice ?: 0f,
                     quotePriceForSymbol = pepperstoneQuoteResolver,
-                    preferSnapshotStats = chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER,
+                    preferSnapshotStats = chartFeedType == ChartFeedType.PEPPERSTONE_CTRADER || chartFeedType == ChartFeedType.PEPPERSTONE_DEMO,
                     providerLabel = when (chartFeedType) {
                         ChartFeedType.PEPPERSTONE_CTRADER -> "Pepperstone cTrader"
+                        ChartFeedType.PEPPERSTONE_DEMO -> "Pepperstone Demo"
                         ChartFeedType.EXNESS -> "Exness"
                         ChartFeedType.BINANCE -> "Binance"
                         ChartFeedType.BINANCE_CONNECT -> "Binance Connect"
@@ -2059,6 +2138,24 @@ fun TradingApp(
                     isBrokerConnected = isConnected || mt5AccountInfo != null,
                     backgroundColor = appBackgroundColor,
                     onMarketTypeChange = null,
+                    onAccountChange = { newType ->
+                        networkPrefs.edit()
+                            .putString(ChartFeedType.STREAM_PREF_KEY, newType.prefValue)
+                            .apply()
+                    },
+                    onRefresh = {
+                        when (chartFeedType) {
+                            ChartFeedType.EXNESS -> {
+                                mt5Service.disconnect()
+                                mt5Service.connect()
+                            }
+                            ChartFeedType.PEPPERSTONE_CTRADER -> {
+                                cTraderTradingService.disconnect()
+                                cTraderTradingService.connect()
+                            }
+                            else -> {}
+                        }
+                    },
                     currentMarketType = "futures"
                 )
             }
@@ -2204,6 +2301,17 @@ fun TradingApp(
                     onOffsetChange = { quickActionsModalOffset = it }
                 )
             }
+
+            if (showNewsPage) {
+                NewsPage(
+                    newsItems = newsItems,
+                    isLoading = isNewsLoading && newsItems.isEmpty(),
+                    onBack = {
+                        showNewsPage = false
+                        isNewsLoading = false
+                    }
+                )
+            }
         }
 
         // Modals (Symbol Search, Currency, Indicators, Settings, Tool Search, Alert, Capture, TimeZone)
@@ -2212,7 +2320,7 @@ fun TradingApp(
                 onClose = { showQuotes = false },
                 quotes = availableQuotes,
                 onQuoteSelect = {
-                    symbol = chartFeedSymbolFor(chartFeedType, it)
+                    symbol = chartFeedSymbolFor(chartFeedType, it.ticker)
                 },
                 quotesByTicker = symbolQuotesByTicker,
                 onVisibleSymbolsChanged = { symbols ->
@@ -2324,7 +2432,7 @@ fun TradingApp(
                     showAnalysisHubModal = false
                 },
                 onNewsClick = {
-                    isNewsLoading = true
+                    isNewsLoading = newsItems.isEmpty()
                     showNewsPage = true
                     showAnalysisHubModal = false
                 }

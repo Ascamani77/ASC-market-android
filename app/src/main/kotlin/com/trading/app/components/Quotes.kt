@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -47,6 +49,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.trading.app.models.SymbolInfo
+import com.trading.app.data.ChartFeedType
+import com.trading.app.data.chartFeedQuotes
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
 
 private val defaultQuotesCatalog = listOf(
@@ -60,7 +66,9 @@ private val defaultQuotesCatalog = listOf(
     SymbolInfo("AUDUSD", "Australian Dollar / U.S. Dollar", "OANDA", "forex"),
     SymbolInfo("USDCAD", "U.S. Dollar / Canadian Dollar", "FXCM", "forex"),
     SymbolInfo("USDCHF", "U.S. Dollar / Swiss Franc", "FXCM", "forex"),
+    SymbolInfo("Crude-F", "WTI Crude Oil", "TVC", "commodity cfd"),
     SymbolInfo("USOIL", "WTI Crude Oil", "TVC", "commodity cfd"),
+    SymbolInfo("Brent-F", "Brent Crude Oil", "TVC", "commodity cfd"),
     SymbolInfo("US02Y", "United States 2Y Gov Bond", "TVC", "bond"),
     SymbolInfo("US10Y", "United States 10Y Gov Bond", "TVC", "bond"),
     SymbolInfo("SPX", "S&P 500 Index", "S&P", "index"),
@@ -95,8 +103,10 @@ private fun defaultBrokerSymbolFor(ticker: String, type: String): String {
     }
 }
 
-fun defaultQuoteSymbols(): List<SymbolInfo> = defaultQuotesCatalog.map { quote ->
-    quote.copy(brokerSymbol = defaultBrokerSymbolFor(quote.ticker, quote.type))
+fun defaultQuoteSymbols(): List<SymbolInfo> {
+    return chartFeedQuotes(ChartFeedType.BINANCE) +
+           chartFeedQuotes(ChartFeedType.EXNESS) +
+           chartFeedQuotes(ChartFeedType.PEPPERSTONE_CTRADER)
 }
 
 fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
@@ -212,7 +222,7 @@ private fun resolveQuoteForSymbol(
 fun Quotes(
     onClose: () -> Unit,
     quotes: List<SymbolInfo> = defaultQuoteSymbols(),
-    onQuoteSelect: (String) -> Unit,
+    onQuoteSelect: (SymbolInfo) -> Unit,
     quotesByTicker: Map<String, SymbolQuote> = emptyMap(),
     onVisibleSymbolsChanged: (List<String>) -> Unit = {}
 ) {
@@ -341,12 +351,10 @@ fun Quotes(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredQuotes) { item ->
-                        val liveQuote = resolveQuoteForSymbol(item, quotesByTicker)
                         QuoteListItem(
                             quoteInfo = item,
-                            quote = liveQuote,
                             onSelect = {
-                                onQuoteSelect(item.ticker)
+                                onQuoteSelect(item)
                                 onClose()
                             }
                         )
@@ -361,89 +369,75 @@ fun Quotes(
 @Composable
 fun QuoteListItem(
     quoteInfo: SymbolInfo,
-    quote: SymbolQuote?,
     onSelect: () -> Unit
 ) {
-    val changePercent = quote?.changePercent ?: 0f
-    val isUp = (quote?.change ?: changePercent) >= 0f
-    val numberColor = if (isUp) Color(0xFF089981) else Color(0xFFF23645)
-    val changeText = if (quote != null) {
-        "${formatSignedChange(quoteInfo.ticker, quote.change)} ${String.format(Locale.US, "%+.2f%%", quote.changePercent)}"
-    } else {
-        "--"
-    }
-
-    val displayPrice = quote?.let {
-        when {
-            it.lastPrice > 0f -> it.lastPrice
-            it.bid > 0f -> it.bid
-            else -> it.ask
-        }
-    }
-    val displayLow = quote?.let { if (it.low > 0f) it.low else (displayPrice ?: 0f) }
-    val displayHigh = quote?.let { if (it.high > 0f) it.high else (displayPrice ?: 0f) }
-    val displayBid = quote?.let { if (it.bid > 0f) it.bid else (displayPrice ?: 0f) }
-    val displayAsk = quote?.let { if (it.ask > 0f) it.ask else (displayPrice ?: 0f) }
-
-    val priceText = displayPrice?.let { formatQuoteValue(quoteInfo.ticker, it) } ?: "--"
-    val bidText = displayBid?.let { formatQuoteValue(quoteInfo.ticker, it) } ?: "--"
-    val askText = displayAsk?.let { formatQuoteValue(quoteInfo.ticker, it) } ?: "--"
-    val lowText = displayLow?.let { formatQuoteValue(quoteInfo.ticker, it) } ?: "--"
-    val highText = displayHigh?.let { formatQuoteValue(quoteInfo.ticker, it) } ?: "--"
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AssetIcon(quoteInfo)
-
+        AssetIcon(quoteInfo, size = 40)
+        
         Spacer(modifier = Modifier.width(16.dp))
-
+        
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = changeText,
-                color = if (quote == null) Color(0xFF787B86) else numberColor,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
                 text = quoteInfo.ticker,
-                color = Color(0xFFD1D4DC),
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.5.sp
-            )
-            Text(
-                text = quoteInfo.name,
-                color = Color(0xFF787B86),
-                fontSize = 12.sp,
-                maxLines = 1
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.widthIn(min = 150.dp)
-        ) {
-            Text(
-                text = priceText,
-                color = if (quote == null) Color(0xFF787B86) else numberColor,
+                color = Color.White,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Bid: $bidText   Ask: $askText",
+                text = quoteInfo.name,
                 color = Color(0xFF787B86),
-                fontSize = 10.sp
-            )
-            Text(
-                text = "L: $lowText   H: $highText",
-                color = Color(0xFF787B86),
-                fontSize = 10.sp
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = quoteInfo.exchange,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                SourceLogo(quoteInfo.exchange)
+            }
+            Text(
+                text = quoteInfo.type,
+                color = Color(0xFF787B86),
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun SourceLogo(exchange: String) {
+    val logoColor = when (exchange.lowercase()) {
+        "binance" -> Color(0xFFF3BA2F)
+        "exness" -> Color(0xFFFFD500)
+        "pepperstone" -> Color(0xFF0052FF)
+        else -> Color(0xFF787B86)
+    }
+    
+    Box(
+        modifier = Modifier
+            .size(16.dp)
+            .background(logoColor, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = exchange.take(1).uppercase(),
+            color = Color.Black,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black
+        )
     }
 }

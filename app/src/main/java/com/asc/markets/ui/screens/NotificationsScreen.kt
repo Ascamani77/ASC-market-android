@@ -1,189 +1,249 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.AppView
+import com.asc.markets.data.NotificationModel
 import com.asc.markets.ui.theme.*
 
 @Composable
 fun NotificationsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
-    // Local toggle row composable for this screen
-    @Composable
-    fun ToggleSetting(label: String, sub: String = "", checkedInitial: Boolean = true) {
-        var checked by remember { mutableStateOf(checkedInitial) }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    if (sub.isNotEmpty()) Text(sub, color = SlateText, fontSize = 12.sp)
-                }
-                Switch(checked = checked, onCheckedChange = { checked = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
-            }
-            Divider(color = Color.White.copy(alpha = 0.03f))
-        }
+    val notifications by viewModel.inAppNotifications.collectAsState()
+    var selectedFilter by remember { mutableStateOf("All") }
+    val tabs = listOf("All", "Volatility", "AI", "Orderbook", "Liquidations")
+    val filteredNotifications = remember(notifications, selectedFilter) {
+        notifications.filter { notification -> matchesInboxFilter(notification, selectedFilter) }
+    }
+    val unreadCount = notifications.count { !it.seen }
+    val actionableCount = notifications.count { it.symbol != null || it.targetView != null }
+
+    fun openNotification(notification: NotificationModel) {
+        viewModel.markNotificationSeen(notification.id)
+        notification.symbol?.let { viewModel.selectPairBySymbolNoNavigate(it) }
+        val targetView = notification.targetView?.let { route ->
+            runCatching { enumValueOf<AppView>(route) }.getOrNull()
+        } ?: notification.symbol?.let { AppView.TRADING_ASSISTANT }
+        targetView?.let { viewModel.navigateTo(it) }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(DeepBlack).verticalScroll(rememberScrollState()).padding(16.dp)) {
-        // Push Notifications Section
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Smartphone, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(12.dp))
-            Text("PUSH NOTIFICATIONS", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(8.dp))
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                ToggleSetting("ENABLE PUSH", "GLOBAL MASTER TOGGLE FOR DEVICE ALERTS", true)
-                ToggleSetting("MARKET ALERTS", "PRICE, STRUCTURE, AND TECHNICAL INDICATOR TRIGGERS", true)
-                ToggleSetting("NEWS ALERTS", "HIGH-IMPACT MACRO AND ASSET-SPECIFIC NEWS", true)
-                ToggleSetting("ORDER EXECUTION", "TRADE FILLS, STATUS CHANGES, AND EXECUTION LOGS", true)
-                // Critical with red disclaimer
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("CRITICAL RISK ALERTS", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Text("SECURITY, SYSTEM STATUS, AND LIQUIDATION RISK", color = SlateText, fontSize = 12.sp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DeepBlack)
+            .padding(vertical = 8.dp)
+    ) {
+        // Professional Top Bar with back arrow
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(
+                    onClick = { viewModel.navigateBack() },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Text(
+                    "NOTIFICATIONS",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = InterFontFamily
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(modifier = Modifier.size(32.dp)) {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.NotificationsActive, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                         }
-                        var critical by remember { mutableStateOf(true) }
-                        Switch(checked = critical, onCheckedChange = { critical = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
                     }
-                    Text("SYSTEM CRITICAL: MAY BYPASS QUIET MODE", color = RoseError, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
-                    Divider(color = Color.White.copy(alpha = 0.03f))
+                    if (unreadCount > 0) {
+                        Box(
+                            modifier = Modifier.align(Alignment.TopEnd),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                color = RoseError,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                fontFamily = InterFontFamily
+                            )
+                        }
+                    }
+                }
+                Text(
+                    "MARK ALL READ",
+                    color = IndigoAccent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = InterFontFamily,
+                    modifier = Modifier.clickable { viewModel.markAllNotificationsSeen() }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            items(tabs) { tab ->
+                val selected = selectedFilter == tab
+                Surface(
+                    color = Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) IndigoAccent.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.06f)),
+                    modifier = Modifier.clickable { selectedFilter = tab }
+                ) {
+                    Text(
+                        tab,
+                        color = if (selected) Color.White else SlateText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = InterFontFamily,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Delivery Control: Quiet / Sleep Mode
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.NightsStay, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(12.dp))
-            Text("DELIVERY CONTROL", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(8.dp))
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                ToggleSetting("SLEEP MODE", "SILENCE NON-CRITICAL PUSH NOTIFICATIONS ON SCHEDULE", false)
+        if (filteredNotifications.isEmpty()) {
+            Surface(
+                color = Color.White.copy(alpha = 0.02f),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, null, tint = SlateText, modifier = Modifier.size(28.dp))
+                    Text("NO EVENTS IN THIS FILTER", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Text("Triggered alerts and routed notification events will appear here with restore context.", color = SlateText, fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 16.sp, fontFamily = InterFontFamily)
+                }
             }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // News Logic Filter
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Article, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(12.dp))
-            Text("NEWS LOGIC FILTER", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(6.dp))
-        Text("AFFECTS BOTH PUSH NOTIFICATIONS AND IN-APP NEWS ALERTS", color = IndigoAccent.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                ToggleSetting("HIGH-IMPACT ONLY", "ONLY NOTIFY FOR HIGH-VOLATILITY MARKET EVENTS", true)
-                ToggleSetting("ASSET-RELATED", "NEWS AFFECTING YOUR ACTIVE WATCHLIST ASSETS ONLY", true)
-                ToggleSetting("MACRO SENTIMENT", "CENTRAL BANK POLICY, CPI, AND ECONOMIC FORECASTS", true)
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // In-app messages
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Notifications, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(12.dp))
-            Text("IN-APP MESSAGES", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(8.dp))
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.01f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                ToggleSetting("LATEST EVENTS", "SESSION OPENINGS, CLOSINGS, AND HOURLY RECAPS", true)
-                ToggleSetting("ANNOUNCEMENTS", "PLATFORM UPDATES AND FEATURE DEPLOYMENTS", true)
-                ToggleSetting("STRATEGY SIGNALS", "STANDARD ALGORITHMIC ENTRY AND EXIT ALERTS", true)
-                ToggleSetting("SMART ALERTS", "HIGH-CONFLUENCE INSTITUTIONAL STRUCTURE MONITORING", true)
-                ToggleSetting("SIMPLE ALERTS", "THRESHOLD-BASED PRICE AND RSI LEVEL TRIGGERS", true)
-                ToggleSetting("SYSTEM NOTIFICATIONS", "LOCAL NODE STATUS AND ANALYTICAL ENGINE LOGS", true)
-            }
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // Use notifications from ViewModel; mark only when tapped
-        val notifications by viewModel.inAppNotifications.collectAsState()
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text("RECENT ALERTS", color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-            for (item in notifications) {
-                NotificationCard(item = NotificationItem(item.type, item.msg, item.time, item.severity), onClick = {
-                    viewModel.markNotificationSeen(item.id)
-                }, seen = item.seen)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-
-        // Security override disclaimer
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color(0xFF0B0B0B), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))) {
-            Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = SlateText)
-                Spacer(Modifier.height(8.dp))
-                Text("SECURITY OVERRIDES: IDENTITY VERIFICATION REQUESTS AND ACCOUNT SECURITY COMPROMISES WILL ALWAYS BYPASS NOTIFICATION LOGIC TO ENSURE SYSTEM INTEGRITY.", color = SlateText, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredNotifications, key = { it.id }) { item ->
+                    AlertInboxCard(item = item, onOpen = { openNotification(item) })
+                }
             }
         }
     }
 }
 
-data class NotificationItem(val type: String, val msg: String, val time: String, val severity: String)
-
 @Composable
-fun NotificationCard(item: NotificationItem, onClick: () -> Unit = {}, seen: Boolean = false) {
-    val indicatorColor = when(item.severity) {
+fun AlertInboxCard(item: NotificationModel, onOpen: () -> Unit) {
+    val indicatorColor = when (item.severity.uppercase()) {
         "CRITICAL" -> RoseError
         "WARNING" -> Color(0xFFF59E0B)
-        else -> IndigoAccent
+        "HIGH" -> IndigoAccent
+        else -> EmeraldSuccess
     }
+    val actionable = item.symbol != null || item.targetView != null
 
     Surface(
         color = PureBlack,
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpen() }
     ) {
-        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .offset(y = 4.dp)
-                    .background(indicatorColor, androidx.compose.foundation.shape.CircleShape)
-            )
-            Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(item.type, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                    Box(modifier = Modifier.background(indicatorColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                        Text(item.severity, color = indicatorColor, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(indicatorColor, CircleShape)
+                    )
+                    Text(item.type.uppercase(), color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Text(item.severity.uppercase(), color = indicatorColor, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                    if (!item.seen) {
+                        Text("UNREAD", color = IndigoAccent, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(item.msg, color = if (seen) Color.White.copy(alpha = 0.6f) else Color.White, fontSize = 13.sp, fontWeight = if (seen) FontWeight.Normal else FontWeight.Medium, lineHeight = 18.sp, fontFamily = InterFontFamily)
-                Spacer(modifier = Modifier.height(10.dp))
                 Text(item.time, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
             }
+
+            Text(item.msg, color = if (item.seen) Color.White.copy(alpha = 0.72f) else Color.White, fontSize = 13.sp, fontWeight = if (item.seen) FontWeight.Medium else FontWeight.Black, lineHeight = 19.sp, fontFamily = InterFontFamily)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                item.symbol?.let {
+                    Surface(color = Color.White.copy(alpha = 0.04f), shape = RoundedCornerShape(8.dp)) {
+                        Text(it, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                    }
+                }
+                item.timeframe?.let {
+                    Surface(color = Color.White.copy(alpha = 0.04f), shape = RoundedCornerShape(8.dp)) {
+                        Text(it, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                    }
+                }
+                if (actionable) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.Visibility, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
+                        Text("RESTORE WORKSPACE", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                }
+            }
         }
+    }
+}
+
+private fun matchesInboxFilter(item: NotificationModel, filter: String): Boolean {
+    if (filter == "All") return true
+    val haystack = "${item.type} ${item.msg}".uppercase()
+    return when (filter) {
+        "Volatility" -> haystack.contains("VOLATILITY") || haystack.contains("REGIME") || haystack.contains("BURST")
+        "AI" -> haystack.contains("AI") || haystack.contains("PRE-MOVE") || haystack.contains("PROGRESS")
+        "Orderbook" -> haystack.contains("ORDER") || haystack.contains("BOOK") || haystack.contains("EXECUTION")
+        "Liquidations" -> haystack.contains("LIQUIDATION") || haystack.contains("RISK")
+        else -> true
     }
 }

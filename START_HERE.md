@@ -1,192 +1,203 @@
-# 🚀 START HERE - Fix Pepperstone Chart
+# 🚀 START HERE - Podman Migration
 
-## The Problem
-Your Pepperstone chart shows prices at the top but **no candles display**.
+## Welcome! You've Successfully Migrated to Podman
 
-## The Solution
-Switch from demo account to live account 1360716.
+This is your starting point for using Podman with your Pepperstone cTrader bridges and Redis.
 
 ---
 
-## 📋 What You Need
-- ✅ Live account 1360716 (you have this)
-- ✅ PowerShell (already installed on Windows)
-- ✅ Python (already installed)
-- ✅ 5-10 minutes of time
+## ⚡ Quick Actions
 
----
-
-## 🎯 Three Simple Steps
-
-### Step 1️⃣: Generate Token
+### 1️⃣ Install Podman (5 minutes)
 ```powershell
-.\get_live_token.ps1
+winget install RedHat.Podman-Desktop
 ```
+Or download from: https://podman-desktop.io/downloads
 
-**What happens:**
-1. Browser opens automatically
-2. You login to cTrader
-3. **SELECT ACCOUNT 1360716** ⚠️ IMPORTANT!
-4. Click "Allow access"
-5. Copy URL from browser
-6. Paste into PowerShell (within 60 seconds)
-
-**Result:** ✅ Token generated and saved
-
----
-
-### Step 2️⃣: Get API Account ID
+### 2️⃣ Start Your Services (2 minutes)
 ```powershell
-python get_live_account_id.py
+cd C:\Users\HP\AndroidStudioProjects\MyRealApp
+.\start_podman_ctrader.ps1
 ```
 
-**What happens:**
-- Script connects to cTrader API
-- Shows your account information
-- Displays the API account ID (different from 1360716)
-
-**Result:** ✅ API account ID discovered
-
----
-
-### Step 3️⃣: Start Bridge
+### 3️⃣ Verify Everything Works (1 minute)
 ```powershell
-.\start_ctrader_bridge.ps1
+.\check_podman_status.ps1
 ```
 
-**What happens:**
-- Bridge connects to cTrader
-- Authenticates with your live account
-- Starts streaming data to your app
-
-**Result:** ✅ Bridge running, candles display in app
+**That's it!** Your services are running. ✅
 
 ---
 
-## ✅ Success Looks Like This
+## 📚 What to Read Next
 
-### In PowerShell:
-```
-✅ Connected to cTrader Open API
-✅ Application authenticated
-✅ Account authenticated
-✅ Symbols loaded
-```
+### If You Want to Start Immediately
+👉 **[README_PODMAN.md](README_PODMAN.md)** - 5 minute overview
 
-### In Your App:
-- Candles display on chart
-- Prices update in real-time
-- Volume bars show
-- Everything works!
+### If You Want a Quick Reference
+👉 **[PODMAN_QUICK_START.md](PODMAN_QUICK_START.md)** - Common commands and tasks
+
+### If You Want Step-by-Step Instructions
+👉 **[DOCKER_TO_PODMAN_CHECKLIST.md](DOCKER_TO_PODMAN_CHECKLIST.md)** - Complete checklist
+
+### If You Want to Understand Everything
+👉 **[PODMAN_INDEX.md](PODMAN_INDEX.md)** - Complete navigation guide
 
 ---
 
-## ⚠️ Important Notes
+## 🎯 Your Services
 
-### When Generating Token (Step 1)
-- **MUST select account 1360716** (your live account)
-- **MUST paste code within 60 seconds** (it expires fast)
-- If you see "Too Many Attempts", wait 5-10 minutes
+Once started, you'll have:
 
-### Account IDs
-- **1360716** = What you see in cTrader (visible ID)
-- **~47312778** = What the API uses (internal ID)
-- The scripts handle this automatically
+| Service | Port | URL |
+|---------|------|-----|
+| **cTrader Live** | 8082 | http://localhost:8082 |
+| **cTrader Demo** | 8083 | http://localhost:8083 |
+| **Redis** | 6379 | localhost:6379 |
+
+---
+
+## 🔧 Common Commands
+
+```powershell
+# Start everything
+.\start_podman_ctrader.ps1
+
+# Check status
+.\check_podman_status.ps1
+
+# Stop everything
+.\stop_podman_services.ps1
+
+# View logs
+podman logs -f ctrader-bridge-live
+podman logs -f asc-redis
+
+# Restart a service
+podman restart ctrader-bridge-live
+```
+
+---
+
+## 📖 All Documentation
+
+| Document | Purpose | Read Time |
+|----------|---------|-----------|
+| **[START_HERE.md](START_HERE.md)** | This file - your starting point | 2 min |
+| **[README_PODMAN.md](README_PODMAN.md)** | Quick overview | 5 min |
+| **[PODMAN_INDEX.md](PODMAN_INDEX.md)** | Complete navigation | 10 min |
+| **[PODMAN_QUICK_START.md](PODMAN_QUICK_START.md)** | Quick reference | 10 min |
+| **[DOCKER_TO_PODMAN_CHECKLIST.md](DOCKER_TO_PODMAN_CHECKLIST.md)** | Migration checklist | 20 min |
+| **[PODMAN_MIGRATION_GUIDE.md](PODMAN_MIGRATION_GUIDE.md)** | Complete guide | 45 min |
+| **[PODMAN_COMMANDS_CHEATSHEET.md](PODMAN_COMMANDS_CHEATSHEET.md)** | Command reference | Reference |
+| **[DOCKER_VS_PODMAN.md](DOCKER_VS_PODMAN.md)** | Comparison | 30 min |
+| **[PODMAN_MIGRATION_COMPLETE.md](PODMAN_MIGRATION_COMPLETE.md)** | Summary | 20 min |
+| **[PODMAN_FILES_SUMMARY.md](PODMAN_FILES_SUMMARY.md)** | File inventory | 15 min |
+
+---
+
+## ✅ What You Get
+
+### Better Security
+- ✅ Rootless containers
+- ✅ No privileged daemon
+- ✅ Better isolation
+
+### No Licensing Concerns
+- ✅ Free for all uses
+- ✅ No subscriptions
+- ✅ Open source
+
+### Better Performance
+- ✅ Lower resource usage
+- ✅ Faster startup
+- ✅ No daemon overhead
+
+### Same Functionality
+- ✅ Docker-compatible
+- ✅ Same commands
+- ✅ No code changes
 
 ---
 
 ## 🆘 Need Help?
 
-### Quick Troubleshooting
+### Quick Help
+- **Commands**: [PODMAN_COMMANDS_CHEATSHEET.md](PODMAN_COMMANDS_CHEATSHEET.md)
+- **Troubleshooting**: [PODMAN_MIGRATION_GUIDE.md](PODMAN_MIGRATION_GUIDE.md#troubleshooting)
 
-**Problem:** "Too Many Attempts"
-**Solution:** Wait 5-10 minutes, then retry Step 1
+### Detailed Help
+- **Full Guide**: [PODMAN_MIGRATION_GUIDE.md](PODMAN_MIGRATION_GUIDE.md)
+- **Comparison**: [DOCKER_VS_PODMAN.md](DOCKER_VS_PODMAN.md)
 
-**Problem:** "No accounts found" in Step 2
-**Solution:** Retry Step 1, make sure you select account 1360716
-
-**Problem:** Still getting errors in Step 3
-**Solution:** Check `start_ctrader_bridge.ps1` has correct token and account ID
-
-### Detailed Guides
-- `SWITCH_TO_LIVE_ACCOUNT.md` - Full step-by-step guide
-- `RUN_THESE_COMMANDS.md` - Quick command reference
-- `PEPPERSTONE_FIX_SUMMARY.md` - Complete technical details
-
----
-
-## 🎉 Ready to Start?
-
-Open PowerShell in this folder and run:
-```powershell
-.\get_live_token.ps1
-```
-
-Then follow the prompts. It's that simple!
-
----
-
-## 📊 Why This Works
-
-**Before (Demo Account):**
-- Demo account 5288664
-- API ID: 47340965
-- Getting CANT_ROUTE_REQUEST errors
-- No candles display
-
-**After (Live Account):**
-- Live account 1360716
-- API ID: ~47312778
-- Stable API connection
-- Candles display correctly
-
-Live accounts have better API routing and stability!
-
----
-
-## ⏱️ Time Estimate
-
-- Step 1: 2 minutes
-- Step 2: 1 minute
-- Step 3: 1 minute
-- Testing: 1 minute
-
-**Total: ~5 minutes**
-
----
-
-## 🔄 What If It Doesn't Work?
-
-If you follow all steps and still have issues:
-
-1. **Check Application Status**
-   - Visit: https://id.ctrader.com/my/settings/openapi
-   - Verify application is "Active"
-
-2. **Contact Pepperstone**
-   - Email: support@pepperstone.com
-   - Subject: "API access for live account 1360716"
-
-3. **Use Alternative**
-   - Binance charts (already working in your app)
-   - Deriv integration (available)
+### External Resources
+- **Podman Docs**: https://docs.podman.io/
+- **Podman Desktop**: https://podman-desktop.io/
 
 ---
 
 ## 💡 Pro Tips
 
-- Keep PowerShell window open while bridge runs
-- Bridge must stay running for app to receive data
-- Press Ctrl+C to stop bridge
-- Token lasts 30 days, then regenerate
+1. **Use the status checker**: Run `.\check_podman_status.ps1` regularly
+2. **Keep logs open**: Use `podman logs -f <container>` to watch real-time
+3. **Auto-restart enabled**: Containers restart automatically on failure
+4. **Data persists**: Redis data is saved in volumes
+5. **No code changes**: Your Python/Android code works as-is
 
 ---
 
-## 🚀 Let's Go!
+## 🎉 You're Ready!
 
-Run the first command now:
-```powershell
-.\get_live_token.ps1
+Everything is set up and ready to go. Just:
+
+1. Install Podman
+2. Run `.\start_podman_ctrader.ps1`
+3. Start coding!
+
+**Questions?** Check the documentation files above.
+
+---
+
+## 📁 File Locations
+
+### MyRealApp Directory
+```
+C:\Users\HP\AndroidStudioProjects\MyRealApp\
+├── START_HERE.md ← You are here
+├── README_PODMAN.md
+├── PODMAN_INDEX.md
+├── podman-compose.ctrader-both.yml
+├── start_podman_ctrader.ps1
+├── stop_podman_services.ps1
+├── check_podman_status.ps1
+└── [Other documentation files]
 ```
 
-You're 3 commands away from working Pepperstone charts! 🎯
+### NEW_ASC Directory
+```
+C:\Users\HP\Documents\NEW_ASC\
+├── podman-compose.yml
+├── start_podman_redis.ps1
+└── START_EVERYTHING_PODMAN.ps1
+```
+
+---
+
+## 🎯 Next Steps
+
+1. ✅ Read this file (you're doing it!)
+2. ⬜ Install Podman Desktop
+3. ⬜ Run `.\start_podman_ctrader.ps1`
+4. ⬜ Run `.\check_podman_status.ps1`
+5. ⬜ Test your application
+6. ⬜ Celebrate! 🎉
+
+---
+
+**Ready?** Let's go! 🚀
+
+**First step**: Install Podman Desktop from https://podman-desktop.io/downloads
+
+**Second step**: Run `.\start_podman_ctrader.ps1`
+
+**Third step**: You're done! ✅

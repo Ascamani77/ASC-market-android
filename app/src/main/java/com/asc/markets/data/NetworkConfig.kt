@@ -4,10 +4,11 @@ import android.content.Context
 
 object NetworkConfig {
     const val PREFS_NAME = "asc_prefs"
-    const val DEFAULT_HOST = "10.164.138.133"
-    const val DEFAULT_BACKEND_URL = "http://10.164.138.133:8000"
+    const val DEFAULT_HOST = "192.168.1.198"
+    const val DEFAULT_BACKEND_URL = "http://192.168.1.198:8000"
     const val DEFAULT_MT5_PORT = 8081
     const val DEFAULT_CTRADER_PORT = 8082
+    const val DEFAULT_CTRADER_DEMO_PORT = 8083
     private const val LEGACY_HOST = "10.95.77.133"
     private const val LEGACY_BACKEND_URL = "http://10.95.77.133:8000"
     private const val PREVIOUS_HOST = "10.151.58.104"
@@ -76,6 +77,18 @@ object NetworkConfig {
     }
 
     fun cTraderBridgeUrl(context: Context): String = "${cTraderHost(context)}:${cTraderPort(context)}"
+
+    fun cTraderDemoHost(context: Context): String {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return normalizedHost(prefs.getString("ctrader_demo_host", DEFAULT_HOST)?.trim()?.ifBlank { DEFAULT_HOST } ?: DEFAULT_HOST)
+    }
+
+    fun cTraderDemoPort(context: Context): Int {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt("ctrader_demo_port", DEFAULT_CTRADER_DEMO_PORT)
+    }
+
+    fun cTraderDemoBridgeUrl(context: Context): String = "${cTraderDemoHost(context)}:${cTraderDemoPort(context)}"
 
     fun normalizedBackendUrl(value: String): String {
         val trimmed = value.trim().ifBlank { DEFAULT_BACKEND_URL }

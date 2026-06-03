@@ -31,10 +31,7 @@ fun SimulationScreen(viewModel: ForexViewModel) {
 
 @Composable
 fun MySimulationScreen(viewModel: ForexViewModel) {
-    SimulationRouteScreen(
-        viewModel = viewModel,
-        pageMode = SimulationPageMode.MY
-    )
+    BacktestScreen(viewModel = viewModel)
 }
 
 @Composable

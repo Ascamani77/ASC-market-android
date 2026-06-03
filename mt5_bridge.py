@@ -37,15 +37,18 @@ TRADAYS_REQUEST_RETRIES = 2
 LOCAL_TZ = datetime.now().astimezone().tzinfo or timezone.utc
 NEWS_AI_SNAPSHOT_PATH = Path(__file__).resolve().parent / "news_ai_payload.json"
 NEWS_LOOKBACK_DAYS = 7
-FALLBACK_NEWS_LIMIT = 700
 MIN_TRADAYS_NEWS_ITEMS = 80
-FALLBACK_NEWS_SOURCES = [
+RSS_NEWS_SOURCES = [
     ("https://www.investing.com/rss/news_25.rss", "markets"),
     ("https://www.forexlive.com/feed/news", "forex"),
     ("https://news.google.com/rss/search?q=forex+market+when:7d&hl=en-US&gl=US&ceid=US:en", "forex"),
     ("https://news.google.com/rss/search?q=stock+market+when:7d&hl=en-US&gl=US&ceid=US:en", "markets"),
     ("https://news.google.com/rss/search?q=crypto+market+when:7d&hl=en-US&gl=US&ceid=US:en", "crypto"),
     ("https://news.google.com/rss/search?q=commodities+market+when:7d&hl=en-US&gl=US&ceid=US:en", "commodities"),
+    ("https://www.cnbc.com/id/100003114/device/rss/rss.html", "CNBC US Top"),
+    ("https://www.cnbc.com/id/100727362/device/rss/rss.html", "CNBC World Top"),
+    ("https://www.cnbc.com/id/10000664/device/rss/rss.html", "CNBC Finance"),
+    ("https://www.cnbc.com/id/100003241/device/rss/rss.html", "CNBC World Markets"),
 ]
 
 COUNTRY_CODE_MAP = {
@@ -610,9 +613,7 @@ def _build_news_payload_from_mt5_dat():
                 iso_date_time = ""
             item_ts = _news_item_timestamp(iso_date_time)
             if not item_ts or item_ts < cutoff_ts or item_ts > future_limit_ts:
-                if priority <= 0:
-                    continue
-                iso_date_time = now_dt.isoformat()
+                continue
             seen_titles.add(title_key)
             digest = md5(f"{path}:{position}:{title}".encode("utf-8")).hexdigest()[:8]
             items.append({
@@ -643,7 +644,7 @@ def _build_news_payload_from_mt5_dat():
         print("MT5 local news.dat: no extractable news items found.")
     return {
         "type": "news",
-        "items": items[:200],
+        "items": items,
         "lastUpdatedIso": datetime.now(timezone.utc).isoformat()
     }
 
@@ -724,19 +725,19 @@ def _safe_find_text(item, tag_name):
     return ""
 
 
-def _build_fallback_rss_news():
+def _build_rss_news_items():
     items = []
     seen_links = set()
     cutoff = datetime.now(LOCAL_TZ) - timedelta(days=NEWS_LOOKBACK_DAYS)
 
-    for source_url, default_category in FALLBACK_NEWS_SOURCES:
+    for source_url, default_category in RSS_NEWS_SOURCES:
         try:
             request = urllib.request.Request(source_url, headers=TRADAYS_HEADERS)
             with urllib.request.urlopen(request, timeout=TRADAYS_REQUEST_TIMEOUT_SECONDS) as response:
                 raw = response.read()
             root = ET.fromstring(raw)
         except Exception as exc:
-            print(f"RSS fallback fetch error ({source_url}): {exc}")
+            print(f"RSS source fetch error ({source_url}): {exc}")
             continue
 
         for entry in root.findall(".//item"):
@@ -763,8 +764,8 @@ def _build_fallback_rss_news():
                 "detailsUrl": link,
             })
 
-    items.sort(key=lambda item: item["isoDateTime"], reverse=True)
-    return items[:FALLBACK_NEWS_LIMIT]
+    items.sort(key=lambda item: _news_item_timestamp(item.get("isoDateTime", "")), reverse=True)
+    return items
 
 
 def _build_fxstreet_rss_payload():
@@ -804,33 +805,91 @@ def _build_fxstreet_rss_payload():
         print("FXStreet RSS returned no recent items.")
     return {
         "type": "news",
-        "items": items[:200],
+        "items": items,
         "lastUpdatedIso": datetime.now(timezone.utc).isoformat()
     }
 
 
-def _merge_news_items(primary_items, secondary_items, limit):
+def _merge_news_items(primary_items, secondary_items, limit=None):
     merged = []
-    seen = set()
+    seen_links = set()
+    seen_source_titles = set()
 
     for item in primary_items + secondary_items:
         if not isinstance(item, dict):
             continue
-        key = (sanitize_metric(item.get("detailsUrl")), sanitize_metric(item.get("title")))
-        if key in seen:
+        link_key = sanitize_metric(item.get("detailsUrl")).strip().lower()
+        title_key = sanitize_metric(item.get("title")).strip().lower()
+        category_key = sanitize_metric(item.get("category")).strip().lower()
+        if not title_key:
             continue
-        seen.add(key)
+        source_title_key = (category_key, title_key)
+        if (link_key and link_key in seen_links) or (not link_key and source_title_key in seen_source_titles):
+            continue
+        if link_key:
+            seen_links.add(link_key)
+        else:
+            seen_source_titles.add(source_title_key)
         merged.append(item)
 
-    merged.sort(key=lambda item: sanitize_metric(item.get("isoDateTime")), reverse=True)
+    merged.sort(
+        key=lambda item: (
+            _news_item_timestamp(item.get("isoDateTime", "")),
+            sanitize_metric(item.get("title")).lower(),
+            sanitize_metric(item.get("category")).lower(),
+        ),
+        reverse=True,
+    )
+    if limit is None or limit <= 0:
+        return merged
     return merged[:limit]
 
 
 def build_news_payload():
-    fxstreet_payload = _build_fxstreet_rss_payload()
-    if fxstreet_payload.get("items"):
-        return fxstreet_payload
-    return _build_news_payload_from_mt5_dat()
+    mt5_items = []
+    tradays_items = []
+    fxstreet_items = []
+    rss_items = []
+
+    try:
+        mt5_items = _build_news_payload_from_mt5_dat().get("items", [])
+    except Exception as exc:
+        print(f"MT5 news payload error: {exc}")
+
+    try:
+        tradays_raw = fetch_tradays_news()
+        tradays_items = _build_news_payload_from_tradays(normalize_tradays_news(tradays_raw)).get("items", [])
+    except Exception as exc:
+        print(f"Tradays news payload error: {exc}")
+
+    try:
+        fxstreet_items = _build_fxstreet_rss_payload().get("items", [])
+    except Exception as exc:
+        print(f"FXStreet payload error: {exc}")
+
+    try:
+        rss_items = _build_rss_news_items()
+    except Exception as exc:
+        print(f"RSS news payload error: {exc}")
+
+    merged_items = _merge_news_items(
+        mt5_items,
+        tradays_items + fxstreet_items + rss_items,
+        limit=None,
+    )
+    print(
+        "Merged raw news feed: "
+        f"mt5={len(mt5_items)} "
+        f"tradays={len(tradays_items)} "
+        f"fxstreet={len(fxstreet_items)} "
+        f"rss={len(rss_items)} "
+        f"total={len(merged_items)}"
+    )
+    return {
+        "type": "news",
+        "items": merged_items,
+        "lastUpdatedIso": datetime.now(timezone.utc).isoformat()
+    }
 
 
 def build_calendar_payload(selected_date):
@@ -1165,6 +1224,8 @@ async def handle_client(websocket):
                 items = payload.get("items", [])
                 first_title = items[0].get("title") if items else "None"
                 print(f"News sent to Android: {len(items)} items. First: {first_title}")
+            except websockets.exceptions.ConnectionClosed:
+                print("News send skipped: websocket closed before payload delivery")
             except Exception as send_exc:
                 print(f"News send error: {send_exc}")
             await asyncio.to_thread(write_news_snapshot, payload)
@@ -1172,7 +1233,6 @@ async def handle_client(websocket):
     await send_history(current_symbol, current_tf)
     # Keep stream startup fast; external data fetches should not block candles/ticks.
     calendar_refresh_task = asyncio.create_task(send_calendar(force=True))
-    asyncio.create_task(send_news())
 
     async def listen():
         nonlocal current_symbol, current_tf, watchlist_symbols

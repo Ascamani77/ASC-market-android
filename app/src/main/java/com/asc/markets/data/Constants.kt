@@ -1,12 +1,15 @@
 package com.asc.markets.data
 
 val FOREX_PAIRS = listOf(
-    // FOREX (5)
+    // FOREX (8) - Added EURGBP, EURJPY, USDCAD to match AI system
     ForexPair("EUR/USD", "Euro / US Dollar", 1.0845, 0.0012, 0.11, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("GBP/USD", "British Pound / US Dollar", 1.2634, -0.0021, -0.17, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("USD/JPY", "US Dollar / Japanese Yen", 151.42, 0.34, 0.23, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("USD/CHF", "US Dollar / Swiss Franc", 0.8812, 0.0008, 0.09, com.asc.markets.data.MarketCategory.FOREX),
     ForexPair("AUD/USD", "Australian Dollar / US Dollar", 0.6542, -0.0015, -0.23, com.asc.markets.data.MarketCategory.FOREX),
+    ForexPair("EUR/GBP", "Euro / British Pound", 0.8585, 0.0008, 0.09, com.asc.markets.data.MarketCategory.FOREX),
+    ForexPair("EUR/JPY", "Euro / Japanese Yen", 164.15, 0.42, 0.26, com.asc.markets.data.MarketCategory.FOREX),
+    ForexPair("USD/CAD", "US Dollar / Canadian Dollar", 1.3625, 0.0015, 0.11, com.asc.markets.data.MarketCategory.FOREX),
 
     // STOCKS (5)
     ForexPair("NVDA", "NVIDIA Corp.", 890.15, 23.80, 2.83, com.asc.markets.data.MarketCategory.STOCK),
@@ -18,8 +21,8 @@ val FOREX_PAIRS = listOf(
     // COMMODITIES (4)
     ForexPair("XAU/USD", "Gold / US Dollar", 2342.50, 12.40, 0.53, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("XAG/USD", "Silver / US Dollar", 28.45, 0.65, 2.34, com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("USOIL", "WTI Crude Oil", 82.14, -1.20, -1.44, com.asc.markets.data.MarketCategory.COMMODITIES),
-    ForexPair("UKOIL", "Brent Crude Oil", 85.42, -0.95, -1.10, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("Crude-F", "WTI Crude Oil", 82.14, -1.20, -1.44, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("Brent-F", "Brent Crude Oil", 85.42, -0.95, -1.10, com.asc.markets.data.MarketCategory.COMMODITIES),
 
     // CRYPTO (4)
     // Binance USDT pairs (for most of the app - Market Overview, Dashboard, etc.)

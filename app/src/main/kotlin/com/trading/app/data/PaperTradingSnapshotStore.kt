@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+import com.trading.app.models.Position
+
 data class PaperTradingAccountSnapshot(
     val balance: Double = 0.0,
     val equity: Double = 0.0,
@@ -31,7 +33,8 @@ data class PaperTradingAccountSnapshot(
     val currentTradePriceChangePct: Double? = null,
     val currentTradePnl: Double? = null,
     val currentTradePnlPct: Double? = null,
-    val currentQuoteUpdatedMillis: Long = 0L
+    val currentQuoteUpdatedMillis: Long = 0L,
+    val allPositions: List<Position> = emptyList()
 )
 
 object PaperTradingSnapshotStore {

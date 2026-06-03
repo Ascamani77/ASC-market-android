@@ -1,6 +1,8 @@
 package com.researchcenter.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.researchcenter.data.models.Intelligence
@@ -20,8 +22,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 class NewsViewModel(
-    private val newsService: NewsService = NewsService(),
-    private val aiService: AiService = AiService()
+    private val newsService: NewsService,
+    private val aiService: AiService
 ) : ViewModel() {
 
     private val _articles = MutableStateFlow<List<NewsArticle>>(emptyList())
@@ -80,7 +82,15 @@ class NewsViewModel(
     fun fetchAllNews() {
         viewModelScope.launch {
             _isLoading.value = true
-            _articles.value = mergeMt5News(emptyList(), latestMt5Articles)
+            val currentArticles = _articles.value
+            val fetchedArticles = try {
+                newsService.fetchAllNews()
+            } catch (e: Exception) {
+                Log.e("NewsViewModel", "Failed to fetch external news", e)
+                emptyList()
+            }
+            val baseArticles = if (fetchedArticles.isNotEmpty()) fetchedArticles else currentArticles.filterNot { it.id.startsWith("mt5_") }
+            _articles.value = mergeMt5News(baseArticles, latestMt5Articles)
             _isLoading.value = false
         }
     }
@@ -134,16 +144,18 @@ class NewsViewModel(
 
     private fun mergeMt5News(baseArticles: List<NewsArticle>, mt5Articles: List<NewsArticle>): List<NewsArticle> {
         val nonMt5Articles = baseArticles.filterNot { it.id.startsWith("mt5_") }
-        val sortedMt5Articles = mt5Articles.sortedByDescending { article ->
-            try {
-                OffsetDateTime.parse(article.publishedAt).toInstant().toEpochMilli()
-            } catch (e: Exception) {
-                0L
-            }
-        }
-        return (sortedMt5Articles + nonMt5Articles.sortedByDescending { it.publishedAt })
+        return (nonMt5Articles + mt5Articles)
             .distinctBy { it.id }
+            .sortedByDescending { articlePublishedAtMillis(it = it.publishedAt) }
             .take(200)
+    }
+
+    private fun articlePublishedAtMillis(it: String): Long {
+        return try {
+            OffsetDateTime.parse(it).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            0L
+        }
     }
 
     fun fetchAiSortedNews() {
@@ -240,5 +252,22 @@ class NewsViewModel(
             current.add(articleToSave)
         }
         _bookmarks.value = current
+    }
+}
+
+
+/**
+ * Factory for creating NewsViewModel with Context
+ */
+class NewsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(NewsViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return NewsViewModel(
+                newsService = NewsService(context),
+                aiService = AiService(context)
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

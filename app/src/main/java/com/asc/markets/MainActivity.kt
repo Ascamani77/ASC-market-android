@@ -29,7 +29,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.asc.markets.ui.theme.*
 import android.util.Log
 import com.asc.markets.ui.terminal.viewmodels.ChartViewModel
-import com.researchcenter.ui.screens.MainScreen
+import com.researchcenter.ui.screens.AnalysisOpinionScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
                 val currentView by viewModel.currentView.collectAsState()
                 val isInitializing by viewModel.isInitializing.collectAsState()
                 val isRiskAccepted by viewModel.isRiskAccepted.collectAsState()
+                val showRiskDisclosure by viewModel.showRiskDisclosure.collectAsState()
                 val selectedPair by viewModel.selectedPair.collectAsState()
                 val chartActiveSymbol by chartViewModel.activeSymbol.collectAsState()
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
@@ -62,15 +63,15 @@ class MainActivity : ComponentActivity() {
                     ) {
                         CircularProgressIndicator(color = IndigoAccent)
                     }
-                } else if (!isRiskAccepted) {
+                } else if (!isRiskAccepted && showRiskDisclosure) {
                     DisclaimerOverlay(onAccept = { viewModel.acceptRisk() })
                 } else {
                     // Modal drawer has been replaced by SIDEBAR_PAGE for a full-screen menu experience.
                     // The swipe-to-open gesture is disabled by removing the ModalNavigationDrawer wrapper.
 
                     // Global back handler for general navigation (Markets, Chat, etc.)
-                    // Exclude DASHBOARD (should exit app) and NEWS (has its own internal BackHandler)
-                    BackHandler(enabled = currentView != AppView.DASHBOARD && currentView != AppView.NEWS) {
+                    // Exclude DASHBOARD (should exit app) and ANALYSIS_OPINION (has its own internal BackHandler)
+                    BackHandler(enabled = currentView != AppView.DASHBOARD && currentView != AppView.ANALYSIS_OPINION) {
                         viewModel.navigateBack()
                     }
 
@@ -81,8 +82,8 @@ class MainActivity : ComponentActivity() {
                         containerColor = PureBlack,
                         bottomBar = {
                             when {
-                                currentView == AppView.TRADING_ASSISTANT || currentView == AppView.CHAT || currentView == AppView.NEWS -> {
-                                    // No bottom bar for trading assistant, chat, or when in News view.
+                                currentView == AppView.CHAT || currentView == AppView.ANALYSIS_OPINION -> {
+                                    // No bottom bar for chat or when in Analysis & Opinion view.
                                 }
                                 currentView == AppView.SIMULATION || currentView == AppView.MY_SIMULATION -> {
                                     // Animated bottom bar for Simulation based on header visibility
@@ -171,7 +172,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 // Let screens that provide their own header render without the global NavHeader
-                                AppView.POST_MOVE_AUDIT, AppView.HOME_ALERTS, AppView.NEWS, AppView.SIDEBAR_PAGE, AppView.SIMULATION, AppView.MY_SIMULATION, AppView.STREAM, AppView.MACRO_STREAM, AppView.PAPER_TRADING -> {
+                                AppView.POST_MOVE_AUDIT, AppView.HOME_ALERTS, AppView.ANALYSIS_OPINION, AppView.ANALYSIS_RESULTS, AppView.SIDEBAR_PAGE, AppView.SIMULATION, AppView.MY_SIMULATION, AppView.STREAM, AppView.PAPER_TRADING, AppView.SETTINGS, AppView.ALERTS, AppView.CREATE_ALERT, AppView.NOTIFICATIONS, AppView.PUSH_SETTINGS, AppView.MY_ALERTS, AppView.WATCHLIST -> {
                                     /* Intentionally no header here. The screen provides its own top control bar which should replace the app header. */
                                 }
                                 else -> {
@@ -189,38 +190,52 @@ class MainActivity : ComponentActivity() {
                                     AppView.MARKETS -> MarketsScreen({ viewModel.selectPair(it) }, viewModel)
                                     AppView.CHAT -> ChatScreen(viewModel)
                                     AppView.ALERTS -> AlertsScreen(viewModel)
-                                    AppView.MY_ALERTS -> MyAlertsScreen()
+                                    AppView.CREATE_ALERT -> CreateAlertScreen(viewModel)
+                                    AppView.MY_ALERTS -> MyAlertsScreen(
+                                        viewModel = viewModel,
+                                        onCreateAlertClick = { viewModel.navigateTo(AppView.CREATE_ALERT) },
+                                        onOpenInbox = { viewModel.navigateTo(AppView.NOTIFICATIONS) },
+                                        onOpenPushSettings = { viewModel.navigateTo(AppView.PUSH_SETTINGS) }
+                                    )
                                     AppView.NOTIFICATIONS -> NotificationsScreen(viewModel)
+                                    AppView.PUSH_SETTINGS -> PushSettingsScreen(viewModel)
                                     AppView.BACKTEST -> BacktestScreen(viewModel)
-                                    AppView.TRADING_ASSISTANT -> TerminalScreen(viewModel)
-                                    AppView.MULTI_TIMEFRAME -> MultiTimeframeScreen(linkedOrderFlowSymbol)
+                                    AppView.MULTI_TIMEFRAME -> MultiTimeframeAnalysisScreen()
                                     AppView.LIQUIDITY_HUB -> LiquidityHubScreen()
                                     AppView.TRADE -> TradeLedgerScreen()
                                     AppView.TRADE_DASHBOARD -> TradeDashboardScreen()
                                     AppView.SIMULATION -> SimulationScreen(viewModel)
                                     AppView.MY_SIMULATION -> MySimulationScreen(viewModel)
-                                    AppView.NEWS -> MainScreen(onBackToApp = { viewModel.navigateTo(AppView.DASHBOARD) })
-                                    AppView.HOME_ALERTS -> HomeAlertsScreen()
+                                    AppView.ANALYSIS_OPINION -> {
+                                        val watchlistItems by viewModel.watchlistItems.collectAsState()
+                                        val activeAssets = remember(watchlistItems) {
+                                            watchlistItems.map { it.assetName }.toSet()
+                                        }
+                                        AnalysisOpinionScreen(
+                                            onBackToApp = { viewModel.navigateTo(AppView.DASHBOARD) },
+                                            activeAssets = activeAssets
+                                        )
+                                    }
+                                    AppView.HOME_ALERTS -> HomeAlertsScreen(viewModel)
                                     AppView.INTELLIGENCE_STREAM -> EventStreamScreen()
-                                    AppView.MACRO_STREAM -> MacroStreamScreen(viewModel)
                                     AppView.CALENDAR -> CalendarScreen()
                                     AppView.STREAM -> StreamScreen()
-                                    AppView.SENTIMENT -> SentimentScreen()
+                                    AppView.SENTIMENT -> SentimentScreen(viewModel)
                                     AppView.EDUCATION -> EducationScreen()
                                     AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
                                     AppView.WATCHLIST -> WatchlistScreen(
                                         viewModel = viewModel,
                                         onViewChart = { symbol ->
                                             viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                                            viewModel.navigateTo(AppView.STREAM)
                                         },
                                         onSetAlert = { symbol ->
                                             viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.ALERTS)
+                                            viewModel.navigateTo(AppView.CREATE_ALERT)
                                         },
                                         onDeepDive = { symbol ->
                                             viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.INTELLIGENCE_STREAM)
+                                            viewModel.navigateTo(AppView.ANALYSIS_RESULTS)
                                         }
                                     )
                                     AppView.DIAGNOSTICS -> DiagnosticsScreen()
@@ -236,6 +251,7 @@ class MainActivity : ComponentActivity() {
                                     AppView.PAPER_TRADING -> PaperTradingScreen(viewModel)
                                     AppView.QUOTES -> QuotesScreen(viewModel)
                                     AppView.MARKET_STATUS -> MarketStatusScreen()
+                                    AppView.CHART_ANALYSIS -> ChartAnalysisScreen()
                                     AppView.SIDEBAR_PAGE -> {
                                         // Render sidebar contents as a full page (replicates modal drawer content)
                                         val unreadAlertNotifications by viewModel.alertNotificationCount.collectAsState(initial = 0)
@@ -251,9 +267,7 @@ class MainActivity : ComponentActivity() {
                                             onClose = { viewModel.navigateBack() }
                                         )
                                     }
-                                    AppView.AI_TERMINAL -> {
-                                        AiScreen()
-                                    }
+                                    AppView.AI_TERMINAL -> TerminalScreen(viewModel)
                                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text("NODE_ACCESS_RESTRICED: ${currentView.name}", color = Color.DarkGray)
                                     }

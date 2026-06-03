@@ -3,7 +3,7 @@ package com.asc.markets.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import com.asc.markets.ai.AIContextService
+import com.asc.markets.data.AIContextStore
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -203,32 +203,41 @@ object PreMoveIntelligenceStore {
         val recentRange = percentRange(recent)
         val olderRange = percentRange(older).coerceAtLeast(recentRange)
         val directional = directionalPressure(prices)
-        val compressionScore = (100.0 - recentRange * 38.0 - abs(pair.changePercent) * 6.0).toInt().coerceIn(0, 100)
         val volatilityContraction = if (olderRange > 0.0) (1.0 - recentRange / olderRange).coerceIn(0.0, 1.0) else 0.0
         val pressureDistance = abs(directional - 50)
-        val ignitionScore = (volatilityContraction * 45.0 + pressureDistance * 0.45 + abs(pair.changePercent) * 8.0).toInt().coerceIn(0, 100)
         val structuralPressure = directional.coerceIn(0, 100)
         val high = prices.maxOrNull() ?: pair.price
         val low = prices.minOrNull() ?: pair.price
         val buyDistance = distancePercent(pair.price, high)
         val sellDistance = distancePercent(pair.price, low)
         val nearestDistance = min(buyDistance, sellDistance)
-        val liquidityScore = (100.0 - nearestDistance * 32.0 + compressionScore * 0.20).toInt().coerceIn(0, 100)
-        val sweepProbability = (liquidityScore * 0.45 + compressionScore * 0.25 + ignitionScore * 0.30).toInt().coerceIn(0, 100)
         
         // --- ASC AI INTEGRATION ---
-        val aiDecision = AIContextService.getDecisionForAsset(pair.symbol)
-        val aiScore = aiDecision?.score ?: 0
-        val aiConfidence = (aiDecision?.confidence ?: 0.0) * 100.0
+        val aiDecision = AIContextStore.getAssetDecision(pair.symbol)
+        val aiConfidence = (aiDecision?.score ?: 0.0)
         
-        // Hybrid score: 60% Technicals, 40% ASC AI Central Intelligence
-        val technicalScore = (compressionScore * 0.30 + ignitionScore * 0.25 + liquidityScore * 0.25 + pressureDistance * 0.20)
-        val preMoveScore = if (aiDecision != null) {
-            (technicalScore * 0.6 + aiScore * 0.4).toInt().coerceIn(0, 100)
-        } else {
-            technicalScore.toInt().coerceIn(0, 100)
-        }
+        // Use backend fields for compression, ignition, and risk gate - NO FALLBACK
+        val compressionScore = if (aiDecision != null && aiDecision.expansionProbability > 0.0) {
+            // Use expansion_probability as compression indicator (inverse relationship)
+            ((1.0 - aiDecision.expansionProbability) * 100.0).toInt().coerceIn(0, 100)
+        } else 0
+        
+        val ignitionScore = if (aiDecision != null && aiDecision.ignitionProbability > 0.0) {
+            (aiDecision.ignitionProbability * 100.0).toInt().coerceIn(0, 100)
+        } else 0
+        
+        // Use backend risk state for risk gate - NO FALLBACK
+        val riskGate = "NO DATA" // AIContextStore doesn't provide feeder_risk_state
+        
+        // Use pure pre_move_ai_score from backend - NO FALLBACK
+        val preMoveScore = if (aiDecision != null && aiDecision.preMoveScore != null && aiDecision.preMoveScore > 0.0) {
+            // Backend pre_move_ai_score is 0.0-1.0, convert to 0-100
+            (aiDecision.preMoveScore * 100.0).toInt().coerceIn(0, 100)
+        } else 0
         // --------------------------
+        
+        val liquidityScore = (100.0 - nearestDistance * 32.0 + compressionScore * 0.20).toInt().coerceIn(0, 100)
+        val sweepProbability = (liquidityScore * 0.45 + compressionScore * 0.25 + ignitionScore * 0.30).toInt().coerceIn(0, 100)
 
         val bias = when {
             aiDecision?.direction == "LONG" -> "BULLISH"
@@ -252,12 +261,6 @@ object PreMoveIntelligenceStore {
             abs(pair.changePercent) > 2.8 -> "Post-move"
             else -> "Idle"
         }
-        val riskGate = when {
-            state == "LATE MOVE" -> "BLOCKED"
-            preMoveScore >= 72 -> "PASS"
-            preMoveScore >= 55 -> "WATCH"
-            else -> "WAIT"
-        }
         val magnet = if (buyDistance <= sellDistance) "Buy-side liquidity" else "Sell-side liquidity"
         val invalidation = when (bias) {
             "BULLISH" -> low
@@ -280,13 +283,21 @@ object PreMoveIntelligenceStore {
             sweepProbability >= 58 -> "MEDIUM"
             else -> "LOW"
         }
+        
+        // AI layer score: show the actual pre_move_ai_score (0-100) when available
+        val aiLayerScore = if (aiDecision != null && aiDecision.preMoveScore != null && aiDecision.preMoveScore > 0.0) {
+            (aiDecision.preMoveScore * 100.0).toInt().coerceIn(0, 100)
+        } else {
+            0
+        }
+        
         val layers = listOf(
             PreMoveLayer("L1 STRUCTURE", passLabel(structuralPressure), structuralPressure, "$bias pressure measured from recent structure."),
             PreMoveLayer("L3 REGIME", if (regime == "Post-move") "BLOCK" else "PASS", if (regime == "Post-move") 35 else preMoveScore, regime),
             PreMoveLayer("L5 PRESSURE", passLabel(pressureDistance + 50), (pressureDistance + 50).coerceIn(0, 100), "Directional pressure is ${pressureDistance} points away from neutral."),
             PreMoveLayer("L6A IDLE FILTER", if (state == "LATE MOVE") "FAIL" else "PASS", compressionScore, "Compression prevents chasing late movement."),
             PreMoveLayer("L7 EXPANSION", passLabel(preMoveScore), preMoveScore, "Expansion probability is weighted from compression, liquidity and ignition."),
-            PreMoveLayer("ASC AI", if (aiDecision != null) "LIVE" else "PENDING", aiScore, aiDecision?.reason ?: "Awaiting live ASC AI central verification.")
+            PreMoveLayer("ASC AI", if (aiDecision != null) "LIVE" else "PENDING", aiLayerScore, aiDecision?.reason ?: "Awaiting live ASC AI central verification.")
         )
         val reason = if (aiDecision != null) {
             "ASC AI: ${aiDecision.reason}. $regime on $timeframeLabel."

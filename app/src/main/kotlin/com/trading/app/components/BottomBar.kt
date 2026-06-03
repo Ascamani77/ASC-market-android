@@ -39,6 +39,7 @@ fun BottomBar(
     settings: ChartSettings = ChartSettings(),
     currentQuote: SymbolQuote? = null,
     recentPairQuotes: Map<String, SymbolQuote> = emptyMap(),
+    availableQuotes: List<SymbolInfo> = emptyList(),
     onAccountUpdate: (Mt5Service.AccountInfo) -> Unit = {},
     selectedTzLabel: String = "",
     onVisibleSymbolsChanged: (List<String>) -> Unit = {}
@@ -93,13 +94,19 @@ fun BottomBar(
                         String.format(Locale.US, "%,.${decimals}f", it.lastPrice)
                     } ?: "--"
 
-                    val symbolInfo = remember(symbol) {
-                        val type = when {
-                            symbol.startsWith("BTC") || symbol.startsWith("ETH") || symbol.startsWith("SOL") -> "Crypto"
-                            symbol.length == 6 && (symbol.contains("USD") || symbol.contains("EUR") || symbol.contains("JPY")) -> "Forex"
-                            else -> "Stock"
-                        }
-                        SymbolInfo(ticker = symbol, name = "", type = type)
+                    val symbolInfo = remember(symbol, availableQuotes) {
+                        availableQuotes.find { 
+                            it.ticker.equals(symbol, ignoreCase = true) || 
+                            it.brokerSymbol.equals(symbol, ignoreCase = true) 
+                        } ?: SymbolInfo(
+                            ticker = symbol,
+                            name = "",
+                            type = when {
+                                symbol.startsWith("BTC") || symbol.startsWith("ETH") || symbol.startsWith("SOL") -> "Crypto"
+                                symbol.length == 6 && (symbol.contains("USD") || symbol.contains("EUR") || symbol.contains("JPY")) -> "Forex"
+                                else -> "Stock"
+                            }
+                        )
                     }
 
                     Box(

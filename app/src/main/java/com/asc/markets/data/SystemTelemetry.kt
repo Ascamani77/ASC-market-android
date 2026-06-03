@@ -33,10 +33,11 @@ object SystemTelemetry {
 
     private val _relays = MutableStateFlow(
         listOf(
-            RelayData("LMAX NY4 RELAY", 0.0, 0.0, "LMAX"),
-            RelayData("BINANCE AGGREGATOR", 0.0, 0.0, "BINANCE"),
-            RelayData("MT5 BRIDGE", 0.0, 0.0, "MT5"),
-            RelayData("ASC AI BACKEND", 0.0, 0.0, "ASC_AI")
+            RelayData("Pepperstone cTrader Live", 0.0, 0.0, "CTRADER_LIVE"),
+            RelayData("Pepperstone cTrader Demo", 0.0, 0.0, "CTRADER_DEMO"),
+            RelayData("MT5 Bridge", 0.0, 0.0, "MT5"),
+            RelayData("Binance USDT Futures", 0.0, 0.0, "BINANCE"),
+            RelayData("ASC AI Backend", 0.0, 0.0, "ASC_AI")
         )
     )
     val relays = _relays.asStateFlow()
@@ -50,15 +51,25 @@ object SystemTelemetry {
     private val recentLatencies = ConcurrentLinkedQueue<Double>()
     
     // Relay-specific
-    private var binanceLatency = 0.0
+    private var ctraderLiveLatency = 0.0
+    private var ctraderDemoLatency = 0.0
     private var mt5Latency = 0.0
-    private var lmaxLatency = 0.0
+    private var binanceLatency = 0.0
     private var ascAiLatency = 0.0
 
-    private var binanceBuffer = 0.0
+    private var ctraderLiveBuffer = 0.0
+    private var ctraderDemoBuffer = 0.0
     private var mt5Buffer = 0.0
-    private var lmaxBuffer = 0.0
+    private var binanceBuffer = 0.0
     private var ascAiBuffer = 0.0
+    
+    // Track which cTrader mode is active
+    private var activeCTraderMode: String? = null // "LIVE" or "DEMO"
+    
+    fun setActiveCTraderMode(mode: String) {
+        activeCTraderMode = mode.uppercase()
+        addLog("[INFO]", "cTrader mode set to: $activeCTraderMode")
+    }
 
     init {
         scope.launch {
@@ -77,16 +88,19 @@ object SystemTelemetry {
         recentLatencies.add(latencyMs)
         
         when (normalizedSource) {
-            "BINANCE" -> {
-                binanceLatency = latencyMs
+            "CTRADER_LIVE", "CTRADER-LIVE", "PEPPERSTONE_LIVE", "MARKET" -> {
+                ctraderLiveLatency = latencyMs
             }
-            "MT5" -> {
+            "CTRADER_DEMO", "CTRADER-DEMO", "PEPPERSTONE_DEMO", "DEMO" -> {
+                ctraderDemoLatency = latencyMs
+            }
+            "MT5", "MT5_BRIDGE", "MT5-BRIDGE" -> {
                 mt5Latency = latencyMs
             }
-            "LMAX" -> {
-                lmaxLatency = latencyMs
+            "BINANCE", "BINANCE_USDT" -> {
+                binanceLatency = latencyMs
             }
-            "ASC_AI", "ASC-AI", "ASC AI" -> {
+            "ASC_AI", "ASC-AI", "ASC AI", "BACKEND" -> {
                 ascAiLatency = latencyMs
             }
         }
@@ -129,24 +143,27 @@ object SystemTelemetry {
 
         val tps = tickTimestamps.size.toDouble()
         val avgLat = if (recentLatencies.isEmpty()) 0.0 else recentLatencies.average()
-        val binanceTps = sourceTickTimestamps["BINANCE"]?.size?.toDouble() ?: 0.0
+        val ctraderLiveTps = sourceTickTimestamps["CTRADER_LIVE"]?.size?.toDouble() ?: (sourceTickTimestamps["MARKET"]?.size?.toDouble() ?: 0.0)
+        val ctraderDemoTps = sourceTickTimestamps["CTRADER_DEMO"]?.size?.toDouble() ?: (sourceTickTimestamps["DEMO"]?.size?.toDouble() ?: 0.0)
         val mt5Tps = sourceTickTimestamps["MT5"]?.size?.toDouble() ?: 0.0
-        val lmaxTps = sourceTickTimestamps["LMAX"]?.size?.toDouble() ?: 0.0
-        val ascAiTps = sourceTickTimestamps["ASC_AI"]?.size?.toDouble() ?: 0.0
+        val binanceTps = sourceTickTimestamps["BINANCE"]?.size?.toDouble() ?: 0.0
+        val ascAiTps = sourceTickTimestamps["ASC_AI"]?.size?.toDouble() ?: (sourceTickTimestamps["BACKEND"]?.size?.toDouble() ?: 0.0)
 
         _globalThroughput.value = tps
         _aggLatency.value = avgLat
 
-        binanceBuffer = (binanceTps * 20.0).coerceIn(0.0, 100.0)
+        ctraderLiveBuffer = (ctraderLiveTps * 20.0).coerceIn(0.0, 100.0)
+        ctraderDemoBuffer = (ctraderDemoTps * 20.0).coerceIn(0.0, 100.0)
         mt5Buffer = (mt5Tps * 20.0).coerceIn(0.0, 100.0)
-        lmaxBuffer = (lmaxTps * 20.0).coerceIn(0.0, 100.0)
+        binanceBuffer = (binanceTps * 20.0).coerceIn(0.0, 100.0)
         ascAiBuffer = (ascAiTps * 20.0).coerceIn(0.0, 100.0)
 
         _relays.value = listOf(
-            RelayData("LMAX NY4 RELAY", lmaxLatency, lmaxBuffer, "LMAX"),
-            RelayData("BINANCE AGGREGATOR", binanceLatency, binanceBuffer, "BINANCE"),
-            RelayData("MT5 BRIDGE", mt5Latency, mt5Buffer, "MT5"),
-            RelayData("ASC AI BACKEND", ascAiLatency, ascAiBuffer, "ASC_AI")
+            RelayData("Pepperstone cTrader Live", ctraderLiveLatency, ctraderLiveBuffer, "CTRADER_LIVE"),
+            RelayData("Pepperstone cTrader Demo", ctraderDemoLatency, ctraderDemoBuffer, "CTRADER_DEMO"),
+            RelayData("MT5 Bridge", mt5Latency, mt5Buffer, "MT5"),
+            RelayData("Binance USDT Futures", binanceLatency, binanceBuffer, "BINANCE"),
+            RelayData("ASC AI Backend", ascAiLatency, ascAiBuffer, "ASC_AI")
         )
     }
 }

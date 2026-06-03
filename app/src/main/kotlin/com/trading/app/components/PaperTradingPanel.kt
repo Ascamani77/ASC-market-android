@@ -19,6 +19,7 @@ import com.trading.app.data.PaperTradingSnapshotStore
 import com.trading.app.models.Position
 import com.trading.app.models.Order
 import com.trading.app.data.Mt5Service
+import com.trading.app.data.ChartFeedType
 import java.util.Locale
 
 @Composable
@@ -41,6 +42,7 @@ fun PaperTradingPanel(
     isBrokerConnected: Boolean = accountInfo != null,
     backgroundColor: Color = Color(0xFF08090C),
     onMarketTypeChange: ((String) -> Unit)? = null,
+    onAccountChange: ((ChartFeedType) -> Unit)? = null,
     currentMarketType: String = "spot",
     onRefresh: (() -> Unit)? = null
 ) {
@@ -50,6 +52,7 @@ fun PaperTradingPanel(
     var showVisibilitySettings by remember { mutableStateOf(false) }
     var visibilitySettings by remember { mutableStateOf(PaperTradingVisibility()) }
     var showMarketTypeDropdown by remember { mutableStateOf(false) }
+    var showAccountDropdown by remember { mutableStateOf(false) }
 
     val labelColor = Color(0xFF787B86)
     val horizontalMargin = 16.dp
@@ -83,11 +86,63 @@ fun PaperTradingPanel(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.clickable { }) {
+            Column(modifier = Modifier.clickable { 
+                if (onAccountChange != null) {
+                    showAccountDropdown = true 
+                }
+            }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(sourceName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    if (onAccountChange != null) {
+                        Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
                 }
+                
+                DropdownMenu(
+                    expanded = showAccountDropdown,
+                    onDismissRequest = { showAccountDropdown = false },
+                    modifier = Modifier.background(Color(0xFF1E222D))
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Pepperstone cTrader Live",
+                                    color = if (sourceName.contains("Pepperstone")) Color(0xFF2962FF) else Color.White,
+                                    fontSize = 14.sp
+                                )
+                                if (sourceName.contains("Pepperstone")) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.Check, null, tint = Color(0xFF2962FF), modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        onClick = {
+                            onAccountChange?.invoke(ChartFeedType.PEPPERSTONE_CTRADER)
+                            showAccountDropdown = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Exness Live",
+                                    color = if (sourceName.contains("Exness")) Color(0xFF2962FF) else Color.White,
+                                    fontSize = 14.sp
+                                )
+                                if (sourceName.contains("Exness")) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(Icons.Default.Check, null, tint = Color(0xFF2962FF), modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        onClick = {
+                            onAccountChange?.invoke(ChartFeedType.EXNESS)
+                            showAccountDropdown = false
+                        }
+                    )
+                }
+
                 Box {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -162,21 +217,6 @@ fun PaperTradingPanel(
             }
             
             Spacer(modifier = Modifier.weight(1f))
-            
-            // Refresh button
-            if (onRefresh != null) {
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, "Refresh", tint = labelColor, modifier = Modifier.size(24.dp))
-                }
-            }
-            
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.Settings, null, tint = labelColor, modifier = Modifier.size(24.dp))
-            }
-            Text("|", color = Color(0xFF2A2E39), modifier = Modifier.padding(horizontal = 4.dp), fontSize = 20.sp)
-            IconButton(onClick = onClose) {
-                Icon(Icons.Default.Close, null, tint = labelColor, modifier = Modifier.size(28.dp))
-            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

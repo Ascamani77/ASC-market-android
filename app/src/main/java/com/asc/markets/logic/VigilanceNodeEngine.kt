@@ -28,6 +28,8 @@ data class VigilanceNode(
     val rsiLevel: Int = 70,           // RSI overbought level (typically 70 for long, 30 for short)
     val maFastPeriod: Int = 9,        // Fast MA period
     val maSlowPeriod: Int = 21,       // Slow MA period
+    val comparisonMode: String = "ABOVE",
+    val phaseState: String = "ANY",
     val regimeFilter: String = "ANY", // "ANY", "TRENDING_BULL", "TRENDING_BEAR", "RANGING", "BREAKOUT"
     val volatilityFilter: String = "ANY", // "ANY", "EXPANDING", "COMPRESSED", "DEAD"
     val confluenceThreshold: Int = 0  // Minimum confluence score (0-100), 0 = disabled
@@ -59,6 +61,9 @@ object VigilanceNodeEngine {
         rsiLevel: Int = 70,
         maFastPeriod: Int = 9,
         maSlowPeriod: Int = 21,
+        comparisonMode: String = "ABOVE",
+        phaseState: String = "ANY",
+        volatilityState: String = "ANY",
         cooldownMinutes: Int = 15
     ): VigilanceNode {
         val id = UUID.randomUUID().toString()
@@ -67,6 +72,12 @@ object VigilanceNodeEngine {
             "RSI_LEVEL" -> 45
             "MA_CROSS" -> 50
             "TRENDLINE_BREAK" -> 40
+            "AI_LINE_CROSS_PRICE" -> 65
+            "AI_LINE_TOUCH_PRICE" -> 60
+            "VOLATILITY_SCORE" -> 58
+            "AI_PROGRESSIVE_SCALE" -> 62
+            "AI_PHASE_STATE" -> 55
+            "VOLATILITY_STATE" -> 55
             else -> 40
         }
         
@@ -81,7 +92,9 @@ object VigilanceNodeEngine {
         val description = buildString {
             append("$trigger")
             if (direction != "BOTH") append(" [$direction]")
-            if (priceLevel != null) append(" @ $priceLevel")
+            if (priceLevel != null) append(" | $comparisonMode $priceLevel")
+            if (phaseState != "ANY") append(" | Phase: $phaseState")
+            if (volatilityState != "ANY") append(" | Volatility: $volatilityState")
             append(" on $pair at $timeframe")
         }
         
@@ -100,6 +113,9 @@ object VigilanceNodeEngine {
             rsiLevel = rsiLevel,
             maFastPeriod = maFastPeriod,
             maSlowPeriod = maSlowPeriod,
+            comparisonMode = comparisonMode,
+            phaseState = phaseState,
+            volatilityFilter = volatilityState,
             cooldownMinutes = cooldownMinutes
         )
         
@@ -278,6 +294,12 @@ object VigilanceNodeEngine {
                     "RSI_LEVEL" -> 45
                     "MA_CROSS" -> 50
                     "TRENDLINE_BREAK" -> 40
+                    "AI_LINE_CROSS_PRICE" -> 65
+                    "AI_LINE_TOUCH_PRICE" -> 60
+                    "VOLATILITY_SCORE" -> 58
+                    "AI_PROGRESSIVE_SCALE" -> 62
+                    "AI_PHASE_STATE" -> 55
+                    "VOLATILITY_STATE" -> 55
                     else -> 40
                 }
                 put("Trigger Rule", baseScore)

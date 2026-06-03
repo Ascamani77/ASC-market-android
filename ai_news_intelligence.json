@@ -1,0 +1,4866 @@
+{
+  "type": "ai_news_intelligence",
+  "timestamp": "2026-06-03T22:09:37.555169+00:00",
+  "source": "NEWS_INTELLIGENCE_AI",
+  "version": "v1",
+  "articles": [
+    {
+      "id": "638206142",
+      "title": "Swiss Franc: Low inflation keeps range intact versus US Dollar – BBH",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T12:03:32+02:00",
+      "category": "major-data-release",
+      "summary": "Swiss Franc: Low inflation keeps range intact versus US Dollar – BBH",
+      "content": "Swiss Franc: Low inflation keeps range intact versus US Dollar – BBH",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.7200000286102295,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1750965712",
+      "title": "British Pound: UK faces tighter policy and sticky inflation – BNP Paribas",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:03:53+02:00",
+      "category": "major-data-release",
+      "summary": "British Pound: UK faces tighter policy and sticky inflation – BNP Paribas",
+      "content": "British Pound: UK faces tighter policy and sticky inflation – BNP Paribas",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "GBPUSD"
+        ],
+        "impact_score": 0.7200000286102295,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2138217152",
+      "title": "Eurozone Unemployment Rate registered at 6.3% above expectations (6.2%) in April",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:00:01+02:00",
+      "category": "major-data-release",
+      "summary": "Eurozone Unemployment Rate registered at 6.3% above expectations (6.2%) in April",
+      "content": "Eurozone Unemployment Rate registered at 6.3% above expectations (6.2%) in April",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.7200000286102295,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "458920174",
+      "title": "ECB: 12-month forward inflation projections remain steady at 4%",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:48:30+02:00",
+      "category": "major-data-release",
+      "summary": "ECB: 12-month forward inflation projections remain steady at 4%",
+      "content": "ECB: 12-month forward inflation projections remain steady at 4%",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.7200000286102295,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "162899424",
+      "title": "Fed: Later cuts as inflation persists – Rabobank",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T09:55:32+02:00",
+      "category": "major-data-release",
+      "summary": "Fed: Later cuts as inflation persists – Rabobank",
+      "content": "Fed: Later cuts as inflation persists – Rabobank",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.7200000286102295,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "6855640",
+      "title": "Fed Governor Michelle Bowman warns against hiking interest rates because of inflation spike",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-29T18:39:46+02:00",
+      "category": "major-data-release",
+      "summary": "Fed Governor Michelle Bowman warns against hiking interest rates because of inflation spike",
+      "content": "Fed Governor Michelle Bowman warns against hiking interest rates because of inflation spike",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.6700000166893005,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "395786041",
+      "title": "British Pound rises even as BoE’s Bailey signals no rush for interest rate hikes",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:07:39+02:00",
+      "category": "policy-speech",
+      "summary": "British Pound rises even as BoE’s Bailey signals no rush for interest rate hikes",
+      "content": "British Pound rises even as BoE’s Bailey signals no rush for interest rate hikes",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURGBP",
+          "GBPUSD"
+        ],
+        "impact_score": 0.6600000262260437,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1072739118",
+      "title": "Fed's Powell warns Trump's political 'stress test' will wreck public trust in central bank",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T12:57:14+02:00",
+      "category": "policy-speech",
+      "summary": "Fed's Powell warns Trump's political 'stress test' will wreck public trust in central bank",
+      "content": "Fed's Powell warns Trump's political 'stress test' will wreck public trust in central bank",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1272430212",
+      "title": "Czech Koruna: Polish CPI surprise complicates CNB path – Commerzbank",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:33:46+02:00",
+      "category": "major-data-release",
+      "summary": "Czech Koruna: Polish CPI surprise complicates CNB path – Commerzbank",
+      "content": "Czech Koruna: Polish CPI surprise complicates CNB path – Commerzbank",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "494070102",
+      "title": "Long-term consumer inflation expectations remained stable in April according to ECB survey",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T10:22:58+02:00",
+      "category": "major-data-release",
+      "summary": "Long-term consumer inflation expectations remained stable in April according to ECB survey",
+      "content": "Long-term consumer inflation expectations remained stable in April according to ECB survey",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "410948153",
+      "title": "Japan Q1 capex growth stalls at near zero, raising risk of GDP revision lower",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T05:12:38+02:00",
+      "category": "major-data-release",
+      "summary": "Japan Q1 capex growth stalls at near zero, raising risk of GDP revision lower",
+      "content": "Japan Q1 capex growth stalls at near zero, raising risk of GDP revision lower",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1005262112",
+      "title": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - Cryptonews.net",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T03:27:48+02:00",
+      "category": "major-data-release",
+      "summary": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - Cryptonews.net",
+      "content": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - Cryptonews.net",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "564877440",
+      "title": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - CoinGape",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T00:50:22+02:00",
+      "category": "major-data-release",
+      "summary": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - CoinGape",
+      "content": "Crypto Market This Week: US Jobs Data, Global Inflation, CLARITY Act In Focus - CoinGape",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.6399999856948853,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "457521058",
+      "title": "Crypto market holds steady amid mixed signals and awaits key inflation data next week - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T19:44:36+02:00",
+      "category": "major-data-release",
+      "summary": "Crypto market holds steady amid mixed signals and awaits key inflation data next week - Pluang",
+      "content": "Crypto market holds steady amid mixed signals and awaits key inflation data next week - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.6100000143051147,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1589709225",
+      "title": "Crypto market shows recovery as $7.5B Bitcoin, Ethereum, XRP options expire amid mixed inflation data. - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T17:38:29+02:00",
+      "category": "major-data-release",
+      "summary": "Crypto market shows recovery as $7.5B Bitcoin, Ethereum, XRP options expire amid mixed inflation data. - Pluang",
+      "content": "Crypto market shows recovery as $7.5B Bitcoin, Ethereum, XRP options expire amid mixed inflation data. - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.6100000143051147,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "333206358",
+      "title": "Software stocks surge as Nvidia’s Huang dismisses AI disruption fears",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T13:16:47+02:00",
+      "category": "minor-data",
+      "summary": "Software stocks surge as Nvidia’s Huang dismisses AI disruption fears",
+      "content": "Software stocks surge as Nvidia’s Huang dismisses AI disruption fears",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.6000000238418579,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "783807463",
+      "title": "How the ‘double scar’ of past inflation woes and geopolitical shocks amid the Iran war is hitting consumers",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-29T14:24:17+02:00",
+      "category": "major-data-release",
+      "summary": "How the ‘double scar’ of past inflation woes and geopolitical shocks amid the Iran war is hitting consumers",
+      "content": "How the ‘double scar’ of past inflation woes and geopolitical shocks amid the Iran war is hitting consumers",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.5899999737739563,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "735189484",
+      "title": "Jobs report, inflation to test stock market rally - Finance & Commerce",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T21:09:30+02:00",
+      "category": "major-data-release",
+      "summary": "Jobs report, inflation to test stock market rally - Finance & Commerce",
+      "content": "Jobs report, inflation to test stock market rally - Finance & Commerce",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5699999928474426,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "233774772",
+      "title": "Market brief:Markets Rise on Soft Inflation as Earnings and AI Drive Rally - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T17:02:50+02:00",
+      "category": "major-data-release",
+      "summary": "Market brief:Markets Rise on Soft Inflation as Earnings and AI Drive Rally - FOREX.com",
+      "content": "Market brief:Markets Rise on Soft Inflation as Earnings and AI Drive Rally - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5699999928474426,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2046650069",
+      "title": "Stock Market Today, May 28: Inflation Isn't Stopping This Stock Market Rally - The Motley Fool",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T00:30:00+02:00",
+      "category": "major-data-release",
+      "summary": "Stock Market Today, May 28: Inflation Isn't Stopping This Stock Market Rally - The Motley Fool",
+      "content": "Stock Market Today, May 28: Inflation Isn't Stopping This Stock Market Rally - The Motley Fool",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5699999928474426,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1152151956",
+      "title": "Will Inflation Derail the Stock Market Rally? - ETF Trends",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-27T16:46:40+02:00",
+      "category": "major-data-release",
+      "summary": "Will Inflation Derail the Stock Market Rally? - ETF Trends",
+      "content": "Will Inflation Derail the Stock Market Rally? - ETF Trends",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5699999928474426,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "851897376",
+      "title": "Euro strengthens against Canadian Dollar following German Retail Sales",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:03:22+02:00",
+      "category": "minor-data",
+      "summary": "Euro strengthens against Canadian Dollar following German Retail Sales",
+      "content": "Euro strengthens against Canadian Dollar following German Retail Sales",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "USDJPY",
+          "USDCAD",
+          "EURJPY",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.5600000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1970073065",
+      "title": "Eurozone HCOB Manufacturing PMI above expectations (51.4) in May: Actual (51.6)",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:00:05+02:00",
+      "category": "minor-data",
+      "summary": "Eurozone HCOB Manufacturing PMI above expectations (51.4) in May: Actual (51.6)",
+      "content": "Eurozone HCOB Manufacturing PMI above expectations (51.4) in May: Actual (51.6)",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.5600000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1630119925",
+      "title": "The Stock Market May Be in Trouble: President Trump Put Fed Chair Kevin Warsh in a Tough Spot - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T11:08:00+02:00",
+      "category": "policy-speech",
+      "summary": "The Stock Market May Be in Trouble: President Trump Put Fed Chair Kevin Warsh in a Tough Spot - Yahoo Finance",
+      "content": "The Stock Market May Be in Trouble: President Trump Put Fed Chair Kevin Warsh in a Tough Spot - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "USDJPY",
+          "NAS100",
+          "USDCAD",
+          "AAPL",
+          "NVDA",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.550000011920929,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1223198692",
+      "title": "Stock Market Investors Got a Final Warning From Fed Chair Jerome Powell. History Says This Will Happen Next. - The Motley Fool",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-27T11:53:00+02:00",
+      "category": "policy-speech",
+      "summary": "Stock Market Investors Got a Final Warning From Fed Chair Jerome Powell. History Says This Will Happen Next. - The Motley Fool",
+      "content": "Stock Market Investors Got a Final Warning From Fed Chair Jerome Powell. History Says This Will Happen Next. - The Motley Fool",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "USDJPY",
+          "NAS100",
+          "USDCAD",
+          "AAPL",
+          "NVDA",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.550000011920929,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "313411809",
+      "title": "United Kingdom S&P Global Manufacturing PMI up to 53.9 in May from previous 53.7",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:30:01+02:00",
+      "category": "minor-data",
+      "summary": "United Kingdom S&P Global Manufacturing PMI up to 53.9 in May from previous 53.7",
+      "content": "United Kingdom S&P Global Manufacturing PMI up to 53.9 in May from previous 53.7",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5199999809265137,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "747877601",
+      "title": "Dow Jones futures rise on AI optimism after strong May gains",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:15:21+02:00",
+      "category": "minor-data",
+      "summary": "Dow Jones futures rise on AI optimism after strong May gains",
+      "content": "Dow Jones futures rise on AI optimism after strong May gains",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.5199999809265137,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1923033636",
+      "title": "Japan seeks candid dialog, defense minister says, rejecting 'neo-militarism' claims",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-31T07:21:40+02:00",
+      "category": "minor-data",
+      "summary": "Japan seeks candid dialog, defense minister says, rejecting 'neo-militarism' claims",
+      "content": "Japan seeks candid dialog, defense minister says, rejecting 'neo-militarism' claims",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.5099999904632568,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "322000212",
+      "title": "UK May final manufacturing PMI 53.9 vs 53.7 prelim",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T10:30:03+02:00",
+      "category": "minor-data",
+      "summary": "UK May final manufacturing PMI 53.9 vs 53.7 prelim",
+      "content": "UK May final manufacturing PMI 53.9 vs 53.7 prelim",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "GBPUSD"
+        ],
+        "impact_score": 0.47999998927116394,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1686766644",
+      "title": "Japan manufacturing PMI eases to 54.5 in May. Cost pressures hit 32-month high",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T02:57:18+02:00",
+      "category": "minor-data",
+      "summary": "Japan manufacturing PMI eases to 54.5 in May. Cost pressures hit 32-month high",
+      "content": "Japan manufacturing PMI eases to 54.5 in May. Cost pressures hit 32-month high",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.47999998927116394,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1330494143",
+      "title": "Stock Market Today, May 26: Micron Surges After UBS Lifts Price Target on AI Optimism - The Motley Fool",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-26T19:21:30+02:00",
+      "category": "minor-data",
+      "summary": "Stock Market Today, May 26: Micron Surges After UBS Lifts Price Target on AI Optimism - The Motley Fool",
+      "content": "Stock Market Today, May 26: Micron Surges After UBS Lifts Price Target on AI Optimism - The Motley Fool",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.4699999988079071,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "639158967",
+      "title": "Commodity wrap: Crude oil falls 12% over the week on optimism over Iran-US deal; gold rises marginally, silver declines - Upstox",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T08:19:51+02:00",
+      "category": "minor-data",
+      "summary": "Commodity wrap: Crude oil falls 12% over the week on optimism over Iran-US deal; gold rises marginally, silver declines - Upstox",
+      "content": "Commodity wrap: Crude oil falls 12% over the week on optimism over Iran-US deal; gold rises marginally, silver declines - Upstox",
+      "url": "",
+      "intelligence": {
+        "sentiment": "bearish",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "XAGUSD",
+          "USOIL",
+          "XAUUSD"
+        ],
+        "impact_score": 0.44999998807907104,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "307492296",
+      "title": "Canada enters a technical recession: Why the Canadian dollar now depends entirely on a weaker US Dollar",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T12:32:42+02:00",
+      "category": "analysis",
+      "summary": "Canada enters a technical recession: Why the Canadian dollar now depends entirely on a weaker US Dollar",
+      "content": "Canada enters a technical recession: Why the Canadian dollar now depends entirely on a weaker US Dollar",
+      "url": "",
+      "intelligence": {
+        "sentiment": "bearish",
+        "confidence": "medium",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "565853288",
+      "title": "Euro edges higher vs Yen as German data, ECB hike expectations lend support",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T12:15:44+02:00",
+      "category": "analysis",
+      "summary": "Euro edges higher vs Yen as German data, ECB hike expectations lend support",
+      "content": "Euro edges higher vs Yen as German data, ECB hike expectations lend support",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURGBP",
+          "EURUSD",
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1495215632",
+      "title": "Euro: Supported by ECB hikes and AI investment – BNP Paribas",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:56:58+02:00",
+      "category": "analysis",
+      "summary": "Euro: Supported by ECB hikes and AI investment – BNP Paribas",
+      "content": "Euro: Supported by ECB hikes and AI investment – BNP Paribas",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "464785988",
+      "title": "Euro wavers amid mixed Eurozone data, rising geopolitical tensions",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:54:24+02:00",
+      "category": "analysis",
+      "summary": "Euro wavers amid mixed Eurozone data, rising geopolitical tensions",
+      "content": "Euro wavers amid mixed Eurozone data, rising geopolitical tensions",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1427675003",
+      "title": "Brent: Volatile swings on Iran headlines – Deutsche Bank",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:37:04+02:00",
+      "category": "analysis",
+      "summary": "Brent: Volatile swings on Iran headlines – Deutsche Bank",
+      "content": "Brent: Volatile swings on Iran headlines – Deutsche Bank",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "167095309",
+      "title": "Canadian Dollar: Recession and jobs data weigh against US Dollar – BBH",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T11:11:48+02:00",
+      "category": "analysis",
+      "summary": "Canadian Dollar: Recession and jobs data weigh against US Dollar – BBH",
+      "content": "Canadian Dollar: Recession and jobs data weigh against US Dollar – BBH",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1084606097",
+      "title": "United States Dollar Index (DXY) Price Forecast: Hesitation around 99.00",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:48:56+02:00",
+      "category": "analysis",
+      "summary": "United States Dollar Index (DXY) Price Forecast: Hesitation around 99.00",
+      "content": "United States Dollar Index (DXY) Price Forecast: Hesitation around 99.00",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "610930018",
+      "title": "US Dollar: Stable tone as markets eye data and Warsh – MUFG",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:43:45+02:00",
+      "category": "analysis",
+      "summary": "US Dollar: Stable tone as markets eye data and Warsh – MUFG",
+      "content": "US Dollar: Stable tone as markets eye data and Warsh – MUFG",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1553614604",
+      "title": "Gold falls below $4,500 as geopolitics and hawkish Fed lift USD, reinforcing bearish setup",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:42:46+02:00",
+      "category": "analysis",
+      "summary": "Gold falls below $4,500 as geopolitics and hawkish Fed lift USD, reinforcing bearish setup",
+      "content": "Gold falls below $4,500 as geopolitics and hawkish Fed lift USD, reinforcing bearish setup",
+      "url": "",
+      "intelligence": {
+        "sentiment": "bearish",
+        "confidence": "medium",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1690860460",
+      "title": "Eurozone M3 Money Supply (3m) fell from previous 3.2% to 3% in April",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:01:17+02:00",
+      "category": "analysis",
+      "summary": "Eurozone M3 Money Supply (3m) fell from previous 3.2% to 3% in April",
+      "content": "Eurozone M3 Money Supply (3m) fell from previous 3.2% to 3% in April",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "593115563",
+      "title": "Eurozone Private Loans (YoY) meets forecasts (3%) in April",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:00:48+02:00",
+      "category": "analysis",
+      "summary": "Eurozone Private Loans (YoY) meets forecasts (3%) in April",
+      "content": "Eurozone Private Loans (YoY) meets forecasts (3%) in April",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1253632784",
+      "title": "Eurozone M3 Money Supply (YoY) came in at 2.7%, below expectations (3.3%) in April",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T10:00:02+02:00",
+      "category": "analysis",
+      "summary": "Eurozone M3 Money Supply (YoY) came in at 2.7%, below expectations (3.3%) in April",
+      "content": "Eurozone M3 Money Supply (YoY) came in at 2.7%, below expectations (3.3%) in April",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1347504519",
+      "title": "WTI Oil returns above $89.00 as tensions in the Middle East rise",
+      "source": "fxstreet.com",
+      "publishedAt": "2026-06-01T09:58:40+02:00",
+      "category": "analysis",
+      "summary": "WTI Oil returns above $89.00 as tensions in the Middle East rise",
+      "content": "WTI Oil returns above $89.00 as tensions in the Middle East rise",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.41999998688697815,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "468275639",
+      "title": "An Iran deal could actually trigger a painful stock-market selloff, despite Wall Street’s optimism - MarketWatch",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-28T23:00:00+02:00",
+      "category": "minor-data",
+      "summary": "An Iran deal could actually trigger a painful stock-market selloff, despite Wall Street’s optimism - MarketWatch",
+      "content": "An Iran deal could actually trigger a painful stock-market selloff, despite Wall Street’s optimism - MarketWatch",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.4099999964237213,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1192831522",
+      "title": "Aluminum Prices Surge as Supply Shock Fears Grip the Market - Crude Oil Prices Today | OilPrice.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-27T18:00:00+02:00",
+      "category": "analysis",
+      "summary": "Aluminum Prices Surge as Supply Shock Fears Grip the Market - Crude Oil Prices Today | OilPrice.com",
+      "content": "Aluminum Prices Surge as Supply Shock Fears Grip the Market - Crude Oil Prices Today | OilPrice.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.4099999964237213,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "791651658",
+      "title": "Why Goldman Sachs is Raising S&P 500 Targets Despite Market Skepticism - Barron's",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-27T14:18:00+02:00",
+      "category": "minor-data",
+      "summary": "Why Goldman Sachs is Raising S&P 500 Targets Despite Market Skepticism - Barron's",
+      "content": "Why Goldman Sachs is Raising S&P 500 Targets Despite Market Skepticism - Barron's",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.4099999964237213,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "222111644",
+      "title": "Oil prices climb over 3% as U.S.-Iran talks at impasse, Israel expands Lebanon offensive",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T13:23:11+02:00",
+      "category": "analysis",
+      "summary": "Oil prices climb over 3% as U.S.-Iran talks at impasse, Israel expands Lebanon offensive",
+      "content": "Oil prices climb over 3% as U.S.-Iran talks at impasse, Israel expands Lebanon offensive",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "145069402",
+      "title": "Crypto exchange Binance rolls out trading in US stocks, ETFs",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T12:55:15+02:00",
+      "category": "analysis",
+      "summary": "Crypto exchange Binance rolls out trading in US stocks, ETFs",
+      "content": "Crypto exchange Binance rolls out trading in US stocks, ETFs",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "BTCUSDT",
+          "AAPL",
+          "NVDA",
+          "BTCUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "576807459",
+      "title": "SoftBank becomes Japan's most valuable company, announces $53 billion French investment",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T11:09:46+02:00",
+      "category": "analysis",
+      "summary": "SoftBank becomes Japan's most valuable company, announces $53 billion French investment",
+      "content": "SoftBank becomes Japan's most valuable company, announces $53 billion French investment",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "777279922",
+      "title": "Euro area manufacturing activity loses steam as stockpiling surge fades in May",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T10:00:06+02:00",
+      "category": "analysis",
+      "summary": "Euro area manufacturing activity loses steam as stockpiling surge fades in May",
+      "content": "Euro area manufacturing activity loses steam as stockpiling surge fades in May",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "EURGBP",
+          "NAS100",
+          "EURJPY",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "940197393",
+      "title": "Reports of another likely ballistic missile interception near Ali Al Salem Airbase, Kuwait",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T05:16:36+02:00",
+      "category": "analysis",
+      "summary": "Reports of another likely ballistic missile interception near Ali Al Salem Airbase, Kuwait",
+      "content": "Reports of another likely ballistic missile interception near Ali Al Salem Airbase, Kuwait",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "AUDUSD"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "833408882",
+      "title": "Japanese bond yields are the highest in 40 years. The budget and a 'red flag' from PM Takaichi have markets nervous",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T02:39:42+02:00",
+      "category": "analysis",
+      "summary": "Japanese bond yields are the highest in 40 years. The budget and a 'red flag' from PM Takaichi have markets nervous",
+      "content": "Japanese bond yields are the highest in 40 years. The budget and a 'red flag' from PM Takaichi have markets nervous",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1656331336",
+      "title": "UK businesses remain deeply downbeat on outlook despite slight mood lift in May",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T01:46:46+02:00",
+      "category": "analysis",
+      "summary": "UK businesses remain deeply downbeat on outlook despite slight mood lift in May",
+      "content": "UK businesses remain deeply downbeat on outlook despite slight mood lift in May",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "EURGBP",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "GBPUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.4000000059604645,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1492171460",
+      "title": "China’s factory activity beats forecasts in May, private survey shows, despite softer official data",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T04:34:38+02:00",
+      "category": "commentary",
+      "summary": "China’s factory activity beats forecasts in May, private survey shows, despite softer official data",
+      "content": "China’s factory activity beats forecasts in May, private survey shows, despite softer official data",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3799999952316284,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1319920891",
+      "title": "HYPE price stuns market with 67% monthly surge to ATH - crypto.news",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T15:49:16+02:00",
+      "category": "analysis",
+      "summary": "HYPE price stuns market with 67% monthly surge to ATH - crypto.news",
+      "content": "HYPE price stuns market with 67% monthly surge to ATH - crypto.news",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "870970798",
+      "title": "Defense spending, China in Asia and lessons from Ukraine: Takeways from the 2026 IISS Shangri-La Dialogue",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-31T11:35:52+02:00",
+      "category": "analysis",
+      "summary": "Defense spending, China in Asia and lessons from Ukraine: Takeways from the 2026 IISS Shangri-La Dialogue",
+      "content": "Defense spending, China in Asia and lessons from Ukraine: Takeways from the 2026 IISS Shangri-La Dialogue",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "GBPUSD"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1331126949",
+      "title": "Crypto Market Weekly: Bitcoin ETF Outflows Persist, Ethereum Enters Bearish Range, and XRP Spot Bids Surge - CoinGape",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T17:48:47+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Weekly: Bitcoin ETF Outflows Persist, Ethereum Enters Bearish Range, and XRP Spot Bids Surge - CoinGape",
+      "content": "Crypto Market Weekly: Bitcoin ETF Outflows Persist, Ethereum Enters Bearish Range, and XRP Spot Bids Surge - CoinGape",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "343063233",
+      "title": "Travelers to Europe may be leaving money on the table. Here's why",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-30T15:30:01+02:00",
+      "category": "analysis",
+      "summary": "Travelers to Europe may be leaving money on the table. Here's why",
+      "content": "Travelers to Europe may be leaving money on the table. Here's why",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "171619037",
+      "title": "Oil exports through the Strait of Hormuz might not return to levels seen before the Iran war",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-30T15:00:00+02:00",
+      "category": "analysis",
+      "summary": "Oil exports through the Strait of Hormuz might not return to levels seen before the Iran war",
+      "content": "Oil exports through the Strait of Hormuz might not return to levels seen before the Iran war",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "316925121",
+      "title": "European defense stocks are cooling off after the military spending boom. Here's what's next",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-30T08:01:49+02:00",
+      "category": "analysis",
+      "summary": "European defense stocks are cooling off after the military spending boom. Here's what's next",
+      "content": "European defense stocks are cooling off after the military spending boom. Here's what's next",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "EURGBP",
+          "NAS100",
+          "EURJPY",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1038557549",
+      "title": "Dow Jones Futures Rise As Dell, NetApp Surge On Earnings; Oil Falls On U.S.-Iran Deal Hopes - Investor's Business Daily",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T14:08:00+02:00",
+      "category": "analysis",
+      "summary": "Dow Jones Futures Rise As Dell, NetApp Surge On Earnings; Oil Falls On U.S.-Iran Deal Hopes - Investor's Business Daily",
+      "content": "Dow Jones Futures Rise As Dell, NetApp Surge On Earnings; Oil Falls On U.S.-Iran Deal Hopes - Investor's Business Daily",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "844214216",
+      "title": "European stocks slide, but defense sector rallies after Ukraine ratifies $105 billion EU loan deal",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-28T18:43:27+02:00",
+      "category": "analysis",
+      "summary": "European stocks slide, but defense sector rallies after Ukraine ratifies $105 billion EU loan deal",
+      "content": "European stocks slide, but defense sector rallies after Ukraine ratifies $105 billion EU loan deal",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "MSFT",
+          "NAS100",
+          "EURJPY",
+          "AAPL",
+          "NVDA",
+          "GBPUSD",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1015033359",
+      "title": "XRP drops nearly 6% weekly amid crypto market slump; XLM surges 22% after DTCC partnership. - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-28T16:15:12+02:00",
+      "category": "analysis",
+      "summary": "XRP drops nearly 6% weekly amid crypto market slump; XLM surges 22% after DTCC partnership. - Pluang",
+      "content": "XRP drops nearly 6% weekly amid crypto market slump; XLM surges 22% after DTCC partnership. - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "85998535",
+      "title": "Dulux maker's stock soars 20% after takeover bid from major rival; oil holds below $100",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-27T17:55:43+02:00",
+      "category": "analysis",
+      "summary": "Dulux maker's stock soars 20% after takeover bid from major rival; oil holds below $100",
+      "content": "Dulux maker's stock soars 20% after takeover bid from major rival; oil holds below $100",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2108012854",
+      "title": "Piper Sandler says Strait of Hormuz to remain closed for months and oil to hit new highs",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-27T16:05:08+02:00",
+      "category": "analysis",
+      "summary": "Piper Sandler says Strait of Hormuz to remain closed for months and oil to hit new highs",
+      "content": "Piper Sandler says Strait of Hormuz to remain closed for months and oil to hit new highs",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "301749860",
+      "title": "European companies double down on China manufacturing despite EU de-risking push",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-27T06:49:15+02:00",
+      "category": "analysis",
+      "summary": "European companies double down on China manufacturing despite EU de-risking push",
+      "content": "European companies double down on China manufacturing despite EU de-risking push",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "EURGBP",
+          "NAS100",
+          "EURJPY",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "EURUSD",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "25085268",
+      "title": "Past oil shocks hint that the stock market has peaked for the year, a veteran strategist says - Business Insider",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-26T19:36:00+02:00",
+      "category": "analysis",
+      "summary": "Past oil shocks hint that the stock market has peaked for the year, a veteran strategist says - Business Insider",
+      "content": "Past oil shocks hint that the stock market has peaked for the year, a veteran strategist says - Business Insider",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3700000047683716,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1079126806",
+      "title": "Why is Advanced Micro Devices stock sliding today?",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T13:28:56+02:00",
+      "category": "analysis",
+      "summary": "Why is Advanced Micro Devices stock sliding today?",
+      "content": "Why is Advanced Micro Devices stock sliding today?",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "644686815",
+      "title": "Why is Qualcomm stock tumbling today?",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T13:26:17+02:00",
+      "category": "analysis",
+      "summary": "Why is Qualcomm stock tumbling today?",
+      "content": "Why is Qualcomm stock tumbling today?",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "973539119",
+      "title": "Why is Intel stock sliding today?",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T13:23:15+02:00",
+      "category": "analysis",
+      "summary": "Why is Intel stock sliding today?",
+      "content": "Why is Intel stock sliding today?",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1588884869",
+      "title": "Morgan Stanley turns more positive on cyclicals as earnings momentum broadens",
+      "source": "investing.com",
+      "publishedAt": "2026-06-01T13:16:04+02:00",
+      "category": "analysis",
+      "summary": "Morgan Stanley turns more positive on cyclicals as earnings momentum broadens",
+      "content": "Morgan Stanley turns more positive on cyclicals as earnings momentum broadens",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "23454617",
+      "title": "South Korea stocks hit fresh high amid mixed regional trade despite Trump's Iran deal caution",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T10:16:23+02:00",
+      "category": "analysis",
+      "summary": "South Korea stocks hit fresh high amid mixed regional trade despite Trump's Iran deal caution",
+      "content": "South Korea stocks hit fresh high amid mixed regional trade despite Trump's Iran deal caution",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1095287708",
+      "title": "Spanish manufacturing activity eases in May as safety stock surge from April unwinds",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T09:15:22+02:00",
+      "category": "analysis",
+      "summary": "Spanish manufacturing activity eases in May as safety stock surge from April unwinds",
+      "content": "Spanish manufacturing activity eases in May as safety stock surge from April unwinds",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.36000001430511475,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1411572421",
+      "title": "War Bloodbaths Crypto Market. Bitcoin Loses 73,000 Again, Market Awaits Non-Farm Data to Crash or Save Market - TradingKey",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T13:05:41+02:00",
+      "category": "analysis",
+      "summary": "War Bloodbaths Crypto Market. Bitcoin Loses 73,000 Again, Market Awaits Non-Farm Data to Crash or Save Market - TradingKey",
+      "content": "War Bloodbaths Crypto Market. Bitcoin Loses 73,000 Again, Market Awaits Non-Farm Data to Crash or Save Market - TradingKey",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1875269024",
+      "title": "Coinbase opens a direct rupee gateway into India's crypto market - Startup Fortune",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T12:21:13+02:00",
+      "category": "analysis",
+      "summary": "Coinbase opens a direct rupee gateway into India's crypto market - Startup Fortune",
+      "content": "Coinbase opens a direct rupee gateway into India's crypto market - Startup Fortune",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "13422071",
+      "title": "These Altcoins Explode by Double Digits as Bitcoin Price Dips Below $72,000: Market Watch - CryptoPotato",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T11:48:00+02:00",
+      "category": "analysis",
+      "summary": "These Altcoins Explode by Double Digits as Bitcoin Price Dips Below $72,000: Market Watch - CryptoPotato",
+      "content": "These Altcoins Explode by Double Digits as Bitcoin Price Dips Below $72,000: Market Watch - CryptoPotato",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "841891010",
+      "title": "Crypto Market Crash: BTC, ETH, XRP Liquidations Hit $293M As US Bombs Iran - CoinGape",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T11:19:53+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Crash: BTC, ETH, XRP Liquidations Hit $293M As US Bombs Iran - CoinGape",
+      "content": "Crypto Market Crash: BTC, ETH, XRP Liquidations Hit $293M As US Bombs Iran - CoinGape",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "216053588",
+      "title": "Bitcoin’s Drop to $60K Would Still Be a Bull Market, Says Raoul Pal - Coinpedia",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T11:18:00+02:00",
+      "category": "analysis",
+      "summary": "Bitcoin’s Drop to $60K Would Still Be a Bull Market, Says Raoul Pal - Coinpedia",
+      "content": "Bitcoin’s Drop to $60K Would Still Be a Bull Market, Says Raoul Pal - Coinpedia",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "182988614",
+      "title": "Crypto Market Watches US Stablecoin Rule Comment Deadline, May Jobs Data - bloomingbit",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T11:05:53+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Watches US Stablecoin Rule Comment Deadline, May Jobs Data - bloomingbit",
+      "content": "Crypto Market Watches US Stablecoin Rule Comment Deadline, May Jobs Data - bloomingbit",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "651703722",
+      "title": "Commodities market afternoon: gold at ₹154,425.00 falls 0.74%, silver at ₹267,070.00 up 0.03%, crude oil at ₹8,662.00 jumps 4.60% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T11:00:17+02:00",
+      "category": "analysis",
+      "summary": "Commodities market afternoon: gold at ₹154,425.00 falls 0.74%, silver at ₹267,070.00 up 0.03%, crude oil at ₹8,662.00 jumps 4.60% - Business Upturn",
+      "content": "Commodities market afternoon: gold at ₹154,425.00 falls 0.74%, silver at ₹267,070.00 up 0.03%, crude oil at ₹8,662.00 jumps 4.60% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "XAGUSD",
+          "USOIL",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1700147801",
+      "title": "Crypto market faces liquidity drought as $1.2B exits Binance stablecoins in May amid rising bond yields. - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T10:43:38+02:00",
+      "category": "analysis",
+      "summary": "Crypto market faces liquidity drought as $1.2B exits Binance stablecoins in May amid rising bond yields. - Pluang",
+      "content": "Crypto market faces liquidity drought as $1.2B exits Binance stablecoins in May amid rising bond yields. - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1194392213",
+      "title": "U.S. dollar closes lower on Taipei forex market - Focus Taiwan",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T10:40:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. dollar closes lower on Taipei forex market - Focus Taiwan",
+      "content": "U.S. dollar closes lower on Taipei forex market - Focus Taiwan",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1863840774",
+      "title": "Chart of the Day: OIL (01.06.2026) - XTB.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T10:24:06+02:00",
+      "category": "analysis",
+      "summary": "Chart of the Day: OIL (01.06.2026) - XTB.com",
+      "content": "Chart of the Day: OIL (01.06.2026) - XTB.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1357811270",
+      "title": "Germany May final manufacturing PMI 50.1 vs 49.9 prelim",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T09:55:03+02:00",
+      "category": "minor-data",
+      "summary": "Germany May final manufacturing PMI 50.1 vs 49.9 prelim",
+      "content": "Germany May final manufacturing PMI 50.1 vs 49.9 prelim",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "460696288",
+      "title": "France manufacturing contracts in May as supply chain hit intensifies",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T09:50:03+02:00",
+      "category": "analysis",
+      "summary": "France manufacturing contracts in May as supply chain hit intensifies",
+      "content": "France manufacturing contracts in May as supply chain hit intensifies",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDCHF"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "279007606",
+      "title": "Italy May manufacturing PMI 52.9 vs 51.9 expected",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T09:45:04+02:00",
+      "category": "minor-data",
+      "summary": "Italy May manufacturing PMI 52.9 vs 51.9 expected",
+      "content": "Italy May manufacturing PMI 52.9 vs 51.9 expected",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "319488869",
+      "title": "Commodities market update: gold at ₹154,870.00 falls 0.45%, silver at ₹267,299.00 rises 0.11%, crude oil at ₹8,577.00 jumps 3.57% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T08:30:21+02:00",
+      "category": "analysis",
+      "summary": "Commodities market update: gold at ₹154,870.00 falls 0.45%, silver at ₹267,299.00 rises 0.11%, crude oil at ₹8,577.00 jumps 3.57% - Business Upturn",
+      "content": "Commodities market update: gold at ₹154,870.00 falls 0.45%, silver at ₹267,299.00 rises 0.11%, crude oil at ₹8,577.00 jumps 3.57% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "XAGUSD",
+          "USOIL",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "275892717",
+      "title": "FX Futures Positioning: US Dollar Bulls Return, Yen Bears Tease MOF - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T08:27:20+02:00",
+      "category": "analysis",
+      "summary": "FX Futures Positioning: US Dollar Bulls Return, Yen Bears Tease MOF - FOREX.com",
+      "content": "FX Futures Positioning: US Dollar Bulls Return, Yen Bears Tease MOF - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "EURJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "769763642",
+      "title": "US military strikes Iranian drone sites and air defenses amid ceasefire tensions, crypto markets shed $80B - Crypto Briefing",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T08:24:53+02:00",
+      "category": "analysis",
+      "summary": "US military strikes Iranian drone sites and air defenses amid ceasefire tensions, crypto markets shed $80B - Crypto Briefing",
+      "content": "US military strikes Iranian drone sites and air defenses amid ceasefire tensions, crypto markets shed $80B - Crypto Briefing",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "866752305",
+      "title": "While the entire world is hitting new highs, the cryptocurrency market has become the \"earthquake victim.\" - PANews",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T08:20:00+02:00",
+      "category": "analysis",
+      "summary": "While the entire world is hitting new highs, the cryptocurrency market has become the \"earthquake victim.\" - PANews",
+      "content": "While the entire world is hitting new highs, the cryptocurrency market has become the \"earthquake victim.\" - PANews",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1463952933",
+      "title": "Kospi rally drains momentum from Korea's crypto market - The Korea Herald",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T08:17:22+02:00",
+      "category": "analysis",
+      "summary": "Kospi rally drains momentum from Korea's crypto market - The Korea Herald",
+      "content": "Kospi rally drains momentum from Korea's crypto market - The Korea Herald",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "73449818",
+      "title": "UK house prices drop in May amid uncertainty from Middle East conflict",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T08:00:15+02:00",
+      "category": "analysis",
+      "summary": "UK house prices drop in May amid uncertainty from Middle East conflict",
+      "content": "UK house prices drop in May amid uncertainty from Middle East conflict",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "GBPUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "961780589",
+      "title": "German retail sales struggle in April as Middle East conflict continues to weigh",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T08:00:13+02:00",
+      "category": "minor-data",
+      "summary": "German retail sales struggle in April as Middle East conflict continues to weigh",
+      "content": "German retail sales struggle in April as Middle East conflict continues to weigh",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2035049533",
+      "title": "Senator Lummis Pushes CLARITY Act as Senate Weighs Crypto Market Rules - Coinpedia",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T07:47:00+02:00",
+      "category": "analysis",
+      "summary": "Senator Lummis Pushes CLARITY Act as Senate Weighs Crypto Market Rules - Coinpedia",
+      "content": "Senator Lummis Pushes CLARITY Act as Senate Weighs Crypto Market Rules - Coinpedia",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "487974147",
+      "title": "BTC, ETH price news: Bitcoin, ether, solana slide as AI trade continues to rip higher - CoinDesk",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T07:14:18+02:00",
+      "category": "analysis",
+      "summary": "BTC, ETH price news: Bitcoin, ether, solana slide as AI trade continues to rip higher - CoinDesk",
+      "content": "BTC, ETH price news: Bitcoin, ether, solana slide as AI trade continues to rip higher - CoinDesk",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "879386234",
+      "title": "US dollar steadies as markets await Iran war signals and central bank moves - Crypto Briefing",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T06:20:59+02:00",
+      "category": "analysis",
+      "summary": "US dollar steadies as markets await Iran war signals and central bank moves - Crypto Briefing",
+      "content": "US dollar steadies as markets await Iran war signals and central bank moves - Crypto Briefing",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "BTCUSD",
+          "EURUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "991032252",
+      "title": "Crypto Meets Wall Street: MEXC Unveils 'RealStocks' with 0-Fee U.S. Equity Trading and Real Dividends - markets.businessinsider.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T06:13:07+02:00",
+      "category": "analysis",
+      "summary": "Crypto Meets Wall Street: MEXC Unveils 'RealStocks' with 0-Fee U.S. Equity Trading and Real Dividends - markets.businessinsider.com",
+      "content": "Crypto Meets Wall Street: MEXC Unveils 'RealStocks' with 0-Fee U.S. Equity Trading and Real Dividends - markets.businessinsider.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "BTCUSDT",
+          "AAPL",
+          "NVDA",
+          "BTCUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "203687534",
+      "title": "Commodities market opens: gold at ₹154,305.00 falls 0.82%, silver at ₹266,158.00 dips 0.31%, crude oil at ₹8,544.00 jumps 3.18% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T06:00:13+02:00",
+      "category": "analysis",
+      "summary": "Commodities market opens: gold at ₹154,305.00 falls 0.82%, silver at ₹266,158.00 dips 0.31%, crude oil at ₹8,544.00 jumps 3.18% - Business Upturn",
+      "content": "Commodities market opens: gold at ₹154,305.00 falls 0.82%, silver at ₹266,158.00 dips 0.31%, crude oil at ₹8,544.00 jumps 3.18% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "XAGUSD",
+          "USOIL",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1139650411",
+      "title": "investingLive Asia-Pacific FX news wrap: Oil prices up. Deal elusive, attacks continue.",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T05:48:53+02:00",
+      "category": "analysis",
+      "summary": "investingLive Asia-Pacific FX news wrap: Oil prices up. Deal elusive, attacks continue.",
+      "content": "investingLive Asia-Pacific FX news wrap: Oil prices up. Deal elusive, attacks continue.",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1608657890",
+      "title": "Gold price today: Rate drops on MCX amid stronger dollar, higher oil prices; experts highlight key levels to watch - Mint",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T05:38:22+02:00",
+      "category": "analysis",
+      "summary": "Gold price today: Rate drops on MCX amid stronger dollar, higher oil prices; experts highlight key levels to watch - Mint",
+      "content": "Gold price today: Rate drops on MCX amid stronger dollar, higher oil prices; experts highlight key levels to watch - Mint",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "USDJPY",
+          "UKOIL",
+          "USDCAD",
+          "USDCHF",
+          "BRENTCMDUSD",
+          "AUDUSD",
+          "GBPUSD",
+          "DXY",
+          "EURUSD",
+          "USOIL",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1437276802",
+      "title": "Dow Jones Futures, Oil Prices Rise As Trump Makes This Iran Move; Nvidia, Tesla Lead 5 Titans Near Buy Points - Investor's Business Daily",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T05:08:00+02:00",
+      "category": "analysis",
+      "summary": "Dow Jones Futures, Oil Prices Rise As Trump Makes This Iran Move; Nvidia, Tesla Lead 5 Titans Near Buy Points - Investor's Business Daily",
+      "content": "Dow Jones Futures, Oil Prices Rise As Trump Makes This Iran Move; Nvidia, Tesla Lead 5 Titans Near Buy Points - Investor's Business Daily",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "287748232",
+      "title": "Oil rises, U.S. stock futures inch higher as Wall Street looks to extend its winning streak - MarketWatch",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T04:49:00+02:00",
+      "category": "analysis",
+      "summary": "Oil rises, U.S. stock futures inch higher as Wall Street looks to extend its winning streak - MarketWatch",
+      "content": "Oil rises, U.S. stock futures inch higher as Wall Street looks to extend its winning streak - MarketWatch",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "979126183",
+      "title": "US proposes ceasefire plan to Lebanon and Israel as crypto markets watch for risk-on signals - Crypto Briefing",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T04:45:45+02:00",
+      "category": "analysis",
+      "summary": "US proposes ceasefire plan to Lebanon and Israel as crypto markets watch for risk-on signals - Crypto Briefing",
+      "content": "US proposes ceasefire plan to Lebanon and Israel as crypto markets watch for risk-on signals - Crypto Briefing",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2350028",
+      "title": "Bitcoin, Ethereum, XRP, Dogecoin Flat As Trump In 'No Hurry' To Sign Iran Deal: Analyst Says BTC Needs Weekly Close Above This Level For Bullish Move - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T04:05:00+02:00",
+      "category": "analysis",
+      "summary": "Bitcoin, Ethereum, XRP, Dogecoin Flat As Trump In 'No Hurry' To Sign Iran Deal: Analyst Says BTC Needs Weekly Close Above This Level For Bullish Move - Yahoo Finance",
+      "content": "Bitcoin, Ethereum, XRP, Dogecoin Flat As Trump In 'No Hurry' To Sign Iran Deal: Analyst Says BTC Needs Weekly Close Above This Level For Bullish Move - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "669848558",
+      "title": "Samsung Electronics Overtakes Bitcoin to Reach No. 13 in Global Market Value Rankings - bloomingbit",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T04:01:33+02:00",
+      "category": "analysis",
+      "summary": "Samsung Electronics Overtakes Bitcoin to Reach No. 13 in Global Market Value Rankings - bloomingbit",
+      "content": "Samsung Electronics Overtakes Bitcoin to Reach No. 13 in Global Market Value Rankings - bloomingbit",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "529348988",
+      "title": "Turkey's crypto market hits $200B, leading MENA region and outpacing UAE by 4x - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T03:56:40+02:00",
+      "category": "analysis",
+      "summary": "Turkey's crypto market hits $200B, leading MENA region and outpacing UAE by 4x - Pluang",
+      "content": "Turkey's crypto market hits $200B, leading MENA region and outpacing UAE by 4x - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1164538715",
+      "title": "China May private survey Rating Dog Manufacturing PMI 51.8 (expected 51.4, prior 52.2)",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T03:45:06+02:00",
+      "category": "minor-data",
+      "summary": "China May private survey Rating Dog Manufacturing PMI 51.8 (expected 51.4, prior 52.2)",
+      "content": "China May private survey Rating Dog Manufacturing PMI 51.8 (expected 51.4, prior 52.2)",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "396283031",
+      "title": "MicroStrategy Bitcoin Sale Bets - StartupHub.ai",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T03:01:38+02:00",
+      "category": "analysis",
+      "summary": "MicroStrategy Bitcoin Sale Bets - StartupHub.ai",
+      "content": "MicroStrategy Bitcoin Sale Bets - StartupHub.ai",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1316566962",
+      "title": "Bit Digital Raises Ethereum Holdings to 158K ETH After New Purchase - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T02:28:00+02:00",
+      "category": "analysis",
+      "summary": "Bit Digital Raises Ethereum Holdings to 158K ETH After New Purchase - Yahoo Finance",
+      "content": "Bit Digital Raises Ethereum Holdings to 158K ETH After New Purchase - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1039618885",
+      "title": "Japan Capital Spending Q1: 0.0% y/y (expected 4.0%, prior 6.5%)",
+      "source": "investinglive.com",
+      "publishedAt": "2026-06-01T01:57:33+02:00",
+      "category": "analysis",
+      "summary": "Japan Capital Spending Q1: 0.0% y/y (expected 4.0%, prior 6.5%)",
+      "content": "Japan Capital Spending Q1: 0.0% y/y (expected 4.0%, prior 6.5%)",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1008947576",
+      "title": "Coinbase makes a major play for India’s booming $3 billion crypto market with local currency launch - CoinDesk",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T01:31:14+02:00",
+      "category": "analysis",
+      "summary": "Coinbase makes a major play for India’s booming $3 billion crypto market with local currency launch - CoinDesk",
+      "content": "Coinbase makes a major play for India’s booming $3 billion crypto market with local currency launch - CoinDesk",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "278625548",
+      "title": "Robinhood’s WonderFi Deal Expands Crypto Reach And International Growth Story - simplywall.st",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T01:14:26+02:00",
+      "category": "analysis",
+      "summary": "Robinhood’s WonderFi Deal Expands Crypto Reach And International Growth Story - simplywall.st",
+      "content": "Robinhood’s WonderFi Deal Expands Crypto Reach And International Growth Story - simplywall.st",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "733414596",
+      "title": "Steve Sosnick: Crypto ETFs are fueling performance chasing, the critical role of money flow in market dynamics, and the reliance on faith over fundamentals in the stock rally | Unchained - Crypto Brie",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T01:13:52+02:00",
+      "category": "analysis",
+      "summary": "Steve Sosnick: Crypto ETFs are fueling performance chasing, the critical role of money flow in market dynamics, and the reliance on faith over fundamentals in the stock rally | Unchained - Crypto Brie",
+      "content": "Steve Sosnick: Crypto ETFs are fueling performance chasing, the critical role of money flow in market dynamics, and the reliance on faith over fundamentals in the stock rally | Unchained - Crypto Brie",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "BTCUSDT",
+          "AAPL",
+          "NVDA",
+          "BTCUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3400000035762787,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1465882940",
+      "title": "Top Wall Street analysts see robust growth potential in these 3 stocks",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-31T13:50:08+02:00",
+      "category": "analysis",
+      "summary": "Top Wall Street analysts see robust growth potential in these 3 stocks",
+      "content": "Top Wall Street analysts see robust growth potential in these 3 stocks",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1711494555",
+      "title": "Berkshire trails red-hot S&P 500 by biggest margin so far this year",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-30T14:47:51+02:00",
+      "category": "analysis",
+      "summary": "Berkshire trails red-hot S&P 500 by biggest margin so far this year",
+      "content": "Berkshire trails red-hot S&P 500 by biggest margin so far this year",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "75984330",
+      "title": "Singapore Commodities Traders Navigate Middle East Disruptions, Find Profit Opportunities - Earnings Beat Alert - thelegaladvocate.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T23:51:54+02:00",
+      "category": "analysis",
+      "summary": "Singapore Commodities Traders Navigate Middle East Disruptions, Find Profit Opportunities - Earnings Beat Alert - thelegaladvocate.com",
+      "content": "Singapore Commodities Traders Navigate Middle East Disruptions, Find Profit Opportunities - Earnings Beat Alert - thelegaladvocate.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "687472286",
+      "title": "Stock Market Today, May 28: Tech Stocks Rise as Snowflake Surges After $6 Billion Amazon Deal and Strong Earnings - The Motley Fool",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-28T21:06:00+02:00",
+      "category": "analysis",
+      "summary": "Stock Market Today, May 28: Tech Stocks Rise as Snowflake Surges After $6 Billion Amazon Deal and Strong Earnings - The Motley Fool",
+      "content": "Stock Market Today, May 28: Tech Stocks Rise as Snowflake Surges After $6 Billion Amazon Deal and Strong Earnings - The Motley Fool",
+      "url": "",
+      "intelligence": {
+        "sentiment": "bullish",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2094723314",
+      "title": "Commodities market closing: gold at ₹155,650.00 falls 1.25%, silver at ₹265,950.00 down 1.73%, natural gas surges to ₹302.40 up 3.46% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-27T20:05:16+02:00",
+      "category": "analysis",
+      "summary": "Commodities market closing: gold at ₹155,650.00 falls 1.25%, silver at ₹265,950.00 down 1.73%, natural gas surges to ₹302.40 up 3.46% - Business Upturn",
+      "content": "Commodities market closing: gold at ₹155,650.00 falls 1.25%, silver at ₹265,950.00 down 1.73%, natural gas surges to ₹302.40 up 3.46% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "XAGUSD",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1632652493",
+      "title": "Taiwan chip stocks climb after Nvidia announces $150 billion spending plans",
+      "source": "cnbc.com",
+      "publishedAt": "2026-05-27T11:41:14+02:00",
+      "category": "analysis",
+      "summary": "Taiwan chip stocks climb after Nvidia announces $150 billion spending plans",
+      "content": "Taiwan chip stocks climb after Nvidia announces $150 billion spending plans",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.33000001311302185,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "661745116",
+      "title": "Defense spending surges, China draws fire: The biggest quotes from Asia's top security summit",
+      "source": "cnbc.com",
+      "publishedAt": "2026-06-01T11:41:59+02:00",
+      "category": "analysis",
+      "summary": "Defense spending surges, China draws fire: The biggest quotes from Asia's top security summit",
+      "content": "Defense spending surges, China draws fire: The biggest quotes from Asia's top security summit",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "EURUSD",
+          "GBPUSD",
+          "XAUUSD",
+          "BTCUSD",
+          "NAS100"
+        ],
+        "impact_score": 0.3199999928474426,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1696604911",
+      "title": "Crypto market’s weekly winners and losers – XLM, DEXE, ZEC, BCH - AMBCrypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-06-01T00:00:58+02:00",
+      "category": "analysis",
+      "summary": "Crypto market’s weekly winners and losers – XLM, DEXE, ZEC, BCH - AMBCrypto",
+      "content": "Crypto market’s weekly winners and losers – XLM, DEXE, ZEC, BCH - AMBCrypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "339758672",
+      "title": "HYPE Flips DOGE: Hyperliquid Cracks Top 10 Crypto As Price Nears $70 - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T22:13:58+02:00",
+      "category": "analysis",
+      "summary": "HYPE Flips DOGE: Hyperliquid Cracks Top 10 Crypto As Price Nears $70 - Yahoo Finance",
+      "content": "HYPE Flips DOGE: Hyperliquid Cracks Top 10 Crypto As Price Nears $70 - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "708890733",
+      "title": "Bitcoin News: A massive $1.26 billion sale of BlackRock’s IBIT was likely a rapid exit by a large investor, NYDIG says - CoinDesk",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T21:45:15+02:00",
+      "category": "analysis",
+      "summary": "Bitcoin News: A massive $1.26 billion sale of BlackRock’s IBIT was likely a rapid exit by a large investor, NYDIG says - CoinDesk",
+      "content": "Bitcoin News: A massive $1.26 billion sale of BlackRock’s IBIT was likely a rapid exit by a large investor, NYDIG says - CoinDesk",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2138010615",
+      "title": "Insider Reveals Real Reason Ethereum Is Down 65% vs Bitcoin Since The Merge - BeInCrypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T21:42:00+02:00",
+      "category": "analysis",
+      "summary": "Insider Reveals Real Reason Ethereum Is Down 65% vs Bitcoin Since The Merge - BeInCrypto",
+      "content": "Insider Reveals Real Reason Ethereum Is Down 65% vs Bitcoin Since The Merge - BeInCrypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "SPX500",
+          "AAPL",
+          "NVDA",
+          "ETHUSD",
+          "BTCUSD",
+          "ETHUSDT",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "628654175",
+      "title": "ETH Slips Below $2k As Sellers Dominate Crypto Market - MarketForces Africa",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T21:18:07+02:00",
+      "category": "analysis",
+      "summary": "ETH Slips Below $2k As Sellers Dominate Crypto Market - MarketForces Africa",
+      "content": "ETH Slips Below $2k As Sellers Dominate Crypto Market - MarketForces Africa",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1141989932",
+      "title": "Emerging Narratives in Crypto: Airdrops, Autonomy, and Market Trends - Castle Crypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T19:23:12+02:00",
+      "category": "analysis",
+      "summary": "Emerging Narratives in Crypto: Airdrops, Autonomy, and Market Trends - Castle Crypto",
+      "content": "Emerging Narratives in Crypto: Airdrops, Autonomy, and Market Trends - Castle Crypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1107663144",
+      "title": "Week in Review: Bitcoin jitters from Hormuz and Fidelity’s crypto-market trends - ForkLog",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T17:52:05+02:00",
+      "category": "analysis",
+      "summary": "Week in Review: Bitcoin jitters from Hormuz and Fidelity’s crypto-market trends - ForkLog",
+      "content": "Week in Review: Bitcoin jitters from Hormuz and Fidelity’s crypto-market trends - ForkLog",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1850929085",
+      "title": "JPMorgan CEO warns stablecoin risks could trigger crypto market crash amid U.S. Clarity Act debate - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T13:33:41+02:00",
+      "category": "analysis",
+      "summary": "JPMorgan CEO warns stablecoin risks could trigger crypto market crash amid U.S. Clarity Act debate - Pluang",
+      "content": "JPMorgan CEO warns stablecoin risks could trigger crypto market crash amid U.S. Clarity Act debate - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1353389768",
+      "title": "The Stock Market Is Doing Something That's Virtually Unprecedented -- and History Shows There's No Mistaking What Comes Next - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T12:26:00+02:00",
+      "category": "analysis",
+      "summary": "The Stock Market Is Doing Something That's Virtually Unprecedented -- and History Shows There's No Mistaking What Comes Next - Yahoo Finance",
+      "content": "The Stock Market Is Doing Something That's Virtually Unprecedented -- and History Shows There's No Mistaking What Comes Next - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "ETHUSD",
+          "ETHUSDT",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1805605856",
+      "title": "Bitcoin 'Doesn't Move Anymore,' Says Scaramucci, But He 'Liked' BlackRock's Dark Pool Trade - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T12:19:11+02:00",
+      "category": "analysis",
+      "summary": "Bitcoin 'Doesn't Move Anymore,' Says Scaramucci, But He 'Liked' BlackRock's Dark Pool Trade - Yahoo Finance",
+      "content": "Bitcoin 'Doesn't Move Anymore,' Says Scaramucci, But He 'Liked' BlackRock's Dark Pool Trade - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "37357400",
+      "title": "Crypto Market Recap: Trump Kills U.S. CBDC; $8B Seized in FBI Operation; Paxos Becomes First Blockchain Clearing Agency; and More (May 24–30, 2026) - BanklessTimes",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T11:32:08+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Recap: Trump Kills U.S. CBDC; $8B Seized in FBI Operation; Paxos Becomes First Blockchain Clearing Agency; and More (May 24–30, 2026) - BanklessTimes",
+      "content": "Crypto Market Recap: Trump Kills U.S. CBDC; $8B Seized in FBI Operation; Paxos Becomes First Blockchain Clearing Agency; and More (May 24–30, 2026) - BanklessTimes",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "547482684",
+      "title": "Korea to offer 24-hour won-dollar trading from July - The Korea Herald",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:55:16+02:00",
+      "category": "analysis",
+      "summary": "Korea to offer 24-hour won-dollar trading from July - The Korea Herald",
+      "content": "Korea to offer 24-hour won-dollar trading from July - The Korea Herald",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "305669826",
+      "title": "Crypto Technical Analysis: Is the selling bias returning to the market? - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:43:33+02:00",
+      "category": "analysis",
+      "summary": "Crypto Technical Analysis: Is the selling bias returning to the market? - FOREX.com",
+      "content": "Crypto Technical Analysis: Is the selling bias returning to the market? - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "648303250",
+      "title": "Arthur Hayes Doubles Down on Hyperliquid Prediction, Sees HYPE Overtaking Solana - BeInCrypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:39:00+02:00",
+      "category": "analysis",
+      "summary": "Arthur Hayes Doubles Down on Hyperliquid Prediction, Sees HYPE Overtaking Solana - BeInCrypto",
+      "content": "Arthur Hayes Doubles Down on Hyperliquid Prediction, Sees HYPE Overtaking Solana - BeInCrypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "BTCUSDT",
+          "AAPL",
+          "NVDA",
+          "BTCUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1545624933",
+      "title": "Top World Cup 2026 Crypto Coins: Three Layers Riding Football’s Biggest Stage - BeInCrypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:23:00+02:00",
+      "category": "analysis",
+      "summary": "Top World Cup 2026 Crypto Coins: Three Layers Riding Football’s Biggest Stage - BeInCrypto",
+      "content": "Top World Cup 2026 Crypto Coins: Three Layers Riding Football’s Biggest Stage - BeInCrypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1652655191",
+      "title": "Crypto Market Recovers with XRP and Worldcoin Leading Gains - Intellectia AI",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:15:24+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Recovers with XRP and Worldcoin Leading Gains - Intellectia AI",
+      "content": "Crypto Market Recovers with XRP and Worldcoin Leading Gains - Intellectia AI",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "85901996",
+      "title": "Massive De-Risking Event📉Crypto Market Update R.j. Decker (uMR0lCiptY) - Mshale",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T10:01:27+02:00",
+      "category": "analysis",
+      "summary": "Massive De-Risking Event📉Crypto Market Update R.j. Decker (uMR0lCiptY) - Mshale",
+      "content": "Massive De-Risking Event📉Crypto Market Update R.j. Decker (uMR0lCiptY) - Mshale",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "440040456",
+      "title": "Crypto market shifts as HBAR and XLM rise, memecoins fall amid risk-off phase - Pluang",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T04:28:37+02:00",
+      "category": "analysis",
+      "summary": "Crypto market shifts as HBAR and XLM rise, memecoins fall amid risk-off phase - Pluang",
+      "content": "Crypto market shifts as HBAR and XLM rise, memecoins fall amid risk-off phase - Pluang",
+      "url": "",
+      "intelligence": {
+        "sentiment": "bearish",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "495235056",
+      "title": "Crypto Market Recap: Bitcoin Consolidates, Ethereum Leads Altcoin Rotation - BusinessToday Malaysia",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T03:39:04+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market Recap: Bitcoin Consolidates, Ethereum Leads Altcoin Rotation - BusinessToday Malaysia",
+      "content": "Crypto Market Recap: Bitcoin Consolidates, Ethereum Leads Altcoin Rotation - BusinessToday Malaysia",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1892589022",
+      "title": "Crypto market loses $300B in one week – How will fresh capital enter? - AMBCrypto",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T02:00:04+02:00",
+      "category": "analysis",
+      "summary": "Crypto market loses $300B in one week – How will fresh capital enter? - AMBCrypto",
+      "content": "Crypto market loses $300B in one week – How will fresh capital enter? - AMBCrypto",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1223957885",
+      "title": "Crypto Market News: SUI Drops 8% After Mainnet Stall as AlphaPepe Builds the Retail Safety Trade - StreetInsider",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-31T01:44:31+02:00",
+      "category": "analysis",
+      "summary": "Crypto Market News: SUI Drops 8% After Mainnet Stall as AlphaPepe Builds the Retail Safety Trade - StreetInsider",
+      "content": "Crypto Market News: SUI Drops 8% After Mainnet Stall as AlphaPepe Builds the Retail Safety Trade - StreetInsider",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2076558434",
+      "title": "Bitwise Leader Thinks Hyperliquid is Bigger Than the Crypto Market - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T19:16:21+02:00",
+      "category": "analysis",
+      "summary": "Bitwise Leader Thinks Hyperliquid is Bigger Than the Crypto Market - Yahoo Finance",
+      "content": "Bitwise Leader Thinks Hyperliquid is Bigger Than the Crypto Market - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "592113829",
+      "title": "Singapore Commodities Traders Adapt to Middle East Volatility, Hedging Oil and Coffee Beans - Guidance vs Actual - thelegaladvocate.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T14:28:07+02:00",
+      "category": "analysis",
+      "summary": "Singapore Commodities Traders Adapt to Middle East Volatility, Hedging Oil and Coffee Beans - Guidance vs Actual - thelegaladvocate.com",
+      "content": "Singapore Commodities Traders Adapt to Middle East Volatility, Hedging Oil and Coffee Beans - Guidance vs Actual - thelegaladvocate.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1273360717",
+      "title": "From OpenAI to SpaceX: How the Super IPO Era Will Affect the Crypto Market - KuCoin",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T13:00:22+02:00",
+      "category": "analysis",
+      "summary": "From OpenAI to SpaceX: How the Super IPO Era Will Affect the Crypto Market - KuCoin",
+      "content": "From OpenAI to SpaceX: How the Super IPO Era Will Affect the Crypto Market - KuCoin",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1136951220",
+      "title": "The Next Bitcoin Price Today | BUTTCOIN to USD Live Price, Market Cap & Chart - Binance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T11:51:00+02:00",
+      "category": "analysis",
+      "summary": "The Next Bitcoin Price Today | BUTTCOIN to USD Live Price, Market Cap & Chart - Binance",
+      "content": "The Next Bitcoin Price Today | BUTTCOIN to USD Live Price, Market Cap & Chart - Binance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "BTCUSD",
+          "EURUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1577499281",
+      "title": "What the stock market gets wrong — and why that creates opportunity - Yahoo Finance UK",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T07:59:00+02:00",
+      "category": "analysis",
+      "summary": "What the stock market gets wrong — and why that creates opportunity - Yahoo Finance UK",
+      "content": "What the stock market gets wrong — and why that creates opportunity - Yahoo Finance UK",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "EURGBP",
+          "NAS100",
+          "AAPL",
+          "NVDA",
+          "GBPUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1557378142",
+      "title": "Ether Overview - CME Group",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T06:06:49+02:00",
+      "category": "analysis",
+      "summary": "Ether Overview - CME Group",
+      "content": "Ether Overview - CME Group",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2097370789",
+      "title": "Crypto Giant Dethroned: Bitcoin Drops Out Of Top 10 Amid Market Shift - TradingView",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T02:30:00+02:00",
+      "category": "analysis",
+      "summary": "Crypto Giant Dethroned: Bitcoin Drops Out Of Top 10 Amid Market Shift - TradingView",
+      "content": "Crypto Giant Dethroned: Bitcoin Drops Out Of Top 10 Amid Market Shift - TradingView",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "ETHUSD",
+          "BTCUSD",
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1914202532",
+      "title": "Prices, policy, pressure, flows all in action: What's happening in crypto market? - Seeking Alpha",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-30T00:16:30+02:00",
+      "category": "analysis",
+      "summary": "Prices, policy, pressure, flows all in action: What's happening in crypto market? - Seeking Alpha",
+      "content": "Prices, policy, pressure, flows all in action: What's happening in crypto market? - Seeking Alpha",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "731045176",
+      "title": "Crypto Update: FalconX Eyes Wall Street with IPO Filing - Investing News Network",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T23:05:00+02:00",
+      "category": "analysis",
+      "summary": "Crypto Update: FalconX Eyes Wall Street with IPO Filing - Investing News Network",
+      "content": "Crypto Update: FalconX Eyes Wall Street with IPO Filing - Investing News Network",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "716559869",
+      "title": "JPMorgan CEO Jamie Dimon rags on Coinbase CEO Brian Armstrong's crypto lobbying push: 'He's full of shit' - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T22:13:11+02:00",
+      "category": "analysis",
+      "summary": "JPMorgan CEO Jamie Dimon rags on Coinbase CEO Brian Armstrong's crypto lobbying push: 'He's full of shit' - Yahoo Finance",
+      "content": "JPMorgan CEO Jamie Dimon rags on Coinbase CEO Brian Armstrong's crypto lobbying push: 'He's full of shit' - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1832970762",
+      "title": "Bittensor (TAO) Falls 6% Amid Broad Crypto Selloff - CoinMarketCap",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T22:05:00+02:00",
+      "category": "analysis",
+      "summary": "Bittensor (TAO) Falls 6% Amid Broad Crypto Selloff - CoinMarketCap",
+      "content": "Bittensor (TAO) Falls 6% Amid Broad Crypto Selloff - CoinMarketCap",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2101629800",
+      "title": "Closing Market Update: ICE Canola losses gains, U.S. ag commodities weaker, except soyoil | May 29, 2026 - Country Guide",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T21:50:45+02:00",
+      "category": "analysis",
+      "summary": "Closing Market Update: ICE Canola losses gains, U.S. ag commodities weaker, except soyoil | May 29, 2026 - Country Guide",
+      "content": "Closing Market Update: ICE Canola losses gains, U.S. ag commodities weaker, except soyoil | May 29, 2026 - Country Guide",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "291557319",
+      "title": "Commodities market closing: gold at ₹156,000.00 down 0.59%, silver at ₹267,000.00 down 0.94%, crude oil at ₹8,310.00 down 2.66% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T20:05:18+02:00",
+      "category": "analysis",
+      "summary": "Commodities market closing: gold at ₹156,000.00 down 0.59%, silver at ₹267,000.00 down 0.94%, crude oil at ₹8,310.00 down 2.66% - Business Upturn",
+      "content": "Commodities market closing: gold at ₹156,000.00 down 0.59%, silver at ₹267,000.00 down 0.94%, crude oil at ₹8,310.00 down 2.66% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "XAGUSD",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "600008002",
+      "title": "Top 10 Cryptocurrencies Of May 29, 2026 - Forbes",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T18:42:00+02:00",
+      "category": "analysis",
+      "summary": "Top 10 Cryptocurrencies Of May 29, 2026 - Forbes",
+      "content": "Top 10 Cryptocurrencies Of May 29, 2026 - Forbes",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "622957816",
+      "title": "Commodities market late session: gold at ₹155,919.00 down 0.64%, silver at ₹266,686.00 down 1.06%, crude oil at ₹8,356.00 down 2.12% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T18:30:14+02:00",
+      "category": "analysis",
+      "summary": "Commodities market late session: gold at ₹155,919.00 down 0.64%, silver at ₹266,686.00 down 1.06%, crude oil at ₹8,356.00 down 2.12% - Business Upturn",
+      "content": "Commodities market late session: gold at ₹155,919.00 down 0.64%, silver at ₹266,686.00 down 1.06%, crude oil at ₹8,356.00 down 2.12% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "XAGUSD",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "625469319",
+      "title": "CFTC Cracks Open U.S. Market For Bitcoin And Crypto Perpetual Futures - Bitcoin Magazine",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T18:06:29+02:00",
+      "category": "analysis",
+      "summary": "CFTC Cracks Open U.S. Market For Bitcoin And Crypto Perpetual Futures - Bitcoin Magazine",
+      "content": "CFTC Cracks Open U.S. Market For Bitcoin And Crypto Perpetual Futures - Bitcoin Magazine",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1825318837",
+      "title": "Commodities Trading: Gold Stocks, Oil Stocks, Silver, Natural Gas - Investor's Business Daily",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T17:48:00+02:00",
+      "category": "analysis",
+      "summary": "Commodities Trading: Gold Stocks, Oil Stocks, Silver, Natural Gas - Investor's Business Daily",
+      "content": "Commodities Trading: Gold Stocks, Oil Stocks, Silver, Natural Gas - Investor's Business Daily",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "XAGUSD",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "461162455",
+      "title": "🚩 Bitcoin slips testing important support zone amid cyclical crypto market weakness - XTB.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T17:21:01+02:00",
+      "category": "analysis",
+      "summary": "🚩 Bitcoin slips testing important support zone amid cyclical crypto market weakness - XTB.com",
+      "content": "🚩 Bitcoin slips testing important support zone amid cyclical crypto market weakness - XTB.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "33857156",
+      "title": "Bitcoin tests critical support as market-wide weakness intensifies - KITCO",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T16:22:23+02:00",
+      "category": "analysis",
+      "summary": "Bitcoin tests critical support as market-wide weakness intensifies - KITCO",
+      "content": "Bitcoin tests critical support as market-wide weakness intensifies - KITCO",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "659807414",
+      "title": "Commodities market live: gold at ₹155,700.00 down 0.78%, silver at ₹266,697.00 down 1.05%, crude oil at ₹8,307.00 down 2.69% - Business Upturn",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T16:00:16+02:00",
+      "category": "analysis",
+      "summary": "Commodities market live: gold at ₹155,700.00 down 0.78%, silver at ₹266,697.00 down 1.05%, crude oil at ₹8,307.00 down 2.69% - Business Upturn",
+      "content": "Commodities market live: gold at ₹155,700.00 down 0.78%, silver at ₹266,697.00 down 1.05%, crude oil at ₹8,307.00 down 2.69% - Business Upturn",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "UKOIL",
+          "AAPL",
+          "NVDA",
+          "BRENTCMDUSD",
+          "AMZN",
+          "XAGUSD",
+          "USOIL",
+          "US30",
+          "TSLA",
+          "SPX500",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1635119788",
+      "title": "SpaceX IPO Hype Spurs Crypto Shadow Market for Pre-Listing Bets - Bloomberg",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T14:50:41+02:00",
+      "category": "analysis",
+      "summary": "SpaceX IPO Hype Spurs Crypto Shadow Market for Pre-Listing Bets - Bloomberg",
+      "content": "SpaceX IPO Hype Spurs Crypto Shadow Market for Pre-Listing Bets - Bloomberg",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "MSFT",
+          "NAS100",
+          "BTCUSDT",
+          "AAPL",
+          "NVDA",
+          "BTCUSD",
+          "AMZN",
+          "US30",
+          "TSLA",
+          "SPX500"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2142814355",
+      "title": "Commodities weekly Energy retreat masks deeper supply concerns as metals shine - Saxo",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T14:30:00+02:00",
+      "category": "analysis",
+      "summary": "Commodities weekly Energy retreat masks deeper supply concerns as metals shine - Saxo",
+      "content": "Commodities weekly Energy retreat masks deeper supply concerns as metals shine - Saxo",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "medium",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "109194072",
+      "title": "Is Cardano the Most Underrated Cryptocurrency in the Market? - Yahoo Finance",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T11:14:00+02:00",
+      "category": "analysis",
+      "summary": "Is Cardano the Most Underrated Cryptocurrency in the Market? - Yahoo Finance",
+      "content": "Is Cardano the Most Underrated Cryptocurrency in the Market? - Yahoo Finance",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "BTCUSD",
+          "BTCUSDT"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "457533763",
+      "title": "XAU/USD - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU/USD - FOREX.com",
+      "content": "XAU/USD - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "668534411",
+      "title": "XAU/JPY Price - Gold CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU/JPY Price - Gold CFD Trading - FOREX.com",
+      "content": "XAU/JPY Price - Gold CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "696569764",
+      "title": "XAU/EUR Price - Gold CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU/EUR Price - Gold CFD Trading - FOREX.com",
+      "content": "XAU/EUR Price - Gold CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "225785839",
+      "title": "XAU/CHF Price - Gold CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU/CHF Price - Gold CFD Trading - FOREX.com",
+      "content": "XAU/CHF Price - Gold CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "XAUUSD",
+          "USDCHF"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "88982171",
+      "title": "XAU/AUD Price - Gold CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU/AUD Price - Gold CFD Trading - FOREX.com",
+      "content": "XAU/AUD Price - Gold CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "AUDUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "998731492",
+      "title": "XAU USD Chart & Rate - XAU USD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU USD Chart & Rate - XAU USD Trading - FOREX.com",
+      "content": "XAU USD Chart & Rate - XAU USD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "24700832",
+      "title": "XAU EUR Chart & Rate - XAU EUR Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAU EUR Chart & Rate - XAU EUR Trading - FOREX.com",
+      "content": "XAU EUR Chart & Rate - XAU EUR Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "EURJPY",
+          "EURUSD",
+          "XAUUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1597268410",
+      "title": "XAG/USD Price - Silver CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "XAG/USD Price - Silver CFD Trading - FOREX.com",
+      "content": "XAG/USD Price - Silver CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD",
+          "XAGUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2002169416",
+      "title": "USD/NOK - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD/NOK - FOREX.com",
+      "content": "USD/NOK - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "681460195",
+      "title": "USD SGD Chart & Rate - USD SGD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD SGD Chart & Rate - USD SGD Trading - FOREX.com",
+      "content": "USD SGD Chart & Rate - USD SGD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "58590332",
+      "title": "USD PLN Chart & Rate - USD PLN Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD PLN Chart & Rate - USD PLN Trading - FOREX.com",
+      "content": "USD PLN Chart & Rate - USD PLN Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1378899838",
+      "title": "USD MXN Chart & Rate - USD MXN Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD MXN Chart & Rate - USD MXN Trading - FOREX.com",
+      "content": "USD MXN Chart & Rate - USD MXN Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "753882361",
+      "title": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "content": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "EURJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "857680040",
+      "title": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "content": "USD JPY Chart & Rate - USD JPY Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "EURJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "927844461",
+      "title": "USD CHF Chart & Rate - USD CHF Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD CHF Chart & Rate - USD CHF Trading - FOREX.com",
+      "content": "USD CHF Chart & Rate - USD CHF Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "214368155",
+      "title": "USD CAD Chart & Rate - USD CAD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "USD CAD Chart & Rate - USD CAD Trading - FOREX.com",
+      "content": "USD CAD Chart & Rate - USD CAD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1545609643",
+      "title": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "content": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2080993502",
+      "title": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "content": "US Crude Oil Price & Chart - US Crude Oil Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1099951211",
+      "title": "UK Crude Oil Price - Commodities CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "UK Crude Oil Price - Commodities CFD Trading - FOREX.com",
+      "content": "UK Crude Oil Price - Commodities CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURGBP",
+          "UKOIL",
+          "BRENTCMDUSD",
+          "GBPUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1706178518",
+      "title": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "243642196",
+      "title": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Swiss Franc - USD/CHF Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1645838655",
+      "title": "U.S. Dollar to South African Rand - USD/ZAR Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to South African Rand - USD/ZAR Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to South African Rand - USD/ZAR Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "336980287",
+      "title": "U.S. Dollar to Singapore Dollar - USD/SGD Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Singapore Dollar - USD/SGD Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Singapore Dollar - USD/SGD Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1313724732",
+      "title": "U.S. Dollar to Norwegian Krone - USD/NOK Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Norwegian Krone - USD/NOK Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Norwegian Krone - USD/NOK Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2092751030",
+      "title": "U.S. Dollar to Japanese Yen - USD/JPY Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Japanese Yen - USD/JPY Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Japanese Yen - USD/JPY Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "EURJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1161822721",
+      "title": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1968000790",
+      "title": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Israeli New Shekel - USD/ILS Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "188586162",
+      "title": "U.S. Dollar to Hungarian Forint - USD/HUF Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Hungarian Forint - USD/HUF Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Hungarian Forint - USD/HUF Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1544622379",
+      "title": "U.S. Dollar to Hong Kong Dollar - USD/HKD Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Hong Kong Dollar - USD/HKD Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Hong Kong Dollar - USD/HKD Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1817420485",
+      "title": "U.S. Dollar to Canadian Dollar - USD/CAD Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "U.S. Dollar to Canadian Dollar - USD/CAD Exchange Rate Chart - FOREX.com",
+      "content": "U.S. Dollar to Canadian Dollar - USD/CAD Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "322346883",
+      "title": "Swiss Franc to Japanese Yen - CHF/JPY Exchange Rate Chart - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "Swiss Franc to Japanese Yen - CHF/JPY Exchange Rate Chart - FOREX.com",
+      "content": "Swiss Franc to Japanese Yen - CHF/JPY Exchange Rate Chart - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "EURJPY",
+          "USDJPY",
+          "USDCHF"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1448144241",
+      "title": "Soybean Oil Price - Commodities CFD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "Soybean Oil Price - Commodities CFD Trading - FOREX.com",
+      "content": "Soybean Oil Price - Commodities CFD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "UKOIL",
+          "BRENTCMDUSD",
+          "USOIL"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1015825653",
+      "title": "NZD USD Chart & Rate - NZD USD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "NZD USD Chart & Rate - NZD USD Trading - FOREX.com",
+      "content": "NZD USD Chart & Rate - NZD USD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDJPY",
+          "USDCAD",
+          "USDCHF",
+          "AUDUSD",
+          "DXY",
+          "GBPUSD",
+          "EURUSD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    },
+    {
+      "id": "1391494589",
+      "title": "NZD CAD Chart & Rate - NZD CAD Trading - FOREX.com",
+      "source": "news.google.com",
+      "publishedAt": "2026-05-29T09:00:00+02:00",
+      "category": "analysis",
+      "summary": "NZD CAD Chart & Rate - NZD CAD Trading - FOREX.com",
+      "content": "NZD CAD Chart & Rate - NZD CAD Trading - FOREX.com",
+      "url": "",
+      "intelligence": {
+        "sentiment": "neutral",
+        "confidence": "low",
+        "asset_tags": [
+          "USDCAD"
+        ],
+        "impact_score": 0.3100000023841858,
+        "market_type": "Trading"
+      },
+      "status": "active"
+    }
+  ]
+}

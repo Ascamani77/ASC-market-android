@@ -1,6 +1,7 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,21 +13,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.random.Random
 import com.asc.markets.data.BinanceDataStore
 import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.TimedPrice
 import com.asc.markets.data.WatchlistItem
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
@@ -48,6 +60,9 @@ fun WatchlistScreen(
     val compactMode by viewModel.watchlistCompactMode.collectAsState()
     val isAnalyzing by viewModel.isWatchlistAnalyzing.collectAsState()
     val lastUpdate by viewModel.lastWatchlistUpdate.collectAsState()
+    
+    var activeTimeframe by remember { mutableStateOf("H1") }
+    var showTimeframeDropdown by remember { mutableStateOf(false) }
     val marketPairs by MarketDataStore.allPairs.collectAsState()
     val binancePairs by BinanceDataStore.allPairs.collectAsState()
     val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
@@ -104,6 +119,41 @@ fun WatchlistScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Timeframe Dropdown
+                Box {
+                    Text(
+                        text = activeTimeframe,
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = InterFontFamily,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(GhostWhite)
+                            .clickable { showTimeframeDropdown = true }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    
+                    DropdownMenu(
+                        expanded = showTimeframeDropdown,
+                        onDismissRequest = { showTimeframeDropdown = false },
+                        modifier = Modifier.background(ActiveHighlight)
+                    ) {
+                        listOf("M15", "M30", "H1", "H4", "D1").forEach { tf ->
+                            DropdownMenuItem(
+                                text = { Text(tf, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                onClick = {
+                                    activeTimeframe = tf
+                                    showTimeframeDropdown = false
+                                    viewModel.refreshWatchlist()
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Text(
                     text = if (compactMode) "LIST" else "CARD",
                     color = if (compactMode) Color.White else SlateText,
@@ -189,7 +239,7 @@ fun WatchlistScreen(
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp)
                 ) {
                     items(filteredItems, key = { it.id }) { item ->
                         if (compactMode) {
@@ -205,6 +255,7 @@ fun WatchlistScreen(
                             WatchlistExpandedCard(
                                 item = item,
                                 allPairs = allPairs,
+                                activeTimeframe = activeTimeframe,
                                 onViewChart = onViewChart,
                                 onSetAlert = onSetAlert,
                                 onDeepDive = onDeepDive,
@@ -356,11 +407,6 @@ private fun WatchlistCompactCard(
                 )
             }
 
-            MiniSparkline(
-                history = watchlistHistorySnapshot(item.assetName),
-                modifier = Modifier.width(60.dp).height(24.dp)
-            )
-
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(horizontalAlignment = Alignment.End) {
@@ -411,6 +457,7 @@ private fun WatchlistCompactCard(
 private fun WatchlistExpandedCard(
     item: WatchlistItem,
     allPairs: List<com.asc.markets.data.ForexPair>,
+    activeTimeframe: String = "H1",
     onViewChart: (String) -> Unit,
     onSetAlert: (String) -> Unit,
     onDeepDive: (String) -> Unit,
@@ -500,33 +547,7 @@ private fun WatchlistExpandedCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Sparkline + probability bar
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                MiniSparkline(
-                    history = watchlistHistorySnapshot(item.assetName),
-                    modifier = Modifier.weight(1f).height(40.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(48.dp)) {
-                    Text(
-                        text = "${item.volatilityScore}",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = InterFontFamily
-                    )
-                    Text(
-                        text = "VOL",
-                        color = SlateText,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             val barColor = when {
                 item.moveProbability >= 80 -> RoseError
@@ -534,6 +555,27 @@ private fun WatchlistExpandedCard(
                 item.moveProbability >= 60 -> Color.Yellow
                 else -> EmeraldSuccess
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "PROBABILITY SCORE",
+                    color = SlateText,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "${item.moveProbability}%",
+                    color = barColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = InterFontFamily
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = item.moveProbability / 100f,
                 modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
@@ -602,32 +644,40 @@ private fun WatchlistExpandedCard(
 
             // Action buttons
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().offset(x = (-14).dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ActionButton(text = "VIEW CHART", onClick = { onViewChart(item.assetName) })
-                ActionButton(text = "SET ALERT", onClick = { onSetAlert(item.assetName) })
-                ActionButton(text = "DEEP DIVE", onClick = { onDeepDive(item.assetName) })
+                ActionButton(icon = Icons.Default.BarChart, contentDescription = "VIEW CHART", onClick = { onViewChart(item.assetName) })
+                ActionButton(icon = Icons.Default.NotificationsActive, contentDescription = "SET ALERT", onClick = { onSetAlert(item.assetName) })
+                ActionButton(icon = Icons.Default.Lightbulb, contentDescription = "DEEP DIVE", onClick = { onDeepDive(item.assetName) })
             }
         }
     }
 }
 
 @Composable
-private fun ActionButton(text: String, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = GhostWhite,
-        modifier = Modifier.clickable { onClick() }
+private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            color = Color.White,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = InterFontFamily,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = contentDescription,
+                color = Color.White,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = InterFontFamily
+            )
+        }
     }
 }
 
@@ -649,33 +699,170 @@ private fun NewBadge() {
 }
 
 @Composable
-private fun MiniSparkline(history: List<Double>, modifier: Modifier = Modifier, color: Color = IndigoAccent) {
-    if (history.size >= 2) {
-        Canvas(modifier = modifier) {
-            val min = history.minOrNull() ?: return@Canvas
-            val max = history.maxOrNull() ?: return@Canvas
-            val range = (max - min).takeIf { it > 0 } ?: 1.0
-            val path = Path()
-            history.forEachIndexed { index, value ->
-                val x = size.width * (index / (history.size - 1).toFloat())
-                val y = size.height - (size.height * ((value - min) / range).toFloat().coerceIn(0f, 1f))
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = 2.dp.toPx())
-            )
+private fun WatchlistSparkline(points: List<Float>, color: Color, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "sparkBlink")
+    val blinkAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "blinkAlpha"
+    )
+    Canvas(modifier = modifier) {
+        if (points.size < 2) return@Canvas
+        val lineWidth = 2.dp.toPx()
+        val glowWidth = 5.dp.toPx()
+        val drawableHeight = size.height * 0.92f
+        val topPadding = size.height * 0.02f
+        val stepX = size.width / (points.lastIndex.coerceAtLeast(1))
+        val isRed = color.red > color.green
+        val fillTop = if (isRed) color.copy(alpha = 0.38f) else color.copy(alpha = 0.28f)
+        val fillMid = if (isRed) color.copy(alpha = 0.18f) else color.copy(alpha = 0.11f)
+
+        fun pt(index: Int): Offset {
+            val n = points[index].coerceIn(0.03f, 0.97f)
+            return Offset(index * stepX, topPadding + ((1f - n) * drawableHeight))
         }
+
+        val linePath = Path()
+        val fillPath = Path()
+        val first = pt(0)
+        linePath.moveTo(first.x, first.y)
+        fillPath.moveTo(first.x, size.height)
+        fillPath.lineTo(first.x, first.y)
+
+        for (i in 1 until points.size) {
+            val prev = pt(i - 1)
+            val curr = pt(i)
+            val ctrl = stepX * 0.45f
+            linePath.cubicTo(prev.x + ctrl, prev.y, curr.x - ctrl, curr.y, curr.x, curr.y)
+            fillPath.cubicTo(prev.x + ctrl, prev.y, curr.x - ctrl, curr.y, curr.x, curr.y)
+        }
+
+        val last = pt(points.lastIndex)
+        fillPath.lineTo(last.x, size.height)
+        fillPath.close()
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(fillTop, fillMid, Color.Transparent),
+                startY = 0f, endY = size.height
+            )
+        )
+        drawPath(path = linePath, color = color.copy(alpha = if (isRed) 0.18f else 0.14f), style = Stroke(width = glowWidth, cap = StrokeCap.Round))
+        drawPath(path = linePath, color = color, style = Stroke(width = lineWidth, cap = StrokeCap.Round))
+        // Blinking outer glow
+        drawCircle(color = color.copy(alpha = blinkAlpha * 0.35f), radius = 7.dp.toPx(), center = last)
+        // Solid inner dot
+        drawCircle(color = color.copy(alpha = blinkAlpha), radius = 3.5.dp.toPx(), center = last)
     }
 }
 
-private fun watchlistHistorySnapshot(symbol: String): List<Double> {
-    return if (BinanceDataStore.isUsdtSymbol(symbol)) {
-        BinanceDataStore.historySnapshot(symbol)
-    } else {
-        MarketDataStore.historySnapshot(symbol)
+private fun generateWatchlistSparklinePoints(symbol: String, changePercent: Double): List<Float> {
+    val points = 80
+    val random = Random(symbol.hashCode())
+    // Always ramp from ~0.15 (bottom-left) to ~0.85 (top-right) as the base trend.
+    // changePercent modifies the final destination: positive = higher end, negative = lower end.
+    val endTarget = (0.75f + (changePercent / 10.0).coerceIn(-0.30, 0.20).toFloat())
+        .coerceIn(0.45f, 0.92f)
+    val startValue = 0.15f
+    // Larger wave amplitudes so the line looks alive, not flat
+    val phaseA = random.nextFloat() * (2f * Math.PI.toFloat())
+    val phaseB = random.nextFloat() * (2f * Math.PI.toFloat())
+    val phaseC = random.nextFloat() * (2f * Math.PI.toFloat())
+    val values = MutableList(points) { 0f }
+    repeat(points) { index ->
+        val progress = index / (points - 1f)
+        // Strong linear ramp from startValue to endTarget
+        val base = startValue + progress * (endTarget - startValue)
+        // Visible oscillations layered on top
+        val macroWave = Math.sin((progress * 8.0f + phaseA).toDouble()).toFloat() * 0.12f
+        val mediumWave = Math.sin((progress * 20.0f + phaseB).toDouble()).toFloat() * 0.07f
+        val microWave = Math.sin((progress * 38.0f + phaseC).toDouble()).toFloat() * 0.035f
+        val noise = (random.nextFloat() - 0.5f) * 0.04f
+        values[index] = (base + macroWave + mediumWave + microWave + noise).coerceIn(0.10f, 0.92f)
     }
+    // Smooth pass
+    return values.mapIndexed { i, v ->
+        val prev = values.getOrElse(i - 1) { v }
+        val next = values.getOrElse(i + 1) { v }
+        ((prev * 0.2f) + (v * 0.6f) + (next * 0.2f)).coerceIn(0.10f, 0.92f)
+    }
+}
+
+/**
+ * Aggregate tick data into 1-hour candles
+ * Takes the last 24 hours of data and creates hourly close prices
+ */
+private fun aggregateToHourlyCandles(history: List<Double>): List<Double> {
+    if (history.isEmpty()) return emptyList()
+    
+    // If we have less than 24 points, return as-is (already sparse)
+    if (history.size <= 24) return history
+    
+    // Calculate how many ticks per hour based on total history
+    // Assume history represents last 24 hours of tick data
+    val ticksPerHour = history.size / 24
+    
+    // Group into hourly buckets and take the last (close) price of each hour
+    val hourlyCandles = mutableListOf<Double>()
+    for (i in 0 until 24) {
+        val startIdx = i * ticksPerHour
+        val endIdx = minOf((i + 1) * ticksPerHour, history.size)
+        if (startIdx < history.size) {
+            // Take the last price in this hour (close price)
+            hourlyCandles.add(history[endIdx - 1])
+        }
+    }
+    
+    return hourlyCandles
+}
+
+private fun watchlistHistorySnapshot(symbol: String, timeframe: String = "H1"): List<Double> {
+    val merged = MarketDataStore.timedPriceHistory.value +
+        BinanceDataStore.timedPriceHistory.value +
+        CombinedFallbackDataStore.timedPriceHistory.value
+    return bucketTimedHistory(symbol, timeframe, merged)
+}
+
+private fun bucketTimedHistory(
+    symbol: String,
+    timeframe: String,
+    timedHistoryMap: Map<String, List<TimedPrice>>
+): List<Double> {
+    val timedHistory: List<TimedPrice> = timedHistoryMap.entries
+        .filter { (key, _) -> MarketDataStore.matchesSymbol(key, symbol) }
+        .flatMap { it.value }
+        .sortedBy { it.timestampMillis }
+
+    if (timedHistory.size < 2) return emptyList()
+
+    val bucketMillis = when (timeframe) {
+        "M15" -> 15 * 60 * 1000L
+        "M30" -> 30 * 60 * 1000L
+        "H1"  -> 60 * 60 * 1000L
+        "H4"  -> 4 * 60 * 60 * 1000L
+        "D1"  -> 24 * 60 * 60 * 1000L
+        else  -> 60 * 60 * 1000L
+    }
+
+    val maxCandles = 40
+    val now = timedHistory.last().timestampMillis
+    val windowStart = now - bucketMillis * maxCandles
+    val filtered = timedHistory.filter { it.timestampMillis >= windowStart }
+    if (filtered.isEmpty()) return emptyList()
+
+    val firstTs = filtered.first().timestampMillis
+    val buckets = mutableMapOf<Long, MutableList<Double>>()
+    filtered.forEach { tp ->
+        val bucketKey = (tp.timestampMillis - firstTs) / bucketMillis
+        buckets.getOrPut(bucketKey) { mutableListOf() }.add(tp.price)
+    }
+
+    return buckets.keys.sorted().map { key -> buckets[key]!!.last() }
 }
 
 @Composable

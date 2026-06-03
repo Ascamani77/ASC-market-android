@@ -1,11 +1,14 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -21,6 +24,7 @@ import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.LiquidityPool
 import com.asc.markets.data.PreMoveCandidate
+import com.asc.markets.data.PreMoveLayer
 import com.asc.markets.data.PreMoveIntelligenceStore
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
@@ -37,8 +41,18 @@ data class NetDeltaData(val currency: String, val bias: String, val delta: Int, 
 fun LiquidityHubScreen() {
     val viewModel: ForexViewModel = viewModel()
     val selectedPair by viewModel.selectedPair.collectAsState()
+    
+    // Get all available pairs from MarketDataStore and BinanceDataStore
+    val marketPairs by MarketDataStore.allPairs.collectAsState()
+    val binancePairs by com.asc.markets.data.BinanceDataStore.allPairs.collectAsState()
+    val allPairs = (marketPairs + binancePairs).distinctBy { it.symbol }
+    
+    // Get pre-move candidates for liquidity data
     val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())
-    val selectedCandidate = PreMoveIntelligenceStore.candidateFor(selectedPair.symbol, candidates) ?: candidates.firstOrNull()
+    
+    // Find candidate for selected pair, or create a basic one from available data
+    val selectedCandidate = PreMoveIntelligenceStore.candidateFor(selectedPair.symbol, candidates)
+        ?: createBasicCandidate(selectedPair, allPairs)
     
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(DeepBlack),
@@ -55,18 +69,107 @@ fun LiquidityHubScreen() {
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text("PRE-MOVE LIQUIDITY ATTRACTION AND SWEEP MODEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, letterSpacing = 0.5.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Available Assets: ${allPairs.size} | Pre-Move Candidates: ${candidates.size}", color = IndigoAccent, fontSize = 10.sp, fontFamily = InterFontFamily)
                 }
             }
         }
+        
+        // Show all available assets
+        item {
+            InfoBox {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("ALL AVAILABLE ASSETS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+                    Text("${allPairs.size} assets with live price data", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    allPairs.take(20).forEach { pair ->
+                        AssetRow(pair, pair.symbol == selectedPair.symbol, onClick = { viewModel.selectPairNoNavigate(pair) })
+                    }
+                    
+                    if (allPairs.size > 20) {
+                        Text("... and ${allPairs.size - 20} more assets", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                }
+            }
+        }
+        
         if (selectedCandidate == null) {
             item { EmptyLiquidityState() }
         } else {
             item { LiquidityOverviewCard(selectedCandidate) }
+            item { ScoresCard(selectedCandidate) }
             item { LiquidityPoolsCard(selectedCandidate) }
             item { SweepProbabilityCard(selectedCandidate) }
+            item { LayersCard(selectedCandidate) }
+            item { TriggerConditionsCard(selectedCandidate) }
             item { CorrelationGateCard(selectedCandidate) }
         }
     }
+}
+
+@Composable
+private fun AssetRow(pair: ForexPair, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        color = if (isSelected) IndigoAccent.copy(alpha = 0.2f) else PureBlack,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, if (isSelected) IndigoAccent else HairlineBorder),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(pair.symbol, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                Text(pair.category.name, color = SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(formatLiquidityPrice(pair.price), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                Text(
+                    String.format(Locale.US, "%s%.2f%%", if (pair.changePercent >= 0) "+" else "", pair.changePercent),
+                    color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError,
+                    fontSize = 10.sp,
+                    fontFamily = InterFontFamily
+                )
+            }
+        }
+    }
+}
+
+private fun createBasicCandidate(pair: ForexPair, allPairs: List<ForexPair>): PreMoveCandidate? {
+    // Create a basic candidate from available pair data
+    return PreMoveCandidate(
+        symbol = pair.symbol,
+        name = pair.name,
+        category = pair.category,
+        price = pair.price,
+        changePercent = pair.changePercent,
+        timeframe = "H1",
+        state = "FILTERING",
+        directionBias = if (pair.changePercent >= 0) "BULLISH" else "BEARISH",
+        preMoveScore = 0,
+        compressionScore = 0,
+        ignitionScore = 0,
+        structuralPressure = 0,
+        liquidityScore = 0,
+        sweepProbability = 0,
+        regime = "Unknown",
+        liquidityMagnet = "No data",
+        expectedWindow = "Unknown",
+        riskGate = "NO DATA",
+        invalidationLevel = null,
+        buySideLiquidity = 0.0,
+        sellSideLiquidity = 0.0,
+        liquidityPools = emptyList(),
+        layers = emptyList(),
+        deterministicReason = "No pre-move analysis available for this asset yet. Select from pre-move candidates for detailed liquidity analysis.",
+        triggerConditions = emptyList(),
+        correlationGate = "NEUTRAL",
+        correlations = emptyList(),
+        trapRisk = "UNKNOWN"
+    )
 }
 
 @Composable
@@ -107,6 +210,82 @@ private fun LiquidityOverviewCard(candidate: PreMoveCandidate) {
 }
 
 @Composable
+private fun ScoresCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("ANALYSIS SCORES", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+                Surface(color = stateColorForCandidate(candidate.state), shape = RoundedCornerShape(6.dp)) {
+                    Text(candidate.state.uppercase(Locale.getDefault()), color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                }
+            }
+            
+            // Direction Bias
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("DIRECTION BIAS", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                Text(candidate.directionBias, color = when(candidate.directionBias) {
+                    "BULLISH" -> EmeraldSuccess
+                    "BEARISH" -> RoseError
+                    else -> Color.White
+                }, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            }
+            
+            // Pre-Move Score
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("PRE-MOVE SCORE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("${candidate.preMoveScore}%", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((candidate.preMoveScore / 100f).coerceIn(0f, 1f)).background(IndigoAccent, RoundedCornerShape(4.dp)))
+                }
+            }
+            
+            // Ignition Score
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("IGNITION SCORE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("${candidate.ignitionScore}%", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((candidate.ignitionScore / 100f).coerceIn(0f, 1f)).background(EmeraldSuccess, RoundedCornerShape(4.dp)))
+                }
+            }
+            
+            // Structural Pressure
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("STRUCTURAL PRESSURE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("${candidate.structuralPressure}%", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((candidate.structuralPressure / 100f).coerceIn(0f, 1f)).background(Color(0xFFFFA500), RoundedCornerShape(4.dp)))
+                }
+            }
+            
+            // Liquidity Score
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("LIQUIDITY SCORE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("${candidate.liquidityScore}%", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(5.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
+                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((candidate.liquidityScore / 100f).coerceIn(0f, 1f)).background(IndigoAccent, RoundedCornerShape(4.dp)))
+                }
+            }
+            
+            // Invalidation Level
+            if (candidate.invalidationLevel != null) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("INVALIDATION LEVEL", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text(formatLiquidityPrice(candidate.invalidationLevel), color = RoseError, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun LiquidityPoolsCard(candidate: PreMoveCandidate) {
     InfoBox {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -126,6 +305,105 @@ private fun SweepProbabilityCard(candidate: PreMoveCandidate) {
             LiquidityProgressRow("Buy-side draw", if (candidate.liquidityMagnet == "Buy-side liquidity") candidate.sweepProbability else 100 - candidate.sweepProbability)
             LiquidityProgressRow("Sell-side draw", if (candidate.liquidityMagnet == "Sell-side liquidity") candidate.sweepProbability else 100 - candidate.sweepProbability)
             LiquidityProgressRow("Compression near pool", candidate.compressionScore)
+        }
+    }
+}
+
+@Composable
+private fun LayersCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("DETERMINISTIC LAYERS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+            Text("Multi-layer validation system for pre-move confirmation", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            candidate.layers.forEach { layer ->
+                LayerRow(layer)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LayerRow(layer: PreMoveLayer) {
+    Surface(
+        color = PureBlack,
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, HairlineBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(layer.label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                Surface(
+                    color = when(layer.status) {
+                        "PASS" -> EmeraldSuccess.copy(alpha = 0.2f)
+                        "WATCH" -> IndigoAccent.copy(alpha = 0.2f)
+                        "FAIL", "BLOCK" -> RoseError.copy(alpha = 0.2f)
+                        "LIVE" -> EmeraldSuccess.copy(alpha = 0.2f)
+                        "PENDING" -> Color.White.copy(alpha = 0.1f)
+                        else -> Color.White.copy(alpha = 0.1f)
+                    },
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, when(layer.status) {
+                        "PASS" -> EmeraldSuccess
+                        "WATCH" -> IndigoAccent
+                        "FAIL", "BLOCK" -> RoseError
+                        "LIVE" -> EmeraldSuccess
+                        "PENDING" -> SlateText
+                        else -> SlateText
+                    })
+                ) {
+                    Text(layer.status, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
+            }
+            
+            // Score bar
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("SCORE", color = SlateText, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    Text("${layer.score}%", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(3.dp))) {
+                    Box(modifier = Modifier.fillMaxHeight().fillMaxWidth((layer.score / 100f).coerceIn(0f, 1f)).background(
+                        when(layer.status) {
+                            "PASS" -> EmeraldSuccess
+                            "WATCH" -> IndigoAccent
+                            "FAIL", "BLOCK" -> RoseError
+                            "LIVE" -> EmeraldSuccess
+                            else -> SlateText
+                        }, RoundedCornerShape(3.dp)))
+                }
+            }
+            
+            Text(layer.detail, color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
+        }
+    }
+}
+
+@Composable
+private fun TriggerConditionsCard(candidate: PreMoveCandidate) {
+    InfoBox {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("TRIGGER CONDITIONS", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+            Text("Conditions to monitor before deployment", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            candidate.triggerConditions.forEachIndexed { index, condition ->
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                    Surface(
+                        color = IndigoAccent.copy(alpha = 0.3f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("${index + 1}", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(condition, color = Color.White, fontSize = 11.sp, lineHeight = 16.sp, fontFamily = InterFontFamily, modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
@@ -160,7 +438,7 @@ private fun LiquidityPoolRow(pool: LiquidityPool) {
     Surface(
         color = PureBlack,
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -201,7 +479,7 @@ private fun LiquidityMetricTile(label: String, value: String, modifier: Modifier
 
 @Composable
 private fun LiquidityBadge(label: String, color: Color) {
-    Surface(color = color.copy(alpha = 0.18f), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.45f))) {
+    Surface(color = color.copy(alpha = 0.18f), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, color.copy(alpha = 0.45f))) {
         Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
     }
 }
@@ -211,6 +489,16 @@ private fun riskGateColor(label: String): Color {
         "PASS", "SUPPORT", "LOW" -> EmeraldSuccess
         "WATCH", "NEUTRAL", "MEDIUM" -> IndigoAccent
         else -> RoseError
+    }
+}
+
+private fun stateColorForCandidate(state: String): Color {
+    return when (state) {
+        "ARMED" -> EmeraldSuccess
+        "WATCH" -> IndigoAccent
+        "COMPRESSING" -> Color(0xFF6B4800)
+        "LATE MOVE" -> RoseError
+        else -> Color(0xFF3A3A3A)
     }
 }
 
@@ -227,7 +515,7 @@ fun ExpandedNetDeltaRow(data: NetDeltaData) {
     Surface(
         color = PureBlack,
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -316,7 +604,7 @@ fun NetDeltaRow(currency: String, delta: Int) {
     Surface(
         color = PureBlack,
         shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -438,7 +726,7 @@ private fun CorrelationHeatmapCard(pair: String, coeff: Double) {
     Surface(
         color = backgroundColor,
         shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
+        border = BorderStroke(1.dp, HairlineBorder),
         modifier = Modifier.size(90.dp)
     ) {
         Column(

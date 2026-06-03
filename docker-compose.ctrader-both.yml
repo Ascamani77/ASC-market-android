@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  ctrader-bridge-live:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctrader
+    container_name: ctrader-bridge-live
+    ports:
+      - "8082:8082"
+    environment:
+      # LIVE CREDENTIALS - Replace with your live account credentials
+      - CTRADER_CLIENT_ID=YOUR_LIVE_CLIENT_ID
+      - CTRADER_CLIENT_SECRET=YOUR_LIVE_CLIENT_SECRET
+      - CTRADER_ACCESS_TOKEN=YOUR_LIVE_ACCESS_TOKEN
+      - CTRADER_ACCOUNT_ID=YOUR_LIVE_ACCOUNT_ID
+      - CTRADER_HOST_TYPE=live
+      - CTRADER_BRIDGE_HOST=0.0.0.0
+      - CTRADER_BRIDGE_PORT=8082
+    restart: unless-stopped
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8082)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ctrader-bridge-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctrader
+    container_name: ctrader-bridge-demo
+    ports:
+      - "8083:8083"
+    environment:
+      # DEMO CREDENTIALS - Replace with your demo account credentials
+      - CTRADER_CLIENT_ID=YOUR_DEMO_CLIENT_ID
+      - CTRADER_CLIENT_SECRET=YOUR_DEMO_CLIENT_SECRET
+      - CTRADER_ACCESS_TOKEN=YOUR_DEMO_ACCESS_TOKEN
+      - CTRADER_ACCOUNT_ID=YOUR_DEMO_ACCOUNT_ID
+      - CTRADER_HOST_TYPE=demo
+      - CTRADER_BRIDGE_HOST=0.0.0.0
+      - CTRADER_BRIDGE_PORT=8083
+    restart: unless-stopped
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8083)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

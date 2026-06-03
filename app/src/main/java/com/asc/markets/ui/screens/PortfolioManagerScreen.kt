@@ -1,9 +1,12 @@
 package com.asc.markets.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -11,33 +14,49 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.logic.TradingAssistantEngine
 import com.asc.markets.ui.theme.DeepBlack
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.SlateText
 import com.trading.app.data.PaperTradingAccountSnapshot
 import com.trading.app.data.PaperTradingSnapshotStore
+import com.trading.app.models.Position
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
 @Composable
 fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
     val snapshot = PaperTradingSnapshotStore.snapshot
+    val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("trading_prefs", Context.MODE_PRIVATE) }
+    
     val hasAccount = snapshot.hasLiveAccountData || snapshot.balance != 0.0 || snapshot.equity != 0.0
-    val hasOpenInventory = snapshot.hasLiveTradeData || snapshot.activeTrades > 0
+    val hasOpenInventory = snapshot.allPositions.isNotEmpty() || snapshot.activeTrades > 0
     val pnlColor = if (snapshot.floatingPnl >= 0.0) Color(0xFF2EE08A) else Color(0xFFE53935)
     val marginUsedPct = if (snapshot.equity > 0.0) ((snapshot.margin + snapshot.ordersMargin) / snapshot.equity) * 100.0 else 0.0
     val exposureLabel = inventoryExposureLabel(snapshot)
     val exposureColor = inventoryExposureColor(snapshot)
+    
+    val lastUpdatedText = remember(snapshot.lastUpdatedMillis) {
+        if (snapshot.lastUpdatedMillis > 0) {
+            val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            "REFRESHED AT ${sdf.format(Date(snapshot.lastUpdatedMillis))}"
+        } else "WAITING FOR STREAM"
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = PureBlack) {
         Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
             LazyColumn(
@@ -105,6 +124,13 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                                         fontSize = 11.sp
                                     )
                                 }
+                                
+                                Text(
+                                    lastUpdatedText,
+                                    color = IndigoAccent.copy(alpha = 0.7f),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -148,61 +174,41 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                     }
                 }
 
-                // Live Inventory Card
+                // Live Inventory Section
                 item {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = PureBlack,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
-                        color = PureBlack,
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Header with status
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        "📈",
-                                        fontSize = 16.sp
-                                    )
-                                    Text(
-                                        "LIVE INVENTORY",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Text(
-                                    "${snapshot.activeTrades} POSITIONS • ${snapshot.activeOrders} ORDERS",
-                                    color = SlateText,
-                                    fontSize = 10.sp
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            if (hasOpenInventory) {
-                                LiveInventoryPositionCard(snapshot)
-                            } else {
-                                EmptyInventoryState(snapshot)
-                            }
+                            Text("📈", fontSize = 16.sp)
+                            Text(
+                                "LIVE INVENTORY",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
+
+                        Text(
+                            "${snapshot.activeTrades} POSITIONS • ${snapshot.activeOrders} ORDERS",
+                            color = SlateText,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                if (hasOpenInventory) {
+                    items(snapshot.allPositions) { position ->
+                        LiveInventoryPositionCard(position)
+                    }
+                } else {
+                    item {
+                        EmptyInventoryState(snapshot)
                     }
                 }
 
@@ -366,7 +372,16 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Button(
-                                onClick = { },
+                                onClick = { 
+                                    // Trigger Kill-Switch in TradingApp
+                                    sharedPrefs.edit()
+                                        .putLong("kill_switch_trigger", System.currentTimeMillis())
+                                        .apply()
+                                    
+                                    // Disarm surveillance
+                                    TradingAssistantEngine.armed = false
+                                    TradingAssistantEngine.safetyLockActive = true
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(44.dp),
@@ -443,75 +458,49 @@ fun PortfolioManagerScreen(viewModel: ForexViewModel = viewModel()) {
 }
 
 @Composable
-private fun LiveInventoryPositionCard(snapshot: PaperTradingAccountSnapshot) {
-    val pnl = snapshot.currentTradePnl ?: snapshot.floatingPnl
-    val side = snapshot.currentTradeSide?.uppercase(Locale.US) ?: "LIVE"
+private fun LiveInventoryPositionCard(position: Position) {
+    val side = position.type.uppercase(Locale.US)
     val sideColor = if (side.contains("SELL") || side.contains("SHORT")) Color(0xFFE53935) else Color(0xFF2EE08A)
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = Color(0xFF1A1A2E),
-                shape = RoundedCornerShape(8.dp)
-            ),
-        color = Color(0xFF1A1A2E),
-        shape = RoundedCornerShape(8.dp)
+            .background(color = PureBlack, shape = RoundedCornerShape(12.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+        color = PureBlack,
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("🔗", fontSize = 18.sp)
-
-                Column {
-                    Text(
-                        snapshot.currentTradeSymbol ?: "LIVE POSITION",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        "$side ${snapshot.currentTradeVolume?.let { String.format(Locale.US, "%.2f", it) } ?: "--"} LOT",
-                        color = sideColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 12.sp
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier.size(32.dp).background(Color(0xFF1A1A2E), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(if (position.type.lowercase() == "buy") "▲" else "▼", color = if (position.type.lowercase() == "buy") Color(0xFF2EE08A) else Color(0xFFE53935), fontSize = 14.sp)
+                    }
+                    Column {
+                        Text(position.symbol, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("${position.type.uppercase()} • ${String.format(Locale.US, "%.2f", position.volume)}L", color = SlateText, fontSize = 11.sp)
+                    }
                 }
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.weight(1f)
-            ) {
+                
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("ENTRY", color = SlateText, fontSize = 9.sp)
+                    // Note: PNL is aggregate in snapshot, individual position PNL not in basic model
                     Text(
-                        snapshot.currentTradeEntryPrice?.let { formatInventoryPrice(it) } ?: "—",
+                        "ACTIVE",
                         color = Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("NET PNL", color = SlateText, fontSize = 9.sp)
                     Text(
-                        formatInventoryMoney(pnl),
-                        color = if (pnl >= 0.0) Color(0xFF2EE08A) else Color(0xFFE53935),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        "ENTRY: ${formatInventoryPrice(position.entryPrice.toDouble())}",
+                        color = SlateText,
+                        fontSize = 10.sp
                     )
                 }
             }
@@ -522,7 +511,7 @@ private fun LiveInventoryPositionCard(snapshot: PaperTradingAccountSnapshot) {
 @Composable
 private fun EmptyInventoryState(snapshot: PaperTradingAccountSnapshot) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().background(color = PureBlack, shape = RoundedCornerShape(12.dp)).border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
         color = Color(0xFF11111F),
         shape = RoundedCornerShape(8.dp)
     ) {

@@ -420,12 +420,26 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
         )
     }
     val topSectionPairs = if (assetCtxForNews == AssetContext.ALL) allTabRecentExpansionPairs else contextPairs
-    val activeContextPair = remember(assetCtxForNews, selectedPair, selectedPairCtx, topSectionPairs) {
+    
+    // Track the last clicked asset in the ALL tab
+    var lastClickedPair by remember { mutableStateOf<ForexPair?>(null) }
+    
+    val activeContextPair = remember(assetCtxForNews, selectedPair, selectedPairCtx, topSectionPairs, lastClickedPair) {
+        // If user clicked an asset in the ALL tab, use that
+        if (assetCtxForNews == AssetContext.ALL && lastClickedPair != null) {
+            val clickedPairInList = topSectionPairs.firstOrNull {
+                MarketDataStore.matchesSymbol(it.symbol, lastClickedPair!!.symbol)
+            }
+            if (clickedPairInList != null) {
+                return@remember clickedPairInList
+            }
+        }
+        
         val contextualPairMatch = topSectionPairs.firstOrNull {
             MarketDataStore.matchesSymbol(it.symbol, selectedPair.symbol)
         }
         when {
-            assetCtxForNews == AssetContext.ALL -> topSectionPairs.firstOrNull() ?: selectedPair
+            assetCtxForNews == AssetContext.ALL -> contextualPairMatch ?: topSectionPairs.firstOrNull() ?: selectedPair
             selectedPairCtx == assetCtxForNews -> contextualPairMatch ?: selectedPair
             else -> topSectionPairs.firstOrNull() ?: selectedPair
         }
@@ -754,8 +768,14 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
     Column(modifier = Modifier.fillMaxSize().background(PureBlack)) {
         // Institutional-style Tab Bar matching DashboardTopNavbar
         Surface(
-            color = Color(0xFF141414), // Dark charcoal matching the image
-            modifier = Modifier.fillMaxWidth()
+            color = Color.White.copy(alpha = 0.035f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.06f),
+                    shape = RoundedCornerShape(0.dp)
+                )
         ) {
             Column {
                 LazyRow(
@@ -813,6 +833,7 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
                         timedPriceHistory = timedPriceHistory,
                         aiDecisions = aiDecisions,
                         onAssetSelected = { pair ->
+                            lastClickedPair = pair
                             viewModel.selectPairBySymbolNoNavigate(pair.symbol)
                         }
                     )
@@ -821,17 +842,6 @@ fun MarketOverviewTab(selectedPair: ForexPair, onAssetClick: (ForexPair) -> Unit
             }
 
             if (assetCtxForNews == AssetContext.ALL) {
-                item {
-                    AllTabLiveMarketBoard(
-                        selectedPair = activeContextPair,
-                        allPairs = topSectionPairs,
-                        priceHistory = priceHistory,
-                        onPairFocused = { pair ->
-                            viewModel.selectPairBySymbolNoNavigate(pair.symbol)
-                        }
-                    )
-                }
-                item { Spacer(modifier = Modifier.height(12.dp)) }
                 item {
                     UniversalOverviewBox(assetCtxForNews, activeContextPair)
                 }
@@ -2379,10 +2389,23 @@ private fun decisionTimestampMillis(decision: FinalDecisionItem?): Long {
 }
 
 private fun decisionScore(decision: FinalDecisionItem?): Float {
-    val directScore = decision?.pre_move_ai_score
-    val fallbackScore = decision?.journal_score
-    val raw = directScore ?: fallbackScore ?: return 0f
-    return if (raw > 1.0) raw.toFloat().coerceIn(0f, 100f) else (raw * 100.0).toFloat().coerceIn(0f, 100f)
+    if (decision == null) return 0f
+    
+    // For TRADE_CANDIDATE state, use final_trade_score (68%+)
+    // For REJECTED state, use pre_move_ai_score to show progress (0-25%)
+    val finalState = decision.final_trade_state?.uppercase() ?: "REJECTED"
+    
+    if (finalState == "TRADE_CANDIDATE") {
+        // Use final_trade_score for trade candidates (0.0 to 1.0)
+        val finalScore = decision.final_trade_score?.takeIf { it.isFinite() }?.let { (it * 100f).toFloat() }
+        if (finalScore != null && finalScore > 0f) return finalScore.coerceIn(0f, 100f)
+    }
+    
+    // For rejected/other states, use pre_move_ai_score to show incremental progress
+    val preMoveScore = decision.pre_move_ai_score?.takeIf { it.isFinite() }?.let { (it * 100f).toFloat() }
+    if (preMoveScore != null && preMoveScore > 0f) return preMoveScore.coerceIn(0f, 100f)
+    
+    return 0f
 }
 
 private fun decisionPhase(decision: FinalDecisionItem?): String {
@@ -2428,7 +2451,8 @@ private fun assetBadgeLabel(pair: ForexPair): String = when {
     pair.symbol.startsWith("ETH", ignoreCase = true) -> "Ξ"
     pair.symbol.startsWith("XAU", ignoreCase = true) || pair.symbol.startsWith("GC", ignoreCase = true) -> "Au"
     pair.symbol.startsWith("XAG", ignoreCase = true) -> "Ag"
-    pair.symbol.startsWith("USOIL", ignoreCase = true) || pair.symbol.startsWith("CL", ignoreCase = true) -> "O"
+    pair.symbol.startsWith("Crude-F", ignoreCase = true) || pair.symbol.startsWith("CL", ignoreCase = true) -> "O"
+    pair.symbol.startsWith("Brent-F", ignoreCase = true) -> "B"
     pair.symbol.startsWith("DXY", ignoreCase = true) -> "DX"
     else -> pair.symbol.filter { it.isLetterOrDigit() }.take(2).uppercase(Locale.US)
 }

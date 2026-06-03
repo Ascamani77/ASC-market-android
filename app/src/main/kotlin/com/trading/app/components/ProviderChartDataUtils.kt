@@ -36,14 +36,13 @@ internal fun sanitizeProviderHistory(history: List<OHLCData>): List<OHLCData> {
 
 internal fun mergeProviderHistory(existing: List<OHLCData>, incoming: List<OHLCData>, loadingMore: Boolean): List<OHLCData> {
     val cleanIncoming = sanitizeProviderHistory(incoming)
-    return if (loadingMore) {
-        (cleanIncoming + existing)
-            .distinctBy(OHLCData::time)
-            .sortedBy(OHLCData::time)
-            .takeLast(10000)
-    } else {
-        cleanIncoming
-    }
+    if (cleanIncoming.isEmpty()) return existing
+    
+    // Always merge to prevent losing history when receiving single-candle updates
+    return (existing + cleanIncoming)
+        .distinctBy(OHLCData::time)
+        .sortedBy(OHLCData::time)
+        .takeLast(10000)
 }
 
 internal fun providerDisplayQuote(quote: SymbolQuote, displaySymbol: String, candles: List<OHLCData>): SymbolQuote {

@@ -68,13 +68,34 @@ data class FinalDecisionItem(
     val structure_bias: String? = null,
     val pre_move_ai_score: Double? = null,
     val pre_move_ai_phase: String? = null,
-    val pre_move_ai_curve: List<Double>? = null
+    val pre_move_ai_curve: List<Double>? = null,
+    // Feeder Pipeline Status
+    val entry_state: String? = null,
+    val plan_state: String? = null,
+    val execution_status: String? = null,
+    val signal_quality_state: String? = null,
+    val feeder_risk_state: String? = null,
+    val feeder_liquidity_state: String? = null,
+    val feeder_indicator_state: String? = null,
+    // Final Trading AI fields
+    val final_trade_direction: String? = null,
+    val final_trade_state: String? = null,
+    val final_trade_label: String? = null,
+    val final_trade_confidence: String? = null,
+    val final_trade_score: Double? = null,
+    val final_trade_priority: String? = null,
+    val final_trade_reason: String? = null
 )
 
 data class RunAiResponse(
     val success: Boolean = false,
     val message: String? = null,
     val final_decision: List<FinalDecisionItem> = emptyList()
+)
+
+data class ChartAnalysisRequest(
+    val image_base64: String,
+    val metadata: Map<String, String> = emptyMap()
 )
 
 data class LatestDeploymentsResponse(

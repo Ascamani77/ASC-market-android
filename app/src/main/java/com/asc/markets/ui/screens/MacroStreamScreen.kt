@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -169,26 +170,56 @@ fun MacroStreamScreen(viewModel: ForexViewModel = viewModel()) {
 
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     item {
-                        // Situational awareness: heartbeat + lead-time inside InfoBox - positioned at top (touches screen edge)
+                        // Situational awareness: heartbeat + sources + event stats inside InfoBox
                         com.asc.markets.ui.components.InfoBox(
                             modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(10.dp)
+                            containerColor = ErieBlack,
+                            contentPadding = PaddingValues(12.dp)
                         ) {
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                // Node heartbeat
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(shape = CircleShape, color = if (vitalsData.nodeHealth > 0.8) Color(0xFF2EE08A) else Color(0xFFE53935), modifier = Modifier.size((8.dp * pulse))) {}
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Node: ${if(vitalsData.latencyMs < 50) "NY4" else "LD4"}", color = SlateText, fontSize = 12.sp)
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Top row: Node heartbeat + Event stats
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    // Node heartbeat
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(shape = CircleShape, color = if (vitalsData.nodeHealth > 0.8) Color(0xFF2EE08A) else Color(0xFFE53935), modifier = Modifier.size((8.dp * pulse))) {}
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Node: ${if(vitalsData.latencyMs < 50) "NY4" else "LD4"}", color = SlateText, fontSize = 12.sp)
+                                    }
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    // Captured Event Stats
+                                    Column(modifier = Modifier.width(200.dp)) {
+                                        val confirmedCount = macroEvents.count { it.status == MacroEventStatus.CONFIRMED }
+                                        val totalEvents = macroEvents.size
+                                        Text("Events Captured: $confirmedCount", color = SlateText, fontSize = 12.sp)
+                                        val progress = if(totalEvents > 0) confirmedCount.toFloat() / totalEvents.toFloat() else 1f
+                                        LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(6.dp), color = Color(0xFF2EE08A), trackColor = Color(0xFF0B0B0B))
+                                    }
                                 }
-                                Spacer(modifier = Modifier.weight(1f))
-                                // Captured Event Stats (Replacing Lead-Time to differentiate from Macro Stream)
-                                Column(modifier = Modifier.width(200.dp)) {
-                                    val confirmedCount = macroEvents.count { it.status == MacroEventStatus.CONFIRMED }
-                                    val totalEvents = macroEvents.size
-                                    Text("Events Captured: $confirmedCount", color = SlateText, fontSize = 12.sp)
-                                    val progress = if(totalEvents > 0) confirmedCount.toFloat() / totalEvents.toFloat() else 1f
-                                    LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(6.dp), color = Color(0xFF2EE08A), trackColor = Color(0xFF0B0B0B))
+                                
+                                // Divider
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+                                
+                                // News Sources row
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("NEWS SOURCES:", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("14 RSS Feeds", color = SlateText, fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("•", color = SlateText, fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Fed, ECB, BOE, BOJ", color = SlateText, fontSize = 10.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("•", color = SlateText, fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("ForexLive, FXStreet", color = SlateText, fontSize = 10.sp)
+                                }
+                                
+                                // Source categories
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SourceBadge("Central Banks", Color(0xFF1E88E5))
+                                    SourceBadge("Forex", Color(0xFF43A047))
+                                    SourceBadge("Commodities", Color(0xFFFFA726))
+                                    SourceBadge("Macro Data", Color(0xFFAB47BC))
                                 }
                             }
                         }
@@ -211,7 +242,7 @@ fun MacroStreamScreen(viewModel: ForexViewModel = viewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("LEDGER: ${macroEvents.size} events captured this session.", color = SlateText, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                Text("STREAM MAINTENANCE", color = IndigoAccent, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.navigateTo(com.asc.markets.data.AppView.NOTIFICATIONS) }.padding(start = 8.dp))
+                Text("STREAM MAINTENANCE", color = IndigoAccent, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.navigateTo(com.asc.markets.data.AppView.PUSH_SETTINGS) }.padding(start = 8.dp))
             }
         }
     }
@@ -221,7 +252,7 @@ fun MacroStreamScreen(viewModel: ForexViewModel = viewModel()) {
 fun MacroStreamCard(item: MacroEvent, decision: FinalDecisionItem?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PureBlack),
+        colors = CardDefaults.cardColors(containerColor = ErieBlack),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, HairlineBorder)
     ) {
@@ -398,5 +429,23 @@ fun MacroStreamCard(item: MacroEvent, decision: FinalDecisionItem?) {
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun SourceBadge(label: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = color.copy(alpha = 0.15f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+    ) {
+        Text(
+            text = label,
+            color = color,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }

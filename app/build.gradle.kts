@@ -53,8 +53,8 @@ android {
         
         // Binance Trading
         
-        // cTrader Pepperstone Configuration
-        buildConfigField("String", "CTRADER_HOST_TYPE", "\"${localProps.getProperty("CTRADER_HOST_TYPE") ?: project.findProperty("CTRADER_HOST_TYPE") ?: "demo"}\"")
+        // cTrader Pepperstone Configuration (Live)
+        buildConfigField("String", "CTRADER_HOST_TYPE", "\"${localProps.getProperty("CTRADER_HOST_TYPE") ?: project.findProperty("CTRADER_HOST_TYPE") ?: "live"}\"")
         buildConfigField("String", "CTRADER_CLIENT_ID", "\"${localProps.getProperty("CTRADER_CLIENT_ID") ?: project.findProperty("CTRADER_CLIENT_ID") ?: ""}\"")
         buildConfigField("String", "CTRADER_CLIENT_SECRET", "\"${localProps.getProperty("CTRADER_CLIENT_SECRET") ?: project.findProperty("CTRADER_CLIENT_SECRET") ?: ""}\"")
         buildConfigField("String", "CTRADER_ACCESS_TOKEN", "\"${localProps.getProperty("CTRADER_ACCESS_TOKEN") ?: project.findProperty("CTRADER_ACCESS_TOKEN") ?: ""}\"")
@@ -62,6 +62,16 @@ android {
         buildConfigField("String", "CTRADER_ACCOUNT_ID", "\"${localProps.getProperty("CTRADER_ACCOUNT_ID") ?: project.findProperty("CTRADER_ACCOUNT_ID") ?: ""}\"")
         buildConfigField("String", "CTRADER_BRIDGE_HOST", "\"${localProps.getProperty("CTRADER_BRIDGE_HOST") ?: project.findProperty("CTRADER_BRIDGE_HOST") ?: "192.168.1.100"}\"")
         buildConfigField("int", "CTRADER_BRIDGE_PORT", "${localProps.getProperty("CTRADER_BRIDGE_PORT") ?: project.findProperty("CTRADER_BRIDGE_PORT") ?: 8082}")
+        
+        // cTrader Pepperstone Configuration (Demo)
+        buildConfigField("String", "CTRADER_DEMO_HOST_TYPE", "\"${localProps.getProperty("CTRADER_DEMO_HOST_TYPE") ?: project.findProperty("CTRADER_DEMO_HOST_TYPE") ?: "demo"}\"")
+        buildConfigField("String", "CTRADER_DEMO_CLIENT_ID", "\"${localProps.getProperty("CTRADER_DEMO_CLIENT_ID") ?: project.findProperty("CTRADER_DEMO_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "CTRADER_DEMO_CLIENT_SECRET", "\"${localProps.getProperty("CTRADER_DEMO_CLIENT_SECRET") ?: project.findProperty("CTRADER_DEMO_CLIENT_SECRET") ?: ""}\"")
+        buildConfigField("String", "CTRADER_DEMO_ACCESS_TOKEN", "\"${localProps.getProperty("CTRADER_DEMO_ACCESS_TOKEN") ?: project.findProperty("CTRADER_DEMO_ACCESS_TOKEN") ?: ""}\"")
+        buildConfigField("String", "CTRADER_DEMO_REFRESH_TOKEN", "\"${localProps.getProperty("CTRADER_DEMO_REFRESH_TOKEN") ?: project.findProperty("CTRADER_DEMO_REFRESH_TOKEN") ?: ""}\"")
+        buildConfigField("String", "CTRADER_DEMO_ACCOUNT_ID", "\"${localProps.getProperty("CTRADER_DEMO_ACCOUNT_ID") ?: project.findProperty("CTRADER_DEMO_ACCOUNT_ID") ?: ""}\"")
+        buildConfigField("String", "CTRADER_DEMO_BRIDGE_HOST", "\"${localProps.getProperty("CTRADER_DEMO_BRIDGE_HOST") ?: project.findProperty("CTRADER_DEMO_BRIDGE_HOST") ?: "192.168.1.100"}\"")
+        buildConfigField("int", "CTRADER_DEMO_BRIDGE_PORT", "${localProps.getProperty("CTRADER_DEMO_BRIDGE_PORT") ?: project.findProperty("CTRADER_DEMO_BRIDGE_PORT") ?: 8083}")
     }
 
     buildTypes {

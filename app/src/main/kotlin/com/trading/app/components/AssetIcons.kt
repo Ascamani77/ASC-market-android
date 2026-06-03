@@ -95,8 +95,8 @@ fun AssetIcon(symbol: SymbolInfo, modifier: Modifier = Modifier, size: Int = 32)
                     FlagImage(currency = country, modifier = Modifier.size(size.dp))
                 }
             }
-            type.contains("commodity") || ticker.contains("XAU") || ticker.contains("XAG") || ticker == "USOIL" -> {
-                if (ticker == "USOIL") {
+            type.contains("commodity") || ticker.contains("XAU") || ticker.contains("XAG") || ticker == "USOIL" || ticker == "Crude-F" || ticker == "Brent-F" -> {
+                if (ticker == "USOIL" || ticker == "Crude-F" || ticker == "Brent-F") {
                     Box(
                         modifier = Modifier
                             .size(size.dp)

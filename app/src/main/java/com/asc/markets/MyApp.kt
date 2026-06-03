@@ -9,6 +9,7 @@ import com.asc.markets.data.trade.AppDatabase
 import com.asc.markets.data.trade.TradeHistoryRepository
 import com.asc.markets.data.repository.AiRepository
 import com.asc.markets.data.remote.AiRetrofitClient
+import com.asc.markets.ai.AIContextService
 
 class MyApp : Application() {
     lateinit var database: AppDatabase
@@ -44,5 +45,8 @@ class MyApp : Application() {
         ).build()
 
         tradeRepository = TradeHistoryRepository(database.tradeDao())
+        
+        // Start AI Context Service to poll backend for real-time AI intelligence
+        AIContextService.start()
     }
 }

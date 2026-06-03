@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,12 +19,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.VigilanceNodeEngine
 import com.asc.markets.logic.VigilanceNode
 import com.asc.markets.ui.theme.*
 
 @Composable
-fun MyAlertsScreen() {
+fun MyAlertsScreen(
+    viewModel: ForexViewModel,
+    onCreateAlertClick: () -> Unit = {},
+    onOpenInbox: () -> Unit = {},
+    onOpenPushSettings: () -> Unit = {}
+) {
     val scrollState = rememberScrollState()
     val activeNodes = remember { mutableStateListOf<VigilanceNode>() }
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
@@ -42,137 +49,168 @@ fun MyAlertsScreen() {
         activeNodes.addAll(VigilanceNodeEngine.getActiveNodes())
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DeepBlack)
-            .padding(16.dp)
-            .verticalScroll(scrollState)
     ) {
-        // Header
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(
-                color = Color.White.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.size(40.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(scrollState)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Notifications, null, tint = IndigoAccent, modifier = Modifier.size(24.dp))
-                }
-            }
-            Column {
-                Text("MY ALERTS", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("ACTIVE VIGILANCE NODES & TRIGGERED ALERTS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // ACTIVE VIGILANCE NODES SECTION
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("▼", fontSize = 12.sp, color = SlateText)
-                    Text("ACTIVE VIGILANCE NODES (${activeNodes.size})", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                Text(
-                    "PURGE ALL",
-                    color = RoseError,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = InterFontFamily,
-                    modifier = Modifier.clickable {
-                        VigilanceNodeEngine.getActiveNodes().forEach { VigilanceNodeEngine.clearNode(it.id) }
-                        activeNodes.clear()
-                    }
-                )
-            }
-            
-            if (activeNodes.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    activeNodes.forEach { node ->
-                        ActiveNodeCardFull(
-                            node = node,
-                            onShowBreakdown = { selectedNodeId = if (selectedNodeId == node.id) null else node.id },
-                            onDelete = {
-                                VigilanceNodeEngine.clearNode(node.id)
-                                activeNodes.removeAll { it.id == node.id }
-                                if (selectedNodeId == node.id) selectedNodeId = null
-                            }
-                        )
-                        
-                        // Show breakdown if selected
-                        if (selectedNodeId == node.id) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            ScoringBreakdownPanel(
-                                nodeId = node.id,
-                                onDismiss = { selectedNodeId = null }
-                            )
-                        }
-                    }
-                }
-            } else {
-                Surface(
-                    color = Color.White.copy(alpha = 0.02f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.NotificationsNone, null, tint = SlateText, modifier = Modifier.size(48.dp))
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("NO ACTIVE ALERTS", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("Create alerts in Vigilance Setup", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // REJECTED PATTERNS LOG
-        val rejectedPatterns = remember { VigilanceNodeEngine.getRejectedPatterns() }
-        if (rejectedPatterns.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("⊘", fontSize = 14.sp, color = SlateText)
-                    Text("REJECTED PATTERNS LOG", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                
-                rejectedPatterns.takeLast(3).forEach { pattern ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Surface(
-                        color = RoseError.copy(alpha = 0.02f),
+                        color = Color.White.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.1f)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(pattern.pair, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                Text(
-                                    java.text.SimpleDateFormat("HH:mm UTC", java.util.Locale.US).format(java.util.Date(pattern.timestamp)),
-                                    color = Color.DarkGray,
-                                    fontSize = 9.sp,
-                                    fontFamily = InterFontFamily
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Notifications, null, tint = IndigoAccent, modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Column {
+                        Text("MY ALERTS", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("ACTIVE ALERTS, VIGILANCE RULES, AND TRIGGERED EVENTS", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onOpenInbox, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.NotificationsActive, null, tint = Color.White)
+                    }
+                    IconButton(onClick = onOpenPushSettings, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Smartphone, null, tint = Color.White)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("▼", fontSize = 12.sp, color = SlateText)
+                        Text("ACTIVE ALERTS (${activeNodes.size})", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Text(
+                        "PURGE ALL",
+                        color = RoseError,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = InterFontFamily,
+                        modifier = Modifier.clickable {
+                            VigilanceNodeEngine.getActiveNodes().forEach { VigilanceNodeEngine.clearNode(it.id) }
+                            activeNodes.clear()
+                            viewModel.markAllNotificationsSeen()
+                        }
+                    )
+                }
+
+                if (activeNodes.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        activeNodes.forEach { node ->
+                            ActiveNodeCardFull(
+                                node = node,
+                                onShowBreakdown = { selectedNodeId = if (selectedNodeId == node.id) null else node.id },
+                                onDelete = {
+                                    VigilanceNodeEngine.clearNode(node.id)
+                                    activeNodes.removeAll { it.id == node.id }
+                                    if (selectedNodeId == node.id) selectedNodeId = null
+                                    viewModel.markAllNotificationsSeen()
+                                }
+                            )
+
+                            if (selectedNodeId == node.id) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                ScoringBreakdownPanel(
+                                    nodeId = node.id,
+                                    onDismiss = { selectedNodeId = null }
                                 )
                             }
-                            Text("REJECTED: ${pattern.pattern}", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text(pattern.reason, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.02f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.NotificationsNone, null, tint = SlateText, modifier = Modifier.size(48.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text("NO ACTIVE ALERTS", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Use the + button for Create Alert or open Vigilance Setup from the sidebar", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+                            }
                         }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            val rejectedPatterns = remember { VigilanceNodeEngine.getRejectedPatterns() }
+            if (rejectedPatterns.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("⊘", fontSize = 14.sp, color = SlateText)
+                        Text("REJECTED PATTERNS LOG", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+
+                    rejectedPatterns.takeLast(3).forEach { pattern ->
+                        Surface(
+                            color = RoseError.copy(alpha = 0.02f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.1f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Text(pattern.pair, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                    Text(
+                                        java.text.SimpleDateFormat("HH:mm UTC", java.util.Locale.US).format(java.util.Date(pattern.timestamp)),
+                                        color = Color.DarkGray,
+                                        fontSize = 9.sp,
+                                        fontFamily = InterFontFamily
+                                    )
+                                }
+                                Text("REJECTED: ${pattern.pattern}", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                Text(pattern.reason, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            Spacer(modifier = Modifier.height(120.dp))
         }
-        
-        Spacer(modifier = Modifier.height(80.dp))
+
+        Surface(
+            color = Color.White,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 28.dp, bottom = 34.dp)
+                .size(64.dp)
+                .clickable { onCreateAlertClick() }
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Add, null, tint = Color.Black, modifier = Modifier.size(30.dp))
+            }
+        }
     }
 }
 

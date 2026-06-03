@@ -6,5 +6,8 @@ data class NotificationModel(
     val msg: String,
     val time: String,
     val severity: String,
-    val seen: Boolean = false
+    val seen: Boolean = false,
+    val symbol: String? = null,
+    val timeframe: String? = null,
+    val targetView: String? = null
 )

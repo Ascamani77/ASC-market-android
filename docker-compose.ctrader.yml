@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  ctrader-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.ctrader
+    container_name: ctrader-bridge
+    ports:
+      - "8082:8082"
+    environment:
+      - CTRADER_CLIENT_ID=27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s
+      - CTRADER_CLIENT_SECRET=loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty
+      - CTRADER_ACCESS_TOKEN=bz5h7SrzyS_xb8udgcckRcGJU2D9FgIMCAkegWiRFeE
+      - CTRADER_ACCOUNT_ID=47341092
+      - CTRADER_HOST_TYPE=live
+      - CTRADER_BRIDGE_HOST=0.0.0.0
+      - CTRADER_BRIDGE_PORT=8082
+    restart: unless-stopped
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8082)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: asc-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - trading-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  trading-network:
+    driver: bridge

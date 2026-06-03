@@ -12,10 +12,16 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateListOf
 import com.trading.app.models.SymbolInfo
 
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import com.asc.markets.data.NetworkConfig
+import com.trading.app.data.ChartFeedType
+
 @Composable
 fun QuotesScreen(
     viewModel: ForexViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val availableQuotes = remember {
         mutableStateListOf<SymbolInfo>().apply {
             addAll(defaultQuoteSymbols())
@@ -26,8 +32,18 @@ fun QuotesScreen(
     Quotes(
         onClose = { viewModel.navigateTo(AppView.DASHBOARD) },
         quotes = availableQuotes,
-        onQuoteSelect = { symbol ->
-            viewModel.selectPairBySymbol(symbol)
+        onQuoteSelect = { symbolInfo ->
+            // Update the stream chart source based on the clicked item's exchange
+            val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+            val feedType = when (symbolInfo.exchange) {
+                "Binance" -> ChartFeedType.BINANCE
+                "Exness" -> ChartFeedType.EXNESS
+                "Pepperstone" -> ChartFeedType.PEPPERSTONE_CTRADER
+                else -> ChartFeedType.fromPref(prefs.getString(ChartFeedType.PREF_KEY, null))
+            }
+            prefs.edit().putString(ChartFeedType.STREAM_PREF_KEY, feedType.prefValue).apply()
+
+            viewModel.selectPairBySymbol(symbolInfo.ticker)
             viewModel.navigateTo(AppView.STREAM)
         },
         quotesByTicker = symbolQuotesByTicker,

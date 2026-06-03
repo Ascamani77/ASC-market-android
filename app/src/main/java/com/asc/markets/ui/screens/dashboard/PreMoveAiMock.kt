@@ -8,6 +8,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -68,6 +72,7 @@ import com.trading.app.data.DerivService
 import com.trading.app.data.FredService
 import com.asc.markets.network.TiingoIexRestClient
 import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
 import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.delay
@@ -92,6 +97,7 @@ private data class PreMovePriceSeries(
 )
 private data class PreMoveTimeframe(val label: String, val intervalMillis: Long, val windowMillis: Long)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PreMoveAiMockImage(
     selectedPair: ForexPair,
@@ -106,12 +112,19 @@ fun PreMoveAiMockImage(
     val assetRowScrollState = rememberScrollState()
     val selectedDecision = findAiDecision(selectedPair, aiDecisions)
     val aiCurve = preMoveAiCurve(selectedPair, selectedDecision)
-    val chartValues = aiCurve
+    val aiScore = preMoveScore(selectedPair, selectedDecision)
+    
+    // ensure chartValues ends with aiScore
+    val chartValues = if (aiCurve.isNotEmpty()) {
+        aiCurve.dropLast(1) + aiScore
+    } else {
+        listOf(aiScore)
+    }
+    
     val priceSeries = preMovePriceSeries(selectedPair, priceHistory, timedPriceHistory, selectedTimeframe)
     val hasChartData = priceSeries.values.size >= 2
-    val aiScore = preMoveScore(selectedPair, selectedDecision)
-    val chartCurrentValue = chartValues.lastOrNull() ?: aiScore
-    val currentPhase = phaseFromScore(chartCurrentValue)
+    val chartCurrentValue = aiScore
+    val currentPhase = selectedDecision?.pre_move_ai_phase?.uppercase(Locale.US) ?: phaseFromScore(chartCurrentValue)
     val scoreFraction = (aiScore / 100f).coerceIn(0f, 1f)
     val scoreState = preMoveState(aiScore, selectedDecision)
     val scoreColor = preMoveColor(aiScore)
@@ -169,21 +182,21 @@ fun PreMoveAiMockImage(
             Box(
                 modifier = Modifier
                     .width(206.dp)
-                    .height(92.dp)
+                    .height(102.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(PureBlack)
                     .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
-                    .padding(10.dp)
+                    .padding(12.dp)
             ) {
                 Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("AI PRE-MOVE SCORE", color = TextGray, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(Icons.Default.Info, contentDescription = null, tint = TextGray, modifier = Modifier.size(11.dp))
                         }
-                        Text("${aiScore.toInt()}%", color = scoreColor, fontSize = 30.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                        Text(scoreState, color = scoreColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("${String.format("%.1f", aiScore)}%", color = scoreColor, fontSize = 30.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        Text(scoreState, color = scoreColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Visible)
                     }
                     Box(modifier = Modifier.size(66.dp), contentAlignment = Alignment.Center) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -211,16 +224,107 @@ fun PreMoveAiMockImage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        PreMoveCombinedChart(
-            selectedPair = selectedPair,
-            priceSeries = priceSeries,
-            aiValues = chartValues,
-            currentAiValue = chartCurrentValue,
-            selectedTimeframe = selectedTimeframe,
-            hasChartData = hasChartData,
-            onTimeframeSelected = { selectedTimeframe = it },
-            onExpandClick = { chartExpanded = true }
-        )
+        // Chart and Asset Selector Container with Horizontal Pager
+        val pagerState = rememberPagerState(pageCount = { 2 }) // 2 pages: AI Pre-Move Chart and another chart
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(PureBlack)
+                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Only the chart scrolls horizontally
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    when (page) {
+                        0 -> {
+                            // First page: AI Pre-Move Chart
+                            PreMoveCombinedChart(
+                                selectedPair = selectedPair,
+                                priceSeries = priceSeries,
+                                aiValues = chartValues,
+                                currentAiValue = chartCurrentValue,
+                                selectedTimeframe = selectedTimeframe,
+                                hasChartData = hasChartData,
+                                onTimeframeSelected = { selectedTimeframe = it },
+                                onExpandClick = { chartExpanded = true }
+                            )
+                        }
+                        1 -> {
+                            // Second page: Live Volatility Chart
+                            VolatilityChart(
+                                selectedPair = selectedPair,
+                                selectedTimeframe = selectedTimeframe,
+                                timedPriceHistory = timedPriceHistory,
+                                priceHistory = priceHistory,
+                                onTimeframeSelected = { selectedTimeframe = it }
+                            )
+                        }
+                    }
+                }
+                
+                // Page indicator dots
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(2) { index ->
+                        Box(
+                            modifier = Modifier
+                                .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (pagerState.currentPage == index)
+                                        Color.White.copy(alpha = 0.8f)
+                                    else
+                                        Color.White.copy(alpha = 0.3f)
+                                )
+                        )
+                        if (index < 1) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                    }
+                }
+
+                // Asset Selector stays fixed (doesn't scroll)
+                assetRows.forEachIndexed { index, pair ->
+                    val rowDecision = findAiDecision(pair, aiDecisions)
+                    val rowCurve = preMoveAiCurve(pair, rowDecision)
+                    val rowScore = preMoveScore(pair, rowDecision)
+                    val rowColor = preMoveColor(rowScore)
+                    StockListItem(
+                        name = assetAlias(pair),
+                        subtitle = assetSubtitle(pair),
+                        score = "${String.format("%.1f", rowScore)}%",
+                        price = formatPreMovePrice(pair),
+                        priceChange = formatPreMoveRowChange(pair),
+                        state = preMoveState(rowScore, rowDecision),
+                        color = rowColor,
+                        symbol = pair.symbol,
+                        values = rowCurve,
+                        isHighlighted = normalizeAssetKey(pair.symbol) == normalizeAssetKey(selectedPair.symbol),
+                        metricsScrollState = assetRowScrollState,
+                        onClick = { onAssetSelected(pair) }
+                    )
+                    // Add divider between assets (not after the last one)
+                    if (index < assetRows.size - 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.White.copy(alpha = 0.1f))
+                        )
+                    }
+                }
+            }
+        }
 
         if (chartExpanded) {
             ExpandedPreMoveChartDialog(
@@ -240,36 +344,29 @@ fun PreMoveAiMockImage(
         AiProgressionSection(currentPhase, aiScore)
 
         Spacer(modifier = Modifier.height(12.dp))
+        
+        VolatilityRegimeScaleSection(selectedDecision)
 
+        Spacer(modifier = Modifier.height(12.dp))
+        
         CurrentProgressDetailsSection(selectedDecision, currentPhase, aiScore)
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        KeyVolatilityStatsSection(selectedDecision)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         EntryStyleSection(selectedDecision, currentPhase, aiScore)
+        
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
+        FinalTradingDecisionSection(selectedDecision, aiScore)
 
-        // 7. Stocks List
-        assetRows.forEach { pair ->
-            val rowDecision = findAiDecision(pair, aiDecisions)
-            val rowCurve = preMoveAiCurve(pair, rowDecision)
-            val rowScore = preMoveScore(pair, rowDecision)
-            val rowColor = preMoveColor(rowScore)
-            StockListItem(
-                name = assetAlias(pair),
-                subtitle = assetSubtitle(pair),
-                score = "${rowScore.toInt()}%",
-                price = formatPreMovePrice(pair),
-                priceChange = formatPreMoveRowChange(pair),
-                state = preMoveState(rowScore, rowDecision),
-                color = rowColor,
-                symbol = pair.symbol,
-                values = rowCurve,
-                isHighlighted = pair.symbol == selectedPair.symbol,
-                metricsScrollState = assetRowScrollState,
-                onClick = { onAssetSelected(pair) }
-            )
-        }
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        AiInterpretationSection(selectedDecision, currentPhase, aiScore)
+
         }
     }
 }
@@ -507,7 +604,9 @@ private fun PreMoveChartHeader(
     onExpandClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, top = 8.dp, end = 12.dp, bottom = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -610,10 +709,23 @@ private fun PreMoveCombinedChartBox(
     val priceMin = priceSeries.values.minOrNull() ?: selectedPair.price
     val priceMax = priceSeries.values.maxOrNull() ?: selectedPair.price
     val priceRange = (priceMax - priceMin).takeIf { it > 0.0 } ?: 1.0
+    
+    // Update interval based on timeframe (not every second)
+    val updateIntervalMillis = when (selectedTimeframe) {
+        "5m" -> 5_000L      // Update every 5 seconds for 5m chart
+        "15m" -> 15_000L    // Update every 15 seconds for 15m chart
+        "30m" -> 30_000L    // Update every 30 seconds for 30m chart
+        "1H" -> 60_000L     // Update every 1 minute for 1H chart
+        "4H" -> 240_000L    // Update every 4 minutes for 4H chart
+        "1D" -> 300_000L    // Update every 5 minutes for 1D chart
+        "1W" -> 600_000L    // Update every 10 minutes for 1W chart
+        else -> 60_000L
+    }
+    
     val currentTime by produceState(initialValue = System.currentTimeMillis(), selectedTimeframe) {
         while (true) {
             value = System.currentTimeMillis()
-            delay(1000L)
+            delay(updateIntervalMillis)
         }
     }
     
@@ -636,7 +748,6 @@ private fun PreMoveCombinedChartBox(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(PureBlack)
-            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(start = 0.dp, top = 28.dp, end = 28.dp, bottom = 30.dp)) {
             val w = size.width
@@ -644,7 +755,7 @@ private fun PreMoveCombinedChartBox(
             
             // Draw AI phase reference lines (0-100 scale on left Y-axis)
             val aiPhases = listOf(
-                Triple(0f, Color.White.copy(alpha = 0.5f), "0"),
+                Triple(0f, NoiseRed.copy(alpha = 0.75f), ""),
                 Triple(20f, NoiseRed, "NOISE"),
                 Triple(40f, StructureOrange, "STRUCTURE"), 
                 Triple(60f, CompressionYellow, "COMPRESSION"),
@@ -681,15 +792,16 @@ private fun PreMoveCombinedChartBox(
                     textPaint
                 )
                 
-                // Draw phase label on left
-                textPaint.textSize = 8.sp.toPx()
-                textPaint.color = color.copy(alpha = 0.7f).toArgb()
-                nativeCanvas.drawText(
-                    label,
-                    8.dp.toPx(),
-                    yPos - 8.dp.toPx(),
-                    textPaint
-                )
+                if (label.isNotBlank()) {
+                    textPaint.textSize = 8.sp.toPx()
+                    textPaint.color = color.copy(alpha = 0.7f).toArgb()
+                    nativeCanvas.drawText(
+                        label,
+                        8.dp.toPx(),
+                        yPos - 8.dp.toPx(),
+                        textPaint
+                    )
+                }
                 textPaint.textSize = 10.sp.toPx() // Reset for next iteration
             }
             
@@ -719,30 +831,13 @@ private fun PreMoveCombinedChartBox(
                     moveTo(pricePoints.first().x, pricePoints.first().y)
                     pricePoints.drop(1).forEach { point -> lineTo(point.x, point.y) }
                 }
-                val fillPath = Path().apply {
-                    moveTo(pricePoints.first().x, h)
-                    lineTo(pricePoints.first().x, pricePoints.first().y)
-                    pricePoints.drop(1).forEach { point -> lineTo(point.x, point.y) }
-                    lineTo(pricePoints.last().x, h)
-                    close()
-                }
                 val lineColor = Color(0xFF6FCBC0)
-                drawPath(
-                    path = fillPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            lineColor.copy(alpha = 0.30f),
-                            lineColor.copy(alpha = 0.10f),
-                            Color.Transparent
-                        ),
-                        startY = pricePoints.minOf { it.y },
-                        endY = h
-                    )
-                )
+                
+                // Draw only the line (no fill)
                 drawPath(
                     path = linePath,
                     color = lineColor.copy(alpha = 0.94f),
-                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round)
                 )
                 
                 // Draw blinking dot at the tip (current price)
@@ -777,8 +872,7 @@ private fun PreMoveCombinedChartBox(
                 // Draw AI Pre-Move Sparkline (Market Readiness Engine)
                 // Use AI values from backend decision data
                 if (aiValues.isNotEmpty()) {
-                    // Create AI points by interpolating aiValues across the time window
-                    val aiPoints = liveEntries.mapIndexed { index, point ->
+                    val aiPoints = liveEntries.map { point ->
                         val xFraction = if (priceSeries.windowMillis <= 0L) {
                             1f
                         } else {
@@ -786,12 +880,7 @@ private fun PreMoveCombinedChartBox(
                                 .toFloat()
                                 .coerceIn(0f, 1f)
                         }
-                        
-                        // Interpolate AI score from aiValues array
-                        val aiIndex = ((index.toFloat() / liveEntries.size.toFloat()) * aiValues.size.toFloat()).toInt().coerceIn(0, aiValues.size - 1)
-                        val score = aiValues[aiIndex]
-                        
-                        // Map AI score (0-100) to Y position
+                        val score = samplePreMoveAiValue(aiValues, xFraction)
                         val yPos = h - (score / 100f * h)
                         Offset(xFraction * w, yPos)
                     }
@@ -799,7 +888,20 @@ private fun PreMoveCombinedChartBox(
                     val aiPath = Path().apply {
                         if (aiPoints.isNotEmpty()) {
                             moveTo(aiPoints.first().x, aiPoints.first().y)
-                            aiPoints.drop(1).forEach { point -> lineTo(point.x, point.y) }
+                            if (aiPoints.size == 2) {
+                                lineTo(aiPoints.last().x, aiPoints.last().y)
+                            } else {
+                                for (index in 1 until aiPoints.size) {
+                                    val previous = aiPoints[index - 1]
+                                    val current = aiPoints[index]
+                                    val midpoint = Offset(
+                                        x = (previous.x + current.x) / 2f,
+                                        y = (previous.y + current.y) / 2f
+                                    )
+                                    quadraticBezierTo(previous.x, previous.y, midpoint.x, midpoint.y)
+                                }
+                                lineTo(aiPoints.last().x, aiPoints.last().y)
+                            }
                         }
                     }
                     
@@ -820,11 +922,10 @@ private fun PreMoveCombinedChartBox(
                         val lastAiPoint = aiPoints.last()
                         val lastScore = aiScoreToDisplay // Use the actual AI score from backend
                         
-                        // Background box for percentage
-                        val boxWidth = 45.dp.toPx()
+                        val boxWidth = 52.dp.toPx()
                         val boxHeight = 20.dp.toPx()
-                        val boxX = w - boxWidth - 8.dp.toPx()
-                        val boxY = lastAiPoint.y - boxHeight / 2
+                        val boxX = w - boxWidth - 16.dp.toPx()
+                        val boxY = (lastAiPoint.y - boxHeight / 2).coerceIn(6.dp.toPx(), h - boxHeight - 6.dp.toPx())
                         
                         drawRoundRect(
                             color = Color.Black.copy(alpha = 0.7f),
@@ -860,7 +961,7 @@ private fun PreMoveCombinedChartBox(
 private fun AiProgressionSection(currentPhase: String, currentValue: Float) {
     val phases = superPhaseSteps()
     val value = currentValue.coerceIn(0f, 100f)
-    val activeColor = phaseColor(currentPhase)
+    val activeColor = preMoveColor(value)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -963,8 +1064,8 @@ private fun AiProgressionSection(currentPhase: String, currentValue: Float) {
 
 @Composable
 private fun CurrentProgressDetailsSection(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float) {
-    val phaseColor = phaseColor(currentPhase)
-    val cards = progressDetailCards(decision, currentPhase, aiScore)
+    val phaseColor = preMoveColor(aiScore)
+    val cards = progressDetailCards(decision, currentPhase, aiScore, phaseColor)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1007,7 +1108,7 @@ private fun ProgressDetailCardView(card: ProgressDetailCard) {
             .height(132.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(PureBlack)
-            .border(if (card.active) 1.5f.dp else 1.dp, if (card.active) card.color else Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
             .padding(9.dp)
     ) {
         Text(card.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1030,9 +1131,9 @@ private fun ProgressDetailCardView(card: ProgressDetailCard) {
 
 @Composable
 private fun EntryStyleSection(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float) {
-    val cards = entryStyleCards(decision, currentPhase, aiScore)
+    val activeColor = preMoveColor(aiScore)
+    val cards = entryStyleCards(decision, currentPhase, aiScore, activeColor)
     val active = cards.firstOrNull { it.active }
-    val activeColor = active?.color ?: phaseColor(currentPhase)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1072,7 +1173,7 @@ private fun EntryStyleSection(decision: FinalDecisionItem?, currentPhase: String
                     Text(active?.detail ?: "Waiting for clearer phase confirmation.", color = Color.White, fontSize = 10.sp)
                     Spacer(modifier = Modifier.weight(1f))
                     Text("${currentPhase} CONFIDENCE", color = activeColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text("${aiScore.toInt()}%", color = activeColor, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("${String.format("%.1f", aiScore)}%", color = activeColor, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1087,13 +1188,908 @@ private fun EntryStyleCardView(card: EntryStyleCard) {
             .height(104.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(PureBlack)
-            .border(if (card.active) 1.5f.dp else 1.dp, if (card.active) card.color else Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
             .padding(10.dp)
     ) {
         Text(card.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(modifier = Modifier.weight(1f))
         Text(if (card.active) "Best For Current" else "Match Quality", color = TextGray, fontSize = 9.sp)
         Text(card.match, color = card.color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun VolatilityRegimeScaleSection(decision: FinalDecisionItem?) {
+    val volScore = ((decision?.feeder_volatility_score ?: 0.0) * 100.0).toFloat().coerceIn(0f, 100f)
+    val state = decision?.feeder_volatility_state?.uppercase(Locale.US) ?: "NORMAL"
+    val confidence = decision?.feeder_volatility_confidence?.uppercase(Locale.US) ?: "LOW"
+    val reason = formatVolatilityReason(decision?.feeder_volatility_reason)
+    
+    val phases = ascVolatilityPhases()
+
+    val activePhase = phases.firstOrNull { it.label == state }
+        ?: phases.find { volScore >= it.start && volScore <= it.end }
+        ?: phases.first { it.label == "NORMAL" }
+    val activeColor = activePhase.color
+    val stateColor = activeColor
+    val markerScore = ascVolatilityMarkerScore(activePhase, volScore)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(PureBlack)
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 14.dp)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("VOLATILITY REGIME SCALE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF50C878)))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("LIVE", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+        ) {
+            val usableWidth = maxWidth
+            val barY = 54.dp
+            val tickY = 77.dp
+            
+            // Draw Phase Labels
+            phases.forEach { phase ->
+                val labelWidth = 64.dp
+                val phaseCenter = (phase.start + phase.end) / 200f
+                val rawX = (usableWidth * phaseCenter) - (labelWidth / 2f)
+                val labelX = rawX.coerceIn(0.dp, maxWidth - labelWidth)
+                
+                Column(
+                    modifier = Modifier
+                        .width(labelWidth)
+                        .offset(x = labelX, y = 0.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(phase.label, color = phase.color, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Visible)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(phase.caption, color = phase.color, fontSize = 14.sp)
+                }
+            }
+            
+            // Draw Bar
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val startX = 0f
+                val endX = size.width
+                val width = endX - startX
+                val centerY = barY.toPx()
+                
+                // Draw track
+                phases.forEach { phase ->
+                    val x1 = startX + width * (phase.start / 100f)
+                    val x2 = startX + width * (phase.end / 100f)
+                    drawLine(phase.color.copy(alpha = 0.3f), Offset(x1, centerY), Offset(x2, centerY), strokeWidth = 10.dp.toPx(), cap = StrokeCap.Round)
+                    drawLine(phase.color, Offset(x1, centerY), Offset(x2, centerY), strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+                }
+                
+                // Draw current marker
+                val currentPx = startX + width * (markerScore / 100f)
+                val dashed = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                drawLine(Color.White.copy(alpha = 0.5f), Offset(currentPx, centerY), Offset(currentPx, 100.dp.toPx()), strokeWidth = 1.dp.toPx(), pathEffect = dashed)
+                drawCircle(Color.White, radius = 7.dp.toPx(), center = Offset(currentPx, centerY))
+            }
+            
+            // Draw Ticks
+            (phases.map { it.start.toInt() } + 100).distinct().forEach { tick ->
+                val tickWidth = 24.dp
+                val rawX = (usableWidth * (tick / 100f)) - (tickWidth / 2f)
+                val tickX = rawX.coerceIn(0.dp, maxWidth - tickWidth)
+                Text(
+                    tick.toString(),
+                    color = TextGray,
+                    fontSize = 9.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .width(tickWidth)
+                        .offset(x = tickX, y = tickY)
+                )
+            }
+            
+            // Current Value Text
+            val valWidth = 60.dp
+            val valRawX = (usableWidth * (markerScore / 100f)) - (valWidth / 2f)
+            val valX = valRawX.coerceIn(0.dp, maxWidth - valWidth)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(valWidth).offset(x = valX, y = 92.dp)
+            ) {
+                Text(String.format(Locale.US, "%.1f", volScore), color = activeColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Box(modifier = Modifier.background(activeColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text(ascVolatilityDisplayLabel(confidence), color = activeColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(24.dp).border(1.dp, stateColor, CircleShape), contentAlignment = Alignment.Center) {
+                Text(activePhase.caption, color = stateColor, fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Feeder volatility is ${ascVolatilityDisplayLabel(state)}.", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Confidence: ${ascVolatilityDisplayLabel(confidence)} • $reason", color = TextGray, fontSize = 10.sp)
+            }
+            val nextPhase = phases.getOrNull(phases.indexOf(activePhase) + 1) ?: phases.last()
+            Text("Next State: ", color = TextGray, fontSize = 10.sp)
+            Text(ascVolatilityDisplayLabel(nextPhase.label), color = nextPhase.color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+private fun ascVolatilityPhases(): List<PhaseStep> = listOf(
+    PhaseStep("DEAD", "·", 0f, 12f, Color(0xFF64748B)),
+    PhaseStep("COMPRESSED", "⇥", 12f, 35f, CompressionYellow),
+    PhaseStep("NORMAL", "∿", 35f, 55f, PreMoveGreen),
+    PhaseStep("EXPANDING", "↗", 55f, 75f, StructureOrange),
+    PhaseStep("BURST", "⚡", 75f, 88f, NoiseRed),
+    PhaseStep("EXPLOSIVE", "✦", 88f, 100f, Color(0xFFE91E63))
+)
+
+private fun ascVolatilityPhaseForScore(score: Float): PhaseStep {
+    val clampedScore = score.coerceIn(0f, 100f)
+    return ascVolatilityPhases().firstOrNull { phase ->
+        clampedScore >= phase.start && (clampedScore < phase.end || phase.end >= 100f)
+    } ?: ascVolatilityPhases().last()
+}
+
+private fun ascVolatilityMarkerScore(activePhase: PhaseStep, score: Float): Float {
+    val clampedScore = score.coerceIn(0f, 100f)
+    val lowerBound = activePhase.start
+    val upperBound = if (activePhase.end >= 100f) 100f else activePhase.end
+
+    if (clampedScore <= 0f) {
+        return (lowerBound + upperBound) / 2f
+    }
+
+    return clampedScore.coerceIn(lowerBound, upperBound)
+}
+
+private fun ascVolatilityStateColor(state: String): Color {
+    return ascVolatilityPhases().firstOrNull { it.label == state.uppercase(Locale.US) }?.color ?: PreMoveGreen
+}
+
+private fun ascVolatilityDisplayLabel(value: String): String {
+    return value.uppercase(Locale.US).replace("_", " ")
+}
+
+private fun formatVolatilityReason(reason: String?): String {
+    return reason
+        ?.replace("_", " ")
+        ?.replace("|", "•")
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?: "NO VOLATILITY REASON"
+}
+
+@Composable
+private fun KeyVolatilityStatsSection(decision: FinalDecisionItem?) {
+    val volScore = ((decision?.feeder_volatility_score ?: 0.0) * 100.0).toFloat()
+    val volRatio = decision?.vol_ratio ?: 0.0
+    val atrRatio = decision?.atr_ratio ?: 0.0
+    val burstRatio = decision?.burst_ratio ?: 0.0
+    val confidence = ascVolatilityDisplayLabel(decision?.feeder_volatility_confidence ?: "LOW")
+    val state = ascVolatilityDisplayLabel(decision?.feeder_volatility_state ?: "NORMAL")
+    val scoreColor = ascVolatilityPhaseForScore(volScore).color
+    val stateColor = scoreColor
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(PureBlack)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Text("KEY VOLATILITY STATS", color = TextGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            VolStatItem("VOL SCORE", String.format(Locale.US, "%.1f", volScore), confidence, scoreColor)
+            VolStatDivider()
+            VolStatItem("VOL RATIO", String.format(Locale.US, "%.2fx", volRatio), "Relative Vol", Color(0xFFDCEB3A))
+            VolStatDivider()
+            VolStatItem("ATR RATIO", String.format(Locale.US, "%.2fx", atrRatio), "True Range", Color(0xFFFF6B6B))
+            VolStatDivider()
+            VolStatItem("BURST RATIO", String.format(Locale.US, "%.2fx", burstRatio), "Max Move", Color(0xFFFFA726))
+            VolStatDivider()
+            VolStatItem("STATE", state, "Regime", stateColor)
+        }
+    }
+}
+
+@Composable
+private fun VolStatItem(title: String, value: String, subtitle: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, color = TextGray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(subtitle, color = TextGray, fontSize = 8.sp)
+    }
+}
+
+@Composable
+private fun VolStatDivider() {
+    Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.1f)))
+}
+
+@Composable
+private fun FinalTradingDecisionSection(decision: FinalDecisionItem?, aiScore: Float) {
+    val resolvedDecision = resolveFinalTradingDecision(decision, aiScore)
+    val finalState = resolvedDecision.state
+    val finalDirection = resolvedDecision.direction
+    val finalConfidence = resolvedDecision.confidence
+    val finalScore = resolvedDecision.score
+    val finalPriority = resolvedDecision.priority
+    val finalReason = resolvedDecision.reason
+    
+    val stateColor = when (finalState) {
+        "TRADE_CANDIDATE" -> when (finalDirection) {
+            "LONG" -> PreMoveGreen
+            "SHORT" -> NoiseRed
+            else -> TextGray
+        }
+        "MANUAL_REVIEW" -> Color(0xFFFFAA00)
+        else -> TextGray
+    }
+    
+    val stateLabel = when (finalState) {
+        "TRADE_CANDIDATE" -> "✓ TRADE CANDIDATE"
+        "MANUAL_REVIEW" -> "⚠ MANUAL REVIEW"
+        "REJECTED" -> "✗ NO TRADE"
+        else -> finalState
+    }
+    
+    val priorityLabel = finalDecisionPriorityLabel(finalPriority)
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PureBlack, RoundedCornerShape(8.dp))
+            .border(1.dp, stateColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "FINAL TRADING DECISION",
+                color = TextGray,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                stateLabel,
+                color = stateColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("DIRECTION", color = TextGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    if (finalDirection == "NONE") "—" else finalDirection,
+                    color = if (finalDirection == "NONE") TextGray else stateColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("SCORE", color = TextGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "${finalScore.toInt()}%",
+                    color = stateColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Text("PRIORITY", color = TextGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    priorityLabel,
+                    color = stateColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End
+                )
+            }
+        }
+        
+        if (finalState == "TRADE_CANDIDATE") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(stateColor.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                    .padding(8.dp)
+            ) {
+                Text(
+                    finalReason,
+                    color = stateColor,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        } else if (finalState == "MANUAL_REVIEW") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(stateColor.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                    .padding(8.dp)
+            ) {
+                Text(
+                    finalReason,
+                    color = stateColor,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(TextGray.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                    .padding(8.dp)
+            ) {
+                Text(
+                    finalReason,
+                    color = TextGray,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        }
+    }
+}
+
+private data class ResolvedFinalTradingDecision(
+    val state: String,
+    val direction: String,
+    val score: Float,
+    val priority: String,
+    val confidence: String,
+    val reason: String
+)
+
+private fun resolveFinalTradingDecision(decision: FinalDecisionItem?, aiScore: Float): ResolvedFinalTradingDecision {
+    if (decision == null) {
+        return ResolvedFinalTradingDecision(
+            state = "REJECTED",
+            direction = "NONE",
+            score = aiScore.coerceIn(0f, 100f),
+            priority = "NO_TRADE",
+            confidence = confidenceFromDecisionScore(aiScore),
+            reason = "No decision data available yet for the selected asset."
+        )
+    }
+
+    val resolvedScore = decision.final_trade_score
+        ?.takeIf { it.isFinite() }
+        ?.let { (it * 100f).toFloat() }
+        ?.coerceIn(0f, 100f)
+        ?: decision.pre_move_ai_score
+            ?.takeIf { it.isFinite() }
+            ?.let { (it * 100f).toFloat() }
+            ?.coerceIn(0f, 100f)
+        ?: aiScore.coerceIn(0f, 100f)
+
+    val explicitState = decision.final_trade_state
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+    val portfolioLabel = decision.portfolio_decision_label
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+    val explicitPriority = decision.final_trade_priority
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+    val labelPriority = decision.final_trade_label
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+    val journalPriority = decision.journal_priority
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+
+    val resolvedState = explicitState ?: when {
+        explicitPriority == "REVIEW" || labelPriority == "REVIEW" -> "MANUAL_REVIEW"
+        portfolioLabel == "PRIMARY_DEPLOYMENT" -> "TRADE_CANDIDATE"
+        resolvedScore >= 60f && (
+            decision.confluence_state.equals("TRADEABLE_SETUP", ignoreCase = true) ||
+                decision.entry_state.equals("READY", ignoreCase = true) ||
+                decision.plan_state.equals("PLAN_READY", ignoreCase = true)
+            ) -> "MANUAL_REVIEW"
+        else -> "REJECTED"
+    }
+
+    val resolvedDirection = decision.final_trade_direction
+        ?.takeIf { it.isNotBlank() && !it.equals("NONE", ignoreCase = true) }
+        ?.uppercase(Locale.US)
+        ?: decision.journal_direction
+            ?.takeIf { it.isNotBlank() && !it.equals("NONE", ignoreCase = true) }
+            ?.uppercase(Locale.US)
+        ?: "NONE"
+
+    val resolvedPriority = explicitPriority
+        ?: labelPriority
+        ?: journalPriority
+        ?: when {
+            resolvedState == "TRADE_CANDIDATE" && resolvedScore >= 80f -> "PRIORITY_A"
+            resolvedState == "TRADE_CANDIDATE" -> "PRIORITY_B"
+            resolvedState == "MANUAL_REVIEW" -> "REVIEW"
+            else -> "NO_TRADE"
+        }
+
+    val resolvedConfidence = decision.final_trade_confidence
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+        ?: decision.confluence_confidence
+            ?.takeIf { it.isNotBlank() }
+            ?.uppercase(Locale.US)
+        ?: confidenceFromDecisionScore(resolvedScore)
+
+    val resolvedReason = formatFinalDecisionReason(
+        decision.final_trade_reason,
+        decision.portfolio_decision_reason,
+        resolvedState,
+        resolvedConfidence,
+        decision.confluence_state,
+        decision.entry_state
+    )
+
+    return ResolvedFinalTradingDecision(
+        state = resolvedState,
+        direction = resolvedDirection,
+        score = resolvedScore,
+        priority = resolvedPriority,
+        confidence = resolvedConfidence,
+        reason = resolvedReason
+    )
+}
+
+private fun finalDecisionPriorityLabel(priority: String): String {
+    return when (priority.uppercase(Locale.US)) {
+        "PRIORITY_A", "HIGH", "HIGH_PRIORITY", "PRIMARY_DEPLOYMENT" -> "HIGH PRIORITY"
+        "PRIORITY_B", "NORMAL", "NORMAL_PRIORITY" -> "NORMAL PRIORITY"
+        "REVIEW", "MANUAL_REVIEW" -> "REVIEW REQUIRED"
+        else -> "NO TRADE"
+    }
+}
+
+private fun confidenceFromDecisionScore(score: Float): String {
+    return when {
+        score >= 78f -> "VERY_HIGH"
+        score >= 58f -> "HIGH"
+        score >= 35f -> "MEDIUM"
+        else -> "LOW"
+    }
+}
+
+private fun formatFinalDecisionReason(
+    finalReason: String?,
+    portfolioReason: String?,
+    resolvedState: String,
+    resolvedConfidence: String,
+    confluenceState: String?,
+    entryState: String?
+): String {
+    val rawReason = finalReason
+        ?.takeIf { it.isNotBlank() }
+        ?: portfolioReason?.takeIf { it.isNotBlank() }
+
+    if (rawReason != null) {
+        return rawReason
+            .replace("_", " ")
+            .replace("|", "•")
+            .trim()
+    }
+
+    return when (resolvedState) {
+        "TRADE_CANDIDATE" -> "Selected asset is aligned for deployment with ${resolvedConfidence.replace("_", " ")} confidence."
+        "MANUAL_REVIEW" -> "Selected asset has a developing setup but still needs manual confirmation before execution."
+        else -> when {
+            confluenceState.equals("TRADEABLE_SETUP", ignoreCase = true) && !entryState.equals("READY", ignoreCase = true) ->
+                "Confluence is forming, but the entry gate is not ready yet for the selected asset."
+            else -> "No pre-move setup detected for the selected asset. Waiting for confluence and entry conditions."
+        }
+    }
+}
+
+@Composable
+private fun AiReasoningCollapsibleSection(decision: FinalDecisionItem?) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    val finalState = decision?.final_trade_state?.uppercase(Locale.US) ?: "REJECTED"
+    val reason = decision?.final_trade_reason ?: "NO_DECISION_DATA"
+    val reasons = reason.split(" | ").filter { it.isNotBlank() }
+    
+    val headerColor = when (finalState) {
+        "TRADE_CANDIDATE" -> PreMoveGreen
+        "MANUAL_REVIEW" -> Color(0xFFFFAA00)
+        else -> TextGray
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PureBlack, RoundedCornerShape(8.dp))
+            .border(1.dp, headerColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+    ) {
+        // Header - Always visible, clickable to expand/collapse
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded }
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "🧠",
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        "AI REASONING",
+                        color = TextGray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        "40 Feeder Pipeline Analysis",
+                        color = headerColor,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (isExpanded) "COLLAPSE" else "EXPAND",
+                    color = headerColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    if (isExpanded) "▲" else "▼",
+                    color = headerColor,
+                    fontSize = 10.sp
+                )
+            }
+        }
+        
+        // Expandable content
+        if (isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HorizontalDivider(color = headerColor.copy(alpha = 0.2f), thickness = 1.dp)
+                
+                // Feeder Gates Status
+                FeederGatesSection(decision)
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Rejection/Approval Reasons
+                RejectionReasonsSection(reasons, finalState, headerColor)
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Key Feeder States
+                KeyFeederStatesSection(decision)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeederGatesSection(decision: FinalDecisionItem?) {
+    val gates = listOf(
+        Triple("ENTRY", decision?.entry_state ?: "NO_ENTRY", decision?.entry_state == "READY"),
+        Triple("CONFLUENCE", decision?.confluence_state ?: "NO_CONFLUENCE", decision?.confluence_state == "TRADEABLE_SETUP"),
+        Triple("PLAN", decision?.plan_state ?: "NO_PLAN", decision?.plan_state == "PLAN_READY"),
+        Triple("EXECUTION", decision?.execution_status ?: "BLOCKED", decision?.execution_status == "READY"),
+        Triple("SIGNAL QUALITY", decision?.signal_quality_state ?: "NO_SIGNAL_QUALITY", decision?.signal_quality_state in listOf("STRONG_SIGNAL", "ELITE_SIGNAL")),
+        Triple("RISK", decision?.feeder_risk_state ?: "RISK_OFF", decision?.feeder_risk_state != "RISK_OFF")
+    )
+    
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "CRITICAL GATES",
+            color = TextGray,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+        
+        gates.forEach { (name, state, passed) ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (passed) PreMoveGreen.copy(alpha = 0.08f) else NoiseRed.copy(alpha = 0.08f),
+                        RoundedCornerShape(6.dp)
+                    )
+                    .border(
+                        1.dp,
+                        if (passed) PreMoveGreen.copy(alpha = 0.2f) else NoiseRed.copy(alpha = 0.2f),
+                        RoundedCornerShape(6.dp)
+                    )
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (passed) "✓" else "✗",
+                        color = if (passed) PreMoveGreen else NoiseRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        name,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    state,
+                    color = if (passed) PreMoveGreen else NoiseRed,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RejectionReasonsSection(reasons: List<String>, finalState: String, headerColor: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            if (finalState == "TRADE_CANDIDATE") "APPROVAL FACTORS" else "BLOCKING FACTORS",
+            color = TextGray,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+        
+        if (reasons.isEmpty()) {
+            Text(
+                "No reasoning data available",
+                color = TextGray.copy(alpha = 0.5f),
+                fontSize = 9.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+            )
+        } else {
+            reasons.take(8).forEach { reasonItem ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(headerColor.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                        .border(1.dp, headerColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("▸", color = headerColor, fontSize = 10.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        reasonItem,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp
+                    )
+                }
+            }
+            
+            if (reasons.size > 8) {
+                Text(
+                    "+ ${reasons.size - 8} more factors",
+                    color = TextGray.copy(alpha = 0.6f),
+                    fontSize = 8.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun KeyFeederStatesSection(decision: FinalDecisionItem?) {
+    val feederStates = listOf(
+        "REGIME" to (decision?.regime_state ?: "UNKNOWN"),
+        "VOLATILITY" to (decision?.feeder_volatility_state ?: "UNKNOWN"),
+        "STRUCTURE" to (decision?.structure_state ?: "UNKNOWN"),
+        "TREND" to (decision?.trend_state ?: "UNKNOWN"),
+        "LIQUIDITY" to (decision?.feeder_liquidity_state ?: "UNKNOWN"),
+        "INDICATOR" to (decision?.feeder_indicator_state ?: "UNKNOWN")
+    )
+    
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "KEY FEEDER STATES",
+            color = TextGray,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+        
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A1A1A), RoundedCornerShape(6.dp))
+                .border(1.dp, TextGray.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            feederStates.forEach { (name, state) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        name,
+                        color = TextGray.copy(alpha = 0.7f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        state,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiInterpretationSection(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float) {
+    val state = decision?.feeder_volatility_state?.uppercase(Locale.US) ?: "NORMAL"
+    val stateLabel = ascVolatilityDisplayLabel(state)
+    val stateColor = ascVolatilityStateColor(state)
+    val confidence = ascVolatilityDisplayLabel(decision?.feeder_volatility_confidence ?: "LOW")
+    val reason = formatVolatilityReason(decision?.feeder_volatility_reason)
+    val atrRatio = decision?.atr_ratio ?: 0.0
+    val volRatio = decision?.vol_ratio ?: 0.0
+    val burstRatio = decision?.burst_ratio ?: 0.0
+    val ignitionPercent = normalizeAiPercentValue(decision?.ignition_probability) ?: aiScore.coerceIn(0f, 100f)
+    val primaryMessage = when (state) {
+        "DEAD" -> "Volatility is in DEAD state with suppressed range and body activity."
+        "COMPRESSED" -> "Volatility is COMPRESSED and the market is coiling before expansion."
+        "NORMAL" -> "Volatility is NORMAL and the market is balanced, not yet displaced."
+        "EXPANDING" -> "Volatility is EXPANDING as range and dispersion start lifting."
+        "BURST" -> "Volatility is in BURST mode with elevated short-window move pressure."
+        "EXPLOSIVE" -> "Volatility is EXPLOSIVE with strong expansion and body strength alignment."
+        else -> "Volatility is in $stateLabel state."
+    }
+    val secondaryMessage = when (state) {
+        "DEAD" -> "Wait for real expansion before anticipating ignition."
+        "COMPRESSED" -> "Watch for ignition only after expansion confirmation appears."
+        "NORMAL" -> "Let structure, context, and ignition probability improve before commitment."
+        "EXPANDING" -> "Monitor for displacement continuation or pullback execution."
+        "BURST" -> "Expect faster moves and tighter execution timing if signals align."
+        "EXPLOSIVE" -> "Momentum is already active, so risk needs to stay controlled."
+        else -> "Follow the feeder volatility and ignition signals for confirmation."
+    }
+    val detailMessage = "Confidence $confidence • ATR ${String.format(Locale.US, "%.2fx", atrRatio)} • Vol ${String.format(Locale.US, "%.2fx", volRatio)} • Burst ${String.format(Locale.US, "%.2fx", burstRatio)} • $reason"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(PureBlack)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Text("AI INTERPRETATION", color = TextGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF6D28D9).copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🧠", fontSize = 18.sp)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(primaryMessage, color = Color.White, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(secondaryMessage, color = Color.White, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(detailMessage, color = TextGray, fontSize = 11.sp)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.size(60.dp), contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.1f),
+                        startAngle = 135f,
+                        sweepAngle = 270f,
+                        useCenter = false,
+                        style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        color = stateColor,
+                        startAngle = 135f,
+                        sweepAngle = 270f * (ignitionPercent / 100f),
+                        useCenter = false,
+                        style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                    
+                    // Draw dot at end of arc
+                    val angleInDegrees = 135f + (270f * (ignitionPercent / 100f))
+                    val angleInRadians = Math.toRadians(angleInDegrees.toDouble())
+                    val radius = size.minDimension / 2
+                    val centerX = size.width / 2
+                    val centerY = size.height / 2
+                    val dotX = (centerX + radius * Math.cos(angleInRadians)).toFloat()
+                    val dotY = (centerY + radius * Math.sin(angleInRadians)).toFloat()
+                    
+                    drawCircle(stateColor.copy(alpha = 0.75f), radius = 3.dp.toPx(), center = Offset(dotX, dotY))
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${ignitionPercent.toInt()}%", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+             Text("Ignition Probability", color = TextGray, fontSize = 8.sp, modifier = Modifier.padding(end = 6.dp))
+        }
     }
 }
 
@@ -1123,9 +2119,7 @@ fun StockListItem(
         modifier = Modifier
             .fillMaxWidth()
             .height(84.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(PureBlack)
-            .border(1.dp, if (isHighlighted) color.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+            .background(if (isHighlighted) Color.White.copy(alpha = 0.035f) else Color.Transparent)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1299,9 +2293,10 @@ private fun MiniSparkline(values: List<Float>, color: Color, modifier: Modifier 
 
 private fun findAiDecision(pair: ForexPair, aiDecisions: List<FinalDecisionItem>): FinalDecisionItem? {
     val key = normalizeAssetKey(pair.symbol)
-    return aiDecisions.firstOrNull { decision ->
-        normalizeAssetKey(decision.asset_1.orEmpty()) == key
-    }
+    return aiDecisions
+        .asSequence()
+        .filter { decision -> normalizeAssetKey(decision.asset_1.orEmpty()) == key }
+        .maxByOrNull { decision -> preMoveDecisionTimestampMillis(decision) }
 }
 
 private fun normalizeAssetKey(value: String): String {
@@ -1310,6 +2305,15 @@ private fun normalizeAssetKey(value: String): String {
         .replace("-", "")
         .replace("_", "")
         .replace(" ", "")
+}
+
+private fun preMoveDecisionTimestampMillis(decision: FinalDecisionItem?): Long {
+    val rawTimestamp = decision?.journal_timestamp?.takeIf { it.isNotBlank() } ?: return 0L
+    return try {
+        OffsetDateTime.parse(rawTimestamp).toInstant().toEpochMilli()
+    } catch (_: Exception) {
+        0L
+    }
 }
 
 private fun preMovePriceSeries(
@@ -1333,13 +2337,8 @@ private fun preMovePriceSeries(
         .toSortedMap()
         .values
         .mapNotNull { bucket -> bucket.maxByOrNull { it.timestampMillis } }
-    val flatHistory = priceHistory.entries
-        .firstOrNull { normalizeAssetKey(it.key) == key }
-        ?.value
-        .orEmpty()
-        .filter { it.isFinite() && it > 0.0 }
-    val fallbackPoints = sampleFallbackTimedPrices(flatHistory + pair.price, timeframe, now)
-    val sourcePoints = if (bucketedPoints.size >= 8) bucketedPoints else fallbackPoints.ifEmpty { bucketedPoints }
+
+    val sourcePoints = bucketedPoints
     val points = densifyTimedPrices(
         points = sourcePoints,
         timeframe = timeframe,
@@ -1373,10 +2372,10 @@ private fun binanceIntervalForPreMove(timeframeLabel: String): String {
         "5m" -> "5m"
         "15m" -> "15m"
         "30m" -> "30m"
-        "1hr" -> "1h"
-        "4hr" -> "4h"
+        "1H" -> "1h"
+        "4H" -> "4h"
         "1D" -> "1d"
-        "1w" -> "1w"
+        "1W" -> "1w"
         else -> "1h"
     }
 }
@@ -1386,10 +2385,10 @@ private fun preMoveHistoryInterval(timeframeLabel: String): String {
         "5m" -> "5m"
         "15m" -> "15m"
         "30m" -> "30m"
-        "1hr" -> "1h"
-        "4hr" -> "4h"
+        "1H" -> "1h"
+        "4H" -> "4h"
         "1D" -> "1d"
-        "1w" -> "1d"
+        "1W" -> "1d"
         else -> "1h"
     }
 }
@@ -1448,10 +2447,10 @@ private suspend fun fetchTiingoStockHistory(
 ) {
     try {
         val days = when (interval) {
-            "5m", "15m", "30m", "1hr" -> 5
-            "4hr" -> 10
+            "5m", "15m", "30m", "1H" -> 5
+            "4H" -> 10
             "1D" -> 30
-            "1w" -> 90
+            "1W" -> 90
             else -> 30
         }
         
@@ -1502,10 +2501,10 @@ private fun preMoveTimeframes(): List<PreMoveTimeframe> = listOf(
     PreMoveTimeframe("5m", 5L * 60_000L, 5L * 60_000L * 60L),
     PreMoveTimeframe("15m", 15L * 60_000L, 15L * 60_000L * 60L),
     PreMoveTimeframe("30m", 30L * 60_000L, 30L * 60_000L * 60L),
-    PreMoveTimeframe("1hr", 60L * 60_000L, 60L * 60_000L * 72L),
-    PreMoveTimeframe("4hr", 4L * 60L * 60_000L, 4L * 60L * 60_000L * 72L),
+    PreMoveTimeframe("1H", 60L * 60_000L, 60L * 60_000L * 72L),
+    PreMoveTimeframe("4H", 4L * 60L * 60_000L, 4L * 60L * 60_000L * 72L),
     PreMoveTimeframe("1D", 24L * 60L * 60_000L, 24L * 60L * 60_000L * 120L),
-    PreMoveTimeframe("1w", 7L * 24L * 60L * 60_000L, 7L * 24L * 60L * 60_000L * 80L)
+    PreMoveTimeframe("1W", 7L * 24L * 60L * 60_000L, 7L * 24L * 60L * 60_000L * 80L)
 )
 
 private fun sampleFallbackTimedPrices(
@@ -1519,10 +2518,10 @@ private fun sampleFallbackTimedPrices(
         "5m" -> 1
         "15m" -> 2
         "30m" -> 3
-        "1hr" -> 5
-        "4hr" -> 8
+        "1H" -> 5
+        "4H" -> 8
         "1D" -> 12
-        "1w" -> 20
+        "1W" -> 20
         else -> 1
     }
     val sampled = filtered.filterIndexed { index, _ -> index == filtered.lastIndex || index % stride == 0 }
@@ -1551,10 +2550,10 @@ private fun densifyTimedPrices(
         "5m" -> 60
         "15m" -> 72
         "30m" -> 84
-        "1hr" -> 96
-        "4hr" -> 108
+        "1H" -> 96
+        "4H" -> 108
         "1D" -> 120
-        "1w" -> 140
+        "1W" -> 140
         else -> 96
     }
     if (sanitized.size >= targetSize / 2) {
@@ -1612,10 +2611,10 @@ private fun timeAxisLabels(timeframeLabel: String): List<String> {
         "5m" -> listOf("-25m", "-20m", "-15m", "-10m", "-5m", "NOW")
         "15m" -> listOf("-75m", "-60m", "-45m", "-30m", "-15m", "NOW")
         "30m" -> listOf("-150m", "-120m", "-90m", "-60m", "-30m", "NOW")
-        "1hr" -> listOf("-5h", "-4h", "-3h", "-2h", "-1h", "NOW")
-        "4hr" -> listOf("-20h", "-16h", "-12h", "-8h", "-4h", "NOW")
+        "1H" -> listOf("-5h", "-4h", "-3h", "-2h", "-1h", "NOW")
+        "4H" -> listOf("-20h", "-16h", "-12h", "-8h", "-4h", "NOW")
         "1D" -> listOf("-5D", "-4D", "-3D", "-2D", "-1D", "NOW")
-        "1w" -> listOf("-5w", "-4w", "-3w", "-2w", "-1w", "NOW")
+        "1W" -> listOf("-5w", "-4w", "-3w", "-2w", "-1w", "NOW")
         else -> listOf("-5D", "-4D", "-3D", "-2D", "-1D", "NOW")
     }
 }
@@ -1629,14 +2628,17 @@ private fun formatPriceAxisLabel(pair: ForexPair, value: Double): String {
 }
 
 private fun preMoveAiCurve(pair: ForexPair, decision: FinalDecisionItem?): List<Float> {
-    val phase = decision?.pre_move_ai_phase?.uppercase(Locale.US)
-    if (decision == null || phase == "NOISE") {
-        return noiseBandCurve(pair)
-    }
+    if (decision == null) return emptyList()
+    val directScore = normalizeAiPercentValue(decision.pre_move_ai_score)
     val backendCurve = decision?.pre_move_ai_curve
-        ?.mapNotNull { it.takeIf { value -> value.isFinite() }?.toFloat()?.coerceIn(0f, 100f) }
-        ?.takeIf { it.size >= 2 }
-    if (backendCurve != null) return backendCurve
+        ?.mapNotNull { normalizeAiPercentValue(it) }
+        ?.takeIf { it.isNotEmpty() }
+    if (backendCurve != null) {
+        return anchoredPreMoveCurve(
+            values = backendCurve,
+            tailScore = directScore ?: backendCurve.lastOrNull()
+        )
+    }
 
     val journal = normalizeAi01(decision.journal_score)
     val ignition = normalizeAi01(decision.ignition_probability, journal)
@@ -1647,18 +2649,80 @@ private fun preMoveAiCurve(pair: ForexPair, decision: FinalDecisionItem?): List<
     val chartContext = normalizeAi01(decision.chart_context_score ?: decision.mtf_alignment_score, structure)
     val volatility = normalizeAi01(decision.feeder_volatility_score, 0f)
     val phaseBase = volatilityPhaseBase(decision.feeder_volatility_state)
+    val tailScore = directScore ?: aiPercent(decision.journal_score).takeIf { it > 0f }
 
-    return listOf(
-        12f + volatility * 16f,
+    val hasRealAiInputs = listOf(
+        decision.pre_move_ai_score,
+        decision.journal_score,
+        decision.ignition_probability,
+        decision.expansion_probability,
+        decision.confluence_score,
+        decision.entry_quality_score,
+        decision.structure_score,
+        decision.structural_pressure_score,
+        decision.chart_context_score,
+        decision.mtf_alignment_score,
+        decision.feeder_volatility_score
+    ).any { it?.isFinite() == true }
+    if (!hasRealAiInputs) return emptyList()
+
+    return anchoredPreMoveCurve(
+        values = listOf(
+        8f + volatility * 12f,
         phaseBase,
-        30f + structure * 30f,
-        36f + chartContext * 32f,
-        42f + confluence * 34f,
-        52f + ignition * 30f,
-        56f + entry * 30f,
-        58f + expansion * 34f,
-        40f + journal * 55f
-    ).map { it.coerceIn(0f, 100f) }
+        24f + structure * 26f,
+        30f + chartContext * 30f,
+        38f + confluence * 30f,
+        48f + ignition * 28f,
+        52f + entry * 28f,
+        56f + expansion * 30f,
+        tailScore ?: (40f + journal * 55f)
+        ),
+        tailScore = tailScore
+    )
+}
+
+private fun anchoredPreMoveCurve(values: List<Float>, tailScore: Float? = null): List<Float> {
+    val sanitized = values
+        .map { it.coerceIn(0f, 100f) }
+    if (sanitized.isEmpty()) return emptyList()
+
+    val anchored = mutableListOf<Float>()
+    anchored += 0f
+    anchored += sanitized
+    tailScore?.coerceIn(0f, 100f)?.let { score ->
+        if (anchored.isEmpty() || kotlin.math.abs((anchored.lastOrNull() ?: 0f) - score) > 0.1f) {
+            anchored += score
+        }
+    }
+
+    return anchored.fold(mutableListOf<Float>()) { acc, value ->
+        if (acc.isEmpty() || kotlin.math.abs(acc.last() - value) > 0.1f) {
+            acc += value
+        }
+        acc
+    }
+}
+
+private fun samplePreMoveAiValue(values: List<Float>, fraction: Float): Float {
+    if (values.isEmpty()) return 0f
+    if (values.size == 1) return values.first().coerceIn(0f, 100f)
+
+    val clampedFraction = fraction.coerceIn(0f, 1f)
+    val scaledIndex = clampedFraction * values.lastIndex.toFloat()
+    val lowerIndex = scaledIndex.toInt().coerceIn(0, values.lastIndex)
+    val upperIndex = (lowerIndex + 1).coerceAtMost(values.lastIndex)
+    val localProgress = (scaledIndex - lowerIndex).coerceIn(0f, 1f)
+    val start = values[lowerIndex].coerceIn(0f, 100f)
+    val end = values[upperIndex].coerceIn(0f, 100f)
+    val baseline = start + ((end - start) * localProgress)
+
+    if (lowerIndex == upperIndex) return baseline.coerceIn(0f, 100f)
+
+    val waveAmplitude = maxOf(1.4f, kotlin.math.abs(end - start) * 0.18f)
+    val waveDirection = if (lowerIndex % 2 == 0) 1f else -1f
+    val wave = Math.sin(localProgress * Math.PI).toFloat() * waveAmplitude * waveDirection
+    return (baseline + wave).coerceIn(0f, 100f)
 }
 
 private fun volatilityPhaseBase(state: String?): Float {
@@ -1674,13 +2738,27 @@ private fun volatilityPhaseBase(state: String?): Float {
 }
 
 private fun preMoveScore(pair: ForexPair, decision: FinalDecisionItem?): Float {
-    if (decision == null) return noiseBandCurve(pair).last()
-    if (decision.pre_move_ai_phase?.uppercase(Locale.US) == "NOISE") return noiseBandCurve(pair).last()
-    val direct = decision?.pre_move_ai_score?.takeIf { it.isFinite() }?.let { normalizeAi01(it) * 100f }
-    if (direct != null) return direct.coerceIn(0f, 100f)
-    val curve = preMoveAiCurve(pair, decision)
-    if (curve.isNotEmpty()) return curve.last().coerceIn(0f, 100f)
-    return aiPercent(decision?.journal_score).takeIf { it > 0f } ?: 0f
+    if (decision == null) return 0f
+    
+    // For TRADE_CANDIDATE state, use final_trade_score (68%+)
+    // For REJECTED state, use pre_move_ai_score to show progress (0-25%)
+    val finalState = decision.final_trade_state?.uppercase() ?: "REJECTED"
+    
+    if (finalState == "TRADE_CANDIDATE") {
+        // Use final_trade_score for trade candidates (0.0 to 1.0)
+        val finalScore = decision.final_trade_score?.takeIf { it.isFinite() }?.let { (it * 100f).toFloat() }
+        if (finalScore != null && finalScore > 0f) return finalScore.coerceIn(0f, 100f)
+    }
+    
+    // For rejected/other states, use pre_move_ai_score to show incremental progress
+    val preMoveScore = decision.pre_move_ai_score?.takeIf { it.isFinite() }?.let { (it * 100f).toFloat() }
+    if (preMoveScore != null && preMoveScore > 0f) return preMoveScore.coerceIn(0f, 100f)
+    
+    // Fallback to curve if available
+    val curve = decision.pre_move_ai_curve.orEmpty()
+    if (curve.isNotEmpty()) return curve.last().toFloat().coerceIn(0f, 100f)
+    
+    return 0f
 }
 
 private fun noiseBandCurve(pair: ForexPair): List<Float> {
@@ -1702,6 +2780,12 @@ private fun noiseBandCurve(pair: ForexPair): List<Float> {
 private fun normalizeAi01(value: Double?, fallback: Float = 0f): Float {
     val safe = value?.takeIf { it.isFinite() }?.toFloat() ?: fallback
     return if (safe > 1f) (safe / 100f).coerceIn(0f, 1f) else safe.coerceIn(0f, 1f)
+}
+
+private fun normalizeAiPercentValue(value: Double?): Float? {
+    val safe = value?.takeIf { it.isFinite() } ?: return null
+    val normalized = if (safe > 1.0) safe.toFloat() else (safe * 100.0).toFloat()
+    return normalized.coerceIn(0f, 100f)
 }
 
 private fun aiPercent(value: Double?, fallback: Float = 0f): Float {
@@ -1761,13 +2845,27 @@ private fun preMoveColor(score: Float): Color = when {
     else -> NoiseRed
 }
 
-private fun preMoveState(score: Float, decision: FinalDecisionItem? = null): String = when (decision?.pre_move_ai_phase?.uppercase(Locale.US)) {
-    "COMPRESSION" -> "COMPRESSION"
-    "EXPANSION" -> "EXPANSION"
-    "PRE-MOVE" -> "PRE-MOVE"
-    "STRUCTURE" -> "STRUCTURE"
-    "NOISE" -> "NOISE"
-    else -> when {
+private fun preMoveState(score: Float, decision: FinalDecisionItem? = null): String {
+    // Use ONLY final_trade_state from FINAL_TRADING_AI
+    decision?.final_trade_state?.let { state ->
+        return when (state.uppercase(Locale.US)) {
+            "TRADE_CANDIDATE" -> when (decision.final_trade_label?.uppercase(Locale.US)) {
+                "PRIORITY_A" -> "EXPANSION" // High priority = expansion phase
+                "PRIORITY_B" -> "PRE-MOVE"  // Normal priority = pre-move phase
+                else -> "PRE-MOVE"
+            }
+            "MANUAL_REVIEW" -> "COMPRESSION" // Review = compression/waiting
+            "REJECTED" -> when {
+                score >= 45f -> "COMPRESSION" // Some setup but not ready
+                score >= 30f -> "STRUCTURE"   // Structure forming
+                else -> "NOISE"                // No setup
+            }
+            else -> "NOISE"
+        }
+    }
+    
+    // If no final_trade_state, derive from score
+    return when {
         score >= 80f -> "EXPANSION"
         score >= 60f -> "PRE-MOVE"
         score >= 45f -> "COMPRESSION"
@@ -1784,9 +2882,8 @@ private fun phaseFromScore(score: Float): String = when {
     else -> "NOISE"
 }
 
-private fun progressDetailCards(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float): List<ProgressDetailCard> {
+private fun progressDetailCards(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float, displayColor: Color): List<ProgressDetailCard> {
     val phase = currentPhase.uppercase(Locale.US)
-    val phaseColor = phaseColor(currentPhase)
     val volatilityState = textOrDefault(decision?.feeder_volatility_state, if (decision == null) "UNKNOWN" else "NORMAL")
     val confluence = normalizeAi01(decision?.confluence_score, 0f)
     val ignition = normalizeAi01(decision?.ignition_probability, 0f)
@@ -1796,19 +2893,19 @@ private fun progressDetailCards(decision: FinalDecisionItem?, currentPhase: Stri
     val expansion = normalizeAi01(decision?.expansion_probability, 0f)
     return when (phase) {
         "NOISE" -> listOf(
-            ProgressDetailCard("NOISE", "Volatility State", volatilityState, "Weak or empty volatility state", "⌁", NoiseRed, null, true),
-            ProgressDetailCard("NO TRADE", "Decision State", textOrDefault(decision?.portfolio_decision_label, "NO_TRADE"), "Context not aligned", "×", NoiseRed, null, false),
-            ProgressDetailCard("QUIET", "Structure Label", textOrDefault(decision?.structure_label ?: decision?.structural_pressure_label, "QUIET"), "Structure below active threshold", "□", NoiseRed, structure, false)
+            ProgressDetailCard("NOISE", "Volatility State", volatilityState, "Weak or empty volatility state", "⌁", displayColor, null, true),
+            ProgressDetailCard("NO TRADE", "Decision State", textOrDefault(decision?.portfolio_decision_label, "NO_TRADE"), "Context not aligned", "×", displayColor, null, false),
+            ProgressDetailCard("QUIET", "Structure Label", textOrDefault(decision?.structure_label ?: decision?.structural_pressure_label, "QUIET"), "Structure below active threshold", "□", displayColor, structure, false)
         )
         "STRUCTURE" -> listOf(
-            ProgressDetailCard("STRUCTURE", "Structure Score", formatAiScore(structure), "Structure forming", "▦", StructureOrange, structure, structure >= 0.35f),
-            ProgressDetailCard("PRESSURE", "Pressure Label", textOrDefault(decision?.structural_pressure_label, "PRESSURE_BUILD"), "Pressure build check", "≋", StructureOrange, structure, structure < 0.35f),
-            ProgressDetailCard("CONTEXT", "Chart Context", formatAiScore(chartContext), "Context beginning to align", "◎", StructureOrange, chartContext, false)
+            ProgressDetailCard("STRUCTURE", "Structure Score", formatAiScore(structure), "Structure forming", "▦", displayColor, structure, structure >= 0.35f),
+            ProgressDetailCard("PRESSURE", "Pressure Label", textOrDefault(decision?.structural_pressure_label, "PRESSURE_BUILD"), "Pressure build check", "≋", displayColor, structure, structure < 0.35f),
+            ProgressDetailCard("CONTEXT", "Chart Context", formatAiScore(chartContext), "Context beginning to align", "◎", displayColor, chartContext, false)
         )
         "COMPRESSION" -> listOf(
-            ProgressDetailCard("COMPRESSED", "Volatility State", volatilityState, "Compression before ignition", "⇥", CompressionYellow, normalizeAi01(decision?.feeder_volatility_score, 0f), true),
-            ProgressDetailCard("WAIT", "Readiness Label", "WAIT_FOR_EXPANSION", "Low-volatility setup waiting", "⏱", CompressionYellow, null, false),
-            ProgressDetailCard("BUILD", "ASC Readiness", "${aiScore.toInt()}%", "Expansion pressure loading", "↯", CompressionYellow, aiScore / 100f, false)
+            ProgressDetailCard("COMPRESSED", "Volatility State", volatilityState, "Compression before ignition", "⇥", displayColor, normalizeAi01(decision?.feeder_volatility_score, 0f), true),
+            ProgressDetailCard("WAIT", "Readiness Label", "WAIT_FOR_EXPANSION", "Low-volatility setup waiting", "⏱", displayColor, null, false),
+            ProgressDetailCard("BUILD", "ASC Readiness", "${String.format("%.1f", aiScore)}%", "Expansion pressure loading", "↯", displayColor, aiScore / 100f, false)
         )
         "PRE-MOVE" -> {
             val activeTitle = when {
@@ -1818,21 +2915,21 @@ private fun progressDetailCards(decision: FinalDecisionItem?, currentPhase: Stri
                 else -> "EXPANDING"
             }
             listOf(
-                ProgressDetailCard("EXPANDING", "Volatility State", volatilityState, "Early expansion", "↗", PreMoveGreen, normalizeAi01(decision?.feeder_volatility_score, 0f), activeTitle == "EXPANDING"),
-                ProgressDetailCard("CONFLUENCE", "Confluence Score", formatAiScore(confluence), "Confluence building", "⊙", PreMoveGreen, confluence, activeTitle == "CONFLUENCE"),
-                ProgressDetailCard("IGNITION BUILD", "Ignition Probability", "${(ignition * 100f).toInt()}%", "Ignition probability building", "⚡", PreMoveGreen, ignition, activeTitle == "IGNITION BUILD"),
-                ProgressDetailCard("READY TO IGNITE", "Entry Quality", formatAiScore(entry), "Entry quality improving", "▣", PreMoveGreen, entry, activeTitle == "READY TO IGNITE")
+                ProgressDetailCard("EXPANDING", "Volatility State", volatilityState, "Early expansion", "↗", displayColor, normalizeAi01(decision?.feeder_volatility_score, 0f), activeTitle == "EXPANDING"),
+                ProgressDetailCard("CONFLUENCE", "Confluence Score", formatAiScore(confluence), "Confluence building", "⊙", displayColor, confluence, activeTitle == "CONFLUENCE"),
+                ProgressDetailCard("IGNITION BUILD", "Ignition Probability", "${(ignition * 100f).toInt()}%", "Ignition probability building", "⚡", displayColor, ignition, activeTitle == "IGNITION BUILD"),
+                ProgressDetailCard("READY TO IGNITE", "Entry Quality", formatAiScore(entry), "Entry quality improving", "▣", displayColor, entry, activeTitle == "READY TO IGNITE")
             )
         }
         else -> listOf(
-            ProgressDetailCard("BURST", "Volatility State", volatilityState, "Expansion underway", "✦", ExpansionBlue, normalizeAi01(decision?.feeder_volatility_score, 0f), true),
-            ProgressDetailCard("EXPANSION", "Expansion Probability", "${(expansion * 100f).toInt()}%", "Expansion probability confirmed", "↟", ExpansionBlue, expansion, expansion >= 0.78f),
-            ProgressDetailCard("MOMENTUM", "ASC Readiness", "${aiScore.toInt()}%", "Momentum execution window", "→", ExpansionBlue, aiScore / 100f, false)
+            ProgressDetailCard("BURST", "Volatility State", volatilityState, "Expansion underway", "✦", displayColor, normalizeAi01(decision?.feeder_volatility_score, 0f), true),
+            ProgressDetailCard("EXPANSION", "Expansion Probability", "${(expansion * 100f).toInt()}%", "Expansion probability confirmed", "↟", displayColor, expansion, expansion >= 0.78f),
+            ProgressDetailCard("MOMENTUM", "ASC Readiness", "${String.format("%.1f", aiScore)}%", "Momentum execution window", "→", displayColor, aiScore / 100f, false)
         )
-    }.map { if (it.active) it else it.copy(color = if (it.color == phaseColor) it.color else it.color) }
+    }
 }
 
-private fun entryStyleCards(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float): List<EntryStyleCard> {
+private fun entryStyleCards(decision: FinalDecisionItem?, currentPhase: String, aiScore: Float, displayColor: Color): List<EntryStyleCard> {
     val phase = currentPhase.uppercase(Locale.US)
     val volatilityState = decision?.feeder_volatility_state?.uppercase(Locale.US).orEmpty()
     val regimeState = decision?.regime_state?.uppercase(Locale.US).orEmpty()
@@ -1840,19 +2937,19 @@ private fun entryStyleCards(decision: FinalDecisionItem?, currentPhase: String, 
     val ignition = normalizeAi01(decision?.ignition_probability, 0f)
     return when (phase) {
         "NOISE" -> listOf(
-            EntryStyleCard("NO TRADE", "ACTIVE BLOCK", "Noise phase is active, so execution stays blocked until structure appears.", "×", NoiseRed, true),
-            EntryStyleCard("DEAD MARKET BLOCK", "WATCH", "Dead or unknown volatility means there is no clean deterministic move yet.", "⌁", NoiseRed, false),
-            EntryStyleCard("CONTEXT NOT ALIGNED", "WAIT", "Context is not aligned enough for pre-move entry selection.", "□", NoiseRed, false)
+            EntryStyleCard("NO TRADE", "ACTIVE BLOCK", "Noise phase is active, so execution stays blocked until structure appears.", "×", displayColor, true),
+            EntryStyleCard("DEAD MARKET BLOCK", "WATCH", "Dead or unknown volatility means there is no clean deterministic move yet.", "⌁", displayColor, false),
+            EntryStyleCard("CONTEXT NOT ALIGNED", "WAIT", "Context is not aligned enough for pre-move entry selection.", "□", displayColor, false)
         )
         "STRUCTURE" -> listOf(
-            EntryStyleCard("STRUCTURE FORMING", "HIGH MATCH", "Structure is forming; wait for pressure build or compression confirmation.", "▦", StructureOrange, true),
-            EntryStyleCard("PRESSURE BUILD", "MEDIUM", "Structural pressure is building but has not moved into compression/pre-move yet.", "≋", StructureOrange, false),
-            EntryStyleCard("CONTEXT ALIGNMENT", "WATCH", "Chart context needs more confluence before entry style selection.", "◎", StructureOrange, false)
+            EntryStyleCard("STRUCTURE FORMING", "HIGH MATCH", "Structure is forming; wait for pressure build or compression confirmation.", "▦", displayColor, true),
+            EntryStyleCard("PRESSURE BUILD", "MEDIUM", "Structural pressure is building but has not moved into compression/pre-move yet.", "≋", displayColor, false),
+            EntryStyleCard("CONTEXT ALIGNMENT", "WATCH", "Chart context needs more confluence before entry style selection.", "◎", displayColor, false)
         )
         "COMPRESSION" -> listOf(
-            EntryStyleCard("WAIT FOR EXPANSION", "HIGH MATCH", "Compression is active; best action is waiting for expansion/ignition confirmation.", "⇥", CompressionYellow, true),
-            EntryStyleCard("LOW VOL SETUP", "MEDIUM", "Low volatility can precede the move, but entry is not ready yet.", "⏱", CompressionYellow, false),
-            EntryStyleCard("IGNITION WATCH", "WATCH", "Track ignition probability for transition into pre-move.", "↯", CompressionYellow, false)
+            EntryStyleCard("WAIT FOR EXPANSION", "HIGH MATCH", "Compression is active; best action is waiting for expansion/ignition confirmation.", "⇥", displayColor, true),
+            EntryStyleCard("LOW VOL SETUP", "MEDIUM", "Low volatility can precede the move, but entry is not ready yet.", "⏱", displayColor, false),
+            EntryStyleCard("IGNITION WATCH", "WATCH", "Track ignition probability for transition into pre-move.", "↯", displayColor, false)
         )
         "PRE-MOVE" -> {
             val active = when {
@@ -1862,15 +2959,15 @@ private fun entryStyleCards(decision: FinalDecisionItem?, currentPhase: String, 
                 else -> "MOMENTUM PULLBACK"
             }
             listOf(
-                EntryStyleCard("MOMENTUM PULLBACK", if (active == "MOMENTUM PULLBACK") "HIGH MATCH" else "MEDIUM", "Confluence is strong and ignition probability is building. Good setup developing.", "↗", PreMoveGreen, active == "MOMENTUM PULLBACK"),
-                EntryStyleCard("DISPLACEMENT PULLBACK", if (active == "DISPLACEMENT PULLBACK") "HIGH MATCH" else "MEDIUM", "Use when confluence and ignition align with expansion pressure.", "↗", StructureOrange, active == "DISPLACEMENT PULLBACK"),
-                EntryStyleCard("RANGE EDGE CONFIRMATION", if (active == "RANGE EDGE CONFIRMATION") "HIGH MATCH" else "LOW", "Use when the regime is ranging and confirmation appears at the edge.", "⊚", NoiseRed, active == "RANGE EDGE CONFIRMATION")
+                EntryStyleCard("MOMENTUM PULLBACK", if (active == "MOMENTUM PULLBACK") "HIGH MATCH" else "MEDIUM", "Confluence is strong and ignition probability is building. Good setup developing.", "↗", displayColor, active == "MOMENTUM PULLBACK"),
+                EntryStyleCard("DISPLACEMENT PULLBACK", if (active == "DISPLACEMENT PULLBACK") "HIGH MATCH" else "MEDIUM", "Use when confluence and ignition align with expansion pressure.", "↗", displayColor, active == "DISPLACEMENT PULLBACK"),
+                EntryStyleCard("RANGE EDGE CONFIRMATION", if (active == "RANGE EDGE CONFIRMATION") "HIGH MATCH" else "LOW", "Use when the regime is ranging and confirmation appears at the edge.", "⊚", displayColor, active == "RANGE EDGE CONFIRMATION")
             )
         }
         else -> listOf(
-            EntryStyleCard("BREAKOUT CONTINUATION", "HIGH MATCH", "Expansion is active; continuation is preferred when burst conditions persist.", "↟", ExpansionBlue, true),
-            EntryStyleCard("STRONG MOMENTUM EXECUTION", if (aiScore >= 85f) "HIGH MATCH" else "MEDIUM", "Use when explosive momentum confirms continuation pressure.", "✦", ExpansionBlue, aiScore >= 85f),
-            EntryStyleCard("PULLBACK WAIT", "WATCH", "If expansion is extended, wait for a cleaner continuation pullback.", "↘", PreMoveGreen, false)
+            EntryStyleCard("BREAKOUT CONTINUATION", "HIGH MATCH", "Expansion is active; continuation is preferred when burst conditions persist.", "↟", displayColor, true),
+            EntryStyleCard("STRONG MOMENTUM EXECUTION", if (aiScore >= 85f) "HIGH MATCH" else "MEDIUM", "Use when explosive momentum confirms continuation pressure.", "✦", displayColor, aiScore >= 85f),
+            EntryStyleCard("PULLBACK WAIT", "WATCH", "If expansion is extended, wait for a cleaner continuation pullback.", "↘", displayColor, false)
         )
     }
 }
@@ -2186,3 +3283,5 @@ private fun calculateStdDev(values: List<Double>): Double {
     val variance = values.map { (it - mean) * (it - mean) }.average()
     return kotlin.math.sqrt(variance)
 }
+
+

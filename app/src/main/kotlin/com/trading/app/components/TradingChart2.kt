@@ -133,7 +133,7 @@ fun TradingChart2(
     onSymbolsUpdate: (List<SymbolInfo>) -> Unit = {},
     isTradingBarVisible: Boolean = false,
     reverseBridge: com.trading.app.data.Mt5ReverseBridge? = null,
-    cTraderService: com.trading.app.data.CTraderService? = null,
+    cTraderService: Any? = null,  // Can be CTraderService or CTraderDemoService
     onTradeNotification: (com.trading.app.models.TradeNotification) -> Unit = {},
     onRsiToggle: (Boolean) -> Unit = {},
     onEma10Toggle: (Boolean) -> Unit = {},
@@ -377,7 +377,7 @@ fun TradingChart2(
                                     when (chartFeedType) {
                                         ChartFeedType.PEPPERSTONE_CTRADER -> {
                                             android.util.Log.d("TradingChart2", "Placing SELL order via cTrader: symbol=$symbol, volume=${newPos.volume}")
-                                            cTraderService?.placeMarketOrder(
+                                            (cTraderService as? com.trading.app.data.CTraderService)?.placeMarketOrder(
                                                 symbol = symbol,
                                                 side = "sell",
                                                 volume = newPos.volume.toDouble(),
@@ -393,6 +393,41 @@ fun TradingChart2(
                                                         isBuy = false,
                                                         type = "executed",
                                                         exchange = "Pepperstone"
+                                                    )
+                                                    onTradeNotification(notification)
+                                                    tradeNotifications.add(notification)
+                                                } else {
+                                                    val notification = com.trading.app.models.TradeNotification(
+                                                        symbol = symbol,
+                                                        volume = newPos.volume,
+                                                        price = quote.bid,
+                                                        isBuy = false,
+                                                        type = "failed",
+                                                        exchange = "Pepperstone"
+                                                    )
+                                                    onTradeNotification(notification)
+                                                    tradeNotifications.add(notification)
+                                                }
+                                            }
+                                        }
+                                        ChartFeedType.PEPPERSTONE_DEMO -> {
+                                            android.util.Log.d("TradingChart2", "Placing SELL order via cTrader DEMO: symbol=$symbol, volume=${newPos.volume}")
+                                            (cTraderService as? com.trading.app.data.CTraderDemoService)?.placeMarketOrder(
+                                                symbol = symbol,
+                                                side = "sell",
+                                                volume = newPos.volume.toDouble(),
+                                                stopLoss = slPrice?.toDouble(),
+                                                takeProfit = tpPrice?.toDouble()
+                                            ) { success, message ->
+                                                android.util.Log.d("TradingChart2", "DEMO Order result: success=$success, message=$message")
+                                                if (success) {
+                                                    val notification = com.trading.app.models.TradeNotification(
+                                                        symbol = symbol,
+                                                        volume = newPos.volume,
+                                                        price = quote.bid,
+                                                        isBuy = false,
+                                                        type = "executed",
+                                                        exchange = "Pepperstone Demo"
                                                     )
                                                     onTradeNotification(notification)
                                                     tradeNotifications.add(notification)
@@ -504,7 +539,7 @@ fun TradingChart2(
                                     when (chartFeedType) {
                                         ChartFeedType.PEPPERSTONE_CTRADER -> {
                                             android.util.Log.d("TradingChart2", "Placing BUY order via cTrader: symbol=$symbol, volume=${newPos.volume}")
-                                            cTraderService?.placeMarketOrder(
+                                            (cTraderService as? com.trading.app.data.CTraderService)?.placeMarketOrder(
                                                 symbol = symbol,
                                                 side = "buy",
                                                 volume = newPos.volume.toDouble(),
@@ -531,6 +566,41 @@ fun TradingChart2(
                                                         isBuy = true,
                                                         type = "rejected",
                                                         exchange = "Pepperstone"
+                                                    )
+                                                    onTradeNotification(notification)
+                                                    tradeNotifications.add(notification)
+                                                }
+                                            }
+                                        }
+                                        ChartFeedType.PEPPERSTONE_DEMO -> {
+                                            android.util.Log.d("TradingChart2", "Placing BUY order via cTrader DEMO: symbol=$symbol, volume=${newPos.volume}")
+                                            (cTraderService as? com.trading.app.data.CTraderDemoService)?.placeMarketOrder(
+                                                symbol = symbol,
+                                                side = "buy",
+                                                volume = newPos.volume.toDouble(),
+                                                stopLoss = slPrice?.toDouble(),
+                                                takeProfit = tpPrice?.toDouble()
+                                            ) { success, message ->
+                                                android.util.Log.d("TradingChart2", "DEMO Order result: success=$success, message=$message")
+                                                if (success) {
+                                                    val notification = com.trading.app.models.TradeNotification(
+                                                        symbol = symbol,
+                                                        volume = newPos.volume,
+                                                        price = quote.ask,
+                                                        isBuy = true,
+                                                        type = "executed",
+                                                        exchange = "Pepperstone Demo"
+                                                    )
+                                                    onTradeNotification(notification)
+                                                    tradeNotifications.add(notification)
+                                                } else {
+                                                    val notification = com.trading.app.models.TradeNotification(
+                                                        symbol = symbol,
+                                                        volume = newPos.volume,
+                                                        price = quote.ask,
+                                                        isBuy = true,
+                                                        type = "rejected",
+                                                        exchange = "Pepperstone Demo"
                                                     )
                                                     onTradeNotification(notification)
                                                     tradeNotifications.add(notification)

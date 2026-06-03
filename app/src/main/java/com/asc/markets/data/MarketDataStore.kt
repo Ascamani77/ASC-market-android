@@ -113,6 +113,9 @@ object MarketDataStore {
         if (incoming.category == MarketCategory.FOREX || incoming.category == MarketCategory.STOCK) {
             Log.i(TAG, "Applied ${incoming.category} update: ${incoming.symbol} ${incoming.price}")
         }
+        
+        // Record telemetry for Market Data Bus - use CTRADER_LIVE as default for Pepperstone
+        SystemTelemetry.recordTick("CTRADER_LIVE", 5.0) // cTrader typically has ~5ms latency
 
         val updateTimestamp = System.currentTimeMillis()
         val nextHistory = _priceHistory.value.toMutableMap()
@@ -244,18 +247,26 @@ object MarketDataStore {
             .replace("-", "")
             .replace("_", "")
             .replace(" ", "")
+            .replace(".", "")
         
-        // Strip common broker suffixes to ensure "BTCUSD.m" matches "BTCUSD"
-        val suffixes = listOf(".M", ".PRO", ".ECN", ".S", ".SPOT", "M", "+", ".P")
+        // Strip common trading suffixes to ensure "MSFT.US-24" matches "MSFT"
+        val suffixes = listOf("US24", "US", "F", "M", "PRO", "ECN", "S", "SPOT", "P")
         for (suffix in suffixes) {
-            if (normalized.endsWith(suffix)) {
+            if (normalized.endsWith(suffix) && normalized.length > suffix.length) {
+                // Only strip if it's a suffix and leaves a valid base
+                // Special case: don't strip 'F' from 'USDCHF' or 'US' from 'EURUSD'
+                if (suffix == "F" && (normalized.endsWith("CHF") || normalized.endsWith("XAU") || normalized.endsWith("XAG"))) continue
+                if (suffix == "US" && (normalized.startsWith("EUR") || normalized.startsWith("GBP") || normalized.startsWith("AUD"))) continue
+                
                 normalized = normalized.substring(0, normalized.length - suffix.length)
                 break
             }
         }
+
+        // Special mappings for Indices and Bonds
         return when (normalized) {
-            "USTN10YRF" -> "US10Y"
-            "USTN2YRF" -> "US02Y"
+            "USTN10YR" -> "US10Y"
+            "USTN2YR" -> "US02Y"
             else -> normalized
         }
     }

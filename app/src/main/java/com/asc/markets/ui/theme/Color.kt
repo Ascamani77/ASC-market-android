@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 val DeepBlack = Color(0xFF000000)
 // Component Surface Calibration: #000000
 val PureBlack = Color(0xFF000000)
+val ErieBlack = Color(0xFF181818)
 // Active sidebar highlight
 val ActiveHighlight = Color(0xFF222222)
 
@@ -21,3 +22,6 @@ val SlateMuted = Color(0xFF4B5563)
 val HairlineBorder = Color(0xFFFFFFFF).copy(alpha = 0.08f)
 val HairlineHighlight = Color(0xFFFFFFFF).copy(alpha = 0.20f)
 val GhostWhite = Color(0xFFFFFFFF).copy(alpha = 0.05f)
+
+// Loading/Grey shades
+val LoadingGrey900 = Color(0xFF111827) // Very dark grey (Tailwind gray-900)

@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -22,32 +25,18 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.runtime.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.ChatMessage
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
-import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.backend.SurveillanceStateManager
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -61,10 +50,17 @@ fun TerminalScreen(viewModel: ForexViewModel) {
     val activeAlgo by viewModel.activeAlgo.collectAsState()
     var input by remember { mutableStateOf("") }
     var pasteBlocked by remember { mutableStateOf(false) }
+    var showQuickCommands by remember { mutableStateOf(true) }
+    
     fun isSuspectedApiKey(s: String): Boolean {
         val keyPattern = Regex("(?i)sk-[A-Za-z0-9_-]{20,}")
         val generic = Regex("(?i)(openai|api[_-]?key|secret|token)")
         return keyPattern.containsMatchIn(s) || generic.containsMatchIn(s)
+    }
+
+    fun executeCommand(cmd: String) {
+        viewModel.sendCommand(cmd)
+        showQuickCommands = false
     }
 
     // Sync ViewModel with Backend State
@@ -73,7 +69,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
-        // Status Bar Parity
+        // Status Bar
         Surface(
             color = Color.Black,
             modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -86,7 +82,6 @@ fun TerminalScreen(viewModel: ForexViewModel) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val statusColor = if (isArmed) Color.White else Color.Gray
-                    // pulsing heartbeat glow
                     val pulse = rememberInfiniteTransition()
                     val pulseAlpha by pulse.animateFloat(
                         initialValue = 0.15f,
@@ -94,7 +89,7 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                         animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse)
                     )
 
-                        Box(modifier = Modifier.background(statusColor.copy(alpha = 0.06f), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Box(modifier = Modifier.background(statusColor.copy(alpha = 0.06f), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(modifier = Modifier.size(8.dp).background(statusColor.copy(alpha = pulseAlpha), androidx.compose.foundation.shape.CircleShape))
                             Text(
@@ -129,19 +124,18 @@ fun TerminalScreen(viewModel: ForexViewModel) {
             }
         }
 
+        // Chat Area
         LazyColumn(
             modifier = Modifier.weight(1f).padding(16.dp).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             reverseLayout = true
         ) {
             items(logs, key = { it.id }) { log ->
-                val isSystem = log.content.startsWith("[")
                 AnimatedVisibility(visible = true, enter = fadeIn(animationSpec = tween(300))) {
                     val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val ts = sdf.format(Date(log.timestamp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
-                        // message bubble
                         Surface(
                             color = if (log.role == "model") Color(0xFF0D1113) else IndigoAccent,
                             shape = RoundedCornerShape(8.dp),
@@ -151,7 +145,6 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                                 .fillMaxWidth(0.72f)
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
-                                // timestamp aligned to the same side as the bubble content
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (log.role == "model") Arrangement.Start else Arrangement.End) {
                                     Text(
                                         text = ts,
@@ -182,8 +175,15 @@ fun TerminalScreen(viewModel: ForexViewModel) {
             }
         }
 
+        // Command Shortcuts (above input field)
+        AnimatedVisibility(visible = showQuickCommands) {
+            CommandShortcuts(
+                onCommandClick = { executeCommand(it) }
+            )
+        }
+
+        // Input Field
         val bringRequester = remember { BringIntoViewRequester() }
-        val keyboardController = LocalSoftwareKeyboardController.current
         var inputFocused by remember { mutableStateOf(false) }
 
         Surface(
@@ -199,6 +199,17 @@ fun TerminalScreen(viewModel: ForexViewModel) {
             Row(modifier = Modifier
                 .padding(horizontal = 12.dp)
                 .bringIntoViewRequester(bringRequester), verticalAlignment = Alignment.CenterVertically) {
+                
+                // Quick Commands Toggle Button
+                IconButton(onClick = { showQuickCommands = !showQuickCommands }) {
+                    Icon(
+                        imageVector = if (showQuickCommands) Icons.Default.Close else Icons.Default.Apps,
+                        contentDescription = "Quick Commands",
+                        tint = if (showQuickCommands) IndigoAccent else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
                 // SYS_CMD with blinking cursor
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("SYS_CMD >", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
@@ -236,20 +247,60 @@ fun TerminalScreen(viewModel: ForexViewModel) {
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = InterFontFamily, fontSize = 13.sp)
                 )
                 if (pasteBlocked) {
-                    Text("Pasting API keys is not allowed. Use build-time config.", color = Color(0xFFFFC107), fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                    Text("Pasting API keys is not allowed.", color = Color(0xFFFFC107), fontSize = 10.sp, modifier = Modifier.padding(start = 8.dp))
                 }
                 LaunchedEffect(inputFocused) {
                     if (inputFocused) bringRequester.bringIntoView()
                 }
-                IconButton(onClick = { if (input.isNotBlank()) { viewModel.sendCommand(input); input = "" } }) {
+                IconButton(onClick = { if (input.isNotBlank()) { executeCommand(input); input = "" } }) {
                     Text("↵", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
-        
     }
 }
 
+@Composable
+fun CommandShortcuts(
+    onCommandClick: (String) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { CommandChip("ARM", IndigoAccent, onCommandClick) }
+        item { CommandChip("DISARM", Color.Gray, onCommandClick) }
+        item { CommandChip("ACCOUNT", EmeraldSuccess, onCommandClick) }
+        item { CommandChip("ASC STATUS", IndigoAccent, onCommandClick) }
+        item { CommandChip("RUN AI", Color(0xFFF59E0B), onCommandClick) }
+        item { CommandChip("REFRESH AI", IndigoAccent, onCommandClick) }
+    }
+}
+
+@Composable
+fun CommandChip(
+    command: String,
+    color: Color,
+    onCommandClick: (String) -> Unit
+) {
+    Surface(
+        onClick = { onCommandClick(command) },
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text = command,
+            color = color,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = InterFontFamily,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+        )
+    }
+}
 
 @Composable
 fun TypewriterText(text: String) {
