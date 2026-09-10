@@ -26,7 +26,7 @@ fun MarketsScreen(onSelectPair: (ForexPair) -> Unit, viewModel: ForexViewModel =
             selectedPair = selectedPair,
             onAssetClick = { pair ->
                 viewModel.selectPair(pair)
-                viewModel.navigateTo(AppView.TRADING_ASSISTANT)
+                viewModel.openAssetDetail(AppView.MARKETS)
             },
             viewModel = viewModel
         )

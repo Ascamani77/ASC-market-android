@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.AutomatedTrade
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Button
@@ -42,7 +43,7 @@ fun DashboardTradeCard(trade: AutomatedTrade, onGenerateCompliance: (AutomatedTr
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text("REALIZED DELTA", color = SlateText, fontSize = 9.sp)
-                    Text(trade.pnl ?: "OPEN", color = if (isWon) EmeraldSuccess else Color.White, fontSize = 20.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontWeight = FontWeight.Black)
+                    Text(trade.pnl ?: "OPEN", color = if (isWon) EmeraldSuccess else Color.White, fontSize = 20.sp, fontFamily = com.asc.markets.ui.theme.InterFontFamily, fontWeight = FontWeight.Black)
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(onClick = { onGenerateCompliance(trade) }, colors = ButtonDefaults.buttonColors(containerColor = IndigoAccent)) {
@@ -84,9 +85,9 @@ fun DashboardTradeCard(trade: AutomatedTrade, onGenerateCompliance: (AutomatedTr
                 // Column C: Transmission Metadata
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                     Text("RELAY: ${trade.relayId}", color = SlateText, fontSize = 10.sp)
-                    Text("TS: ${trade.timestamp}", color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text("TS: ${trade.timestamp}", color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontFamily = com.asc.markets.ui.theme.InterFontFamily)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("LATENCY: ${String.format("%.3fms", trade.latencyMs)}", color = Color.DarkGray, fontSize = 10.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text("LATENCY: ${String.format("%.3fms", trade.latencyMs)}", color = Color.DarkGray, fontSize = 10.sp, fontFamily = com.asc.markets.ui.theme.InterFontFamily)
                 }
             }
 

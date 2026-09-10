@@ -1,9 +1,14 @@
 package com.asc.markets
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -18,40 +23,195 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
-import com.asc.markets.logic.EventStreamViewModel
 import com.asc.markets.data.AppView
+import com.asc.markets.data.BiometricAuthManager
 import com.asc.markets.ui.screens.*
 import com.asc.markets.ui.components.*
 import com.asc.markets.ui.ai.AiScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import com.asc.markets.ui.theme.*
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import com.asc.markets.data.NetworkConfig
 import com.asc.markets.ui.terminal.viewmodels.ChartViewModel
 import com.researchcenter.ui.screens.AnalysisOpinionScreen
+import kotlinx.coroutines.flow.*
+import com.trading.app.data.ChartFeedType
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+    var notificationTypeToOpen by mutableStateOf<String?>(null)
+    var notificationSymbol by mutableStateOf<String?>(null)
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    persistFcmToken(token)
+                    android.util.Log.d("FCM", "Device token: $token")
+                }
+            }
+        }
+    }
+
+    private fun persistFcmToken(token: String) {
+        applicationContext.getSharedPreferences("asc_prefs", 0)
+            .edit().putString("fcm_token", token).apply()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.asc.markets.data.SystemLinkMonitor.start(this)
+        notificationTypeToOpen = intent?.getStringExtra("notification_type")
+        notificationSymbol = intent?.getStringExtra("notification_symbol")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    persistFcmToken(token)
+                    android.util.Log.d("FCM", "Device token: $token")
+                }
+            }
+        }
         setContent {
-            AscTheme {
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("asc_prefs", 0) }
+            val themeModeStr by remember { mutableStateOf(prefs.getString("theme_mode", "DARK") ?: "DARK") }
+            
+            val ascThemeMode = when (themeModeStr) {
+                "LIGHT" -> com.asc.markets.ui.theme.AscThemeMode.LIGHT
+                "SYSTEM" -> com.asc.markets.ui.theme.AscThemeMode.SYSTEM
+                else -> com.asc.markets.ui.theme.AscThemeMode.DARK
+            }
+            AscTheme(themeMode = ascThemeMode) {
+                val activity = this@MainActivity
+                var biometricPassed by remember { mutableStateOf(false) }
+                var biometricPrompted by remember { mutableStateOf(false) }
+                var lastUnlockedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+
+                fun rearmAuth() {
+                    val enabled = BiometricAuthManager.isEnabled(activity)
+                    val can = BiometricAuthManager.canAuthenticate(activity)
+                    if (!enabled || !can) return
+                    val prefs = activity.getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+                    val timeoutMins = prefs.getInt("session_timeout_mins", 15)
+                    val idleMs = System.currentTimeMillis() - lastUnlockedAt
+                    if (idleMs >= timeoutMins * 60_000L) {
+                        try {
+                            BiometricAuthManager.showPrompt(
+                                activity = activity,
+                                onSuccess = { lastUnlockedAt = System.currentTimeMillis() },
+                                onFallback = { lastUnlockedAt = System.currentTimeMillis() },
+                                onError = { lastUnlockedAt = System.currentTimeMillis() }
+                            )
+                        } catch (_: Exception) {
+                            lastUnlockedAt = System.currentTimeMillis()
+                        }
+                    }
+                }
+
+                DisposableEffect(activity) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) rearmAuth()
+                    }
+                    lifecycle.addObserver(observer)
+                    onDispose { lifecycle.removeObserver(observer) }
+                }
+
+                LaunchedEffect(Unit) {
+                    // Failsafe first: the gate must open even if the prompt API
+                    // throws synchronously (no enrolled biometrics, hw busy,
+                    // wrong lifecycle state) — otherwise the startup spinner
+                    // hangs forever on a black screen.
+                    try {
+                        val biometricEnabled = BiometricAuthManager.isEnabled(activity)
+                        val canBiometric = BiometricAuthManager.canAuthenticate(activity)
+                        if (biometricEnabled && canBiometric && !biometricPassed) {
+                            biometricPrompted = true
+                            BiometricAuthManager.showPrompt(
+                                activity = activity,
+                                onSuccess = { biometricPassed = true; lastUnlockedAt = System.currentTimeMillis() },
+                                onFallback = { biometricPassed = true; lastUnlockedAt = System.currentTimeMillis() },
+                                onError = { biometricPassed = true; lastUnlockedAt = System.currentTimeMillis() }
+                            )
+                        } else {
+                            biometricPassed = true
+                            lastUnlockedAt = System.currentTimeMillis()
+                        }
+                    } catch (_: Exception) {
+                        biometricPassed = true
+                        lastUnlockedAt = System.currentTimeMillis()
+                    }
+                }
+
+                if (!biometricPassed) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(PureBlack),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                    }
+                } else {
+
                 val viewModel: ForexViewModel = viewModel()
                 val chartViewModel: ChartViewModel = viewModel()
                 val currentView by viewModel.currentView.collectAsState()
                 val isInitializing by viewModel.isInitializing.collectAsState()
                 val isRiskAccepted by viewModel.isRiskAccepted.collectAsState()
                 val showRiskDisclosure by viewModel.showRiskDisclosure.collectAsState()
-                val selectedPair by viewModel.selectedPair.collectAsState()
+                val selectedPairSymbol by remember(viewModel) {
+                    viewModel.selectedPair.map { it.symbol }.distinctUntilChanged()
+                }.collectAsState(initial = "")
                 val chartActiveSymbol by chartViewModel.activeSymbol.collectAsState()
                 val isDrawerOpen by viewModel.isDrawerOpen.collectAsState()
                 val promoteMacro by viewModel.promoteMacroStream.collectAsState()
                 val isCommandPaletteOpen by viewModel.isCommandPaletteOpen.collectAsState()
-                val linkedOrderFlowSymbol = remember(selectedPair.symbol, chartActiveSymbol) {
+                val linkedOrderFlowSymbol = remember(selectedPairSymbol, chartActiveSymbol) {
                     resolveLinkedOrderFlowSymbol(
-                        selectedPairSymbol = selectedPair.symbol,
+                        selectedPairSymbol = selectedPairSymbol,
                         chartSymbol = chartActiveSymbol
                     )
+                }
+
+                // Feed fired vigilance alerts into the in-app NOTIFICATIONS inbox
+                // (tapping one opens the asset's qualified setup page).
+                LaunchedEffect(Unit) {
+                    com.asc.markets.logic.VigilanceMonitor.onTriggered = { alert: com.asc.markets.logic.TriggeredAlert ->
+                        viewModel.pushInAppNotification(
+                            com.asc.markets.data.NotificationModel(
+                                id = alert.id,
+                                type = "vigilance",
+                                msg = "${alert.title} — ${alert.body}",
+                                time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(alert.timestamp)),
+                                severity = "WARNING",
+                                seen = false,
+                                symbol = alert.pair,
+                                timeframe = "LIVE",
+                                targetView = AppView.QUALIFIED_SETUP.name
+                            )
+                        )
+                        viewModel.incrementAlertNotificationCount()
+                    }
+                }
+
+                // System-notification deep link: tapping a "vigilance" notification
+                // must land on the alert page. Driven by activity-level Compose state
+                // so both cold start (onCreate) and warm re-open (onNewIntent) work.
+                LaunchedEffect(notificationTypeToOpen) {
+                    when (notificationTypeToOpen) {
+                        "vigilance" -> viewModel.navigateTo(AppView.MY_ALERTS)
+                        "price_alert" -> viewModel.navigateTo(AppView.STREAM)
+                    }
                 }
 
                 if (isInitializing) {
@@ -61,7 +221,7 @@ class MainActivity : ComponentActivity() {
                             .background(PureBlack),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = IndigoAccent)
+                        CircularProgressIndicator(color = Color.White)
                     }
                 } else if (!isRiskAccepted && showRiskDisclosure) {
                     DisclaimerOverlay(onAccept = { viewModel.acceptRisk() })
@@ -72,7 +232,13 @@ class MainActivity : ComponentActivity() {
                     // Global back handler for general navigation (Markets, Chat, etc.)
                     // Exclude DASHBOARD (should exit app) and ANALYSIS_OPINION (has its own internal BackHandler)
                     BackHandler(enabled = currentView != AppView.DASHBOARD && currentView != AppView.ANALYSIS_OPINION) {
-                        viewModel.navigateBack()
+                        if (currentView == AppView.ASSET_DETAIL) {
+                            // Back from an asset's detail page returns to where it was
+                            // opened from (MY ALERTS, MARKETS) rather than the dashboard.
+                            viewModel.onAssetDetailBack()
+                        } else {
+                            viewModel.navigateBack()
+                        }
                     }
 
                     val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState(initial = true)
@@ -147,23 +313,24 @@ class MainActivity : ComponentActivity() {
                         ) {
                             // THE TRICK: Swap header based on state
                             when (currentView) {
-                                AppView.DASHBOARD, AppView.MARKETS, AppView.CALENDAR, AppView.INTELLIGENCE_STREAM -> {
+                                AppView.DASHBOARD -> {
                                     val unread: Int by viewModel.unreadCount.collectAsState(initial = 0)
-                                    val collapseProgress by if (currentView == AppView.INTELLIGENCE_STREAM) {
-                                        val intelViewModel: EventStreamViewModel = viewModel()
-                                        intelViewModel.globalHeaderCollapse.collectAsState(initial = 0f)
-                                    } else {
-                                        viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+                                    val collapseProgressFlow = viewModel.globalHeaderCollapse
+                                    
+                                    val headerVisible by viewModel.isGlobalHeaderVisible.collectAsState(initial = true)
+
+                                    // Move height calculation into a smaller scope or use graphicsLayer
+                                    val headerHeight = remember(headerVisible, collapseProgressFlow) {
+                                        // Still using height() for now, but we could optimize further
+                                        // by moving the collection INSIDE the Box.
+                                        derivedStateOf {
+                                            if (headerVisible) 72.dp * (1f - collapseProgressFlow.value) else 0.dp
+                                        }
                                     }
 
-                                    // Animate header height (72.dp -> 0.dp) based on collapse progress
-                                    val targetHeight = if (headerVisible) (72.dp * (1f - collapseProgress)) else 0.dp
-                                    val headerHeight by animateDpAsState(targetValue = targetHeight)
-
-                                    Box(modifier = Modifier.fillMaxWidth().height(headerHeight)) {
+                                    Box(modifier = Modifier.fillMaxWidth().height(headerHeight.value)) {
                                         GlobalHeader(
                                             currentView = currentView,
-                                            selectedPair = selectedPair,
                                             onOpenDrawer = { viewModel.navigateTo(AppView.SIDEBAR_PAGE) },
                                             onSearch = { viewModel.openCommandPalette() },
                                             onNotifications = { viewModel.navigateTo(AppView.CALENDAR) },
@@ -172,15 +339,28 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 // Let screens that provide their own header render without the global NavHeader
-                                AppView.POST_MOVE_AUDIT, AppView.HOME_ALERTS, AppView.ANALYSIS_OPINION, AppView.ANALYSIS_RESULTS, AppView.SIDEBAR_PAGE, AppView.SIMULATION, AppView.MY_SIMULATION, AppView.STREAM, AppView.PAPER_TRADING, AppView.SETTINGS, AppView.ALERTS, AppView.CREATE_ALERT, AppView.NOTIFICATIONS, AppView.PUSH_SETTINGS, AppView.MY_ALERTS, AppView.WATCHLIST -> {
+                                AppView.POST_MOVE_AUDIT, AppView.HOME_ALERTS, AppView.ANALYSIS_OPINION, AppView.ANALYSIS_RESULTS, AppView.SIDEBAR_PAGE, AppView.SIMULATION, AppView.MY_SIMULATION, AppView.STREAM, AppView.PAPER_TRADING, AppView.SETTINGS, AppView.ALERTS, AppView.NOTIFICATIONS, AppView.PUSH_SETTINGS, AppView.MY_ALERTS, AppView.WATCHLIST, AppView.SCALPING, AppView.CHART_DISPLAY_SETTINGS, AppView.ASSET_DETAIL, AppView.AUTO_TRADE, AppView.PROFILE, AppView.TRADE, AppView.TRADE_RECONSTRUCTION, AppView.AI_SETTINGS, AppView.CALENDAR, AppView.QUALIFIED_SETUP, AppView.MARKETS -> {
                                     /* Intentionally no header here. The screen provides its own top control bar which should replace the app header. */
                                 }
                                 else -> {
+                                    if (currentView == AppView.CHAT) {
+                                        val messages by viewModel.ascChatMessages.collectAsState()
                                         NavHeader(
                                             title = currentView.name.replace("_", " "),
                                             onBack = { viewModel.navigateBack() },
-                                            onSearch = { viewModel.openCommandPalette() }
-                                    )
+                                            onSearch = { viewModel.openCommandPalette() },
+                                            isChatScreen = true,
+                                            onDelete = { viewModel.clearAscChatMessages() },
+                                            showDelete = messages.isNotEmpty()
+                                        )
+                                    } else {
+                                        NavHeader(
+                                            title = currentView.name.replace("_", " "),
+                                            onBack = { viewModel.navigateBack() },
+                                            onSearch = { viewModel.openCommandPalette() },
+                                            isChatScreen = false
+                                        )
+                                    }
                                 }
                             }
 
@@ -188,12 +368,10 @@ class MainActivity : ComponentActivity() {
                                 when (currentView) {
                                     AppView.DASHBOARD -> DashboardScreen(viewModel)
                                     AppView.MARKETS -> MarketsScreen({ viewModel.selectPair(it) }, viewModel)
-                                    AppView.CHAT -> ChatScreen(viewModel)
+                                    AppView.ASSET_DETAIL -> AssetDetailScreen(viewModel)
                                     AppView.ALERTS -> AlertsScreen(viewModel)
-                                    AppView.CREATE_ALERT -> CreateAlertScreen(viewModel)
                                     AppView.MY_ALERTS -> MyAlertsScreen(
                                         viewModel = viewModel,
-                                        onCreateAlertClick = { viewModel.navigateTo(AppView.CREATE_ALERT) },
                                         onOpenInbox = { viewModel.navigateTo(AppView.NOTIFICATIONS) },
                                         onOpenPushSettings = { viewModel.navigateTo(AppView.PUSH_SETTINGS) }
                                     )
@@ -217,39 +395,47 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                     AppView.HOME_ALERTS -> HomeAlertsScreen(viewModel)
-                                    AppView.INTELLIGENCE_STREAM -> EventStreamScreen()
                                     AppView.CALENDAR -> CalendarScreen()
-                                    AppView.STREAM -> StreamScreen()
+                                    AppView.STREAM -> StreamScreen(initialSymbol = notificationSymbol)
                                     AppView.SENTIMENT -> SentimentScreen(viewModel)
                                     AppView.EDUCATION -> EducationScreen()
                                     AppView.ANALYSIS_RESULTS -> AnalysisResultsScreen()
-                                    AppView.WATCHLIST -> WatchlistScreen(
-                                        viewModel = viewModel,
-                                        onViewChart = { symbol ->
-                                            viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.STREAM)
-                                        },
-                                        onSetAlert = { symbol ->
-                                            viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.CREATE_ALERT)
-                                        },
-                                        onDeepDive = { symbol ->
-                                            viewModel.selectPairBySymbol(symbol)
-                                            viewModel.navigateTo(AppView.ANALYSIS_RESULTS)
-                                        }
-                                    )
+                                    AppView.QUALIFIED_SETUP -> QualifiedSetupScreen(viewModel)
+                                    AppView.WATCHLIST -> {
+                                        val context = LocalContext.current
+                                        WatchlistScreen(
+                                            viewModel = viewModel,
+                                            onViewChart = { symbol ->
+                                                viewModel.selectPairBySymbolNoNavigate(symbol)
+                                                // Force Exness (Live) when navigating from Watchlist
+                                                val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                                                prefs.edit().putString(ChartFeedType.STREAM_PREF_KEY, ChartFeedType.EXNESS.prefValue).apply()
+                                                
+                                                viewModel.navigateTo(AppView.STREAM)
+                                            },
+                                            onSetAlert = { symbol ->
+                                                viewModel.selectPairBySymbolNoNavigate(symbol)
+                                                viewModel.navigateTo(AppView.ALERTS)
+                                            },
+                                            onDeepDive = { symbol ->
+                                                viewModel.selectPairBySymbolNoNavigate(symbol)
+                                                viewModel.navigateTo(AppView.QUALIFIED_SETUP)
+                                            }
+                                        )
+                                    }
                                     AppView.DIAGNOSTICS -> DiagnosticsScreen()
-                                    AppView.MARKET_WATCH -> MarketWatchScreen()
                                     AppView.POST_MOVE_AUDIT -> PostMoveAuditScreen()
                                     AppView.DATA_HUB -> DataHubScreen()
                                     AppView.DATA_VAULT -> DataVaultScreen()
                                     AppView.PORTFOLIO_MANAGER -> PortfolioManagerScreen()
                                     AppView.TRADE_RECONSTRUCTION -> TradeReconstructionScreen()
-                                    AppView.PROFILE -> ProfileScreen()
+                                    AppView.PROFILE -> ProfileScreen(viewModel)
                                     AppView.MARKET_VIEW -> MarketViewScreen()
+                                    AppView.SCALPING -> ScalpingScreen(viewModel)
+                                    AppView.CHART_DISPLAY_SETTINGS -> ChartDisplaySettingsScreen(viewModel)
                                     AppView.SETTINGS -> SettingsScreen(viewModel)
                                     AppView.PAPER_TRADING -> PaperTradingScreen(viewModel)
-                                    AppView.QUOTES -> QuotesScreen(viewModel)
+                                    AppView.QUOTES -> QuotesScreen()
                                     AppView.MARKET_STATUS -> MarketStatusScreen()
                                     AppView.CHART_ANALYSIS -> ChartAnalysisScreen()
                                     AppView.SIDEBAR_PAGE -> {
@@ -261,14 +447,16 @@ class MainActivity : ComponentActivity() {
                                             isCollapsed = false,
                                             promoteMacro = promoteMacro,
                                             alertBadgeCount = unreadAlertNotifications + activeAlertNodes,
-                                            onViewChange = { view ->
-                                                viewModel.navigateTo(view)
-                                            },
+onViewChange = { view ->
+                                            viewModel.navigateFromSidebar(view)
+                                        },
                                             onClose = { viewModel.navigateBack() }
                                         )
                                     }
-                                    AppView.AI_TERMINAL -> TerminalScreen(viewModel)
-                                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+AppView.AI_TERMINAL -> TerminalScreen(viewModel)
+                                     AppView.AUTO_TRADE -> AutoTradeScreen(viewModel)
+                                     AppView.AI_SETTINGS -> AiSettingsScreen(viewModel)
+                                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text("NODE_ACCESS_RESTRICED: ${currentView.name}", color = Color.DarkGray)
                                     }
                                 }
@@ -324,8 +512,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+                } // end biometric gate
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationTypeToOpen = intent.getStringExtra("notification_type")
+        notificationSymbol = intent.getStringExtra("notification_symbol")
     }
 
 }

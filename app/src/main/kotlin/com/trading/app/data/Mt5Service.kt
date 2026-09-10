@@ -51,6 +51,13 @@ class Mt5Service(
     private val brokerSymbolsByDisplayKey = mutableMapOf<String, String>()
     private var activeStreamKey: String? = null
     private var activeStreamSymbol: String? = null
+    private var activeStreamTimeframe: String? = null
+    private var activeStreamCount: Int = 500
+
+    /** Timestamp (ms) of the last history response received from the bridge; 0 = none yet. */
+    @Volatile
+    var lastHistoryTimestampMs: Long = 0L
+        private set
 
     private inline fun dispatchToMain(crossinline action: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -106,6 +113,12 @@ class Mt5Service(
             return brokerSymbolsByDisplayKey[key] ?: normalizedSymbol
         }
     }
+
+    /**
+     * Resolves a display ticker (e.g. "BTCUSD") to the broker-side symbol (e.g. "BTCUSDm")
+     * so trade commands can be executed on the MT5 terminal.
+     */
+    fun outboundSymbolFor(symbol: String): String = outboundSymbol(symbol)
 
     private fun buildEndpointHosts(preferredHost: String): List<String> {
         val preferred = preferredHost.trim()
@@ -178,6 +191,14 @@ class Mt5Service(
                 synchronized(pendingMessages) {
                     pendingMessages.forEach(webSocket::send)
                     pendingMessages.clear()
+                }
+                // Restore the active chart subscription after a reconnect - the bridge
+                // forgets per-client subscriptions when the socket drops.
+                val resumeSymbol = activeStreamSymbol
+                val resumeTimeframe = activeStreamTimeframe
+                if (resumeSymbol != null && resumeTimeframe != null) {
+                    Log.i(TAG, "Re-subscribing active stream $resumeSymbol ($resumeTimeframe) after reconnect")
+                    subscribe(resumeSymbol, resumeTimeframe, null, activeStreamCount)
                 }
             }
 
@@ -266,6 +287,7 @@ class Mt5Service(
                         if (history.isEmpty() && dataArray.length() > 0) {
                             Log.e(TAG, "Data array was not empty but history list is empty. First object: ${dataArray.optJSONObject(0)}")
                         }
+                        lastHistoryTimestampMs = System.currentTimeMillis()
                         dispatchToMain {
                             onHistoryUpdate(symbol, orderedHistory)
                         }
@@ -355,7 +377,10 @@ class Mt5Service(
                                 tp = if (obj.has("tp")) obj.optDouble("tp").toFloat() else null,
                                 sl = if (obj.has("sl")) obj.optDouble("sl").toFloat() else null,
                                 leverage = obj.optString("leverage", "1:100"),
-                                margin = obj.optDouble("margin", 0.0).toFloat()
+                                margin = obj.optDouble("margin", 0.0).toFloat(),
+                                profit = obj.optDouble("profit", 0.0).toFloat(),
+                                swap = obj.optDouble("swap", 0.0).toFloat(),
+                                hasBrokerProfit = obj.has("profit")
                             ))
                         }
                         dispatchToMain {
@@ -459,6 +484,12 @@ class Mt5Service(
                         val symbols = mutableListOf<SymbolInfo>()
                         for (i in 0 until dataArray.length()) {
                             val obj = dataArray.optJSONObject(i) ?: continue
+                            // Only show symbols active in the MT5 Market Watch.
+                            // Default true keeps the list intact for bridges that
+                            // don't send a 'visible' flag.
+                            if (!obj.optBoolean("visible", true)) {
+                                continue
+                            }
                             val rawSymbol = obj.optString("symbol", obj.optString("ticker", ""))
                             val ticker = cleanSymbol(obj.optString("ticker", rawSymbol))
                             if (ticker.isBlank()) continue
@@ -519,13 +550,16 @@ class Mt5Service(
         sendOrQueue(msg)
     }
 
-    fun streamActiveSymbol(symbol: String, timeframe: String = "1h", count: Int = 500) {
+    fun streamActiveSymbol(symbol: String, timeframe: String = "1h", count: Int = 500, force: Boolean = false) {
         val brokerSymbol = outboundSymbol(symbol)
         val streamKey = "${brokerSymbol.uppercase(Locale.US)}|${timeframe.lowercase(Locale.US)}"
-        if (activeStreamKey == streamKey) return
+        if (!force && activeStreamKey == streamKey) return
         stopActiveStream()
         activeStreamSymbol = brokerSymbol
+        activeStreamTimeframe = timeframe
+        activeStreamCount = count
         activeStreamKey = streamKey
+        lastHistoryTimestampMs = 0L
         subscribe(symbol, timeframe, null, count)
     }
 
@@ -533,6 +567,7 @@ class Mt5Service(
         val previous = activeStreamSymbol ?: return
         sendAction("unsubscribe", mapOf("symbol" to previous))
         activeStreamSymbol = null
+        activeStreamTimeframe = null
         activeStreamKey = null
     }
 

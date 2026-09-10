@@ -24,6 +24,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +41,12 @@ import com.trading.app.models.EconomicCalendarDisplayPayload
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.max
+import kotlinx.coroutines.launch
+
+private sealed interface CalFeedItem {
+    data class DayHeader(val dayIso: String) : CalFeedItem
+    data class EventRow(val event: EconomicCalendarDisplayEvent) : CalFeedItem
+}
 
 @Composable
 fun CalendarPage(
@@ -55,12 +63,56 @@ fun CalendarPage(
     val dayChips = payload?.dayChips ?: emptyList()
     val selectedDateIso = payload?.selectedDateIso.orEmpty()
     val allEvents = payload?.events?.sortedBy { it.isoDateTime } ?: emptyList()
-    val selectedDayEvents = if (selectedDateIso.isBlank()) {
-        allEvents
-    } else {
-        allEvents.filter { it.isoDateTime.take(10) == selectedDateIso }
+
+    // Continuous feed: every loaded day in order, each with its own header,
+    // so scrolling past today's events flows straight into the next day.
+    val feedItems: List<CalFeedItem> = remember(allEvents) {
+        val days = allEvents.map { it.isoDateTime.take(10) }.distinct().sorted()
+        buildList {
+            for (day in days) {
+                add(CalFeedItem.DayHeader(day))
+                for (event in allEvents) {
+                    if (event.isoDateTime.take(10) == day) add(CalFeedItem.EventRow(event))
+                }
+            }
+        }
     }
-    val events = selectedDayEvents.ifEmpty { allEvents }
+    val headerIndexByDay: Map<String, Int> = remember(feedItems) {
+        feedItems.mapIndexedNotNull { index, item ->
+            if (item is CalFeedItem.DayHeader) item.dayIso to index else null
+        }.toMap()
+    }
+    val feedState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    // Highlight follows the scroll: whichever day is at the top of the feed
+    // becomes the selected chip, so the white circle moves as you scroll.
+    val firstVisibleIndex = feedState.firstVisibleItemIndex
+    val scrolledDayIso = remember(firstVisibleIndex, feedItems) {
+        feedItems.getOrNull(firstVisibleIndex)?.let { item ->
+            when (item) {
+                is CalFeedItem.DayHeader -> item.dayIso
+                is CalFeedItem.EventRow -> item.event.isoDateTime.take(10)
+            }
+        }
+    }
+    val effectiveSelected = scrolledDayIso ?: selectedDateIso
+    val displayChips = remember(dayChips, effectiveSelected) {
+        dayChips.map { chip -> chip.copy(isSelected = chip.isoDate == effectiveSelected) }
+    }
+
+    // When a new payload arrives (month change / date request), jump to the selected day.
+    LaunchedEffect(payload?.rangeStartIso, selectedDateIso) {
+        val target = headerIndexByDay[selectedDateIso] ?: 0
+        if (feedItems.isNotEmpty()) feedState.scrollToItem(target)
+    }
+
+    fun jumpToDay(isoDate: String) {
+        onSelectDate(isoDate)
+        val target = headerIndexByDay[isoDate] ?: return
+        scope.launch { feedState.animateScrollToItem(target) }
+    }
+
     val monthLabel = payload?.rangeStartIso?.let(::formatMonthLabel).orEmpty()
 
     Column(
@@ -76,12 +128,12 @@ fun CalendarPage(
         )
 
         DayStrip(
-            dayChips = dayChips,
-            onSelectDate = onSelectDate
+            dayChips = displayChips,
+            onSelectDate = ::jumpToDay
         )
 
         when {
-            isLoading && events.isEmpty() -> {
+            isLoading && feedItems.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -93,7 +145,7 @@ fun CalendarPage(
                 }
             }
 
-            events.isEmpty() -> {
+            feedItems.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -109,10 +161,23 @@ fun CalendarPage(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
+                    state = feedState,
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(events, key = { it.id }) { event ->
-                        CalendarEventRow(event = event)
+                    items(feedItems, key = { item ->
+                        when (item) {
+                            is CalFeedItem.DayHeader -> "day-${item.dayIso}"
+                            is CalFeedItem.EventRow -> "event-${item.event.id}"
+                        }
+                    }) { item ->
+                        when (item) {
+                            is CalFeedItem.DayHeader -> CalendarDayHeader(
+                                dayIso = item.dayIso,
+                                isSelected = item.dayIso == effectiveSelected,
+                                count = allEvents.count { it.isoDateTime.take(10) == item.dayIso }
+                            )
+                            is CalFeedItem.EventRow -> CalendarEventRow(event = item.event)
+                        }
                     }
                 }
             }
@@ -257,6 +322,40 @@ private fun DayStrip(
         color = Color.White.copy(alpha = 0.18f),
         thickness = 1.dp
     )
+}
+
+@Composable
+private fun CalendarDayHeader(dayIso: String, isSelected: Boolean, count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF0A0A0A))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(
+                    if (isSelected) Color.White else Color(0xFF434651),
+                    shape = CircleShape
+                )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = formatDayHeaderLabel(dayIso),
+            color = if (isSelected) Color.White else Color(0xFFD1D4DC),
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = if (count == 1) "1 event" else "$count events",
+            color = Color(0xFF787B86),
+            fontSize = 12.sp
+        )
+    }
+    Divider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
 }
 
 @Composable
@@ -424,4 +523,12 @@ private fun formatMonthLabel(isoDate: String): String {
         val output = SimpleDateFormat("MMMM yyyy", Locale.US)
         output.format(input.parse(isoDate)!!)
     }.getOrDefault("")
+}
+
+private fun formatDayHeaderLabel(isoDate: String): String {
+    return runCatching {
+        val input = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val output = SimpleDateFormat("EEEE, MMM d", Locale.US)
+        output.format(input.parse(isoDate)!!)
+    }.getOrDefault(isoDate)
 }

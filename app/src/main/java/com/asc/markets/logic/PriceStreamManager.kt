@@ -1,18 +1,17 @@
 package com.asc.markets.logic
 
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.SystemTelemetry
+import androidx.compose.runtime.mutableStateMapOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 
 /**
  * Centralized price broadcast system. All screens subscribe to price changes here.
@@ -21,67 +20,44 @@ import kotlinx.coroutines.launch
 object PriceStreamManager {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // Map of pair symbol -> current price
-    private val _priceUpdates = MutableStateFlow(
-        priceMapFor(MarketDataStore.allPairs.value + BinanceDataStore.allPairs.value + CombinedFallbackDataStore.allPairs.value)
-    )
+    // Observable map for Compose - extremely efficient key-based updates
+    private val _prices = mutableStateMapOf<String, Double>()
+    val prices: Map<String, Double> = _prices
 
-    // Public read-only access to price stream
-    val priceUpdates: StateFlow<Map<String, Double>> = _priceUpdates.asStateFlow()
+    // For non-Compose collectors if any (deprecated, prefer using prices map)
+    private val _priceUpdates = MutableStateFlow<Map<String, Double>>(emptyMap())
+    val priceUpdates = _priceUpdates.asStateFlow()
 
     init {
         scope.launch {
-            combine(
-                MarketDataStore.allPairs,
-                BinanceDataStore.allPairs,
-                CombinedFallbackDataStore.allPairs
-            ) { marketPairs, binancePairs, fallbackPairs ->
-                marketPairs + binancePairs + fallbackPairs
-            }.collect { pairs ->
-                _priceUpdates.value = priceMapFor(pairs)
+            MarketDataStore.allPairs.collect { pairs ->
+                pairs.forEach { pair ->
+                    _prices[pair.symbol] = pair.price
+                    _prices[pair.symbol.replace("/", "")] = pair.price
+                }
+                _priceUpdates.value = _prices.toMap()
             }
         }
     }
 
     /**
      * Broadcast a price update for a specific pair.
-     * All subscribers (Dashboard, Chart, Tape, etc.) will receive this update instantly.
      */
     fun updatePrice(pair: String, newPrice: Double) {
-        val telemetrySource = when {
-            pair.contains("USDT", ignoreCase = true) -> "BINANCE"
-            pair.contains("BTC", ignoreCase = true) || pair.contains("ETH", ignoreCase = true) -> "CTRADER"
-            else -> "MT5"
-        }
-        SystemTelemetry.recordTick(telemetrySource, 1.0)
-
-        // Use pairSnapshot to find the canonical ForexPair even if symbol is "BTCUSD" vs "BTC/USDT"
-        val currentPair = if (isUsdtSymbol(pair)) {
-            BinanceDataStore.pairSnapshot(pair)
-        } else {
-            MarketDataStore.pairSnapshot(pair) ?: CombinedFallbackDataStore.pairSnapshot(pair)
-        }
+        // Find canonical symbol
+        val currentPair = MarketDataStore.pairSnapshot(pair)
         
-        if (currentPair == null) {
-            android.util.Log.d("PriceStream", "No match found for incoming symbol: $pair")
-            return
-        }
+        val canonicalSymbol = currentPair?.symbol ?: pair
         
-        android.util.Log.v("PriceStream", "Updating ${currentPair.symbol} with price $newPrice (from $pair)")
+        // Update the observable map - Compose will only recompose rows observing these keys
+        _prices[canonicalSymbol] = newPrice
+        _prices[canonicalSymbol.replace("/", "")] = newPrice
+        _prices[pair] = newPrice
+        _prices[pair.replace("/", "")] = newPrice
         
-        val prevPrice = currentPair.price
-        val change = newPrice - prevPrice
-        val changePercent = if (prevPrice != 0.0) {
-            (change / prevPrice) * 100.0
-        } else {
-            0.0
-        }
-        
-        _priceUpdates.value = _priceUpdates.value.toMutableMap().apply {
-            put(currentPair.symbol, newPrice)
-            put(currentPair.symbol.replace("/", ""), newPrice)
-            put(pair, newPrice)
-            put(pair.replace("/", ""), newPrice)
+        // Background telemetry
+        if (System.currentTimeMillis() % 100 == 0L) {
+             _priceUpdates.value = _prices.toMap()
         }
     }
 

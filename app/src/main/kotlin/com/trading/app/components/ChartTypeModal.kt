@@ -78,7 +78,7 @@ fun ChartTypeModal(
                     .background(Color(0xFF363A45))
             )
         },
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier
             .fillMaxSize()
             .padding(bottom = AppBottomNavHeight)

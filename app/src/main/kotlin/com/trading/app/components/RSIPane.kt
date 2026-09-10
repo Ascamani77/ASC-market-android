@@ -4,7 +4,6 @@ import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,6 +48,18 @@ private const val RSI_MID = 50f
 private const val RSI_OVERBOUGHT = 70f
 private const val RSI_MAX = 100f
 private const val RSI_OVERSOLD = 30f
+
+// Colors matching TV RSI (Pine v6 built-in RSI)
+private val RSI_PURPLE = IntColor(AndroidColor.parseColor("#7E57C2"))
+private val RSI_BAND_GRAY = IntColor(AndroidColor.parseColor("#787B86"))          // hline color #787B86
+private val RSI_BAND_GRAY_50 = IntColor(applyOpacity(AndroidColor.parseColor("#787B86"), 50)) // color.new(#787B86, 50)
+private val RSI_FILL_PURPLE_90 = IntColor(applyOpacity(AndroidColor.parseColor("#7E57C2"), 90)) // color.rgb(126, 87, 194, 90)
+private val RSI_GREEN = IntColor(AndroidColor.parseColor("#26A69A"))
+private val RSI_RED = IntColor(AndroidColor.parseColor("#EF5350"))
+private val RSI_YELLOW = IntColor(AndroidColor.parseColor("#FFEB3B"))             // Pine color.yellow
+private val RSI_GRADIENT_GREEN = IntColor(applyOpacity(AndroidColor.parseColor("#4CAF50"), 70)) // Pine color.green glow
+private val RSI_GRADIENT_RED = IntColor(applyOpacity(AndroidColor.parseColor("#F23645"), 70))   // Pine color.red glow
+private val BB_GREEN = IntColor(AndroidColor.parseColor("#26A69A"))
 
 private fun Long.toChartTime(): Time = Time.Utc(this)
 
@@ -98,6 +109,30 @@ private fun buildFlatAreaData(
     )
 }
 
+// Overbought glow: bars only where RSI > 70, drawn from base 70 upward (Pine fill(rsiPlot, midLinePlot, 100, 70))
+private fun buildOverboughtHistData(
+    candles: List<OHLCData>,
+    rsiValues: List<Float?>
+): List<HistogramData> = candles.mapIndexedNotNull { index, candle ->
+    val raw = rsiValues.getOrNull(index)?.coerceIn(RSI_MIN, RSI_MAX) ?: return@mapIndexedNotNull null
+    HistogramData(
+        time = candle.time.toChartTime(),
+        value = if (raw > RSI_OVERBOUGHT) raw else RSI_OVERBOUGHT
+    )
+}
+
+// Oversold glow: bars only where RSI < 30, drawn from base 30 downward (Pine fill(rsiPlot, midLinePlot, 30, 0))
+private fun buildOversoldHistData(
+    candles: List<OHLCData>,
+    rsiValues: List<Float?>
+): List<HistogramData> = candles.mapIndexedNotNull { index, candle ->
+    val raw = rsiValues.getOrNull(index)?.coerceIn(RSI_MIN, RSI_MAX) ?: return@mapIndexedNotNull null
+    HistogramData(
+        time = candle.time.toChartTime(),
+        value = if (raw < RSI_OVERSOLD) raw else RSI_OVERSOLD
+    )
+}
+
 internal data class RsiChartData(
     val values: List<Float?> = emptyList(),
     val movingAverageValues: List<Float?> = emptyList()
@@ -114,6 +149,8 @@ internal class RsiPaneRefs {
     var paneBackgroundSeriesApi by mutableStateOf<SeriesApi?>(null)
     var bandFillSeriesApi by mutableStateOf<SeriesApi?>(null)
     var bandMaskSeriesApi by mutableStateOf<SeriesApi?>(null)
+    var overboughtHistApi by mutableStateOf<SeriesApi?>(null)
+    var oversoldHistApi by mutableStateOf<SeriesApi?>(null)
     var lowerBoundarySeriesApi by mutableStateOf<SeriesApi?>(null)
     var upperBoundarySeriesApi by mutableStateOf<SeriesApi?>(null)
     var upperGuideSeriesApi by mutableStateOf<SeriesApi?>(null)
@@ -121,6 +158,9 @@ internal class RsiPaneRefs {
     var lowerGuideSeriesApi by mutableStateOf<SeriesApi?>(null)
     var rsiSeriesApi by mutableStateOf<SeriesApi?>(null)
     var movingAverageSeriesApi by mutableStateOf<SeriesApi?>(null)
+
+    // Mask paints the chart background below the 30 line (set at series creation)
+    var bandMaskColor: IntColor = IntColor(AndroidColor.parseColor(RSI_PANE_BACKGROUND_HEX))
 
     var crosshairRsiValue by mutableStateOf<Float?>(null)
     var crosshairMaValue by mutableStateOf<Float?>(null)
@@ -132,6 +172,8 @@ internal class RsiPaneRefs {
         paneBackgroundSeriesApi = null
         bandFillSeriesApi = null
         bandMaskSeriesApi = null
+        overboughtHistApi = null
+        oversoldHistApi = null
         lowerBoundarySeriesApi = null
         upperBoundarySeriesApi = null
         upperGuideSeriesApi = null
@@ -149,6 +191,8 @@ internal class RsiPaneRefs {
         paneBackgroundSeriesApi?.setData(emptyList())
         bandFillSeriesApi?.setData(emptyList())
         bandMaskSeriesApi?.setData(emptyList())
+        overboughtHistApi?.setData(emptyList())
+        oversoldHistApi?.setData(emptyList())
         lowerBoundarySeriesApi?.setData(emptyList())
         upperBoundarySeriesApi?.setData(emptyList())
         upperGuideSeriesApi?.setData(emptyList())
@@ -175,6 +219,8 @@ internal class RsiPaneRefs {
             ?: paneBackgroundSeriesApi
             ?: bandFillSeriesApi
             ?: bandMaskSeriesApi
+            ?: overboughtHistApi
+            ?: oversoldHistApi
     }
 
 }
@@ -205,13 +251,17 @@ internal fun createInlineRsiPaneSeries(
     refs: RsiPaneRefs,
     scaleMargins: PriceScaleMargins? = null,
     borderColor: IntColor? = null,
-    visible: Boolean = true
+    visible: Boolean = true,
+    maskColor: IntColor = IntColor(AndroidColor.parseColor(RSI_PANE_BACKGROUND_HEX))
 ) {
     refs.clear()
+    refs.bandMaskColor = maskColor
+    val invisibleLineColor = IntColor(applyOpacity(AndroidColor.WHITE, 0))
 
+    // Scale pinners: flat 0/100 lines force the RSI scale to exactly 0..100 like TV's fixed pane
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(applyOpacity(AndroidColor.WHITE, 0)),
+            color = invisibleLineColor,
             lineWidth = LineWidth.ONE,
             lastValueVisible = false,
             priceLineVisible = false,
@@ -223,7 +273,7 @@ internal fun createInlineRsiPaneSeries(
 
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(applyOpacity(AndroidColor.WHITE, 0)),
+            color = invisibleLineColor,
             lineWidth = LineWidth.ONE,
             lastValueVisible = false,
             priceLineVisible = false,
@@ -233,9 +283,64 @@ internal fun createInlineRsiPaneSeries(
         onSeriesCreated = { refs.upperBoundarySeriesApi = it }
     )
 
+    // fill(rsiUpperBand, rsiLowerBand, color.rgb(126, 87, 194, 90)) - purple tint between 70 and 30.
+    // Area from 70 down + opaque background mask below 30 => tint only inside the 30..70 band.
+    chartsView.api.addAreaSeries(
+        options = AreaSeriesOptions(
+            lineColor = invisibleLineColor,
+            lineWidth = LineWidth.ONE,
+            topColor = RSI_FILL_PURPLE_90,
+            bottomColor = RSI_FILL_PURPLE_90,
+            lastValueVisible = false,
+            priceLineVisible = false,
+            priceScaleId = PriceScaleId(RSI_SCALE_KEY),
+            crosshairMarkerVisible = false
+        ),
+        onSeriesCreated = { refs.bandFillSeriesApi = it }
+    )
+
+    chartsView.api.addAreaSeries(
+        options = AreaSeriesOptions(
+            lineColor = invisibleLineColor,
+            lineWidth = LineWidth.ONE,
+            topColor = maskColor,
+            bottomColor = maskColor,
+            lastValueVisible = false,
+            priceLineVisible = false,
+            priceScaleId = PriceScaleId(RSI_SCALE_KEY),
+            crosshairMarkerVisible = false
+        ),
+        onSeriesCreated = { refs.bandMaskSeriesApi = it }
+    )
+
+    // Overbought gradient glow (green, above 70)
+    chartsView.api.addHistogramSeries(
+        options = HistogramSeriesOptions(
+            color = RSI_GRADIENT_GREEN,
+            base = RSI_OVERBOUGHT,
+            lastValueVisible = false,
+            priceLineVisible = false,
+            priceScaleId = PriceScaleId(RSI_SCALE_KEY)
+        ),
+        onSeriesCreated = { refs.overboughtHistApi = it }
+    )
+
+    // Oversold gradient glow (red, below 30)
+    chartsView.api.addHistogramSeries(
+        options = HistogramSeriesOptions(
+            color = RSI_GRADIENT_RED,
+            base = RSI_OVERSOLD,
+            lastValueVisible = false,
+            priceLineVisible = false,
+            priceScaleId = PriceScaleId(RSI_SCALE_KEY)
+        ),
+        onSeriesCreated = { refs.oversoldHistApi = it }
+    )
+
+    // hline(70, color=#787B86)
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(applyOpacity(AndroidColor.parseColor("#7E57C2"), 60)),
+            color = RSI_BAND_GRAY,
             lineWidth = LineWidth.ONE,
             lineStyle = LineStyle.SOLID,
             lastValueVisible = false,
@@ -246,9 +351,10 @@ internal fun createInlineRsiPaneSeries(
         onSeriesCreated = { refs.upperGuideSeriesApi = it }
     )
 
+    // hline(50, color=color.new(#787B86, 50))
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(applyOpacity(AndroidColor.parseColor("#7E57C2"), 35)),
+            color = RSI_BAND_GRAY_50,
             lineWidth = LineWidth.ONE,
             lineStyle = LineStyle.SOLID,
             lastValueVisible = false,
@@ -259,9 +365,10 @@ internal fun createInlineRsiPaneSeries(
         onSeriesCreated = { refs.middleGuideSeriesApi = it }
     )
 
+    // hline(30, color=#787B86)
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(applyOpacity(AndroidColor.parseColor("#7E57C2"), 60)),
+            color = RSI_BAND_GRAY,
             lineWidth = LineWidth.ONE,
             lineStyle = LineStyle.SOLID,
             lastValueVisible = false,
@@ -272,9 +379,10 @@ internal fun createInlineRsiPaneSeries(
         onSeriesCreated = { refs.lowerGuideSeriesApi = it }
     )
 
+    // plot(rsi, "RSI", color=#7E57C2)
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(AndroidColor.parseColor("#7E57C2")),
+            color = RSI_PURPLE,
             lineWidth = LineWidth.TWO,
             lineStyle = LineStyle.SOLID,
             lastValueVisible = false,
@@ -293,22 +401,22 @@ internal fun createInlineRsiPaneSeries(
                     PriceScaleOptions(
                         autoScale = true,
                         scaleMargins = scaleMargins,
-                        visible = false,
-                        borderVisible = false,
+                        visible = true,
+                        borderVisible = true,
                         borderColor = borderColor,
                         entireTextOnly = true,
-                        alignLabels = true,
-                        ticksVisible = false
+                        alignLabels = true
                     )
                 )
             }
         }
     )
 
+    // plot(smoothingMA, "RSI-based MA", color=color.yellow)
     chartsView.api.addLineSeries(
         options = LineSeriesOptions(
-            color = IntColor(AndroidColor.parseColor("#F2C94C")),
-            lineWidth = LineWidth.TWO,
+            color = RSI_YELLOW,
+            lineWidth = LineWidth.ONE,
             lineStyle = LineStyle.SOLID,
             lastValueVisible = false,
             priceLineVisible = false,
@@ -337,8 +445,24 @@ internal fun updateInlineRsiPaneData(
         return
     }
 
+    val invisibleLineColor = IntColor(applyOpacity(AndroidColor.WHITE, 0))
+
+    // Pin scale at 0..100
     refs.lowerBoundarySeriesApi?.setData(buildFlatLineData(candles, RSI_MIN))
     refs.upperBoundarySeriesApi?.setData(buildFlatLineData(candles, RSI_MAX))
+
+    // Purple tint between 70..30 + background mask below 30
+    refs.bandFillSeriesApi?.setData(
+        buildFlatAreaData(candles, RSI_OVERBOUGHT, invisibleLineColor, RSI_FILL_PURPLE_90, RSI_FILL_PURPLE_90)
+    )
+    refs.bandMaskSeriesApi?.setData(
+        buildFlatAreaData(candles, RSI_OVERSOLD, invisibleLineColor, refs.bandMaskColor, refs.bandMaskColor)
+    )
+
+    // Overbought / Oversold gradient glows
+    refs.overboughtHistApi?.setData(buildOverboughtHistData(candles, data.values))
+    refs.oversoldHistApi?.setData(buildOversoldHistData(candles, data.values))
+
     refs.upperGuideSeriesApi?.setData(buildFlatLineData(candles, RSI_OVERBOUGHT))
     refs.middleGuideSeriesApi?.setData(buildFlatLineData(candles, RSI_MID))
     refs.lowerGuideSeriesApi?.setData(buildFlatLineData(candles, RSI_OVERSOLD))
@@ -411,12 +535,11 @@ internal fun applyInlineRsiPaneScale(
         PriceScaleOptions(
             autoScale = true,
             scaleMargins = scaleMargins,
-            visible = false,
-            borderVisible = false,
+            visible = true,
+            borderVisible = true,
             borderColor = borderColor,
             entireTextOnly = true,
-            alignLabels = true,
-            ticksVisible = false
+            alignLabels = true
         )
     )
 }
@@ -438,7 +561,6 @@ private fun formatRsiAxisValue(value: Float): String = String.format(Locale.US, 
 @Composable
 internal fun BoxScope.RsiPaneOverlay(
     visible: Boolean,
-    scaleMargins: PriceScaleMargins,
     data: RsiChartData,
     rsiPeriod: Int,
     scaleTextColor: String,
@@ -463,49 +585,39 @@ internal fun BoxScope.RsiPaneOverlay(
     val displayRsiValue = crosshairRsiValue ?: data.latestValue
     val displayMaValue = crosshairMaValue ?: data.latestMovingAverageValue
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val paneTopPadding = maxHeight * (scaleMargins.top ?: 0f)
-        val paneBottomPadding = maxHeight * (scaleMargins.bottom ?: 0f)
-        val paneHeight = (maxHeight - paneTopPadding - paneBottomPadding).coerceAtLeast(0.dp)
-
-        if (paneHeight <= 0.dp) {
-            return@BoxWithConstraints
-        }
-
-        Row(
-            modifier = Modifier
-                .align(if (isLeft) Alignment.TopEnd else Alignment.TopStart)
-                .padding(
-                    start = if (isLeft) 0.dp else 12.dp,
-                    top = paneTopPadding + 8.dp,
-                    end = if (isLeft) 12.dp else axisWidth + 12.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    // Positioned inside the dedicated RSI pane box (top-left corner, like TV's legend)
+    Row(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(
+                start = 12.dp,
+                top = 6.dp,
+                end = axisWidth + 12.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "RSI $rsiPeriod close",
+            color = textColor,
+            fontSize = axisTextSize
+        )
+        displayRsiValue?.let { valToDraw ->
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "RSI $rsiPeriod close",
-                color = textColor,
-                fontSize = axisTextSize
+                text = formatRsiAxisValue(valToDraw),
+                color = ComposeColor(0xFF7E57C2),
+                fontSize = axisTextSize,
+                fontWeight = FontWeight.Bold
             )
-            displayRsiValue?.let { valToDraw ->
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = formatRsiAxisValue(valToDraw),
-                    color = ComposeColor(0xFF7E57C2),
-                    fontSize = axisTextSize,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            displayMaValue?.let { valToDraw ->
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = formatRsiAxisValue(valToDraw),
-                    color = ComposeColor(0xFFF2C94C),
-                    fontSize = axisTextSize,
-                    fontWeight = FontWeight.Bold
-                )
-            }
         }
-
+        displayMaValue?.let { valToDraw ->
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = formatRsiAxisValue(valToDraw),
+                color = ComposeColor(0xFFFFEB3B),
+                fontSize = axisTextSize,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

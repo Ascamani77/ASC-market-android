@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.*
 import androidx.compose.ui.text.font.FontWeight
 
@@ -150,7 +151,7 @@ fun SignalCardView(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // compact entry display: show the provided entryZone or mainValue in monospace
                     val entryDisplay = entryZone ?: mainValue ?: ""
-                    Text(entryDisplay, color = SlateText, fontSize = 12.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    Text(entryDisplay, color = SlateText, fontSize = 12.sp, fontFamily = com.asc.markets.ui.theme.InterFontFamily)
                 }
                 if (!rr.isNullOrEmpty()) {
                     Text(rr, color = EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)

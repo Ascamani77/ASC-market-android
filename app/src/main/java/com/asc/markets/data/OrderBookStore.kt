@@ -4,9 +4,6 @@ import android.util.Log
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.sin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,7 +50,6 @@ data class OrderBookSnapshot(
     val spread: Double,
     val midPrice: Double,
     val imbalance: Double,
-    val isFallback: Boolean,
     val isStale: Boolean
 )
 
@@ -62,7 +58,6 @@ object OrderBookStore {
     private const val levelLimit = 8
     private const val tradeLimit = 7
     private const val liveRefreshMs = 250L
-    private const val fallbackRefreshMs = 250L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val monitor = Any()
@@ -78,8 +73,6 @@ object OrderBookStore {
             .map { current -> current[key] }
             .distinctUntilChanged()
     }
-
-    fun seedSnapshot(pair: ForexPair): OrderBookSnapshot = deterministicSnapshot(pair)
 
     fun subscribe(pair: ForexPair) {
         val key = symbolKey(pair.symbol)
@@ -111,18 +104,13 @@ object OrderBookStore {
             val pair = livePairSnapshot(seedPair.symbol) ?: seedPair
             val previous = _snapshots.value[key]
             val nextSnapshot = fetchLiveSnapshot(pair)
-                ?: previous?.takeUnless { it.isFallback }?.copy(isStale = true)
-                ?: deterministicSnapshot(pair)
+                ?: previous?.copy(isStale = true)
 
-            _snapshots.value = _snapshots.value + (key to nextSnapshot)
+            if (nextSnapshot != null) {
+                _snapshots.value = _snapshots.value + (key to nextSnapshot)
+            }
 
-            delay(
-                when {
-                    nextSnapshot.isFallback -> fallbackRefreshMs
-                    nextSnapshot.isStale -> liveRefreshMs
-                    else -> liveRefreshMs
-                }
-            )
+            delay(liveRefreshMs)
         }
     }
 
@@ -151,7 +139,6 @@ object OrderBookStore {
                 bids = bids,
                 asks = asks,
                 recentTrades = trades,
-                isFallback = false,
                 isStale = false
             )
         } catch (t: Throwable) {
@@ -232,122 +219,6 @@ object OrderBookStore {
         }
     }
 
-    private fun deterministicSnapshot(pair: ForexPair): OrderBookSnapshot {
-        val livePair = livePairSnapshot(pair.symbol) ?: pair
-        val currentPrice = livePair.price
-        val history = liveHistorySnapshot(livePair.symbol).ifEmpty { List(12) { currentPrice } }
-        val baseTick = baseTickSize(livePair.symbol, currentPrice)
-        val volatility = history
-            .zipWithNext { previous, next -> abs(next - previous) }
-            .average()
-            .takeIf { it > 0.0 }
-            ?: baseTick
-        val adaptiveTick = max(baseTick, volatility * 0.65)
-        val signature = symbolSignature(livePair.symbol)
-        val baseQuantity = baseLiquidityFor(livePair.category, currentPrice)
-        val trend = history.lastOrNull().orZero() - history.firstOrNull().orZero()
-        val trendBias = if (currentPrice == 0.0) 0.0 else trend / currentPrice
-        val timeNow = System.currentTimeMillis()
-
-        val bids = buildSideLevels(
-            centerPrice = currentPrice,
-            tickSize = adaptiveTick,
-            baseQuantity = baseQuantity,
-            signature = signature,
-            trendBias = trendBias,
-            isBid = true,
-            timeNow = timeNow
-        )
-        val asks = buildSideLevels(
-            centerPrice = currentPrice,
-            tickSize = adaptiveTick,
-            baseQuantity = baseQuantity,
-            signature = signature,
-            trendBias = trendBias,
-            isBid = false,
-            timeNow = timeNow
-        )
-
-        val recentHistory = history.takeLast(tradeLimit + 1).ifEmpty { List(tradeLimit + 1) { currentPrice } }
-        val trades = buildList {
-            for (index in 1 until recentHistory.size) {
-                val previousPrice = recentHistory[index - 1]
-                val currentTradePrice = recentHistory[index]
-                val directionalBias = when {
-                    currentTradePrice > previousPrice -> OrderTradeSide.BUY
-                    currentTradePrice < previousPrice -> OrderTradeSide.SELL
-                    ((signature + index) and 1) == 0 -> OrderTradeSide.BUY
-                    else -> OrderTradeSide.SELL
-                }
-                val quantity =
-                    (baseQuantity * 0.16 * stableWave(signature, index, if (directionalBias == OrderTradeSide.BUY) 0.33 else 1.21, timeNow))
-                        .coerceAtLeast(baseQuantity * 0.04)
-
-                add(
-                    OrderBookTrade(
-                        price = currentTradePrice,
-                        quantity = quantity,
-                        timestamp = timeNow - ((recentHistory.size - index).toLong() * 1_100L),
-                        side = directionalBias
-                    )
-                )
-            }
-        }
-
-        return buildSnapshot(
-            pair = livePair,
-            venueSymbol = null,
-            source = "Deterministic quote model",
-            bids = bids,
-            asks = asks,
-            recentTrades = trades,
-            isFallback = true,
-            isStale = false
-        )
-    }
-
-    private fun buildSideLevels(
-        centerPrice: Double,
-        tickSize: Double,
-        baseQuantity: Double,
-        signature: Int,
-        trendBias: Double,
-        isBid: Boolean,
-        timeNow: Long
-    ): List<OrderBookLevel> {
-        val directionalBias = if (isBid) max(trendBias, 0.0) else max(-trendBias, 0.0)
-        val rawLevels = mutableListOf<Pair<Double, Double>>()
-
-        for (level in 1..levelLimit) {
-            val offset = tickSize * level
-            val price = if (isBid) centerPrice - offset else centerPrice + offset
-            val wave = stableWave(signature, level, if (isBid) 0.65 else 1.55, timeNow)
-            val quantity = (
-                baseQuantity *
-                    (1.0 + (level * 0.18)) *
-                    (0.92 + directionalBias * 4.0) *
-                    wave
-                ).coerceAtLeast(baseQuantity * 0.18)
-            rawLevels += price to quantity
-        }
-
-        val sortedLevels = if (isBid) {
-            rawLevels.sortedByDescending { (price, _) -> price }
-        } else {
-            rawLevels.sortedBy { (price, _) -> price }
-        }
-
-        var cumulativeQuantity = 0.0
-        return sortedLevels.map { (price, quantity) ->
-            cumulativeQuantity += quantity
-            OrderBookLevel(
-                price = price,
-                quantity = quantity,
-                cumulativeQuantity = cumulativeQuantity
-            )
-        }
-    }
-
     private fun buildSnapshot(
         pair: ForexPair,
         venueSymbol: String?,
@@ -355,7 +226,6 @@ object OrderBookStore {
         bids: List<OrderBookLevel>,
         asks: List<OrderBookLevel>,
         recentTrades: List<OrderBookTrade>,
-        isFallback: Boolean,
         isStale: Boolean
     ): OrderBookSnapshot {
         val bestBid = bids.firstOrNull()?.price ?: pair.price
@@ -382,7 +252,6 @@ object OrderBookStore {
             spread = spread,
             midPrice = midPrice,
             imbalance = imbalance,
-            isFallback = isFallback,
             isStale = isStale
         )
     }
@@ -409,61 +278,6 @@ object OrderBookStore {
     }
 
     private fun livePairSnapshot(symbol: String): ForexPair? {
-        return BinanceDataStore.pairSnapshot(symbol) ?: MarketDataStore.pairSnapshot(symbol)
+        return MarketDataStore.pairSnapshot(symbol)
     }
-
-    private fun liveHistorySnapshot(symbol: String): List<Double> {
-        return if (BinanceDataStore.isUsdtSymbol(symbol)) {
-            BinanceDataStore.historySnapshot(symbol)
-        } else {
-            MarketDataStore.historySnapshot(symbol)
-        }
-    }
-
-    private fun symbolSignature(symbol: String): Int {
-        return symbolKey(symbol).fold(0) { acc, char -> (acc * 31) + char.code }
-    }
-
-    private fun stableWave(signature: Int, index: Int, offset: Double, timeNow: Long = 0L): Double {
-        val timeShift = if (timeNow > 0L) (timeNow % 60_000L) / 1000.0 else 0.0
-        val angle = (signature * 0.013) + (index * 0.77) + offset + (timeShift * 1.5)
-        // Add high-frequency noise based on time so it jitters on every refresh
-        val noise = if (timeNow > 0L) (sin(timeNow / 100.0) * 0.08) else 0.0
-        return 0.78 + ((sin(angle) + 1.0) * 0.24) + noise
-    }
-
-    private fun baseLiquidityFor(category: MarketCategory, price: Double): Double {
-        return when (category) {
-            MarketCategory.CRYPTO -> if (price >= 1_000.0) 0.18 else 4_200.0
-            MarketCategory.FOREX -> 125_000.0
-            MarketCategory.STOCK -> 2_400.0
-            MarketCategory.COMMODITIES -> 1_050.0
-            MarketCategory.INDICES -> 220.0
-            MarketCategory.BONDS -> 480.0
-            MarketCategory.FUTURES -> 260.0
-        }
-    }
-
-    private fun baseTickSize(symbol: String, price: Double): Double {
-        val normalized = symbolKey(symbol)
-        return when {
-            normalized.endsWith("JPY") -> 0.01
-            normalized.endsWith("USDT") && price >= 10_000.0 -> 0.5
-            normalized.endsWith("USDT") && price >= 1_000.0 -> 0.1
-            normalized.endsWith("USDT") && price >= 1.0 -> 0.01
-            normalized.endsWith("USD") && price >= 1_000.0 -> 0.1
-            normalized.contains("XAU") -> 0.1
-            normalized.contains("XAG") -> 0.01
-            normalized.contains("Crude-F") || normalized.contains("USOIL") -> 0.01
-            normalized.contains("Brent-F") || normalized.contains("UKOIL") -> 0.01
-            normalized.contains("SPX") || normalized.contains("NAS") || normalized.contains("US30") -> 1.0
-            normalized.length == 6 && price < 10.0 -> 0.0001
-            price >= 1_000.0 -> 0.5
-            price >= 100.0 -> 0.05
-            price >= 1.0 -> 0.01
-            else -> 0.0001
-        }
-    }
-
-    private fun Double?.orZero(): Double = this ?: 0.0
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.data.PostMoveAuditCase
 import com.asc.markets.data.PostMoveAuditStore
 import com.asc.markets.data.label
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
@@ -132,7 +133,7 @@ private fun AuditSnapshotBox(title: String, value: String, modifier: Modifier) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.Center) {
             Text(title, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = com.asc.markets.ui.theme.InterFontFamily)
         }
     }
 }

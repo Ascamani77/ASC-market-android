@@ -166,7 +166,7 @@ fun SimpleOrderPage(
         },
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         scrimColor = Color.Black.copy(alpha = 0.5f),
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier.padding(bottom = AppBottomNavHeight)
     ) {
         Column(
@@ -683,7 +683,7 @@ fun SimpleOrderPage(
                     containerColor = charcoalBlack,
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     dragHandle = null,
-                    windowInsets = WindowInsets(0),
+                    contentWindowInsets = { WindowInsets(0) },
                     modifier = Modifier.padding(bottom = AppBottomNavHeight)
                 ) {
                     Column(
@@ -717,7 +717,7 @@ fun SimpleOrderPage(
                     containerColor = charcoalBlack,
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     dragHandle = null,
-                    windowInsets = WindowInsets(0),
+                    contentWindowInsets = { WindowInsets(0) },
                     modifier = Modifier.padding(bottom = AppBottomNavHeight)
                 ) {
                     Column(
@@ -755,7 +755,7 @@ fun SimpleOrderPage(
                     containerColor = charcoalBlack,
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     dragHandle = null,
-                    windowInsets = WindowInsets(0),
+                    contentWindowInsets = { WindowInsets(0) },
                     modifier = Modifier.padding(bottom = AppBottomNavHeight)
                 ) {
                     Column(
@@ -793,7 +793,7 @@ fun SimpleOrderPage(
                     containerColor = charcoalBlack,
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     dragHandle = null,
-                    windowInsets = WindowInsets(0),
+                    contentWindowInsets = { WindowInsets(0) },
                     modifier = Modifier.padding(bottom = AppBottomNavHeight)
                 ) {
                     val currentMode = if (exitOptionsTarget == "tp") tpSecondaryMode else slSecondaryMode

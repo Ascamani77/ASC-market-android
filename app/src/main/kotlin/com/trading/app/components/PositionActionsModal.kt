@@ -49,7 +49,7 @@ fun PositionActionsModal(
                     .background(Color(0xFF2A2E39))
             )
         },
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier.padding(bottom = AppBottomNavHeight)
     ) {
         Column(

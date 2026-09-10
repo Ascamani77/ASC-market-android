@@ -43,6 +43,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.random.Random
 import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.data.PostMoveAuditCase
+import com.asc.markets.data.PostMoveAuditStore
+import com.asc.markets.data.trade.TradeEntity
+import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.PreMoveIntelligenceStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // Simple data models for the ledger
 internal data class FillRow(val price: Double, val side: String, val executionType: String)
@@ -61,6 +68,31 @@ internal data class ExecutionTx(
 	val latencyMs: Double,
 	val fills: List<FillRow>
 )
+
+// Extension function to convert PostMoveAuditCase to ExecutionTx
+private fun PostMoveAuditCase.toExecutionTx(): ExecutionTx {
+	return ExecutionTx(
+		id = this.id,
+		pair = this.symbol,
+		side = this.direction,
+		result = when {
+			this.win == true -> "WON"
+			this.win == false -> "LOST"
+			else -> "OPEN"
+		},
+		pnl = this.pnl?.let { "${if (it >= 0) "+" else ""}${String.format("%.2f", it)}" } ?: "N/A",
+		rationale = this.thesis,
+		internalContext = this.reconstructionLines.firstOrNull() ?: "No context available",
+		outcomeProfile = this.postMoveOutcome,
+		relayNode = this.nodeId,
+		timestamp = this.timestamp,
+		latencyMs = 0.0, // Not available in PostMoveAuditCase
+		fills = listOf(
+			FillRow(this.entryPrice ?: 0.0, this.direction, "AI Autonomous"),
+			FillRow(this.exitPrice ?: 0.0, if (this.direction == "LONG") "SELL" else "BUY", "AI Autonomous")
+		)
+	)
+}
 
 @Composable
 internal fun ExecutionLedgerRealTimeHeader() {
@@ -179,93 +211,30 @@ internal fun ExecutionMetricsSubheader(metrics: ExecutionMetrics) {
 @Composable
 internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit, viewModel: ForexViewModel) {
 	val executionMetrics = rememberExecutionMetrics()
-	val sample = remember {
-		listOf(
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "EUR/USD",
-				side = "BUY",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "+43 PIPS",
-				rationale = "Asian low sweep followed by M15 displacement",
-				internalContext = "Range break after liquidity sweep; liquidity build-up at 1.0820.",
-				outcomeProfile = "Closed at HTF confluence, +43 pips",
-				relayNode = "PRIMARY-UK-L14",
-				timestamp = System.currentTimeMillis(),
-				latencyMs = 0.02,
-				fills = listOf(FillRow(1.1023, "BUY", "AI Autonomous"), FillRow(1.1066, "SELL", "AI Autonomous"))
-			),
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "GBP/USD",
-				side = "SELL",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "-12 PIPS",
-				rationale = "M30 rejection from structural resistance",
-				internalContext = "Failed retest, false breakout",
-				outcomeProfile = "Stopped at liquidity pool",
-				relayNode = "EDGE-EU-L02",
-				timestamp = System.currentTimeMillis() - 60000,
-				latencyMs = 0.11,
-				fills = listOf(FillRow(1.3021, "SELL", "AI Autonomous"))
-			),
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "XAU/USD",
-				side = "BUY",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "+120 TICKS",
-				rationale = "Gold responded to safe-haven flow during risk-off microsession",
-				internalContext = "VIX elevated; DXY softened",
-				outcomeProfile = "Held through HTF resistance, partial take-profit",
-				relayNode = "PRIMARY-UK-L14",
-				timestamp = System.currentTimeMillis() - 120000,
-				latencyMs = 0.05,
-				fills = listOf(FillRow(1820.25, "BUY", "AI Autonomous"))
-			),
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "WTI/USD",
-				side = "SELL",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "-8 TICKS",
-				rationale = "Oil sold into inventory surprise; momentum faded",
-				internalContext = "Inventory spike at 10:00 UTC",
-				outcomeProfile = "Stopped out near support",
-				relayNode = "EDGE-US-L03",
-				timestamp = System.currentTimeMillis() - 180000,
-				latencyMs = 0.09,
-				fills = listOf(FillRow(68.12, "SELL", "AI Autonomous"))
-			),
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "AAPL",
-				side = "BUY",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "+2.4%",
-				rationale = "Earnings beat; institutional accumulation observed",
-				internalContext = "Pre-market gap; high volume",
-				outcomeProfile = "Rallied to intraday target",
-				relayNode = "EDGE-US-L03",
-				timestamp = System.currentTimeMillis() - 240000,
-				latencyMs = 0.07,
-				fills = listOf(FillRow(172.55, "BUY", "AI Autonomous"))
-			),
-			ExecutionTx(
-				id = "TX-${Random.nextInt(100000, 999999)}",
-				pair = "SPX",
-				side = "SELL",
-				result = listOf("WON", "LOST", "OPEN").random(),
-				pnl = "-0.6%",
-				rationale = "Macro unwind; rotation into bonds",
-				internalContext = "Breadth deteriorating; large cap pressure",
-				outcomeProfile = "Partial fill then scale-out",
-				relayNode = "PRIMARY-US-L01",
-				timestamp = System.currentTimeMillis() - 300000,
-				latencyMs = 0.03,
-				fills = listOf(FillRow(4567.2, "SELL", "AI Autonomous"))
-			)
-		)
+	
+	// Load real trade data
+	var closedTrades by remember { mutableStateOf<List<TradeEntity>>(emptyList()) }
+	val auditRecords by viewModel.auditRecords.collectAsState()
+	val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())
+	val marketTimedHistory by MarketDataStore.timedPriceHistory.collectAsState()
+	// BINANCE AND FALLBACK REMOVED - EA ONLY
+	val timedHistory = remember(marketTimedHistory) {
+		marketTimedHistory
+	}
+	
+	val cases = remember(closedTrades, auditRecords, candidates, timedHistory) {
+		PostMoveAuditStore.buildCases(closedTrades, auditRecords, candidates, timedHistory)
+	}
+	
+	// Convert PostMoveAuditCase to ExecutionTx for display
+	val executionTxList = remember(cases) {
+		cases.map { it.toExecutionTx() }
+	}
+	
+	LaunchedEffect(viewModel.tradeHistoryRepository) {
+		closedTrades = withContext(Dispatchers.IO) {
+			viewModel.tradeHistoryRepository?.getLast100Trades().orEmpty()
+		}
 	}
 
 	val listState = rememberLazyListState()
@@ -291,8 +260,19 @@ internal fun ExecutionLedgerSection(onOpenCompliance: (ExecutionTx) -> Unit, vie
 		contentPadding = PaddingValues(bottom = 120.dp)
 	) {
 		// Trading records
-		items(sample) { tx ->
-			ExecutionLedgerRow(tx = tx, onGenerateCompliance = { onOpenCompliance(tx) })
+		if (executionTxList.isEmpty()) {
+			item {
+				InfoBox(modifier = Modifier.fillMaxWidth()) {
+					Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+						Text("NO EXECUTION LEDGER RECORDS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+						Text("The ledger will populate after confirmed fills are saved through TradeHistoryRepository or synchronized from a closed-order source.", color = SlateText, fontSize = 12.sp, lineHeight = 17.sp, fontFamily = InterFontFamily)
+					}
+				}
+			}
+		} else {
+			items(executionTxList) { tx ->
+				ExecutionLedgerRow(tx = tx, onGenerateCompliance = { onOpenCompliance(tx) })
+			}
 		}
 		
 		// Footer

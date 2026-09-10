@@ -1,0 +1,4 @@
+- [x] Remove `BinanceService` import from `MarketOverviewTab.kt`
+- [x] Remove `rememberOverviewBoardBinanceHistory` and related helper functions
+- [x] Refactor `rememberOverviewBoardChartState` to use derived candles exclusively
+- [/] Verify build with `./gradlew :app:compileDebugKotlin`

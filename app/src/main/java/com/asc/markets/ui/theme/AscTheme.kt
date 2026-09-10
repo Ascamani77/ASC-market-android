@@ -1,5 +1,6 @@
 package com.asc.markets.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -20,10 +21,33 @@ private val DarkColorScheme = darkColorScheme(
     outline = HairlineBorder
 )
 
+private val LightColorScheme = lightColorScheme(
+    primary = IndigoAccent,
+    onPrimary = Color.White,
+    secondary = IndigoAccent,
+    background = Color(0xFFF5F5F7),
+    surface = Color.White,
+    onBackground = Color(0xFF1A1A2E),
+    onSurface = Color(0xFF1A1A2E),
+    surfaceVariant = Color(0xFFF0F0F5),
+    outline = Color(0xFFE0E0E0)
+)
+
+enum class AscThemeMode { LIGHT, DARK, SYSTEM }
+
 @Composable
-fun AscTheme(content: @Composable () -> Unit) {
+fun AscTheme(
+    themeMode: AscThemeMode = AscThemeMode.DARK,
+    content: @Composable () -> Unit
+) {
+    val isDark = when (themeMode) {
+        AscThemeMode.LIGHT -> false
+        AscThemeMode.DARK -> true
+        AscThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         shapes = Shapes(
             extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),

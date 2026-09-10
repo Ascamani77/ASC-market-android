@@ -66,7 +66,7 @@ data class ScalesSettings(
     val invertScale: Boolean = false,
     val scalesPlacement: String = "Auto",
     val noOverlappingLabels: Boolean = false,
-    val plusButton: Boolean = true,
+    val plusButton: Boolean = false,
     val countdown: Boolean = false, // Set to false by default as requested
     val symbolLabel: String = "Price",
     val symbolLineColor: String = "#FFFFFF",
@@ -136,7 +136,8 @@ data class CanvasSettings(
     val fullChartColor: String = "Default", // Options: "Default", "Pure Black", "Dark Blue", "OLED Black"
     val headerVisible: Boolean = true,
     val headerVisibility: String = "Always visible", // Options: "Always visible", "Auto-hide"
-    val swapHeaderAndFooter: Boolean = false
+    val swapHeaderAndFooter: Boolean = false,
+    val showNotifications: Boolean = true
 )
 
 data class TradingSettings(
@@ -304,7 +305,13 @@ data class UserAlert(
     val price: Float,
     val message: String,
     val isActive: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val drawingId: String? = null,
+    val triggerMode: String = "Once only",
+    val triggeredAt: Long? = null,
+    val lastTriggeredAt: Long? = null,
+    val smcZones: List<String> = emptyList(),
+    val smcMin: Int = 1
 )
 
 data class PartialOrder(
@@ -327,6 +334,9 @@ data class Position(
     val sl: Float? = null,
     val leverage: String = "1x",
     val margin: Float = 0f,
+    val profit: Float = 0f,
+    val swap: Float = 0f,
+    val hasBrokerProfit: Boolean = false,
     val isSelected: Boolean = false,
     val partialOrders: List<PartialOrder> = emptyList(),
     val positionSide: String? = null // For Binance hedge mode: "LONG", "SHORT", or "BOTH"

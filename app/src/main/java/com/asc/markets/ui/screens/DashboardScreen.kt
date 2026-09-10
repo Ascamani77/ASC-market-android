@@ -40,12 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 
 enum class DashboardTab { 
     COMMAND_CENTER,
-    TECHNICAL_VITALS, 
     STRATEGY_SIGNALS, 
-    ANALYTICAL_QUALITY, 
-    MARKET_PSYCHOLOGY, 
-    METHODOLOGY,
-    EXECUTION_LEDGER,
     AI_STATUS
 }
 
@@ -80,12 +75,7 @@ fun DashboardScreen(viewModel: ForexViewModel) {
             androidx.compose.animation.Crossfade(targetState = activeTab, label = "TabTransition") { tab ->
                 when (tab) {
                         DashboardTab.COMMAND_CENTER -> CommandCenterTab(viewModel)
-                        DashboardTab.TECHNICAL_VITALS -> TechnicalVitalsTab(viewModel)
                         DashboardTab.STRATEGY_SIGNALS -> StrategySignalsTab(viewModel)
-                        DashboardTab.ANALYTICAL_QUALITY -> AnalyticalQualityTab(viewModel)
-                        DashboardTab.EXECUTION_LEDGER -> ExecutionLedgerTab(viewModel)
-                        DashboardTab.MARKET_PSYCHOLOGY -> MarketPsychologyTab(viewModel)
-                        DashboardTab.METHODOLOGY -> EducationTab(viewModel)
                         DashboardTab.AI_STATUS -> AiStatusTab(viewModel)
                 }
             }
@@ -120,12 +110,7 @@ fun DashboardTopNavbar(
                     val active = activeTab == tab
                     val label = when (tab) {
                         DashboardTab.COMMAND_CENTER -> "Home"
-                        DashboardTab.TECHNICAL_VITALS -> "Vitals"
                         DashboardTab.STRATEGY_SIGNALS -> "Signals"
-                        DashboardTab.ANALYTICAL_QUALITY -> "Quality"
-                        DashboardTab.MARKET_PSYCHOLOGY -> "Psychology"
-                        DashboardTab.METHODOLOGY -> "Logic"
-                        DashboardTab.EXECUTION_LEDGER -> "Audit"
                         DashboardTab.AI_STATUS -> "AI Status"
                     }
 

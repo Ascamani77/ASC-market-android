@@ -8,10 +8,10 @@
     <!-- Required for WebView to load remote charting scripts -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
         android:allowBackup="true"
-        android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -35,6 +35,14 @@
         <receiver
             android:name=".notifications.CombinedFallbackActionReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".notifications.FirebaseMessagingServiceImpl"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- In-app Settings activity (deep-link target for asc://settings?section=... ) -->
         <activity

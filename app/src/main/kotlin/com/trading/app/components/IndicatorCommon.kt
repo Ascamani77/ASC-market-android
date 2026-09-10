@@ -289,24 +289,26 @@ fun VisibilityNumberField(
             onValueChange(newValue.filter { it.isDigit() })
         },
         modifier = Modifier
-            .width(84.dp)
-            .height(36.dp)
+            .width(96.dp)
+            .height(44.dp)
+            .background(Color(0xFF1A1A1A), RoundedCornerShape(6.dp))
             .border(1.dp, Color(0xFF434651), RoundedCornerShape(6.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp),
         textStyle = TextStyle(
             color = Color(0xFFD1D4DC),
             fontSize = 15.sp
         ),
         cursorBrush = SolidColor(Color.White),
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.fillMaxSize()) { innerTextField() } }
     )
 }
 
 @Composable
 fun SettingsNumericInput(label: String, value: Int, onValueChange: (Int) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -316,14 +318,16 @@ fun SettingsNumericInput(label: String, value: Int, onValueChange: (Int) -> Unit
             value = value.toString(),
             onValueChange = { onValueChange(it.toIntOrNull() ?: value) },
             modifier = Modifier
-                .width(70.dp)
-                .background(Color.Transparent, RoundedCornerShape(4.dp))
-                .border(1.dp, Color(0xFF434651), RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .width(80.dp)
+                .height(44.dp)
+                .background(Color(0xFF1A1A1A), RoundedCornerShape(6.dp))
+                .border(1.dp, Color(0xFF434651), RoundedCornerShape(6.dp))
+                .padding(horizontal = 12.dp),
             textStyle = TextStyle(color = Color(0xFFD1D4DC), fontSize = 16.sp),
             cursorBrush = SolidColor(Color.White),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.fillMaxSize()) { innerTextField() } }
         )
     }
 }
@@ -331,7 +335,7 @@ fun SettingsNumericInput(label: String, value: Int, onValueChange: (Int) -> Unit
 @Composable
 fun SettingsFloatInput(label: String, value: Float, onValueChange: (Float) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -341,14 +345,16 @@ fun SettingsFloatInput(label: String, value: Float, onValueChange: (Float) -> Un
             value = value.toString(),
             onValueChange = { onValueChange(it.toFloatOrNull() ?: value) },
             modifier = Modifier
-                .width(70.dp)
-                .background(Color.Transparent, RoundedCornerShape(4.dp))
-                .border(1.dp, Color(0xFF434651), RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .width(80.dp)
+                .height(44.dp)
+                .background(Color(0xFF1A1A1A), RoundedCornerShape(6.dp))
+                .border(1.dp, Color(0xFF434651), RoundedCornerShape(6.dp))
+                .padding(horizontal = 12.dp),
             textStyle = TextStyle(color = Color(0xFFD1D4DC), fontSize = 16.sp),
             cursorBrush = SolidColor(Color.White),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.fillMaxSize()) { innerTextField() } }
         )
     }
 }

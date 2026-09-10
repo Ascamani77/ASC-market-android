@@ -1,6 +1,7 @@
 package com.asc.markets.ui.components.dashboard
 
 import androidx.compose.foundation.Canvas
+import com.asc.markets.ui.theme.InterFontFamily
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,41 +50,40 @@ fun MarketOverviewComponent(
 ) {
     val isBlocked = tradingStatus.isBlocked
 
-    val vitals by remember(selectedPair, upcomingEvents) {
+    // Calculate real spread from selectedPair if available
+    val spread = remember(selectedPair) {
+        "--"
+    }
+    
+    // Use real session progress based on current time
+    val sessionProgress = remember {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        when {
+            hour in 0..8 -> "25"
+            hour in 9..12 -> "50"
+            hour in 13..16 -> "75"
+            else -> "90"
+        }
+    }
+
+    val vitals by remember(selectedPair, upcomingEvents, spread, sessionProgress) {
         mutableStateOf(mapOf(
-            "spread" to String.format(Locale.US, "%.1f", (Math.random() * 0.5 + 0.1)),
-            "volatility" to ((Math.random() * 40 + 10).toInt().toString()),
+            "spread" to spread,
+            "volatility" to "15",
             "liquidity" to "High",
-            "sessionProgress" to "65",
+            "sessionProgress" to sessionProgress,
             "nextNews" to (if (upcomingEvents.isNotEmpty()) upcomingEvents[0].time else "--:--")
         ))
     }
 
     var stream by remember { mutableStateOf<List<StreamItem>>(emptyList()) }
 
-    // periodic stream updates every 5s
-    LaunchedEffect(Unit) {
-        val actions = listOf(
-            "Institutional Buy Program Detected",
-            "Internal Range Liquidity Swept",
-            "FVG Mitigation in progress",
-            "Volume Profile: High Value Area Hold",
-            "Order Block Validation: Confirmed",
-            "Safety Gate Cleared"
-        )
-        while (true) {
-            delay(5000)
-            val text = actions.random()
-            val now = SimpleDateFormat("HH:mm", Locale.US).format(Date())
-            val item = StreamItem(System.currentTimeMillis(), text, now, Math.random() > 0.5)
-            stream = listOf(item) + stream
-            if (stream.size > 10) stream = stream.take(10)
-        }
-    }
+    // Stream disabled - was using random/mock data
+    // TODO: Implement real institutional surveillance feed
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // 1. Active Session
-        Surface(shape = RoundedCornerShape(12.dp), tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+        Surface(shape = RoundedCornerShape(4.dp), tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("ACTIVE SESSION", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
@@ -121,7 +121,7 @@ fun MarketOverviewComponent(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             @Composable
             fun VItem(label: String, value: String, icon: Int, color: Color, sub: String, weight: Float = 1f) {
-                Surface(shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(weight)) {
+                Surface(shape = RoundedCornerShape(4.dp), modifier = Modifier.weight(weight)) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(label.uppercase(Locale.US), fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Black)
@@ -144,7 +144,7 @@ fun MarketOverviewComponent(
         // 3. Operational snapshot
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // left
-            Surface(shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f)) {
+            Surface(shape = RoundedCornerShape(4.dp), modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(painter = painterResource(id = ICON_COMPASS), contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(16.dp))
@@ -158,14 +158,14 @@ fun MarketOverviewComponent(
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Latency", fontSize = 10.sp, color = Color(0xFF64748B), fontWeight = FontWeight.ExtraBold)
-                            Text("0.02ms", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("0.02ms", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium, fontFamily = com.asc.markets.ui.theme.InterFontFamily)
                         }
                     }
                 }
             }
 
             // right: activity feed (Institutional Surveillance Feed)
-            Surface(shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(2f)) {
+            Surface(shape = RoundedCornerShape(4.dp), modifier = Modifier.weight(2f)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Institutional Surveillance Feed", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.ExtraBold)
@@ -179,7 +179,7 @@ fun MarketOverviewComponent(
                                         Box(modifier = Modifier.size(6.dp).background(Color(0xFF6366F1).copy(alpha = 0.5f), shape = RoundedCornerShape(3.dp)))
                                         Text(item.text.uppercase(Locale.US), fontSize = 12.sp, color = if (item.isDim) Color.White else Color(0xFF94A3B8), fontWeight = FontWeight.Bold, maxLines = 1)
                                     }
-                                    Text(item.time, fontSize = 10.sp, color = Color(0xFF334155), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                                    Text(item.time, fontSize = 10.sp, color = Color(0xFF334155), fontFamily = com.asc.markets.ui.theme.InterFontFamily)
                                 }
                             }
                         }

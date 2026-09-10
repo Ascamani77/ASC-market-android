@@ -35,8 +35,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.TimedPrice

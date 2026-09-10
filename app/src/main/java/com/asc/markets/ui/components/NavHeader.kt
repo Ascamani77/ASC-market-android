@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,71 +24,115 @@ import com.asc.markets.ui.theme.PureBlack
 fun NavHeader(
     title: String,
     onBack: () -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    isChatScreen: Boolean = false,
+    onDelete: (() -> Unit)? = null,
+    showDelete: Boolean = false
 ) {
-    Surface(
-        color = Color.Transparent,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
         ) {
-            // Branded Logo and Name matching the reference image
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.wrapContentWidth()
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // The Logo: A clean geometric chevron pointing up
-                Text(
-                    "Λ", 
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Text(
-                    text = buildAnnotatedString {
-                        // ASC: Large, Bold, White
-                        withStyle(style = SpanStyle(
-                            fontSize = 18.sp, 
-                            fontWeight = FontWeight.Black, 
-                            color = Color.White
-                        )) {
-                            append("ASC ")
+                if (isChatScreen) {
+                    // Chat screen: Back arrow, CHAT title, and delete icon
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "CHAT",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    if (showDelete && onDelete != null) {
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Clear chat",
+                                tint = Color(0xFFFF6B6B)
+                            )
                         }
-                        // MARKET: Smaller, medium weight, bluish-slate color
-                        withStyle(style = SpanStyle(
-                            fontSize = 14.sp, 
-                            fontWeight = FontWeight.Medium, 
-                            color = Color(0xFF94A3B8)
-                        )) {
-                            append("MARKET")
-                        }
-                    },
-                    letterSpacing = 1.sp
+                    }
+                } else {
+                // Other screens: Show branded logo
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.wrapContentWidth()
+                ) {
+                    // The Logo: A clean geometric chevron pointing up
+                    Text(
+                        "Λ", 
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Text(
+                        text = buildAnnotatedString {
+                            // ASC: Large, Bold, White
+                            withStyle(style = SpanStyle(
+                                fontSize = 18.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = Color.White
+                            )) {
+                                append("ASC ")
+                            }
+                            // MARKET: Smaller, medium weight, bluish-slate color
+                            withStyle(style = SpanStyle(
+                                fontSize = 14.sp, 
+                                fontWeight = FontWeight.Medium, 
+                                color = Color(0xFF94A3B8)
+                            )) {
+                                append("MARKET")
+                            }
+                        },
+                        letterSpacing = 1.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = title.replace("_", " "),
+                    textAlign = TextAlign.Center,
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                IconButton(onClick = onSearch) {
+                    Icon(Icons.Rounded.Search, contentDescription = "Search", tint = Color.White)
+                }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = title.replace("_", " "),
-                textAlign = TextAlign.Center,
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
+        }
+    }
+        
+        // Separator line for chat screen
+        if (isChatScreen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.1f))
             )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            IconButton(onClick = onSearch) {
-                Icon(Icons.Rounded.Search, contentDescription = "Search", tint = Color.White)
-            }
         }
     }
 }

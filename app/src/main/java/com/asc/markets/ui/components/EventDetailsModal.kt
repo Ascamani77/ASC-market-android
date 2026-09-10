@@ -48,7 +48,7 @@ fun EventDetailsModal(
                     .background(Color(0xFF363A45))
             )
         },
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier
             .fillMaxHeight(0.93f)
             .padding(bottom = AppBottomNavHeight)

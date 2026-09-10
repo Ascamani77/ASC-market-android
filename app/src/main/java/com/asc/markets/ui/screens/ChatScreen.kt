@@ -26,9 +26,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
@@ -38,26 +41,32 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.imePadding
 import com.asc.markets.data.ChatMessage
-import com.asc.markets.data.AppView
-import com.asc.markets.data.toAiContextLabel
 import com.asc.markets.logic.AscChatSession
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.ANALYST_MODELS
 import com.asc.markets.ui.theme.*
 import kotlinx.coroutines.delay
+import com.halilibo.richtext.markdown.Markdown
+import com.halilibo.richtext.ui.RichText
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.material3.ProvideTextStyle
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(viewModel: ForexViewModel) {
+    val context = LocalContext.current
     var input by remember { mutableStateOf("") }
     var pasteBlocked by remember { mutableStateOf(false) }
     var showNewReplyNotice by remember { mutableStateOf(false) }
-    var showContextSheet by remember { mutableStateOf(false) }
+    var showPersonaSheet by remember { mutableStateOf(false) }
     var showChatSessionsSheet by remember { mutableStateOf(false) }
     var sessionToDelete by remember { mutableStateOf<AscChatSession?>(null) }
     var lastObservedMessageCount by remember { mutableIntStateOf(0) }
     val listState = rememberLazyListState()
-    val contextSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val personaSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val chatSessionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     fun isSuspectedApiKey(s: String): Boolean {
@@ -67,10 +76,6 @@ fun ChatScreen(viewModel: ForexViewModel) {
     }
     val activePersonaId by viewModel.ascChatPersonaId.collectAsState()
     val selectedPersona = ANALYST_MODELS.firstOrNull { it.id == activePersonaId } ?: ANALYST_MODELS[0]
-    val activeContextPageId by viewModel.ascChatContextPageId.collectAsState()
-    val selectedContextPage = AppView.values().firstOrNull { it.name == activeContextPageId }
-    val selectedContextLabel = selectedContextPage?.toAiContextLabel()
-    val dedicatedContextPages = remember { viewModel.dedicatedChatContextPages() }
     val chatSessions by viewModel.ascChatSessions.collectAsState()
     val activeChatSessionId by viewModel.ascChatSessionId.collectAsState()
     val messages by viewModel.ascChatMessages.collectAsState()
@@ -120,105 +125,27 @@ fun ChatScreen(viewModel: ForexViewModel) {
 
     Box(modifier = Modifier.fillMaxSize().background(DeepBlack)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(
-                    color = Color.White.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    LazyRow(
-                        modifier = Modifier.padding(horizontal = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        items(ANALYST_MODELS) { persona ->
-                            val active = selectedPersona.id == persona.id
-                            Surface(
-                                color = if (active) Color.White else Color.Transparent,
-                                shape = RoundedCornerShape(20.dp),
-                                border = if (active) androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)) else null,
-                                modifier = Modifier.height(26.dp).clickable { viewModel.setAscChatPersona(persona.id) }
-                            ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text(
-                                            text = persona.icon,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = persona.name.uppercase(),
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = if (active) Color.Black else Color.Gray,
-                                            fontFamily = InterFontFamily,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (selectedContextPage != null && selectedContextLabel != null) {
-                    Box(modifier = Modifier.padding(top = 8.dp).zIndex(2f)) {
-                        Surface(
-                            color = Color.White.copy(alpha = 0.04f),
-                            shape = RoundedCornerShape(999.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                            ) {
-                                Text("Context focus", color = SlateText, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                                Text(
-                                    text = selectedContextLabel,
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.3.sp
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = { viewModel.clearAscChatContextPage() },
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .offset(x = 18.dp, y = (-10).dp)
-                                .size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear page focus",
-                                tint = Color(0xFFD8A23A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
+            // Persona menu removed - now accessible via menu icon in input bar
 
             Box(modifier = Modifier.weight(1f)) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (messages.isEmpty()) {
                         item {
-                            ChatWelcomeCard(selectedPersona = selectedPersona)
+                            ChatWelcomeCard(selectedPersona = selectedPersona, onQuickAction = { action ->
+                                input = action
+                                sendCurrentMessage()
+                            })
                         }
                     }
-                    items(messages) { msg -> ChatBubble(msg) }
+                    items(
+                        items = messages,
+                        key = { msg -> msg.id }
+                    ) { msg -> ChatBubble(msg) }
                     if (isResponding) {
                         item {
                             ChatTypingBubble()
@@ -241,8 +168,8 @@ fun ChatScreen(viewModel: ForexViewModel) {
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -262,25 +189,30 @@ fun ChatScreen(viewModel: ForexViewModel) {
 
             Surface(
                 color = Color(0xFF111113),
-                modifier = Modifier.fillMaxWidth().padding(12.dp).imePadding(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).imePadding(),
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Page context button
+                    // Persona menu button
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clickable { showContextSheet = true },
+                            .clickable { showPersonaSheet = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Add, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Select persona", 
+                            tint = Color.Gray, 
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
                     Box(
@@ -324,34 +256,36 @@ fun ChatScreen(viewModel: ForexViewModel) {
                     }
 
                     // Send button
-                    Surface(
-                        onClick = { sendCurrentMessage() },
-                        modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (input.isNotBlank() && !isResponding) Color.White else Color.White.copy(alpha = 0.05f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.ArrowUpward,
-                                null,
-                                tint = if (input.isNotBlank() && !isResponding) Color.Black else Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
+                    Box(modifier = Modifier.padding(end = 2.dp)) {
+                        Surface(
+                            onClick = { sendCurrentMessage() },
+                            modifier = Modifier.size(36.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (input.isNotBlank() && !isResponding) Color.White else Color.White.copy(alpha = 0.05f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.ArrowUpward,
+                                    null,
+                                    tint = if (input.isNotBlank() && !isResponding) Color.Black else Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        if (showContextSheet) {
-            ChatContextSheet(
-                sheetState = contextSheetState,
-                currentFocus = selectedContextPage,
-                contextPages = dedicatedContextPages,
-                onClose = { showContextSheet = false },
-                onSelectPage = { page ->
-                    viewModel.setAscChatContextPage(page)
-                    showContextSheet = false
+        if (showPersonaSheet) {
+            PersonaSheet(
+                sheetState = personaSheetState,
+                personas = ANALYST_MODELS,
+                selectedPersona = selectedPersona,
+                onClose = { showPersonaSheet = false },
+                onSelectPersona = { persona ->
+                    viewModel.setAscChatPersona(persona.id)
+                    showPersonaSheet = false
                 }
             )
         }
@@ -361,6 +295,7 @@ fun ChatScreen(viewModel: ForexViewModel) {
                 sheetState = chatSessionsSheetState,
                 sessions = chatSessions,
                 activeSessionId = activeChatSessionId,
+                activeMessages = messages,
                 onClose = { showChatSessionsSheet = false },
                 onStartNewChat = {
                     input = ""
@@ -372,7 +307,10 @@ fun ChatScreen(viewModel: ForexViewModel) {
                     viewModel.setActiveAscChatSession(session.id)
                     showChatSessionsSheet = false
                 },
-                onDeleteSession = { sessionToDelete = it }
+                onDeleteSession = { sessionToDelete = it },
+                onExportChat = {
+                    exportChatToText(context, messages, selectedPersona.name)
+                }
             )
         }
 
@@ -400,8 +338,48 @@ fun ChatScreen(viewModel: ForexViewModel) {
     }
 }
 
+private fun exportChatToText(context: android.content.Context, messages: List<ChatMessage>, personaName: String) {
+    try {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "ASC_Chat_${personaName}_$timestamp.txt"
+        val content = buildString {
+            appendLine("ASC AI Chat Export")
+            appendLine("Persona: $personaName")
+            appendLine("Exported: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+            appendLine("Total Messages: ${messages.size}")
+            appendLine("=".repeat(50))
+            appendLine()
+            
+            messages.forEach { message ->
+                val role = if (message.role == "user") "USER" else "ASC AI"
+                appendLine("[$role] ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(message.timestamp))}")
+                appendLine(message.content)
+                appendLine("-".repeat(30))
+                appendLine()
+            }
+        }
+        
+        // Save to downloads directory
+        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+        val file = File(downloadsDir, fileName)
+        file.writeText(content)
+        
+        android.widget.Toast.makeText(context, "Chat exported to Downloads", android.widget.Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        android.widget.Toast.makeText(context, "Export failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
-fun ChatWelcomeCard(selectedPersona: com.asc.markets.logic.AnalystPersona) {
+fun ChatWelcomeCard(selectedPersona: com.asc.markets.logic.AnalystPersona, onQuickAction: (String) -> Unit) {
+    val quickActions = listOf(
+        "What's the market sentiment for XAU/USD?",
+        "Analyze Bitcoin's current trend",
+        "What are the major news events today?",
+        "Show me high-probability setups",
+        "What's the current market regime?"
+    )
+    
     Surface(
         color = Color.White.copy(alpha = 0.04f),
         shape = RoundedCornerShape(20.dp),
@@ -423,7 +401,7 @@ fun ChatWelcomeCard(selectedPersona: com.asc.markets.logic.AnalystPersona) {
                 )
             }
             Text(
-                text = "Ready to continue. Ask a follow-up, and I’ll keep the current conversation context.",
+                text = "Ready to continue. Ask a follow-up, and I'll keep the current conversation context.",
                 color = SlateText,
                 fontSize = 13.sp,
                 lineHeight = 18.sp
@@ -439,6 +417,32 @@ fun ChatWelcomeCard(selectedPersona: com.asc.markets.logic.AnalystPersona) {
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
+            }
+            
+            Text(
+                text = "Quick actions:",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                quickActions.forEach { action ->
+                    Surface(
+                        onClick = { onQuickAction(action) },
+                        color = Color.White.copy(alpha = 0.06f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            action,
+                            color = SlateText,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -500,18 +504,18 @@ fun ChatTypingBubble() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatContextSheet(
+fun PersonaSheet(
     sheetState: SheetState,
-    currentFocus: AppView?,
-    contextPages: List<AppView>,
+    personas: List<com.asc.markets.logic.AnalystPersona>,
+    selectedPersona: com.asc.markets.logic.AnalystPersona,
     onClose: () -> Unit,
-    onSelectPage: (AppView) -> Unit
+    onSelectPersona: (com.asc.markets.logic.AnalystPersona) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onClose,
         sheetState = sheetState,
         containerColor = Color(0xFF121212),
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -521,8 +525,7 @@ fun ChatContextSheet(
                     .background(Color(0xFF363A45), RoundedCornerShape(2.dp))
             )
         },
-        modifier = Modifier
-            .fillMaxHeight(0.93f)
+        modifier = Modifier.fillMaxHeight(0.93f)
     ) {
         Column(
             modifier = Modifier
@@ -531,26 +534,32 @@ fun ChatContextSheet(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                text = "Chat page context",
+                text = "Select Persona",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Choose one page as the main lens. The assistant can still reference other pages when useful.",
+                text = "Choose which analyst perspective you want for this conversation.",
                 color = SlateText,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
             )
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(contextPages) { page ->
-                    val active = page == currentFocus
+                items(
+                    items = personas,
+                    key = { persona -> persona.id }
+                ) { persona ->
+                    val active = persona.id == selectedPersona.id
                     Surface(
-                        onClick = { onSelectPage(page) },
+                        onClick = { onSelectPersona(persona) },
                         color = if (active) Color.White else Color.White.copy(alpha = 0.04f),
                         shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (active) Color.White else HairlineBorder),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (active) Color.White else HairlineBorder
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -560,27 +569,41 @@ fun ChatContextSheet(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .background(if (active) Color.Black else Color.White.copy(alpha = 0.08f), CircleShape),
+                                    .size(42.dp)
+                                    .background(
+                                        if (active) Color.Black else Color.White.copy(alpha = 0.08f),
+                                        CircleShape
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (active) {
-                                    Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 } else {
-                                    Text(page.name.take(1), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = persona.icon,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = page.toAiContextLabel(),
+                                    text = persona.name.uppercase(),
                                     color = if (active) Color.Black else Color.White,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp
                                 )
                                 Text(
-                                    text = if (active) "Focused now" else "Tap to focus this page",
+                                    text = persona.desc,
                                     color = if (active) Color.Black.copy(alpha = 0.7f) else SlateText,
-                                    fontSize = 11.sp
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp
                                 )
                             }
                         }
@@ -597,16 +620,18 @@ fun ChatSessionsSheet(
     sheetState: SheetState,
     sessions: List<AscChatSession>,
     activeSessionId: String,
+    activeMessages: List<ChatMessage>,
     onClose: () -> Unit,
     onStartNewChat: () -> Unit,
     onSelectSession: (AscChatSession) -> Unit,
-    onDeleteSession: (AscChatSession) -> Unit
+    onDeleteSession: (AscChatSession) -> Unit,
+    onExportChat: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onClose,
         sheetState = sheetState,
         containerColor = Color(0xFF121212),
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -675,13 +700,36 @@ fun ChatSessionsSheet(
                 }
             }
 
-            Text(
-                text = "Your chats",
-                color = SlateText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 18.dp, bottom = 10.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Your chats",
+                    color = SlateText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 18.dp, bottom = 10.dp)
+                )
+                
+                // Export button
+                Surface(
+                    onClick = onExportChat,
+                    color = Color.White.copy(alpha = 0.06f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(top = 18.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Download, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Export", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(sessions, key = { it.id }) { session ->
@@ -756,15 +804,28 @@ fun ChatBubble(message: ChatMessage) {
             border = if (!isUser) androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder) else null,
             modifier = Modifier.widthIn(max = 300.dp)
         ) {
-            Text(
-                text = message.content, 
-                modifier = Modifier.padding(16.dp), 
-                color = Color.White, 
-                fontSize = 13.sp, 
-                lineHeight = 20.sp,
-                fontFamily = InterFontFamily,
-                fontWeight = if (isUser) FontWeight.Normal else FontWeight.Medium
-            )
+            if (isUser) {
+                Text(
+                    text = message.content, 
+                    modifier = Modifier.padding(16.dp), 
+                    color = Color.White, 
+                    fontSize = 13.sp, 
+                    lineHeight = 20.sp,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Normal
+                )
+            } else {
+                // AI response - use plain Text with white color (RichText doesn't respect color)
+                Text(
+                    text = message.content,
+                    modifier = Modifier.padding(16.dp),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Normal
+                )
+            }
         }
     }
 }

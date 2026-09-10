@@ -16,3 +16,8 @@ local.properties
 
 # Secrets
 gradle.properties
+
+# Signing
+keystore.properties
+keystore/
+

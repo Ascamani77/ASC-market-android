@@ -23,5 +23,4 @@ object ApiClient {
         .build()
 
     val calendarApi: CalendarApi = retrofit.create(CalendarApi::class.java)
-    val aiApi: com.asc.markets.data.remote.AiApiService = retrofit.create(com.asc.markets.data.remote.AiApiService::class.java)
 }

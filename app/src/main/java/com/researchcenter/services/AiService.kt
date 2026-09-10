@@ -1,7 +1,6 @@
 package com.researchcenter.services
 
 import android.content.Context
-import com.asc.markets.BuildConfig
 import com.researchcenter.data.models.Intelligence
 import com.researchcenter.data.models.NewsArticle
 import com.researchcenter.util.Constants
@@ -25,7 +24,6 @@ class AiService(private val context: Context? = null) {
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("x-api-key", BuildConfig.GEMINI_API_KEY)
 
             val body = Json.encodeToString(mapOf("title" to articleTitle, "content" to articleContent))
             connection.outputStream.write(body.toByteArray())

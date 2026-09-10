@@ -1,0 +1,6 @@
+- [x] Add Ktor dependencies to `libs.versions.toml`
+- [x] Add Ktor dependencies to `app/build.gradle.kts`
+- [x] Sync Gradle
+- [x] Fix `EALiveDataStore.kt` (Ktor 3.x configuration and `TimedPrice` redeclaration)
+- [x] Fix `BackendDashboardScreen.kt` (Missing colors and imports)
+- [x] Verify build with `./gradlew :app:compileDebugKotlin`

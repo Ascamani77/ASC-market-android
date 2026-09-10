@@ -1,6 +1,7 @@
 package com.asc.markets.ui.screens
 
 import androidx.compose.animation.*
+import com.asc.markets.ui.theme.InterFontFamily
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -110,10 +111,9 @@ fun BacktestScreen(viewModel: ForexViewModel) {
 
     // Dynamic Asset fetch representing the 28 live assets of the application
     val marketPairs by com.asc.markets.data.MarketDataStore.allPairs.collectAsState()
-    val binancePairs by com.asc.markets.data.BinanceDataStore.allPairs.collectAsState()
-    val fallbackPairs by com.asc.markets.data.CombinedFallbackDataStore.allPairs.collectAsState()
-    val livePairs = remember(marketPairs, binancePairs, fallbackPairs) {
-        (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
+    // BINANCE AND FALLBACK REMOVED - EA ONLY
+    val livePairs = remember(marketPairs) {
+        marketPairs.distinctBy { it.symbol }
     }
     val availableSymbols = remember(livePairs) {
         val liveClean = livePairs.map { it.symbol.replace("/", "") }.distinct()
@@ -336,7 +336,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         color = warningColor,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
@@ -350,7 +350,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         color = Color.LightGray,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                 }
                 
@@ -360,7 +360,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         color = accentColor,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                     Icon(
                         imageVector = Icons.Default.HelpOutline,
@@ -392,7 +392,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = InterFontFamily
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         InfoIconWithTooltip(
@@ -623,7 +623,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("FRICTION CONFIG", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                Text("FRICTION CONFIG", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 InfoIconWithTooltip(
                                     title = "FRICTION CONFIG",
@@ -658,7 +658,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         } else {
                             Icon(Icons.Default.Bolt, contentDescription = null, tint = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("SIMULATE ENGINE", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                            Text("SIMULATE ENGINE", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                         }
                     }
                 }
@@ -836,7 +836,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("GENERAL STATISTICS", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text("GENERAL STATISTICS", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                             Spacer(modifier = Modifier.width(6.dp))
                             InfoIconWithTooltip(
                                 title = "GENERAL STATISTICS",
@@ -861,7 +861,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("RISK & EFFICIENCY INDEX", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text("RISK & EFFICIENCY INDEX", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                             Spacer(modifier = Modifier.width(6.dp))
                             InfoIconWithTooltip(
                                 title = "RISK & EFFICIENCY INDEX",
@@ -891,7 +891,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         .height(160.dp)
                 ) {
                     Column(modifier = Modifier.padding(10.dp)) {
-                        Text("COMPILER STREAM", color = warningColor, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("COMPILER STREAM", color = warningColor, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                         Spacer(modifier = Modifier.height(6.dp))
                         val logsScrollState = rememberLazyListState()
                         LaunchedEffect(consoleLogs.size) {
@@ -901,7 +901,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         }
                         LazyColumn(state = logsScrollState, modifier = Modifier.fillMaxSize()) {
                             items(consoleLogs) { log ->
-                                Text(log, color = Color.LightGray, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                Text(log, color = Color.LightGray, fontSize = 8.sp, fontFamily = InterFontFamily)
                             }
                         }
                     }
@@ -925,8 +925,8 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("TRADE SPOTLIGHT DETECTOR", color = warningColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                Text(trade.id, color = Color.Gray, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                Text("TRADE SPOTLIGHT DETECTOR", color = warningColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                Text(trade.id, color = Color.Gray, fontSize = 9.sp, fontFamily = InterFontFamily)
                             }
                             Text("Decision Rationale: ${trade.rationale}", color = Color.White, fontSize = 11.sp)
                             Row(
@@ -961,7 +961,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = InterFontFamily
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         InfoIconWithTooltip(
@@ -1051,7 +1051,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         text = "QUANT MANUAL & PLAYBOOK",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = InterFontFamily
                     )
                 }
             },
@@ -1119,7 +1119,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                     onClick = { showManualDialog = false },
                     colors = ButtonDefaults.textButtonColors(contentColor = warningColor)
                 ) {
-                    Text("DISMISS", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Text("DISMISS", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                 }
             }
         )
@@ -1158,7 +1158,7 @@ private fun InfoIconWithTooltip(
                     color = Color(0xFFF59E0B),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 Divider(color = Color.White.copy(alpha = 0.08f))
                 Text(
@@ -1166,7 +1166,7 @@ private fun InfoIconWithTooltip(
                     color = Color.Gray,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 Text(
                     text = whatItIs,
@@ -1180,7 +1180,7 @@ private fun InfoIconWithTooltip(
                     color = Color.Gray,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = InterFontFamily
                 )
                 Text(
                     text = whatToLookFor,
@@ -1227,7 +1227,7 @@ private fun MetricItemRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = Color.Gray, fontSize = 11.sp)
-        Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
     }
 }
 
@@ -1256,7 +1256,7 @@ private fun PlaybookStep(step: String, title: String, description: String) {
 @Composable
 private fun RatioDef(name: String, definition: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(name, color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(name, color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
         Text(definition, color = Color.Gray, fontSize = 10.sp, lineHeight = 14.sp)
     }
 }

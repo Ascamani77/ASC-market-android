@@ -15,6 +15,7 @@ import com.asc.markets.data.NetworkConfig
 import com.trading.app.data.ChartFeedType
 import com.trading.app.data.Mt5ReverseBridge
 import com.trading.app.data.Mt5Service
+import com.trading.app.data.chartFeedQuotes
 import com.trading.app.data.chartFeedSymbolFor
 import com.trading.app.models.BalanceRecord
 import com.trading.app.models.EconomicCalendarPayload
@@ -22,6 +23,7 @@ import com.trading.app.models.OHLCData
 import com.trading.app.models.Order
 import com.trading.app.models.Position
 import com.trading.app.models.SymbolInfo
+import kotlinx.coroutines.delay
 
 @Composable
 fun TradingChartExness(
@@ -52,6 +54,20 @@ fun TradingChartExness(
         var hasMoreHistory by remember { mutableStateOf(true) }
         val currentSymbol by rememberUpdatedState(symbol)
         val currentTimeframe by rememberUpdatedState(timeframe)
+
+        // Resolve the broker symbol (with 'm' suffix) deterministically from the static
+        // catalog first - the runtime symbol map may not be populated yet for indices
+        // like SPX -> US500m.
+        fun resolveStreamSymbol(requested: String): String {
+            val normalized = chartFeedSymbolFor(ChartFeedType.EXNESS, requested)
+            val catalogMatch = chartFeedQuotes(ChartFeedType.EXNESS).firstOrNull {
+                it.ticker.equals(normalized, ignoreCase = true) ||
+                    it.brokerSymbol.equals(normalized, ignoreCase = true) ||
+                    it.ticker.equals(requested, ignoreCase = true) ||
+                    it.brokerSymbol.equals(requested, ignoreCase = true)
+            }
+            return catalogMatch?.brokerSymbol?.ifBlank { catalogMatch.ticker } ?: normalized
+        }
         val currentOnAccountUpdate by rememberUpdatedState(onAccountUpdate)
         val currentOnPositionsUpdate by rememberUpdatedState(onPositionsUpdate)
         val currentOnOrdersUpdate by rememberUpdatedState(onOrdersUpdate)
@@ -66,7 +82,10 @@ fun TradingChartExness(
                 pcIpAddress = mt5Host,
                 port = mt5Port,
                 onHistoryUpdate = { receivedSymbol, history ->
-                    if (receivedSymbol.isEmpty() || providerSymbolsMatch(receivedSymbol, currentSymbol)) {
+                    val accepted = receivedSymbol.isEmpty() ||
+                        providerSymbolsMatch(receivedSymbol, currentSymbol) ||
+                        providerSymbolsMatch(receivedSymbol, resolveStreamSymbol(currentSymbol))
+                    if (accepted) {
                         val merged = mergeProviderHistory(candles, history, isLoadingMore)
                         candles = merged
                         isLoadingMore = false
@@ -75,7 +94,9 @@ fun TradingChartExness(
                     }
                 },
                 onQuoteUpdate = { incomingQuote ->
-                    if (providerSymbolsMatch(incomingQuote.name, currentSymbol)) {
+                    val accepted = providerSymbolsMatch(incomingQuote.name, currentSymbol) ||
+                        providerSymbolsMatch(incomingQuote.name, resolveStreamSymbol(currentSymbol))
+                    if (accepted) {
                         quote = providerDisplayQuote(incomingQuote, currentSymbol, candles)
                     }
                 },
@@ -97,13 +118,26 @@ fun TradingChartExness(
         }
 
         LaunchedEffect(symbol, timeframe, mt5Host, mt5Port) {
-            val streamSymbol = chartFeedSymbolFor(ChartFeedType.EXNESS, symbol)
             candles = emptyList()
             quote = null
             isLoadingMore = false
             hasMoreHistory = true
             service.stopActiveStream()
-            service.streamActiveSymbol(streamSymbol, timeframe, 500)
+            service.streamActiveSymbol(resolveStreamSymbol(symbol), timeframe, 500)
+
+            // Watchdog: if the bridge never answers with history (lost subscribe,
+            // half-dead socket, unknown symbol), force-retry a few times so the
+            // chart never stays stuck on the previous asset.
+            val stampAtRequest = service.lastHistoryTimestampMs
+            var attempt = 0
+            while (attempt < 3 && service.lastHistoryTimestampMs == stampAtRequest) {
+                delay(2500L)
+                if (service.lastHistoryTimestampMs == stampAtRequest) {
+                    attempt++
+                    Log.w("TradingChartExness", "No history for $symbol ($timeframe) yet - forcing re-subscribe (attempt $attempt)")
+                    service.streamActiveSymbol(resolveStreamSymbol(symbol), timeframe, 500, force = true)
+                }
+            }
         }
 
         LaunchedEffect(isCalendarVisible, calendarRequestDateIso, calendarRequestVersion) {
@@ -135,7 +169,7 @@ fun TradingChartExness(
                 onLoadMoreHistory = { endTime ->
                     if (!isLoadingMore && hasMoreHistory) {
                         isLoadingMore = true
-                        service.subscribe(chartFeedSymbolFor(ChartFeedType.EXNESS, currentSymbol), currentTimeframe, endTime, 500)
+                        service.subscribe(resolveStreamSymbol(currentSymbol), currentTimeframe, endTime, 500)
                     }
                 }
             )

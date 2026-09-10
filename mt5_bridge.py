@@ -1100,16 +1100,44 @@ def get_daily_info(symbol):
         return data
     return None
 
-def build_tick_payload(symbol):
+# ─── Tick cache for high-frequency streaming ───
+_TICK_CACHE = {}  # symbol -> {"info": info, "daily": daily, "resolved": resolved, "cached_at": timestamp}
+
+def _get_or_build_tick_cache(symbol):
+    """Get cached symbol info/daily or build fresh (hourly refresh)."""
+    now = time.time()
+    if symbol in _TICK_CACHE:
+        cached = _TICK_CACHE[symbol]
+        if now - cached["cached_at"] < 3600:  # 1 hour
+            return cached["resolved"], cached["info"], cached["daily"]
     resolved = resolve_symbol(symbol)
     mt5.symbol_select(resolved, True)
+    info = mt5.symbol_info(resolved)
+    daily = get_daily_info(resolved)
+    _TICK_CACHE[symbol] = {
+        "resolved": resolved, "info": info, "daily": daily, "cached_at": now
+    }
+    return resolved, info, daily
+
+def build_tick_payload(symbol, fast=False):
+    """
+    Build tick payload. fast=True skips cache refresh for high-frequency streaming.
+    """
+    if fast:
+        # Fast path: only call symbol_info_tick (hot path), use cached info/daily
+        if symbol not in _TICK_CACHE:
+            _get_or_build_tick_cache(symbol)  # populate cache
+        cached = _TICK_CACHE.get(symbol)
+        if not cached:
+            return None
+        resolved, info, daily = cached["resolved"], cached["info"], cached["daily"]
+    else:
+        # Full path: refresh cache
+        resolved, info, daily = _get_or_build_tick_cache(symbol)
 
     tick = mt5.symbol_info_tick(resolved)
     if tick is None:
         return None
-
-    info = mt5.symbol_info(resolved)
-    daily = get_daily_info(resolved)
 
     bar_open = daily["open"] if daily else 0.0
     bar_high = daily["high"] if daily else 0.0
@@ -1171,6 +1199,123 @@ def build_tick_payload(symbol):
         "spread": spread,
         "time": tick_time,
     }
+
+
+# ─── ASC EA signal write-ups (live push) ─────────────────────────────────────
+# The ASC EA writes its full chart write-up (regime, volatility, liquidity,
+# structure, indicators, session, entry, zones, exhaustion, …) to
+# ai_signals_mq5.json in the MT5 terminal's MQL5\Files folder. We re-read it
+# as it changes and push it live over the WebSocket so the app never polls.
+EA_SIGNAL_RELATIVE_PATH = Path("MQL5") / "Files" / "ai_signals_mq5.json"
+_ea_signal_cache = {"mtime": 0.0, "payload": None}
+# Multiple ASC EA instances attached to different charts all overwrite the
+# single ai_signals_mq5.json, so the last write wins. We accumulate the latest
+# write-up PER ASSET here and serve the requested asset on demand; this keeps
+# each asset's full write-up stable in the app instead of flickering as the
+# EAs cycle through the shared file.
+_ea_signal_by_asset = {}
+_ea_signal_state = {"latest": None}
+
+# Auto-trade state written by the app so the ASC EA (running inside MT5) can
+# draw an on-chart "AUTO TRADE ON" badge for symbols the app is managing.
+AUTO_TRADE_STATE_RELATIVE_PATH = Path("MQL5") / "Files" / "auto_trade_state.json"
+_auto_trade_state = {"enabled": False, "assets": []}
+
+
+def write_auto_trade_state(enabled, assets):
+    """Persist the app's auto-trade state to the MT5 terminal's MQL5\\Files dir.
+
+    The EA polls this file and shows/hides its on-chart badge per symbol.
+    It is also served over HTTP (port 8001) for the app / debugging."""
+    global _auto_trade_state
+    state = {
+        "enabled": bool(enabled),
+        "assets": [clean_symbol(str(a)) for a in (assets or []) if str(a).strip()],
+        "timestamp": int(time.time() * 1000),
+    }
+    _auto_trade_state = state
+    try:
+        ti = mt5.terminal_info()
+        if not ti or not ti.data_path:
+            return state
+        path = Path(ti.data_path) / AUTO_TRADE_STATE_RELATIVE_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"Auto-trade state written: {path}")
+    except Exception as exc:
+        print(f"Auto-trade state write error: {exc}")
+    return state
+
+
+def _ea_symbol_key(asset):
+    if not asset:
+        return ""
+    return (
+        clean_symbol(str(asset))
+        .upper()
+        .replace("/", "")
+        .replace("-", "")
+        .replace("_", "")
+        .replace(" ", "")
+    )
+
+
+def _read_ea_signal_file(path):
+    """Read ai_signals_mq5.json, retrying while an EA instance holds the file
+    open for writing (Windows exclusive lock -> PermissionError). Returns None
+    if the file stays locked; callers just skip this sample."""
+    last_error = None
+    for _ in range(6):
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")
+        except PermissionError as exc:
+            last_error = exc
+            time.sleep(0.15)
+        except Exception:
+            raise
+    return None
+
+
+def build_ea_signal_payload(force=False):
+    """Read the ASC EA's latest signal write-up and return a WebSocket payload.
+
+    Only returns a payload when the file changed since the last read (or when
+    force=True) so the stream pushes exactly one message per EA update."""
+    if force:
+        _ea_signal_cache["mtime"] = 0.0
+    ti = mt5.terminal_info()
+    if not ti or not ti.data_path:
+        return None
+    path = Path(ti.data_path) / EA_SIGNAL_RELATIVE_PATH
+    try:
+        if not path.exists():
+            _ea_signal_cache["mtime"] = 0.0
+            _ea_signal_cache["payload"] = None
+            return None
+        mtime = path.stat().st_mtime
+        if not force and mtime == _ea_signal_cache["mtime"]:
+            return None
+        text = _read_ea_signal_file(path)
+        if text is None:
+            return None
+        data = json.loads(text)
+        payload = {
+            "type": "ea_signal",
+            "asset": data.get("asset", ""),
+            "direction": data.get("direction", "WAIT"),
+            "timestamp": data.get("timestamp", 0),
+            "signal": data,
+        }
+        _ea_signal_cache["mtime"] = mtime
+        _ea_signal_cache["payload"] = payload
+        key = _ea_symbol_key(data.get("asset", ""))
+        if key:
+            _ea_signal_by_asset[key] = payload
+        _ea_signal_state["latest"] = payload
+        return payload
+    except Exception as exc:
+        print(f"EA signal read error: {exc}")
+        return None
 
 
 async def handle_client(websocket):
@@ -1298,6 +1443,34 @@ async def handle_client(websocket):
                             }
                             await websocket.send(json.dumps(payload))
 
+                    elif action == "get_ea_signal":
+                        asset_param = data.get("asset")
+                        if asset_param:
+                            cached = _ea_signal_by_asset.get(_ea_symbol_key(str(asset_param)))
+                            if cached:
+                                await websocket.send(json.dumps(cached, ensure_ascii=False))
+                                continue
+                        ea_signal_payload = build_ea_signal_payload(force=True)
+                        if ea_signal_payload:
+                            await websocket.send(json.dumps(ea_signal_payload, ensure_ascii=False))
+
+                    elif action == "auto_trade_state":
+                        enabled = bool(data.get("enabled", False))
+                        requested_assets = data.get("assets", [])
+                        if not isinstance(requested_assets, list):
+                            requested_assets = []
+                        state = await asyncio.to_thread(write_auto_trade_state, enabled, requested_assets)
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "auto_trade_ack",
+                                    "enabled": state["enabled"],
+                                    "assets": state["assets"],
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+
                     elif action == "get_account":
                         account = mt5.account_info()
                         terminal = mt5.terminal_info()
@@ -1314,7 +1487,7 @@ async def handle_client(websocket):
                                         "margin": float(account.margin),
                                         "availableFunds": float(account.margin_free),
                                         "ordersMargin": 0.0,
-                                        "marginBuffer": 0.0,
+                                        "marginBuffer": float(account.margin_level) if account.margin > 0 else 0.0,
                                         "trade_allowed": terminal.trade_allowed,
                                     }
                                 )
@@ -1478,14 +1651,21 @@ async def handle_client(websocket):
         last_account_refresh = 0.0
         while True:
             try:
-                # 1. High-frequency Tick Updates (every iteration)
+                # 1. High-frequency Tick Updates (every iteration) - FAST PATH
                 for watched_symbol in stream_symbols():
                     try:
-                        tick_payload = build_tick_payload(watched_symbol)
+                        tick_payload = build_tick_payload(watched_symbol, fast=True)
                         if tick_payload:
                             await websocket.send(json.dumps(tick_payload))
+                    except websockets.exceptions.ConnectionClosed:
+                        raise
                     except Exception as symbol_exc:
                         print(f"Tick error for {watched_symbol}: {symbol_exc}")
+
+                # 1b. ASC EA signal write-ups (push on change)
+                ea_signal_payload = build_ea_signal_payload()
+                if ea_signal_payload:
+                    await websocket.send(json.dumps(ea_signal_payload, ensure_ascii=False))
 
                 # 2. Lower-frequency Account/Position Updates (every ~2 seconds)
                 now_monotonic = time.monotonic()
@@ -1504,6 +1684,7 @@ async def handle_client(websocket):
                                     "unrealizedPnl": float(account.profit),
                                     "margin": float(account.margin),
                                     "availableFunds": float(account.margin_free),
+                                    "marginBuffer": float(account.margin_level) if account.margin > 0 else 0.0,
                                     "trade_allowed": terminal.trade_allowed,
                                 }
                             )
@@ -1528,6 +1709,7 @@ async def handle_client(websocket):
                                             "tp": float(item.tp),
                                             "sl": float(item.sl),
                                             "profit": float(item.profit),
+                                            "swap": float(item.swap),
                                         }
                                         for item in positions
                                     ],
@@ -1580,13 +1762,75 @@ async def handle_client(websocket):
 
     try:
         await asyncio.gather(listen(), stream())
-    except Exception:
-        pass
+    except websockets.exceptions.ConnectionClosed as exc:
+        rcvd = getattr(exc, "rcvd", None)
+        code = rcvd.code if rcvd else getattr(exc, "code", None)
+        reason = rcvd.reason if rcvd else ""
+        print(f"Android disconnected (code={code}) reason={reason!r}")
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        print(f"Bridge handler error: {exc}")
+    finally:
+        print(f"Client {websocket.remote_address} finished")
+
+
+def start_file_server():
+    """Serve the MT5 terminal's MQL5\\Files directory over HTTP on port 8001.
+
+    The EA writes live_market_data.json (prices/timeframes) and
+    ai_signals_mq5.json (AI write-ups) there; the app fetches prices via
+    http://<host>:8001/live_market_data.json. Running this here means a single
+    process (the bridge) serves both the WebSocket and the files."""
+    import functools
+    import threading
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+    ti = mt5.terminal_info()
+    if not ti or not ti.data_path:
+        print("WARNING: cannot resolve terminal data path for file server.")
+        return
+    files_dir = Path(ti.data_path) / "MQL5" / "Files"
+    if not files_dir.exists():
+        print(f"WARNING: MQL5\\Files directory not found: {files_dir}")
+        return
+
+    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(files_dir))
+    try:
+        httpd = HTTPServer(("0.0.0.0", 8001), handler)
+    except OSError as exc:
+        print(f"WARNING: file server on :8001 not started ({exc}). "
+              "Make sure no other process is using that port.")
+        return
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+
+    signal_file = files_dir / "ai_signals_mq5.json"
+    market_file = files_dir / "live_market_data.json"
+    print(f"Serving MQL5\\Files on http://0.0.0.0:8001")
+    print(f"  ai_signals_mq5.json   -> {'FOUND' if signal_file.exists() else 'MISSING (is the ASC EA attached and running?)'}")
+    print(f"  live_market_data.json -> {'FOUND' if market_file.exists() else 'MISSING (is the ASC EA attached and running?)'}")
+
+
+async def watch_ea_signals():
+    """Continuously capture the ASC EA's per-asset write-ups.
+
+    Several EA instances overwrite the single ai_signals_mq5.json in rotation,
+    so we keep sampling the file even when no Android client is connected. Each
+    change is stored per asset in _ea_signal_by_asset and served on demand via
+    the 'get_ea_signal' action."""
+    while True:
+        try:
+            build_ea_signal_payload()
+        except Exception as exc:
+            print(f"EA signal watcher error: {exc}")
+        await asyncio.sleep(1.0)
 
 
 async def main():
+    start_file_server()
     print("MT5 WebSocket bridge listening on ws://0.0.0.0:8081")
-    async with websockets.serve(handle_client, "0.0.0.0", 8081):
+    asyncio.create_task(watch_ea_signals())
+    async with websockets.serve(handle_client, "0.0.0.0", 8081, ping_interval=None, ping_timeout=None):
         await asyncio.Future()
 
 

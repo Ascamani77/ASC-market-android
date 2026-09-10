@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "655836723953",
+    "project_id": "ascmarkets",
+    "storage_bucket": "ascmarkets.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655836723953:android:76873b3dbd120af2e6c750",
+        "android_client_info": {
+          "package_name": "com.asc.markets"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "655836723953-hl11pc6707ied534n75qtd0haihmbsid.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkzRTKMGHwTWZSVE3sQi5qa2s__Wpi99A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "655836723953-hl11pc6707ied534n75qtd0haihmbsid.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

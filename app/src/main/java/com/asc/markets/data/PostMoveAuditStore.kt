@@ -51,10 +51,138 @@ data class PostMoveAuditCase(
     val nodeId: String = "LOCAL",
     val integrityHash: String = "",
     val reviewed: Boolean = false,
-    val reconstructionLines: List<String> = emptyList()
+    val reconstructionLines: List<String> = emptyList(),
+    val regimeStack: String = "",
+    val volumeAtEntry: Double? = null,
+    val spreadPips: Double? = null
+)
+
+data class AuditStats(
+    val totalRecords: Int = 0,
+    val winningRecords: Int = 0,
+    val losingRecords: Int = 0,
+    val winRate: Int = 0,
+    val totalPnl: Double = 0.0,
+    val avgPnl: Double = 0.0,
+    val profitFactor: Double? = null,
+    val expectancy: Double? = null,
+    val avgRMultiple: Double? = null,
+    val maxConsecutiveLosses: Int = 0,
+    val maxConsecutiveWins: Int = 0,
+    val avgSlippage: Double? = null,
+    val efficiency: Int? = null,
+    val avgTradeDurationMs: Long? = null,
+    val bestTradePnl: Double? = null,
+    val worstTradePnl: Double? = null,
+    val regimeBreakdown: Map<String, RegimeStats> = emptyMap(),
+    val sourceBreakdown: Map<String, Int> = emptyMap()
+)
+
+data class RegimeStats(
+    val count: Int = 0,
+    val wins: Int = 0,
+    val losses: Int = 0,
+    val winRate: Int = 0,
+    val totalPnl: Double = 0.0,
+    val avgPnl: Double = 0.0
 )
 
 object PostMoveAuditStore {
+
+    fun computeStats(cases: List<PostMoveAuditCase>): AuditStats {
+        if (cases.isEmpty()) return AuditStats()
+
+        val totalRecords = cases.size
+        val wins = cases.count { it.targetHit == true }
+        val losses = cases.count { it.invalidationHit == true }
+        val winRate = if (totalRecords > 0) (wins.toDouble() / totalRecords * 100).toInt() else 0
+
+        val pnls = cases.mapNotNull { it.pnl }
+        val totalPnl = pnls.sum()
+        val avgPnl = if (pnls.isNotEmpty()) pnls.average() else 0.0
+
+        val grossWins = pnls.filter { it > 0.0 }.sum()
+        val grossLosses = abs(pnls.filter { it < 0.0 }.sum())
+        val profitFactor = if (grossLosses > 0.0) grossWins / grossLosses else if (grossWins > 0.0) Double.MAX_VALUE else null
+
+        val expectancy = if (pnls.isNotEmpty()) avgPnl else null
+
+        val rMultiples = cases.mapNotNull { case ->
+            val entry = case.entryPrice ?: return@mapNotNull null
+            val sl = case.maxAdverseExcursionPct?.let { entry * (1.0 + it / 100.0) } ?: return@mapNotNull null
+            val risk = abs(entry - sl)
+            if (risk <= 0.0 || case.pnl == null) null else case.pnl / risk
+        }
+        val avgRMultiple = if (rMultiples.isNotEmpty()) rMultiples.average() else null
+
+        var maxConsecLosses = 0
+        var maxConsecWins = 0
+        var curLoss = 0
+        var curWin = 0
+        cases.sortedByDescending { it.timestamp }.forEach { case ->
+            when {
+                case.targetHit == true -> { curWin++; curLoss = 0; maxConsecWins = max(maxConsecWins, curWin) }
+                case.invalidationHit == true -> { curLoss++; curWin = 0; maxConsecLosses = max(maxConsecLosses, curLoss) }
+                else -> { curLoss = 0; curWin = 0 }
+            }
+        }
+
+        val slippages = cases.mapNotNull { it.slippagePips }
+        val avgSlippage = if (slippages.isNotEmpty()) slippages.average() else null
+
+        val scores = cases.mapNotNull { it.modelAccuracyScore }
+        val efficiency = if (scores.isNotEmpty()) {
+            val scored = cases.mapNotNull { case ->
+                case.actualMovePct?.let { accuracyScore(it) }
+            }
+            if (scored.isNotEmpty()) scored.average().toInt().coerceIn(0, 100) else null
+        } else null
+
+        val durations = cases.mapNotNull { it.timeToTargetMs }
+        val avgDuration = if (durations.isNotEmpty()) durations.average()?.toLong() else null
+
+        val bestPnl = pnls.maxOrNull()
+        val worstPnl = pnls.minOrNull()
+
+        val regimeBreakdown = cases.groupBy { it.regimeStack.ifBlank { "UNKNOWN" } }
+            .mapValues { (_, regimeCases) ->
+                val rWins = regimeCases.count { it.targetHit == true }
+                val rLosses = regimeCases.count { it.invalidationHit == true }
+                val rPnls = regimeCases.mapNotNull { it.pnl }
+                RegimeStats(
+                    count = regimeCases.size,
+                    wins = rWins,
+                    losses = rLosses,
+                    winRate = if (regimeCases.isNotEmpty()) (rWins.toDouble() / regimeCases.size * 100).toInt() else 0,
+                    totalPnl = rPnls.sum(),
+                    avgPnl = if (rPnls.isNotEmpty()) rPnls.average() else 0.0
+                )
+            }
+
+        val sourceBreakdown = cases.groupBy { it.source.label() }.mapValues { it.value.size }
+
+        return AuditStats(
+            totalRecords = totalRecords,
+            winningRecords = wins,
+            losingRecords = losses,
+            winRate = winRate,
+            totalPnl = totalPnl,
+            avgPnl = avgPnl,
+            profitFactor = profitFactor,
+            expectancy = expectancy,
+            avgRMultiple = avgRMultiple,
+            maxConsecutiveLosses = maxConsecLosses,
+            maxConsecutiveWins = maxConsecWins,
+            avgSlippage = avgSlippage,
+            efficiency = efficiency,
+            avgTradeDurationMs = avgDuration,
+            bestTradePnl = bestPnl,
+            worstTradePnl = worstPnl,
+            regimeBreakdown = regimeBreakdown,
+            sourceBreakdown = sourceBreakdown
+        )
+    }
+
     fun buildCases(
         trades: List<TradeEntity>,
         auditRecords: List<AuditRecord>,
@@ -115,7 +243,8 @@ object PostMoveAuditStore {
             failureReason = if (trade.win) null else "Closed below model expectation under captured regime stack.",
             nodeId = "TRADE_HISTORY",
             reviewed = false,
-            reconstructionLines = lines
+            reconstructionLines = lines,
+            regimeStack = trade.regimeStack
         )
     }
 
@@ -178,7 +307,8 @@ object PostMoveAuditStore {
             nodeId = record.nodeId,
             integrityHash = record.integrityHash,
             reviewed = record.audited,
-            reconstructionLines = lines
+            reconstructionLines = lines,
+            regimeStack = record.deploymentLabel ?: ""
         )
     }
 
@@ -188,7 +318,9 @@ object PostMoveAuditStore {
     }
 
     fun outcomeEfficiency(cases: List<PostMoveAuditCase>): Int? {
-        val scored = cases.mapNotNull { it.modelAccuracyScore }
+        val scored = cases.mapNotNull { case ->
+            case.actualMovePct?.let { accuracyScore(it) }
+        }
         return if (scored.isEmpty()) null else scored.average().toInt().coerceIn(0, 100)
     }
 
@@ -207,6 +339,47 @@ object PostMoveAuditStore {
 
     fun formatSigned(value: Double?): String {
         return value?.let { String.format(Locale.US, "%+,.2f", it) } ?: "NOT CAPTURED"
+    }
+
+    fun formatDuration(ms: Long?): String {
+        if (ms == null || ms <= 0) return "N/A"
+        val seconds = ms / 1000
+        val minutes = seconds / 60
+        val hours = minutes / 60
+        val days = hours / 24
+        return when {
+            days > 0 -> "${days}d ${hours % 24}h"
+            hours > 0 -> "${hours}h ${minutes % 60}m"
+            minutes > 0 -> "${minutes}m ${seconds % 60}s"
+            else -> "${seconds}s"
+        }
+    }
+
+    fun exportCsvHeader(): String {
+        return "ID,Source,Symbol,Direction,Status,Entry,Exit,PnL,Win,Actual Move %,MFE %,MAE %,Regime,Confidence,Risk %,Duration (ms),Timestamp,Reviewed"
+    }
+
+    fun exportCsvRow(c: PostMoveAuditCase): String {
+        return listOf(
+            c.id,
+            c.source.label(),
+            c.symbol,
+            c.direction,
+            c.status,
+            c.entryPrice?.let { String.format(Locale.US, "%.5f", it) } ?: "",
+            c.exitPrice?.let { String.format(Locale.US, "%.5f", it) } ?: "",
+            c.pnl?.let { String.format(Locale.US, "%.2f", it) } ?: "",
+            c.win?.toString() ?: "",
+            c.actualMovePct?.let { String.format(Locale.US, "%.2f", it) } ?: "",
+            c.maxFavorableExcursionPct?.let { String.format(Locale.US, "%.2f", it) } ?: "",
+            c.maxAdverseExcursionPct?.let { String.format(Locale.US, "%.2f", it) } ?: "",
+            c.regimeStack.ifBlank { "UNKNOWN" },
+            (c.modelAccuracyScore ?: c.confidence)?.toString() ?: "",
+            c.riskPct?.let { String.format(Locale.US, "%.1f", it) } ?: "",
+            c.timeToTargetMs?.toString() ?: "",
+            c.timestamp.toString(),
+            c.reviewed.toString()
+        ).joinToString(",")
     }
 
     private fun candidateFor(symbol: String, candidates: List<PreMoveCandidate>): PreMoveCandidate? {

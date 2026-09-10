@@ -21,6 +21,7 @@ val FOREX_PAIRS = listOf(
     // COMMODITIES (4)
     ForexPair("XAU/USD", "Gold / US Dollar", 2342.50, 12.40, 0.53, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("XAG/USD", "Silver / US Dollar", 28.45, 0.65, 2.34, com.asc.markets.data.MarketCategory.COMMODITIES),
+    ForexPair("XCU/USD", "Copper / US Dollar", 4.528, 0.021, 0.47, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("Crude-F", "WTI Crude Oil", 82.14, -1.20, -1.44, com.asc.markets.data.MarketCategory.COMMODITIES),
     ForexPair("Brent-F", "Brent Crude Oil", 85.42, -0.95, -1.10, com.asc.markets.data.MarketCategory.COMMODITIES),
 

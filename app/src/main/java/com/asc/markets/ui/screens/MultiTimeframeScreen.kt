@@ -40,8 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.NetworkConfig
@@ -56,14 +54,11 @@ import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.PureBlack
 import com.asc.markets.ui.theme.RoseError
 import com.asc.markets.ui.theme.SlateText
-import com.trading.app.data.BinanceService
 import com.trading.app.models.OHLCData
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
-import kotlin.random.Random
 
 private enum class OrderFlowAssetMode {
     LINKED,
@@ -91,16 +86,12 @@ private val orderFlowTimeframes = listOf(
 @Composable
 fun MultiTimeframeScreen(symbol: String) {
     val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by BinanceDataStore.allPairs.collectAsState()
-    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
-    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
-    val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
-    val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
-    val allPairs = remember(marketPairs, binancePairs, fallbackPairs) {
-        (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
+    val allPairs = remember(marketPairs) {
+        marketPairs.distinctBy { it.symbol }
     }
-    val priceHistory = remember(marketPriceHistory, binancePriceHistory, fallbackPriceHistory) {
-        marketPriceHistory + binancePriceHistory + fallbackPriceHistory
+    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
+    val priceHistory = remember(marketPriceHistory) {
+        marketPriceHistory
     }
     val assetOptions = remember(allPairs) { allPairs.distinctBy(ForexPair::symbol).sortedBy(ForexPair::symbol) }
 
@@ -145,36 +136,15 @@ fun MultiTimeframeScreen(symbol: String) {
                 val baseHistory = remember(priceHistory, allPairs, resolvedSymbol) {
                     resolveHistory(priceHistory, allPairs, resolvedSymbol)
                 }
-                val binanceHistory = rememberBinanceOrderFlowHistory(
-                    symbol = resolvedSymbol,
-                    timeframe = timeframe
-                )
                 val mt5History = rememberMt5OrderFlowHistory(
                     symbol = resolvedSymbol,
                     timeframe = timeframe
                 )
-                val preferredHistory = remember(resolvedSymbol, binanceHistory, mt5History) {
-                    when {
-                        shouldUseBinanceOrderFlowHistory(resolvedSymbol) && binanceHistory.isNotEmpty() -> binanceHistory
-                        mt5History.isNotEmpty() -> mt5History
-                        else -> emptyList()
-                    }
+                val preferredHistory = remember(resolvedSymbol, mt5History) {
+                    mt5History
                 }
-                val fallbackPrice = pair?.price
-                    ?: preferredHistory.lastOrNull()?.close?.toDouble()
-                    ?: baseHistory.lastOrNull()
-                    ?: 0.0
-                val candles = remember(resolvedSymbol, timeframe, preferredHistory, baseHistory, fallbackPrice) {
-                    if (preferredHistory.isNotEmpty()) {
-                        selectCardCandles(preferredHistory, timeframe)
-                    } else {
-                        buildTimeframeCandles(
-                            symbol = resolvedSymbol,
-                            timeframe = timeframe,
-                            baseHistory = baseHistory,
-                            lastPrice = fallbackPrice
-                        )
-                    }
+                val candles = remember(resolvedSymbol, timeframe, preferredHistory) {
+                    selectCardCandles(preferredHistory, timeframe)
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -503,40 +473,6 @@ private fun AssetPicker(
 }
 
 @Composable
-private fun rememberBinanceOrderFlowHistory(
-    symbol: String,
-    timeframe: OrderFlowTimeframe
-): List<OHLCData> {
-    val normalizedSymbol = remember(symbol) { displaySymbol(symbol) }
-    val useBinanceHistory = remember(symbol) { shouldUseBinanceOrderFlowHistory(symbol) }
-    val binanceTimeframe = remember(timeframe.code) { toBinanceTimeframe(timeframe.code) }
-    var history by remember(symbol, timeframe.code) { mutableStateOf<List<OHLCData>>(emptyList()) }
-
-    DisposableEffect(normalizedSymbol, binanceTimeframe, useBinanceHistory) {
-        history = emptyList()
-        if (!useBinanceHistory) {
-            return@DisposableEffect onDispose {}
-        }
-
-        val service = BinanceService(
-            onQuoteUpdate = {},
-            onHistoryUpdate = { receivedSymbol, incomingHistory ->
-                if (receivedSymbol.equals(normalizedSymbol, ignoreCase = true) && incomingHistory.isNotEmpty()) {
-                    history = sanitizeHistoricalCandles(incomingHistory)
-                }
-            }
-        )
-        service.fetchHistory(normalizedSymbol, binanceTimeframe, null)
-
-        onDispose {
-            service.disconnect()
-        }
-    }
-
-    return history
-}
-
-@Composable
 private fun rememberMt5OrderFlowHistory(
     symbol: String,
     timeframe: OrderFlowTimeframe
@@ -597,68 +533,11 @@ private fun resolveHistory(
         ?: emptyList()
 }
 
-private fun buildTimeframeCandles(
-    symbol: String,
-    timeframe: OrderFlowTimeframe,
-    baseHistory: List<Double>,
-    lastPrice: Double
-): List<OHLCData> {
-    val sourceSeries = if (baseHistory.size >= 8) {
-        baseHistory
-    } else {
-        generateFallbackSeries(symbol, timeframe, lastPrice)
-    }
-    val resampled = resampleSeries(sourceSeries, timeframe.candleCount)
-    val smoothed = smoothSeries(resampled, timeframe.smoothingWindow)
-    val pivot = smoothed.average().takeIf { it.isFinite() } ?: lastPrice.takeIf { it > 0.0 } ?: 1.0
-    val tickSize = estimateTickSize(lastPrice.takeIf { it > 0.0 } ?: pivot)
-    val shapedSeries = smoothed.mapIndexed { index, price ->
-        val centered = pivot + ((price - pivot) * timeframe.amplitudeMultiplier)
-        val wave = sin(index * 0.6 + timeframe.seconds.toDouble() / 7_200.0) * tickSize * timeframe.waveWeight
-        (centered + wave).coerceAtLeast(tickSize)
-    }
-
-    val now = System.currentTimeMillis() / 1000L
-    return shapedSeries.mapIndexed { index, closeValue ->
-        val previousClose = shapedSeries.getOrElse(index - 1) { closeValue }
-        val bodyRange = max(tickSize * 2.0, abs(closeValue - previousClose) * 0.85)
-        val openValue = previousClose
-        val close = closeValue.toFloat()
-        val high = (max(openValue, closeValue) + bodyRange * 0.55).toFloat()
-        val low = (min(openValue, closeValue) - bodyRange * 0.55).toFloat()
-        OHLCData(
-            time = now - ((shapedSeries.size - index).toLong() * timeframe.seconds),
-            open = openValue.toFloat(),
-            high = high,
-            low = low,
-            close = close,
-            volume = 0f
-        )
-    }
-}
-
-private fun generateFallbackSeries(
-    symbol: String,
-    timeframe: OrderFlowTimeframe,
-    lastPrice: Double
-): List<Double> {
-    val basePrice = lastPrice.takeIf { it > 0.0 } ?: 100.0
-    val seed = symbol.uppercase(Locale.US).hashCode().toLong() * 31L + timeframe.code.hashCode().toLong()
-    val random = Random(seed)
-    var price = basePrice
-    return List(max(timeframe.candleCount, 40)) { index ->
-        val tickSize = estimateTickSize(price)
-        val volatility = max(price * 0.0022 * timeframe.amplitudeMultiplier, tickSize * 4.0)
-        val drift = sin(index * 0.42 + timeframe.seconds.toDouble() / 5_400.0) * volatility * 0.18
-        price = (price + random.nextDouble(-volatility, volatility) + drift).coerceAtLeast(tickSize)
-        price
-    }
-}
-
 private fun selectCardCandles(
     candles: List<OHLCData>,
     timeframe: OrderFlowTimeframe
 ): List<OHLCData> {
+    if (candles.isEmpty()) return emptyList()
     val ordered = candles.sortedBy(OHLCData::time)
     val preferredWindow = when (timeframe.code) {
         "D1" -> 180
@@ -708,31 +587,6 @@ private fun sanitizeHistoricalCandles(candles: List<OHLCData>): List<OHLCData> {
         .toList()
 }
 
-private fun resampleSeries(values: List<Double>, targetSize: Int): List<Double> {
-    if (values.isEmpty()) return List(targetSize) { 0.0 }
-    if (values.size == targetSize) return values
-    if (targetSize <= 1) return listOf(values.last())
-
-    return List(targetSize) { index ->
-        val position = index.toDouble() * (values.lastIndex.toDouble() / (targetSize - 1).toDouble())
-        val lowerIndex = position.toInt()
-        val upperIndex = min(lowerIndex + 1, values.lastIndex)
-        val fraction = position - lowerIndex
-        val lower = values[lowerIndex]
-        val upper = values[upperIndex]
-        lower + ((upper - lower) * fraction)
-    }
-}
-
-private fun smoothSeries(values: List<Double>, windowSize: Int): List<Double> {
-    if (windowSize <= 1) return values
-    return values.indices.map { index ->
-        val start = max(0, index - windowSize + 1)
-        val slice = values.subList(start, index + 1)
-        slice.average()
-    }
-}
-
 private fun estimateTickSize(price: Double): Double {
     return when {
         price >= 10_000 -> 5.0
@@ -748,11 +602,6 @@ private fun shouldUseMt5OrderFlowHistory(symbol: String): Boolean {
     return symbol.isNotBlank()
 }
 
-private fun shouldUseBinanceOrderFlowHistory(symbol: String): Boolean {
-    val compactSymbol = displaySymbol(symbol)
-    return compactSymbol.endsWith("USDT")
-}
-
 private fun normalizeMt5OrderFlowSymbol(symbol: String): String {
     return displaySymbol(symbol)
 }
@@ -760,18 +609,6 @@ private fun normalizeMt5OrderFlowSymbol(symbol: String): String {
 private fun toMt5Timeframe(code: String): String {
     return when (code.uppercase(Locale.US)) {
         "D1" -> "D"
-        "H4" -> "4h"
-        "H1" -> "1h"
-        "M30" -> "30m"
-        "M15" -> "15m"
-        "M5" -> "5m"
-        else -> "1h"
-    }
-}
-
-private fun toBinanceTimeframe(code: String): String {
-    return when (code.uppercase(Locale.US)) {
-        "D1" -> "d"
         "H4" -> "4h"
         "H1" -> "1h"
         "M30" -> "30m"

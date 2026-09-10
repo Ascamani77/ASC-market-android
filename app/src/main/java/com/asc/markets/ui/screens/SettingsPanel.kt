@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.UserSettings
+import com.asc.markets.data.BiometricAuthManager
 import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.HairlineBorder
 import com.asc.markets.ui.theme.IndigoAccent
@@ -47,7 +48,7 @@ fun SettingsPanel(
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             TopAppBar(title = { Text(section) }, navigationIcon = {
                 IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
-            }, colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = PureBlack))
+            }, colors = TopAppBarDefaults.topAppBarColors(containerColor = PureBlack))
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -329,7 +330,8 @@ private fun SecurityProtocolPanel(settings: UserSettings) {
         Text("ACCESS GOVERNANCE", color = IndigoAccent, fontSize = 12.sp)
         Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.02f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, HairlineBorder)) {
             Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                var biometricGuard by remember { mutableStateOf(true) }
+                val context = LocalContext.current
+                var biometricGuard by remember { mutableStateOf(BiometricAuthManager.isEnabled(context)) }
                 var pinBackup by remember { mutableStateOf(true) }
 
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -337,7 +339,7 @@ private fun SecurityProtocolPanel(settings: UserSettings) {
                         Text("Biometric Guard", color = Color.White, fontSize = 16.sp)
                         Text("Require fingerprint or face ID on app launch", color = SlateText, fontSize = 12.sp)
                     }
-                    Switch(checked = biometricGuard, onCheckedChange = { biometricGuard = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
+                    Switch(checked = biometricGuard, onCheckedChange = { biometricGuard = it; BiometricAuthManager.setEnabled(context, it) }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = IndigoAccent))
                 }
 
                 Divider(color = Color.White.copy(alpha = 0.03f))

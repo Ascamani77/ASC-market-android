@@ -108,7 +108,12 @@ fun MacroStreamScreen(viewModel: ForexViewModel = viewModel()) {
                             singleLine = true,
                             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                             textStyle = TextStyle(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = Color(0xFF0B0B0B), unfocusedBorderColor = Color.Transparent, focusedBorderColor = IndigoAccent)
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color(0xFF0B0B0B),
+                                unfocusedContainerColor = Color(0xFF0B0B0B),
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedBorderColor = IndigoAccent
+                            )
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }

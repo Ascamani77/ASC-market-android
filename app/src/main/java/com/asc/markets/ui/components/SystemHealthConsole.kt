@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.logic.HealthMonitor
 import com.asc.markets.logic.ConnectivityManager
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.*
 
 @Composable
@@ -58,7 +59,7 @@ fun SystemHealthConsole() {
                         text = "> $log",
                         color = Color(0xFF00FF41),
                         fontSize = 11.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFamily = com.asc.markets.ui.theme.InterFontFamily,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }

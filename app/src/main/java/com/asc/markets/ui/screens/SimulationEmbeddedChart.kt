@@ -265,6 +265,7 @@ fun EmbeddedSimulationChartSection(
                             chartState.drawings.add(updatedDrawing)
                         }
                     },
+                    onAlertPriceUpdate = { _, _ -> },
                     activeTool = "cursor",
                     onToolReset = {},
                     showVolume = true,

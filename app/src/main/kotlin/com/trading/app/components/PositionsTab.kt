@@ -87,7 +87,9 @@ private fun PositionItem(
     
     // Calculations
     val isBuy = position.type == "buy"
-    val pnl = (lastPrice - position.entryPrice) * position.volume * (if (isBuy) 1f else -1f)
+    // Prefer the broker-reported profit (includes swap/commission/spread side) over a local estimate
+    val pnl = if (position.hasBrokerProfit) position.profit + position.swap
+              else (lastPrice - position.entryPrice) * position.volume * (if (isBuy) 1f else -1f)
     val pnlPercentage = (pnl / (position.entryPrice * position.volume)) * 100
     val tradeValue = position.entryPrice * position.volume
     val marketValue = lastPrice * position.volume
@@ -119,7 +121,7 @@ private fun PositionItem(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    "${providerLabel.uppercase(Locale.US)}:${position.symbol.uppercase()}",
+                    "${position.symbol.uppercase()}",
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold

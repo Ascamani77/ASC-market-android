@@ -1,18 +1,24 @@
 package com.asc.markets.data
 
 import android.content.Context
+import com.asc.markets.BuildConfig
 
 object NetworkConfig {
     const val PREFS_NAME = "asc_prefs"
-    const val DEFAULT_HOST = "192.168.1.198"
-    const val DEFAULT_BACKEND_URL = "http://192.168.1.198:8000"
+    val DEFAULT_BACKEND_URL: String = BuildConfig.DEFAULT_BACKEND_URL.removeSuffix("/")
+    val DEFAULT_HOST: String = DEFAULT_BACKEND_URL
+        .removePrefix("https://")
+        .removePrefix("http://")
+        .substringBefore(":")
+    val DEFAULT_SCANNER_URL: String = "http://$DEFAULT_HOST:5000"
     const val DEFAULT_MT5_PORT = 8081
-    const val DEFAULT_CTRADER_PORT = 8082
-    const val DEFAULT_CTRADER_DEMO_PORT = 8083
+
     private const val LEGACY_HOST = "10.95.77.133"
     private const val LEGACY_BACKEND_URL = "http://10.95.77.133:8000"
     private const val PREVIOUS_HOST = "10.151.58.104"
     private const val PREVIOUS_BACKEND_URL = "http://10.151.58.104:8000"
+    private const val OLD_HOST = "192.168.1.199"
+    private const val OLD_BACKEND_URL = "http://192.168.1.199:8001"
 
     fun backendUrl(context: Context): String {
         val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -21,6 +27,7 @@ object NetworkConfig {
             savedUrl.isNullOrBlank() -> DEFAULT_BACKEND_URL
             savedUrl == LEGACY_BACKEND_URL -> DEFAULT_BACKEND_URL
             savedUrl == PREVIOUS_BACKEND_URL -> DEFAULT_BACKEND_URL
+            savedUrl == OLD_BACKEND_URL -> DEFAULT_BACKEND_URL
             else -> savedUrl
         }
     }
@@ -48,6 +55,17 @@ object NetworkConfig {
         return result
     }
 
+    fun scannerBaseUrl(context: Context): String {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val saved = prefs.getString("scanner_url", null)?.trim()?.removeSuffix("/")
+        if (!saved.isNullOrBlank()) return saved
+        val host = backendUrl(context)
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .substringBefore(":")
+        return "http://$host:5000"
+    }
+
     fun mt5Port(context: Context): Int {
         val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (prefs.contains("mt5_port")) {
@@ -66,29 +84,7 @@ object NetworkConfig {
 
     fun mt5BridgeUrl(context: Context): String = "${mt5Host(context)}:${mt5Port(context)}"
 
-    fun cTraderHost(context: Context): String {
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return normalizedHost(prefs.getString("ctrader_host", DEFAULT_HOST)?.trim()?.ifBlank { DEFAULT_HOST } ?: DEFAULT_HOST)
-    }
 
-    fun cTraderPort(context: Context): Int {
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getInt("ctrader_port", DEFAULT_CTRADER_PORT)
-    }
-
-    fun cTraderBridgeUrl(context: Context): String = "${cTraderHost(context)}:${cTraderPort(context)}"
-
-    fun cTraderDemoHost(context: Context): String {
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return normalizedHost(prefs.getString("ctrader_demo_host", DEFAULT_HOST)?.trim()?.ifBlank { DEFAULT_HOST } ?: DEFAULT_HOST)
-    }
-
-    fun cTraderDemoPort(context: Context): Int {
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getInt("ctrader_demo_port", DEFAULT_CTRADER_DEMO_PORT)
-    }
-
-    fun cTraderDemoBridgeUrl(context: Context): String = "${cTraderDemoHost(context)}:${cTraderDemoPort(context)}"
 
     fun normalizedBackendUrl(value: String): String {
         val trimmed = value.trim().ifBlank { DEFAULT_BACKEND_URL }
@@ -100,7 +96,7 @@ object NetworkConfig {
 
     fun normalizedHost(value: String): String {
         return when (value.trim()) {
-            LEGACY_HOST, PREVIOUS_HOST -> DEFAULT_HOST
+            LEGACY_HOST, PREVIOUS_HOST, OLD_HOST -> DEFAULT_HOST
             else -> value.trim().ifBlank { DEFAULT_HOST }
         }
     }

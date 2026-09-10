@@ -28,8 +28,8 @@ class RsiIndicator(private val period: Int = 14, private val maPeriod: Int = 14)
         var avgLoss = lossSum / period
 
         fun calculateRsiValue(gain: Double, loss: Double): Float {
+            // Pine: rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
             return when {
-                gain == 0.0 && loss == 0.0 -> 50f
                 loss == 0.0 -> 100f
                 gain == 0.0 -> 0f
                 else -> (100.0 - (100.0 / (1.0 + gain / loss))).toFloat()

@@ -3,6 +3,7 @@ package com.asc.markets.ui.screens
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -90,6 +91,8 @@ fun MarketStatusScreen() {
 
     val markets = remember(currentTime) { getMarketHours(currentTime) }
     val upcomingHolidays = remember(currentTime) { getUpcomingHolidays(currentTime) }
+    var holidaysExpanded by remember { mutableStateOf(false) }
+    var infoExpanded by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -154,28 +157,97 @@ fun MarketStatusScreen() {
         // Holidays Section
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Upcoming Market Holidays",
-                color = IndigoAccent,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { holidaysExpanded = !holidaysExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Upcoming Market Holidays",
+                    color = IndigoAccent,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    if (holidaysExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (holidaysExpanded) "Collapse" else "Expand",
+                    tint = IndigoAccent
+                )
+            }
         }
 
-        items(upcomingHolidays) { holiday ->
-            HolidayCard(holiday)
+        if (holidaysExpanded && upcomingHolidays.isNotEmpty()) {
+            items(upcomingHolidays) { holiday ->
+                HolidayCard(holiday)
+            }
         }
 
         // Info Section
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            InfoCard()
+            
+            Surface(
+                onClick = { infoExpanded = !infoExpanded },
+                color = Color(0xFF1A1D2E),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = IndigoAccent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                "Market Hours Information",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Icon(
+                            if (infoExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (infoExpanded) "Collapse" else "Expand",
+                            tint = IndigoAccent
+                        )
+                    }
+                    
+                    if (infoExpanded) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            "• Crypto markets operate 24/7 with no holidays\n" +
+                            "• Forex is normalized to the New York close (Sun 5 PM - Fri 5 PM ET)\n" +
+                            "• US stocks use NYSE/NASDAQ hours in America/New_York\n" +
+                            "• Futures and commodities use CME Globex hours in America/Chicago\n" +
+                            "• Holidays may vary by exchange and region\n" +
+                            "• Session status is based on exchange-local time",
+                            color = SlateText,
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 fun MarketCard(market: MarketHours, currentTime: LocalDateTime) {
+    var isExpanded by remember { mutableStateOf(false) }
     val status = remember(market, currentTime) { resolveMarketSchedule(market, currentTime) }
 
     val statusColor = when (status.status) {
@@ -193,6 +265,7 @@ fun MarketCard(market: MarketHours, currentTime: LocalDateTime) {
     }
 
     Surface(
+        onClick = { isExpanded = !isExpanded },
         color = DeepBlack,
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
@@ -202,6 +275,7 @@ fun MarketCard(market: MarketHours, currentTime: LocalDateTime) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Always visible header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -244,60 +318,63 @@ fun MarketCard(market: MarketHours, currentTime: LocalDateTime) {
                 }
             }
 
-            HorizontalDivider(color = HairlineBorder, thickness = 1.dp)
+            // Collapsible details
+            if (isExpanded) {
+                HorizontalDivider(color = HairlineBorder, thickness = 1.dp)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        "Opens",
-                        color = SlateText,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        market.openTime,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            "Opens",
+                            color = SlateText,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            market.openTime,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "Closes",
+                            color = SlateText,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            market.closeTime,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        "Closes",
-                        color = SlateText,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        market.closeTime,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+
+                Text(
+                    market.description,
+                    color = SlateText,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                Text(
+                    status.detailText,
+                    color = IndigoAccent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Text(
+                    "Timezone: ${market.timezone}",
+                    color = Color(0xFF6B7280),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
-
-            Text(
-                market.description,
-                color = SlateText,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
-
-            Text(
-                status.detailText,
-                color = IndigoAccent,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-
-            Text(
-                "Timezone: ${market.timezone}",
-                color = Color(0xFF6B7280),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -350,120 +427,84 @@ fun HolidayCard(holiday: MarketHoliday) {
     }
 }
 
-@Composable
-fun InfoCard() {
-    Surface(
-        color = Color(0xFF1A1D2E),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.3f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                Icons.Default.Info,
-                contentDescription = null,
-                tint = IndigoAccent,
-                modifier = Modifier.size(24.dp)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "Market Hours Information",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "• Crypto markets operate 24/7 with no holidays\n" +
-                    "• Forex is normalized to the New York close (Sun 5 PM - Fri 5 PM ET)\n" +
-                    "• US stocks use NYSE/NASDAQ hours in America/New_York\n" +
-                    "• Futures and commodities use CME Globex hours in America/Chicago\n" +
-                    "• Holidays may vary by exchange and region\n" +
-                    "• Session status is based on exchange-local time",
-                    color = SlateText,
-                    fontSize = 13.sp,
-                    lineHeight = 20.sp
-                )
-            }
-        }
-    }
-}
-
 fun getMarketHours(currentTime: LocalDateTime): List<MarketHours> {
+    // Convert market times to Nigerian time (GMT+1)
+    // Forex: NY time (Sunday 5:00 PM ET = Monday 12:00 AM WAT, Friday 5:00 PM ET = Saturday 12:00 AM WAT)
+    // ET is UTC-5 (standard) or UTC-4 (daylight), WAT is UTC+1
+    // Difference: WAT is 6 hours ahead of ET (standard) or 5 hours (daylight)
+    
     return listOf(
         MarketHours(
             name = "Cryptocurrency Markets",
             type = "Crypto (BTC, ETH, etc.)",
             status = resolveMarketSchedule(
-                MarketHours("Cryptocurrency Markets", "Crypto (BTC, ETH, etc.)", MarketStatus.OPEN, "24/7", "Never", "UTC", ""),
+                MarketHours("Cryptocurrency Markets", "Crypto (BTC, ETH, etc.)", MarketStatus.OPEN, "24/7", "Never", "Africa/Lagos", ""),
                 currentTime
             ).status,
             openTime = "24/7",
             closeTime = "Never",
-            timezone = "UTC",
+            timezone = "GMT+1 (Nigerian Time)",
             description = "Cryptocurrency markets operate continuously without breaks or holidays. Trading is available around the clock."
         ),
         MarketHours(
             name = "Forex Session (New York Close)",
             type = "Foreign Exchange",
             status = resolveMarketSchedule(
-                MarketHours("Forex Session (New York Close)", "Foreign Exchange", MarketStatus.CLOSED, "Sunday 5:00 PM", "Friday 5:00 PM", "America/New_York", ""),
+                MarketHours("Forex Session (New York Close)", "Foreign Exchange", MarketStatus.CLOSED, "Monday 12:00 AM", "Saturday 12:00 AM", "Africa/Lagos", ""),
                 currentTime
             ).status,
-            openTime = "Sunday 5:00 PM",
-            closeTime = "Friday 5:00 PM",
-            timezone = "America/New_York",
-            description = "Forex is a decentralized global market, tracked here using the New York close convention (Sunday 5:00 PM to Friday 5:00 PM ET)."
+            openTime = "Monday 12:00 AM",
+            closeTime = "Saturday 12:00 AM",
+            timezone = "GMT+1 (Nigerian Time)",
+            description = "Forex is a decentralized global market. Opens Monday midnight (Sunday 5 PM ET) and closes Saturday midnight (Friday 5 PM ET) in Nigerian time."
         ),
         MarketHours(
-            name = "US Stock Markets (NYSE / NASDAQ)",
+            name = "US Stock Markets",
             type = "Equities",
             status = resolveMarketSchedule(
-                MarketHours("US Stock Markets (NYSE / NASDAQ)", "Equities", MarketStatus.CLOSED, "9:30 AM", "4:00 PM", "America/New_York", ""),
+                MarketHours("US Stock Markets", "Equities", MarketStatus.CLOSED, "3:30 PM", "10:00 PM", "Africa/Lagos", ""),
                 currentTime
             ).status,
-            openTime = "9:30 AM",
-            closeTime = "4:00 PM",
-            timezone = "America/New_York",
-            description = "NYSE and NASDAQ regular trading runs 9:30 AM-4:00 PM ET, with pre-market from 4:00 AM and after-hours until 8:00 PM ET."
+            openTime = "3:30 PM",
+            closeTime = "10:00 PM",
+            timezone = "GMT+1 (Nigerian Time)",
+            description = "NYSE and NASDAQ regular trading runs 3:30 PM-10:00 PM WAT, with pre-market from 10:00 AM and after-hours until 2:00 AM WAT."
         ),
         MarketHours(
             name = "Commodities (CME Globex)",
             type = "Commodities",
             status = resolveMarketSchedule(
-                MarketHours("Commodities (CME Globex)", "Commodities", MarketStatus.CLOSED, "Sunday 5:00 PM", "Friday 4:00 PM", "America/Chicago", ""),
+                MarketHours("Commodities (CME Globex)", "Commodities", MarketStatus.CLOSED, "Monday 12:00 AM", "Saturday 11:00 PM", "Africa/Lagos", ""),
                 currentTime
             ).status,
-            openTime = "Sunday 5:00 PM",
-            closeTime = "Friday 4:00 PM",
-            timezone = "America/Chicago",
-            description = "Major commodity futures trade on CME Globex, generally Sunday 5:00 PM CT through Friday 4:00 PM CT with a daily maintenance break."
+            openTime = "Monday 12:00 AM",
+            closeTime = "Saturday 11:00 PM",
+            timezone = "GMT+1 (Nigerian Time)",
+            description = "Major commodity futures trade on CME Globex, generally Monday 12:00 AM WAT through Saturday 11:00 PM WAT with a daily maintenance break."
         ),
         MarketHours(
             name = "Index Futures (CME Globex)",
             type = "Futures",
             status = resolveMarketSchedule(
-                MarketHours("Index Futures (CME Globex)", "Futures", MarketStatus.CLOSED, "Sunday 5:00 PM", "Friday 4:00 PM", "America/Chicago", ""),
+                MarketHours("Index Futures (CME Globex)", "Futures", MarketStatus.CLOSED, "Monday 12:00 AM", "Saturday 11:00 PM", "Africa/Lagos", ""),
                 currentTime
             ).status,
-            openTime = "Sunday 5:00 PM",
-            closeTime = "Friday 4:00 PM",
-            timezone = "America/Chicago",
-            description = "Index futures on CME Globex follow the Chicago session: Sunday 5:00 PM CT open, Friday 4:00 PM CT close, with a daily 4:00-5:00 PM CT maintenance break."
+            openTime = "Monday 12:00 AM",
+            closeTime = "Saturday 11:00 PM",
+            timezone = "GMT+1 (Nigerian Time)",
+            description = "Index futures on CME Globex follow the Chicago session: Monday 12:00 AM WAT open, Saturday 11:00 PM WAT close, with a daily 11:00 PM-12:00 AM WAT maintenance break."
         ),
         MarketHours(
             name = "US Treasury / Bond Market",
             type = "Fixed Income",
             status = resolveMarketSchedule(
-                MarketHours("US Treasury / Bond Market", "Fixed Income", MarketStatus.CLOSED, "8:00 AM", "5:00 PM", "America/New_York", ""),
+                MarketHours("US Treasury / Bond Market", "Fixed Income", MarketStatus.CLOSED, "2:00 PM", "11:00 PM", "Africa/Lagos", ""),
                 currentTime
             ).status,
-            openTime = "8:00 AM",
-            closeTime = "5:00 PM",
-            timezone = "America/New_York",
-            description = "US Treasury trading is strongest during New York business hours, roughly 8:00 AM-5:00 PM ET on weekdays."
+            openTime = "2:00 PM",
+            closeTime = "11:00 PM",
+            timezone = "GMT+1 (Nigerian Time)",
+            description = "US Treasury trading is strongest during New York business hours, roughly 2:00 PM-11:00 PM WAT on weekdays."
         )
     )
 }
@@ -474,10 +515,10 @@ private data class MarketScheduleSnapshot(
 )
 
 private fun resolveMarketSchedule(market: MarketHours, currentTime: LocalDateTime): MarketScheduleSnapshot {
-    val appZone = ZoneId.of(APP_TIMEZONE_ID)
-    val exchangeZone = runCatching { ZoneId.of(market.timezone) }.getOrElse { appZone }
-    val exchangeTime = currentTime.atZone(appZone).withZoneSameInstant(exchangeZone).toLocalDateTime()
-    val time = exchangeTime.toLocalTime()
+    val appZone = ZoneId.of(APP_TIMEZONE_ID) // Nigerian time
+    // All calculations are done in Nigerian time since that's what the user sees
+    val localTime = currentTime
+    val time = localTime.toLocalTime()
     val name = market.name.lowercase(Locale.US)
     val type = market.type.lowercase(Locale.US)
 
@@ -488,82 +529,110 @@ private fun resolveMarketSchedule(market: MarketHours, currentTime: LocalDateTim
         )
 
         type.contains("foreign exchange") || name.contains("forex") -> {
-            val sundayOpen = nextWeeklyDateTime(exchangeTime, DayOfWeek.SUNDAY, 17, 0)
-            val fridayClose = nextWeeklyDateTime(exchangeTime, DayOfWeek.FRIDAY, 17, 0)
-            val isOpen = when (exchangeTime.dayOfWeek) {
-                DayOfWeek.SATURDAY -> false
-                DayOfWeek.SUNDAY -> time >= LocalTime.of(17, 0)
-                DayOfWeek.FRIDAY -> time < LocalTime.of(17, 0)
-                else -> true
+            // Forex: Opens Monday 00:00 WAT, Closes Saturday 00:00 WAT
+            // Closed: All of Saturday and all of Sunday
+            val isWeekend = localTime.dayOfWeek == DayOfWeek.SATURDAY || 
+                           localTime.dayOfWeek == DayOfWeek.SUNDAY
+            
+            val isOpen = !isWeekend
+            
+            // Calculate next midnight or next market open
+            val nextMidnight = localTime.toLocalDate().plusDays(1).atTime(0, 0)
+            val mondayOpen = nextWeeklyDateTime(localTime, DayOfWeek.MONDAY, 0, 0)
+            val saturdayClose = when (localTime.dayOfWeek) {
+                DayOfWeek.SATURDAY -> sameDayDateTime(localTime, 0, 0)
+                else -> nextWeeklyDateTime(localTime, DayOfWeek.SATURDAY, 0, 0)
             }
 
             MarketScheduleSnapshot(
                 status = if (isOpen) MarketStatus.OPEN else MarketStatus.CLOSED,
                 detailText = if (isOpen) {
-                    "Closes in ${formatCountdown(exchangeTime, fridayClose)}"
+                    // Show time until end of current trading day (midnight or Saturday close)
+                    if (localTime.dayOfWeek == DayOfWeek.FRIDAY) {
+                        "Closes in ${formatCountdown(localTime, saturdayClose)}"
+                    } else {
+                        "Resets in ${formatCountdown(localTime, nextMidnight)}"
+                    }
                 } else {
-                    "Opens in ${formatCountdown(exchangeTime, sundayOpen)}"
+                    "Opens in ${formatCountdown(localTime, mondayOpen)}"
                 }
             )
         }
 
         type.contains("equities") || name.contains("stock") -> {
-            val preMarketOpen = sameDayDateTime(exchangeTime, 4, 0)
-            val regularOpen = sameDayDateTime(exchangeTime, 9, 30)
-            val regularClose = sameDayDateTime(exchangeTime, 16, 0)
-            val afterHoursClose = sameDayDateTime(exchangeTime, 20, 0)
-            val nextPreMarketOpen = when (exchangeTime.dayOfWeek) {
-                DayOfWeek.SATURDAY, DayOfWeek.SUNDAY, DayOfWeek.FRIDAY -> nextWeeklyDateTime(exchangeTime, DayOfWeek.MONDAY, 4, 0)
-                else -> if (time < LocalTime.of(4, 0)) preMarketOpen else exchangeTime.toLocalDate().plusDays(1).atTime(4, 0)
+            // US Stocks: 9:30 AM ET = 3:30 PM WAT, 4:00 PM ET = 10:00 PM WAT
+            // Pre-market: 4:00 AM ET = 10:00 AM WAT, After hours: 8:00 PM ET = 2:00 AM WAT (next day)
+            val preMarketOpen = sameDayDateTime(localTime, 10, 0)
+            val regularOpen = sameDayDateTime(localTime, 15, 30)
+            val regularClose = sameDayDateTime(localTime, 22, 0)
+            val afterHoursClose = localTime.toLocalDate().plusDays(1).atTime(2, 0)
+            val nextPreMarketOpen = when (localTime.dayOfWeek) {
+                DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> nextWeeklyDateTime(localTime, DayOfWeek.MONDAY, 10, 0)
+                DayOfWeek.FRIDAY -> if (time >= LocalTime.of(2, 0)) nextWeeklyDateTime(localTime, DayOfWeek.MONDAY, 10, 0) else preMarketOpen
+                else -> if (time < LocalTime.of(10, 0)) preMarketOpen else localTime.toLocalDate().plusDays(1).atTime(10, 0)
             }
 
-            val status = when (exchangeTime.dayOfWeek) {
-                DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> MarketStatus.CLOSED
+            val status = when (localTime.dayOfWeek) {
+                DayOfWeek.SATURDAY -> MarketStatus.CLOSED
+                DayOfWeek.SUNDAY -> MarketStatus.CLOSED
+                DayOfWeek.FRIDAY -> when {
+                    time < LocalTime.of(10, 0) -> MarketStatus.CLOSED
+                    time < LocalTime.of(15, 30) -> MarketStatus.PRE_MARKET
+                    time < LocalTime.of(22, 0) -> MarketStatus.OPEN
+                    else -> MarketStatus.AFTER_HOURS
+                }
+                DayOfWeek.MONDAY -> when {
+                    time < LocalTime.of(2, 0) -> MarketStatus.AFTER_HOURS // From Friday
+                    time < LocalTime.of(10, 0) -> MarketStatus.CLOSED
+                    time < LocalTime.of(15, 30) -> MarketStatus.PRE_MARKET
+                    time < LocalTime.of(22, 0) -> MarketStatus.OPEN
+                    else -> MarketStatus.AFTER_HOURS
+                }
                 else -> when {
-                    time < LocalTime.of(4, 0) -> MarketStatus.CLOSED
-                    time < LocalTime.of(9, 30) -> MarketStatus.PRE_MARKET
-                    time < LocalTime.of(16, 0) -> MarketStatus.OPEN
-                    time < LocalTime.of(20, 0) -> MarketStatus.AFTER_HOURS
-                    else -> MarketStatus.CLOSED
+                    time < LocalTime.of(2, 0) -> MarketStatus.AFTER_HOURS
+                    time < LocalTime.of(10, 0) -> MarketStatus.CLOSED
+                    time < LocalTime.of(15, 30) -> MarketStatus.PRE_MARKET
+                    time < LocalTime.of(22, 0) -> MarketStatus.OPEN
+                    else -> MarketStatus.AFTER_HOURS
                 }
             }
 
             val detailText = when (status) {
-                MarketStatus.OPEN -> "Closes in ${formatCountdown(exchangeTime, regularClose)}"
-                MarketStatus.PRE_MARKET -> "Regular session in ${formatCountdown(exchangeTime, regularOpen)}"
-                MarketStatus.AFTER_HOURS -> "After-hours ends in ${formatCountdown(exchangeTime, afterHoursClose)}"
-                else -> "Opens in ${formatCountdown(exchangeTime, nextPreMarketOpen)}"
+                MarketStatus.OPEN -> "Closes in ${formatCountdown(localTime, regularClose)}"
+                MarketStatus.PRE_MARKET -> "Regular session in ${formatCountdown(localTime, regularOpen)}"
+                MarketStatus.AFTER_HOURS -> "After-hours ends in ${formatCountdown(localTime, afterHoursClose)}"
+                else -> "Opens in ${formatCountdown(localTime, nextPreMarketOpen)}"
             }
 
             MarketScheduleSnapshot(status = status, detailText = detailText)
         }
 
         type.contains("commodities") || type.contains("futures") || name.contains("cme") -> {
-            val sundayOpen = nextWeeklyDateTime(exchangeTime, DayOfWeek.SUNDAY, 17, 0)
-            val fridayClose = nextWeeklyDateTime(exchangeTime, DayOfWeek.FRIDAY, 16, 0)
+            // CME: Sunday 5 PM CT = Monday 12 AM WAT, Friday 4 PM CT = Saturday 11 PM WAT
+            // Maintenance: 4-5 PM CT = 11 PM-12 AM WAT
+            val mondayOpen = nextWeeklyDateTime(localTime, DayOfWeek.MONDAY, 0, 0)
+            val saturdayClose = nextWeeklyDateTime(localTime, DayOfWeek.SATURDAY, 23, 0)
             val maintenanceBreak = when {
-                time < LocalTime.of(16, 0) -> sameDayDateTime(exchangeTime, 16, 0)
-                time >= LocalTime.of(17, 0) -> exchangeTime.toLocalDate().plusDays(1).atTime(16, 0)
-                else -> sameDayDateTime(exchangeTime, 17, 0)
+                time < LocalTime.of(23, 0) -> sameDayDateTime(localTime, 23, 0)
+                else -> localTime.toLocalDate().plusDays(1).atTime(0, 0)
             }
 
-            val status = when (exchangeTime.dayOfWeek) {
-                DayOfWeek.SATURDAY -> MarketStatus.CLOSED
-                DayOfWeek.SUNDAY -> if (time >= LocalTime.of(17, 0)) MarketStatus.OPEN else MarketStatus.CLOSED
-                DayOfWeek.FRIDAY -> if (time < LocalTime.of(16, 0)) MarketStatus.OPEN else MarketStatus.CLOSED
-                else -> if (time in LocalTime.of(16, 0)..LocalTime.of(16, 59, 59)) MarketStatus.CLOSED else MarketStatus.OPEN
+            val status = when (localTime.dayOfWeek) {
+                DayOfWeek.SUNDAY -> MarketStatus.CLOSED
+                DayOfWeek.MONDAY -> if (time >= LocalTime.of(0, 0)) MarketStatus.OPEN else MarketStatus.CLOSED
+                DayOfWeek.SATURDAY -> if (time < LocalTime.of(23, 0)) MarketStatus.OPEN else MarketStatus.CLOSED
+                else -> if (time in LocalTime.of(23, 0)..LocalTime.of(23, 59, 59)) MarketStatus.CLOSED else MarketStatus.OPEN
             }
 
             val detailText = when (status) {
-                MarketStatus.OPEN -> when (exchangeTime.dayOfWeek) {
-                    DayOfWeek.FRIDAY -> "Closes in ${formatCountdown(exchangeTime, fridayClose)}"
-                    else -> "Maintenance break in ${formatCountdown(exchangeTime, maintenanceBreak)}"
+                MarketStatus.OPEN -> when (localTime.dayOfWeek) {
+                    DayOfWeek.SATURDAY -> "Closes in ${formatCountdown(localTime, saturdayClose)}"
+                    else -> "Maintenance break in ${formatCountdown(localTime, maintenanceBreak)}"
                 }
-                else -> when (exchangeTime.dayOfWeek) {
-                    DayOfWeek.SATURDAY -> "Opens in ${formatCountdown(exchangeTime, sundayOpen)}"
-                    DayOfWeek.SUNDAY -> "Opens in ${formatCountdown(exchangeTime, sameDayDateTime(exchangeTime, 17, 0))}"
-                    DayOfWeek.FRIDAY -> "Opens in ${formatCountdown(exchangeTime, sundayOpen)}"
-                    else -> "Reopens in ${formatCountdown(exchangeTime, sameDayDateTime(exchangeTime, 17, 0))}"
+                else -> when (localTime.dayOfWeek) {
+                    DayOfWeek.SUNDAY -> "Opens in ${formatCountdown(localTime, mondayOpen)}"
+                    DayOfWeek.SATURDAY -> "Opens in ${formatCountdown(localTime, mondayOpen)}"
+                    else -> "Reopens in ${formatCountdown(localTime, localTime.toLocalDate().plusDays(1).atTime(0, 0))}"
                 }
             }
 
@@ -571,24 +640,25 @@ private fun resolveMarketSchedule(market: MarketHours, currentTime: LocalDateTim
         }
 
         type.contains("fixed income") || name.contains("treasury") || name.contains("bond") -> {
-            val openTime = sameDayDateTime(exchangeTime, 8, 0)
-            val closeTime = sameDayDateTime(exchangeTime, 17, 0)
-            val nextOpen = when (exchangeTime.dayOfWeek) {
-                DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> nextWeeklyDateTime(exchangeTime, DayOfWeek.MONDAY, 8, 0)
-                else -> if (time < LocalTime.of(8, 0)) openTime else exchangeTime.toLocalDate().plusDays(1).atTime(8, 0)
+            // US Treasury: 8 AM ET = 2 PM WAT, 5 PM ET = 11 PM WAT
+            val openTime = sameDayDateTime(localTime, 14, 0)
+            val closeTime = sameDayDateTime(localTime, 23, 0)
+            val nextOpen = when (localTime.dayOfWeek) {
+                DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> nextWeeklyDateTime(localTime, DayOfWeek.MONDAY, 14, 0)
+                else -> if (time < LocalTime.of(14, 0)) openTime else localTime.toLocalDate().plusDays(1).atTime(14, 0)
             }
 
-            val status = when (exchangeTime.dayOfWeek) {
+            val status = when (localTime.dayOfWeek) {
                 DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> MarketStatus.CLOSED
-                else -> if (time in LocalTime.of(8, 0)..LocalTime.of(16, 59, 59)) MarketStatus.OPEN else MarketStatus.CLOSED
+                else -> if (time in LocalTime.of(14, 0)..LocalTime.of(22, 59, 59)) MarketStatus.OPEN else MarketStatus.CLOSED
             }
 
             MarketScheduleSnapshot(
                 status = status,
                 detailText = if (status == MarketStatus.OPEN) {
-                    "Closes in ${formatCountdown(exchangeTime, closeTime)}"
+                    "Closes in ${formatCountdown(localTime, closeTime)}"
                 } else {
-                    "Opens in ${formatCountdown(exchangeTime, nextOpen)}"
+                    "Opens in ${formatCountdown(localTime, nextOpen)}"
                 }
             )
         }

@@ -42,10 +42,9 @@ fun LiquidityHubScreen() {
     val viewModel: ForexViewModel = viewModel()
     val selectedPair by viewModel.selectedPair.collectAsState()
     
-    // Get all available pairs from MarketDataStore and BinanceDataStore
+    // Get all available pairs from MarketDataStore (EA only)
     val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by com.asc.markets.data.BinanceDataStore.allPairs.collectAsState()
-    val allPairs = (marketPairs + binancePairs).distinctBy { it.symbol }
+    val allPairs = marketPairs.distinctBy { it.symbol }
     
     // Get pre-move candidates for liquidity data
     val candidates by PreMoveIntelligenceStore.candidates.collectAsState(initial = emptyList())

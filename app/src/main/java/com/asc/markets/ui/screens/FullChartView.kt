@@ -33,7 +33,23 @@ fun FullChartView(pair: ForexPair, onBack: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(pair.symbol, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                    Text("NY4 EQUINIX / FEED: TOP-OF-BOOK", color = Color.DarkGray, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (pair.price > 100) String.format("%.2f", pair.price) else String.format("%.5f", pair.price),
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val changeColor = if (pair.changePercent >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
+                        val sign = if (pair.changePercent >= 0) "+" else ""
+                        Text(
+                            "$sign${String.format("%.2f", pair.changePercent)}%",
+                            color = changeColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 

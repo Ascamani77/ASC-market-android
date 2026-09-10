@@ -3,7 +3,8 @@ package com.asc.markets.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import com.asc.markets.data.AIContextStore
+import kotlinx.coroutines.flow.map
+import com.asc.markets.ai.AIDecision
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -88,27 +89,11 @@ object PreMoveIntelligenceStore {
         Triple(pairs, history, timedHistory)
     }
 
-    private val binanceSnapshot = combine(
-        BinanceDataStore.allPairs,
-        BinanceDataStore.priceHistory,
-        BinanceDataStore.timedPriceHistory
-    ) { pairs, history, timedHistory ->
-        Triple(pairs, history, timedHistory)
-    }
-
-    private val fallbackSnapshot = combine(
-        CombinedFallbackDataStore.allPairs,
-        CombinedFallbackDataStore.priceHistory,
-        CombinedFallbackDataStore.timedPriceHistory
-    ) { pairs, history, timedHistory ->
-        Triple(pairs, history, timedHistory)
-    }
-
-    val candidates: Flow<List<PreMoveCandidate>> = combine(marketSnapshot, binanceSnapshot, fallbackSnapshot) { market, binance, fallback ->
+    val candidates: Flow<List<PreMoveCandidate>> = marketSnapshot.map { market ->
         buildCandidates(
-            pairs = market.first + binance.first + fallback.first,
-            priceHistory = market.second + binance.second + fallback.second,
-            timedPriceHistory = market.third + binance.third + fallback.third
+            pairs = market.first,
+            priceHistory = market.second,
+            timedPriceHistory = market.third
         )
     }.distinctUntilChanged()
 

@@ -30,7 +30,6 @@ import com.asc.markets.ui.components.CandlestickChart
 import androidx.compose.foundation.lazy.LazyColumn
 import com.asc.markets.ui.theme.*
 import com.asc.markets.ui.screens.dashboard.MiniSparkline
-import com.asc.markets.ui.screens.dashboard.demoSparkline
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
@@ -38,7 +37,6 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.min
-import kotlin.random.Random
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 
@@ -120,18 +118,6 @@ fun TechnicalVitalsScreen() {
 private fun nowUtcFormatted(): String {
     return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm'Z'"))
 }
-
-private fun avgSpreadSample(): Double = (Random.nextDouble(0.05, 0.35))
-private fun volatilitySample(): Double = (Random.nextDouble(3.0, 18.0))
-private fun nodeLatencySample(): Double = (Random.nextDouble(0.5, 12.0))
-
-data class StreamEvent(val time: String, val text: String)
-private fun sampleStreamEvents(): List<StreamEvent> = listOf(
-    StreamEvent("08:41", "RSI enters Overbought (>70) on M5"),
-    StreamEvent("08:38", "Volume spike 2.3x 10-period MA"),
-    StreamEvent("08:35", "Price touches R1 level 1.0892"),
-    StreamEvent("08:32", "Higher High / Higher Low confirmed")
-)
 
 enum class VitalsStatus { Active, Blocked, Processing }
 
@@ -241,18 +227,21 @@ private fun sessionFor(now: ZonedDateTime): Pair<ZonedDateTime, ZonedDateTime> {
 private fun regimeSummary(): String = "Risk-Off: Equities under pressure due to hawkish FED tone"
 
 fun isSafetyGateClosed(): Boolean {
-    // mock: check if any hard-coded high-impact event is within ±30 minutes of now UTC
+    // Check if any high-impact macro event is within ±30 minutes of now UTC
     val now = Instant.now()
-    val events = listOf(
-        Instant.now().plusSeconds(60 * 25)
-    )
-    return events.any { ev -> kotlin.math.abs(Duration.between(now, ev).toMinutes()) <= 30 }
+    // This should be replaced with real macro event data from ForexViewModel
+    // For now, return false to keep safety gate open
+    return false
 }
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val tapeRequester = remember { BringIntoViewRequester() }
+    val aiDeployments by viewModel.aiDeployments.collectAsState()
+    val macroStreamEvents by viewModel.macroStreamEvents.collectAsState()
+    val sessionData = rememberSessionData()
+    val vitalsData = rememberTechnicalVitals()
 
     // Watch scroll and animate header collapse smoothly
     val collapseRange = 150f
@@ -286,13 +275,13 @@ fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
         val cardSize = with(LocalDensity.current) { cardDp.dp }
 
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            VitalsKpiCard(label = "AVG_SPREAD", value = String.format("%.2f pips", avgSpreadSample()), sub = "Institutional Bid/Ask", size = cardSize, status = VitalsStatus.Active)
-            VitalsKpiCard(label = "VOL_P/H", value = String.format("%.1f P/H", volatilitySample()), sub = "20-candle range", size = cardSize, status = VitalsStatus.Processing)
+            VitalsKpiCard(label = "AVG_SPREAD", value = sessionData.avgSpread, sub = "Institutional Bid/Ask", size = cardSize, status = VitalsStatus.Active)
+            VitalsKpiCard(label = "VOL_P/H", value = String.format("%.1f P/H", vitalsData.volatilityPerHour), sub = "20-candle range", size = cardSize, status = VitalsStatus.Processing)
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             VitalsKpiCard(label = "SAFETY_GATE", value = if (isSafetyGateClosed()) "BLOCKED" else "ARMED", sub = "High-impact window", size = cardSize, status = if (isSafetyGateClosed()) VitalsStatus.Blocked else VitalsStatus.Active)
-            VitalsKpiCard(label = "NODE_LATENCY", value = String.format("%.2f ms", nodeLatencySample()), sub = "Direct LMAX Uplink", size = cardSize, status = VitalsStatus.Active)
+            VitalsKpiCard(label = "NODE_LATENCY", value = String.format("%.2f ms", vitalsData.latencyMs), sub = "Direct LMAX Uplink", size = cardSize, status = VitalsStatus.Active)
         }
 
         // Contextual Nodes: stack Global Regime above Macro Intelligence Stream
@@ -300,8 +289,8 @@ fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
             InfoBox(modifier = Modifier.fillMaxWidth(), minHeight = 200.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("GLOBAL REGIME", color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text(regimeSummary(), color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
-                    Text("VIX: 19.8 • DXY: +0.42%", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
+                    Text(vitalsData.globalRegime, color = Color.White, fontSize = DashboardFontSizes.gridHeaderSmall, fontWeight = FontWeight.Black)
+                    Text("VIX: ${String.format("%.1f", vitalsData.vixValue)} • DXY: ${String.format("+%.2f%%", vitalsData.dxyChange)}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
                     Spacer(modifier = Modifier.weight(1f))
                     Divider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
                     Text("Audit • updated ${nowUtcFormatted()}", color = SlateText, fontSize = DashboardFontSizes.bodyTiny)
@@ -320,19 +309,28 @@ fun TechnicalVitalsTab(viewModel: ForexViewModel = viewModel()) {
                         ) {}
                     }
 
-                    val events = remember { sampleStreamEvents() }
+                    val events = macroStreamEvents.take(4)
                     Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
-                        events.forEach { ev ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(ev.time, color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
-                                Text(ev.text, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
+                        if (events.isEmpty()) {
+                            Text("No macro events available", color = SlateText, fontSize = DashboardFontSizes.labelMedium)
+                        } else {
+                            events.forEach { ev ->
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(timeStrFromSeconds(ev.datetimeUtc / 1000), color = SlateText, fontSize = DashboardFontSizes.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(ev.title, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
+                    val deployments = aiDeployments
                     MiniSparkline(
-                        points = demoSparkline(count = 24, seed = 2024, trendBias = 0.01f),
+                        points = if (deployments != null) {
+                            deployments.final_decision.take(24).map { (it.journal_score ?: 50f).toFloat() }
+                        } else {
+                            listOf(50f)
+                        },
                         modifier = Modifier.fillMaxWidth().height(52.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
                         color = IndigoAccent,
                         fillColor = IndigoAccent.copy(alpha = 0.08f)

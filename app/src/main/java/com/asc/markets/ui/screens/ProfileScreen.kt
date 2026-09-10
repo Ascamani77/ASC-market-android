@@ -17,79 +17,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
+import com.asc.markets.data.UserProfileStore
+import com.asc.markets.logic.ForexViewModel
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(viewModel: ForexViewModel? = null) {
     val scrollState = rememberScrollState()
+    val userProfile by UserProfileStore.profile.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DeepBlack)
-            .padding(16.dp)
-            .verticalScroll(scrollState)
-    ) {
-        // 1. Profile Header Card Parity
-        Surface(
-            color = PureBlack,
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, HairlineBorder),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Box(modifier = Modifier.padding(24.dp)) {
-                // Background Watermark Parity
-                Icon(
-                    androidx.compose.material.icons.autoMirrored.outlined.Person, null,
-                    tint = Color.White.copy(alpha = 0.02f),
-                    modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 30.dp, y = (-30).dp)
-                )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.BottomEnd) {
-                        Box(
-                            modifier = Modifier.fillMaxSize().background(Color.White, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("JD", color = Color.Black, fontSize = 28.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        }
-                        Surface(
-                            color = IndigoAccent,
-                            shape = CircleShape,
-                            modifier = Modifier.size(24.dp).border(2.dp, PureBlack, CircleShape)
-                        ) {
-                            Icon(androidx.compose.material.icons.autoMirrored.outlined.Edit, null, tint = Color.White, modifier = Modifier.padding(4.dp))
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.width(20.dp))
-                    
-                    Column {
-                        Text("JOHN DOE", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = (-0.5).sp)
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                            Icon(androidx.compose.material.icons.autoMirrored.outlined.Verified, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("INSTITUTIONAL ANALYST", color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-        }
+    var firstName by remember(userProfile) { mutableStateOf(userProfile.firstName) }
+    var surname by remember(userProfile) { mutableStateOf(userProfile.surname) }
+    var email by remember(userProfile) { mutableStateOf(userProfile.email) }
+    var phone by remember(userProfile) { mutableStateOf(userProfile.phone) }
+    var firm by remember(userProfile) { mutableStateOf(userProfile.firm) }
+    var region by remember(userProfile) { mutableStateOf(userProfile.region) }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 2. Identity Management Card Parity
-        InfoBox {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    Surface(modifier = Modifier.fillMaxSize(), color = DeepBlack) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header
+            Surface(color = PureBlack, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 36.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(androidx.compose.material.icons.autoMirrored.outlined.Shield, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("IDENTITY MANAGEMENT", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        if (viewModel != null) {
+                            IconButton(onClick = { viewModel.navigateBack() }, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("PROFILE", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily)
                     }
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(8.dp),
-                        onClick = { },
+                        onClick = {
+                            UserProfileStore.updateProfile(
+                                userProfile.copy(
+                                    firstName = firstName,
+                                    surname = surname,
+                                    email = email,
+                                    phone = phone,
+                                    firm = firm,
+                                    region = region
+                                )
+                            )
+                        },
                         modifier = Modifier.height(32.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
@@ -97,71 +72,123 @@ fun ProfileScreen() {
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                ProfileInput("Legal Full Name", "John Doe", androidx.compose.material.icons.autoMirrored.outlined.Person)
-                ProfileInput("Intelligence Email", "john.doe@forexpro.ai", androidx.compose.material.icons.autoMirrored.outlined.Mail)
-                ProfileInput("Secure Phone Uplink", "+44 20 7946 0958", androidx.compose.material.icons.autoMirrored.outlined.Phone)
-                ProfileInput("Institutional Firm", "Alpha Strategic Capital", androidx.compose.material.icons.autoMirrored.outlined.Business)
-                ProfileInput("Operational Region", "London, UK", androidx.compose.material.icons.autoMirrored.outlined.Language)
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+                    .padding(16.dp)
+            ) {
+                // Profile Header Card
+                Surface(
+                    color = PureBlack,
+                    shape = RoundedCornerShape(24.dp),
+                    border = BorderStroke(1.dp, HairlineBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(modifier = Modifier.padding(24.dp)) {
+                        Icon(
+                            Icons.Default.Person, null,
+                            tint = Color.White.copy(alpha = 0.02f),
+                            modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 30.dp, y = (-30).dp)
+                        )
 
-        // 3. Status & Logs Grid Parity
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            InfoBox(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("NODE STATUS", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    StatusMiniRow("PLAN", "PRO", Color.White)
-                    StatusMiniRow("VERIFY", "SECURE", EmeraldSuccess)
-                    StatusMiniRow("EXP", "NOV 25", Color.Gray)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    // Moved here from sidebar footer
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("NODE:", color = SlateMuted, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("L14-UK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text("V0.9.0-BETA", color = Color(0xFF3EA6FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.BottomEnd) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(userProfile.initials, color = Color.Black, fontSize = 28.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                                Surface(
+                                    color = IndigoAccent,
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(24.dp).border(2.dp, PureBlack, CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(20.dp))
+
+                            Column {
+                                Text(userProfile.fullName.uppercase(), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = (-0.5).sp)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                                    Icon(Icons.Default.Verified, null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(userProfile.role.uppercase(), color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Surface(color = Color.White.copy(alpha = 0.06f), shape = RoundedCornerShape(50)) {
+                                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Language, null, tint = SlateText, modifier = Modifier.size(11.dp))
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(userProfile.region.ifBlank { "—" }, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                        }
+                                    }
+                                    Surface(color = Color.White.copy(alpha = 0.06f), shape = RoundedCornerShape(50)) {
+                                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Business, null, tint = SlateText, modifier = Modifier.size(11.dp))
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(userProfile.firm.ifBlank { "Independent" }, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(top = 20.dp), color = Color.White.copy(alpha = 0.08f))
+
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Mail, null, tint = SlateText, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(userProfile.email.ifBlank { "—" }, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, maxLines = 1)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Phone, null, tint = SlateText, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(userProfile.phone.ifBlank { "—" }, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, maxLines = 1)
+                        }
                     }
                 }
-            }
-            InfoBox(modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("AUDIT LOG", color = IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    AuditMiniRow("BIAS GEN", "2h ago", EmeraldSuccess)
-                    AuditMiniRow("RISK UPD", "5h ago", IndigoAccent)
-                    AuditMiniRow("AUTH_SEC", "1d ago", Color.Gray)
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Identity Management Card
+                InfoBox {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Shield, null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("IDENTITY MANAGEMENT", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        ProfileInput("First Name", firstName, Icons.Default.Person, onValueChange = { firstName = it })
+                        ProfileInput("Surname", surname, Icons.Default.Person, onValueChange = { surname = it })
+                        ProfileInput("Email", email, Icons.Default.Mail, onValueChange = { email = it })
+                        ProfileInput("Phone", phone, Icons.Default.Phone, onValueChange = { phone = it })
+                        ProfileInput("Firm", firm, Icons.Default.Business, onValueChange = { firm = it })
+                        ProfileInput("Region", region, Icons.Default.Language, onValueChange = { region = it })
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(120.dp))
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 4. Terminate Button Parity
-        Button(
-            onClick = { },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = RoseError.copy(alpha = 0.05f)),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, RoseError.copy(alpha = 0.3f))
-        ) {
-            Icon(androidx.compose.material.icons.autoMirrored.outlined.Logout, null, tint = RoseError, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("SIGN OUT SESSION", color = RoseError, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 2.sp, fontFamily = InterFontFamily)
-        }
-
-        Spacer(modifier = Modifier.height(120.dp))
     }
 }
 
 @Composable
-private fun ProfileInput(label: String, value: String, icon: ImageVector) {
+private fun ProfileInput(label: String, value: String, icon: ImageVector, onValueChange: (String) -> Unit = {}) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = IndigoAccent, modifier = Modifier.size(12.dp))
@@ -175,32 +202,26 @@ private fun ProfileInput(label: String, value: String, icon: ImageVector) {
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = value,
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                fontFamily = InterFontFamily
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = InterFontFamily
+                )
             )
         }
-    }
-}
-
-@Composable
-private fun StatusMiniRow(label: String, value: String, color: Color) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = SlateMuted, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-        Text(value, color = color, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-    }
-}
-
-@Composable
-private fun AuditMiniRow(label: String, time: String, indicator: Color) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(4.dp).background(indicator, CircleShape))
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(label, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), fontFamily = InterFontFamily)
-        Text(time, color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.trading.app.models.Position
 
 @Composable
 fun TradingPanel(
@@ -25,7 +26,10 @@ fun TradingPanel(
     isAnalyzing: Boolean,
     onRefreshAnalysis: () -> Unit,
     onClose: () -> Unit,
-    backgroundColor: Color = Color(0xFF131722)
+    backgroundColor: Color = Color(0xFF131722),
+    positions: List<Position> = emptyList(),
+    quotePriceForSymbol: ((String) -> Float?)? = null,
+    onPositionClick: (Position) -> Unit = {}
 ) {
     val tabs = listOf("Stock Screener", "Pine Editor", "Strategy Tester", "Trading Panel", "AI Analysis")
 
@@ -95,15 +99,12 @@ fun TradingPanel(
                     )
                 }
                 "Trading Panel" -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.Inbox, null, tint = Color(0xFF363A45), modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No open positions", color = Color(0xFF787B86), fontSize = 14.sp)
-                    }
+                    PositionsTab(
+                        positions = positions,
+                        currentPrice = 0f,
+                        quotePriceForSymbol = quotePriceForSymbol,
+                        onPositionClick = onPositionClick
+                    )
                 }
                 else -> {
                     Column(

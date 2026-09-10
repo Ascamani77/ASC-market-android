@@ -29,15 +29,25 @@ import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.*
 import com.asc.markets.ui.screens.dashboard.MiniSparkline
-import com.asc.markets.ui.screens.dashboard.demoSparkline
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 
 @Composable
 fun MarketPsychologyTab(viewModel: ForexViewModel = viewModel()) {
     val ctx by AssetContextStore.context.collectAsState()
-    val psychologyData = rememberPsychologyData()
+    val macroStreamEvents by viewModel.macroStreamEvents.collectAsState()
     val listState = rememberLazyListState()
+    
+    // Simple psychology data structure
+    val psychologyData = remember {
+        PsychologyData(
+            psychologyScore = 65,
+            sentimentState = "BULLISH",
+            volatilityState = "MODERATE",
+            dxyBeta = "HIGH",
+            sentimentColor = EmeraldSuccess
+        )
+    }
 
     // Watch scroll and animate header collapse smoothly
     val collapseRange = 150f
@@ -80,11 +90,11 @@ fun MarketPsychologyTab(viewModel: ForexViewModel = viewModel()) {
                 InfoBox(height = 160.dp) {
                     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("${ctx.name} Psychology Summary", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel, fontWeight = FontWeight.Black)
-                        val events = getMacroEventsForContext(ctx)
-                        events.take(3).forEach { (t, txt) ->
+                        val events = macroStreamEvents.take(3)
+                        events.forEach { event ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(t, color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
-                                Text(txt, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
+                                Text(java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(event.datetimeUtc)), color = SlateText, fontSize = DashboardFontSizes.gridLabelTiny)
+                                Text(event.title, color = Color.White, fontSize = DashboardFontSizes.labelMedium)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -135,7 +145,7 @@ fun MarketPsychologyTab(viewModel: ForexViewModel = viewModel()) {
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     MiniSparkline(
-                        points = demoSparkline(count = 56, seed = 77, trendBias = 0.012f),
+                        points = listOf(0.5f, 0.52f, 0.48f, 0.55f, 0.53f, 0.58f, 0.60f, 0.57f, 0.62f, 0.65f),
                         modifier = Modifier.fillMaxWidth().height(120.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(10.dp)),
                         color = EmeraldSuccess,
                         fillColor = EmeraldSuccess.copy(alpha = 0.10f)
@@ -199,7 +209,7 @@ private fun SentimentAssetRow(pair: com.asc.markets.data.ForexPair, onOpenContex
 
             // Layer 2.5: Mini sparkline trend
             MiniSparkline(
-                points = demoSparkline(count = 20, seed = pair.symbol.hashCode(), trendBias = (pair.changePercent / 50f).toFloat()),
+                points = listOf(0.5f, 0.52f, 0.48f, 0.55f, 0.53f, 0.58f, 0.60f, 0.57f, 0.62f, 0.65f),
                 modifier = Modifier.fillMaxWidth().height(40.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
                 color = if (pair.changePercent >= 0) EmeraldSuccess else RoseError,
                 fillColor = if (pair.changePercent >= 0) EmeraldSuccess.copy(alpha = 0.08f) else RoseError.copy(alpha = 0.08f)

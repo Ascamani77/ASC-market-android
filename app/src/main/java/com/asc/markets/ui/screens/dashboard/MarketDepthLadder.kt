@@ -770,10 +770,7 @@ private fun DepthLadderProfile(
 
 @Composable
 private fun rememberOrderBookSnapshot(livePair: ForexPair): OrderBookSnapshot {
-    val seedSnapshot = remember(livePair.symbol, livePair.price, livePair.change, livePair.category) {
-        OrderBookStore.seedSnapshot(livePair)
-    }
-    val snapshot by OrderBookStore.snapshotFlow(livePair.symbol).collectAsState(initial = seedSnapshot)
+    val snapshot by OrderBookStore.snapshotFlow(livePair.symbol).collectAsState(initial = null)
 
     LaunchedEffect(livePair.symbol, livePair.category) {
         OrderBookStore.subscribe(livePair)
@@ -782,7 +779,19 @@ private fun rememberOrderBookSnapshot(livePair: ForexPair): OrderBookSnapshot {
         onDispose { OrderBookStore.unsubscribe(livePair.symbol) }
     }
 
-    return snapshot ?: seedSnapshot
+    return snapshot ?: OrderBookSnapshot(
+        symbol = livePair.symbol,
+        venueSymbol = null,
+        source = "Loading...",
+        lastUpdated = System.currentTimeMillis(),
+        bidLevels = emptyList(),
+        askLevels = emptyList(),
+        recentTrades = emptyList(),
+        spread = 0.0,
+        midPrice = livePair.price,
+        imbalance = 0.0,
+        isStale = true
+    )
 }
 
 @Composable
@@ -869,7 +878,6 @@ private fun buildDepthExplanation(
         else -> "recent prints lean sell, which means market orders are hitting bids"
     }
     val sourceText = when {
-        snapshot.isFallback -> "Live venue depth is unavailable for this asset, so the ladder is being derived deterministically from the app's live quote stream."
         snapshot.isStale -> "The last confirmed venue snapshot is being held while the next live book refresh is pending."
         snapshot.venueSymbol != null -> "Depth and recent trades are coming from ${snapshot.source} for ${snapshot.venueSymbol}."
         else -> "Depth and recent trades are coming from ${snapshot.source}."

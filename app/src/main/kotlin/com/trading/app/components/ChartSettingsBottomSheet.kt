@@ -52,7 +52,7 @@ fun ChartSettingsBottomSheet(
                 )
             }
         },
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier.padding(bottom = AppBottomNavHeight)
     ) {
         when (currentPage) {
@@ -177,6 +177,16 @@ fun ChartSettingsBottomSheet(
                         },
                         onClick = { onUpdate(settings.copy(scales = scales.copy(hideAssetLastViewedPane = !scales.hideAssetLastViewedPane))) }
                     )
+                    
+                    BottomSheetItem(
+                        label = "Show notifications",
+                        trailing = {
+                            if (settings.canvas.showNotifications) Icon(Icons.Default.Check, null, tint = activeCheckColor, modifier = Modifier.size(24.dp))
+                        },
+                        onClick = { 
+                            onUpdate(settings.copy(canvas = settings.canvas.copy(showNotifications = !settings.canvas.showNotifications)))
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Divider(color = Color(0xFF2A2E39), thickness = 0.5.dp)
@@ -280,17 +290,6 @@ fun ChartSettingsBottomSheet(
                         label = "Lines", 
                         trailing = { Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF787B86), modifier = Modifier.size(22.dp)) },
                         onClick = { currentPage = "Lines" }
-                    )
-                    BottomSheetItem(
-                        label = "Plus button",
-                        trailing = {
-                            if (scales.plusButton) {
-                                Icon(Icons.Default.Check, null, tint = activeCheckColor, modifier = Modifier.size(24.dp))
-                            }
-                        },
-                        onClick = {
-                            onUpdate(settings.copy(scales = scales.copy(plusButton = !scales.plusButton)))
-                        }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))

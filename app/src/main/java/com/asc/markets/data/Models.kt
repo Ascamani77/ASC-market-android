@@ -6,14 +6,15 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 enum class AppView {
-    DASHBOARD, MARKET_WATCH, MARKETS, INTELLIGENCE_STREAM, CHAT, ALERTS, CREATE_ALERT, NOTIFICATIONS, PUSH_SETTINGS,
+    DASHBOARD, MARKET_WATCH, MARKETS, CHAT, ALERTS, NOTIFICATIONS, PUSH_SETTINGS,
     HOME_ALERTS, MY_ALERTS,
     NEWS, ANALYSIS_OPINION, CALENDAR, STREAM, MACRO_STREAM, SENTIMENT, EDUCATION, PROFILE, SETTINGS,
     ANALYSIS_RESULTS, TRADE, TRADING_ASSISTANT, LIQUIDITY_HUB,
     BACKTEST, MULTI_TIMEFRAME, FULL_CHART, DIAGNOSTICS,
     POST_MOVE_AUDIT, DATA_HUB, DATA_VAULT, PORTFOLIO_MANAGER, TRADE_RECONSTRUCTION, MARKET_VIEW,
     TRADE_DASHBOARD, SIDEBAR_PAGE, WATCHLIST, SIMULATION, MY_SIMULATION, AI_TERMINAL,
-    PAPER_TRADING, QUOTES, MARKET_STATUS, CHART_ANALYSIS
+    PAPER_TRADING, QUOTES, MARKET_STATUS, CHART_ANALYSIS, SCALPING, CHART_DISPLAY_SETTINGS,
+    ASSET_DETAIL, AUTO_TRADE, AI_SETTINGS, QUALIFIED_SETUP
 }
 
 fun AppView.toAiContextLabel(): String {
@@ -45,7 +46,11 @@ data class ForexPair(
     val price: Double,
     val change: Double,
     val changePercent: Double,
-    val category: MarketCategory = MarketCategory.FOREX
+    val category: MarketCategory = MarketCategory.FOREX,
+    val eaConfidence: Double = 0.0, // EA AI confidence score
+    val regimeConfidence: String = "NONE", // EA regime confidence level
+    val alignmentPercentage: Double = 0.0, // MTF alignment percentage from chart
+    val eaDirection: String = "WAIT" // EA direction (BUY/SELL/WAIT)
 )
 
 enum class MarketCategory {
@@ -183,7 +188,10 @@ data class MacroEvent(
     val priority: ImpactPriority = ImpactPriority.MEDIUM,
     val status: MacroEventStatus = MacroEventStatus.UPCOMING,
     val source: String = "",
-    val details: String = ""
+    val details: String = "",
+    val actual: String = "",
+    val forecast: String = "",
+    val previous: String = ""
 )
 
 // Helper to produce a consistent display title: Full descriptive name followed by abbreviation in brackets.
@@ -308,7 +316,7 @@ data class WatchlistItem(
     val id: String = UUID.randomUUID().toString(),
     val assetName: String,
     val status: String,
-    val confidence: Int,
+    val confidence: Double = 0.0,  // Changed to Double for ASC EA compatibility
     val newsRisk: String,
     val moveProbability: Int,
     val priority: Int,
@@ -321,5 +329,372 @@ data class WatchlistItem(
     val category: MarketCategory = MarketCategory.FOREX,
     val rationale: String = "",
     val isNew: Boolean = false,
-    val addedAt: Long = System.currentTimeMillis()
+    val addedAt: Long = System.currentTimeMillis(),
+    
+    // ASC EA Integration Fields
+    val alignment_percentage: Double = 0.0,
+    val structure_score: Double = 0.0,
+    val regime_state: String = "",
+    val trend_state: String = "",
+    val volatility_state: String = "",
+    val liquidity_bias: String = "",
+    val structure_bias: String = "",
+    val indicator_bias: String = "",
+    
+    // Zone Context Fields
+    val zone_context_valid: Boolean = false,
+    val zone_context_type: String = "",
+    val zone_relationship: String = "",
+    val current_zones: String = "",
+    val target_zone: String = "",
+    val zone_distance_pips: Double = 0.0,
+    
+    // Exhaustion Analysis Fields
+    val exhaustion_detected: Boolean = false,
+    val exhaustion_bias: String = "",
+    val exhaustion_score: Double = 0.0,
+    val rsi_value: Double = 50.0
 )
+
+
+// ============================================
+// ASC EA DATA MODELS (ai_signals_mq5.json)
+// ============================================
+
+@Serializable
+data class ASCSignalData(
+    val timestamp: Long = 0,
+    val asset: String = "",
+    val direction: String = "WAIT",
+    val confidence: Double = 0.0,
+    val alignment_percentage: Double = 0.0,
+    val regime: ASCRegimeData? = null,
+    val volatility: ASCVolatilityData? = null,
+    val liquidity: ASCLiquidityData? = null,
+    val structure: ASCStructureData? = null,
+    val indicators: ASCIndicatorsData? = null,
+    val session: ASCSessionData? = null,
+    val entry: ASCEntryData? = null,
+    val trade_params: ASCTradeParams? = null,
+    val pattern_detection: ASCPatternDetection? = null,
+    val chart_panel: ASCChartPanelData? = null,
+    val validation: ASCValidationData? = null,
+    val quality: ASCQualityData? = null,
+    val macro: ASCMacroData? = null,
+    val htf_context: ASCHTFContextData? = null,
+    val confluence: ASCConfluenceData? = null,
+    val chart_panels: ASCChartPanelsData? = null,
+    
+    // Zone Context Fields
+    val zone_context_valid: Boolean = false,
+    val zone_context_type: String = "",
+    val zone_relationship: String = "",
+    val current_zones: String = "",
+    val target_zone: String = "",
+    val zone_distance_pips: Double = 0.0,
+    
+    // Exhaustion Fields
+    val exhaustion_detected: Boolean = false,
+    val exhaustion_bias: String = "",
+    val exhaustion_score: Double = 0.0
+)
+
+@Serializable
+data class ASCRegimeData(
+    val state: String = "UNKNOWN",
+    val trend: String = "NEUTRAL",
+    val score: Double = 0.0,
+    val confidence: String = "NONE",
+    val reason: String = ""
+)
+
+@Serializable
+data class ASCVolatilityData(
+    val state: String = "NORMAL",
+    val score: Double = 0.0,
+    val atr_ratio: Double = 0.0,
+    val bias: String = "NEUTRAL"
+)
+
+@Serializable
+data class ASCLiquidityData(
+    val state: String = "NEUTRAL",
+    val bias: String = "NEUTRAL",
+    val score: Double = 0.0,
+    val fvg_bull: Boolean = false,
+    val fvg_bear: Boolean = false,
+    val sweep_high: Boolean = false,
+    val sweep_low: Boolean = false,
+    val bos_bull: Boolean = false,
+    val bos_bear: Boolean = false
+)
+
+@Serializable
+data class ASCStructureData(
+    val bias: String = "NEUTRAL",
+    val score: Double = 0.0,
+    val quality: Double = 0.0
+)
+
+@Serializable
+data class ASCIndicatorsData(
+    val bias: String = "NEUTRAL",
+    val score: Double = 0.0,
+    val rsi: Double = 50.0,
+    val macd_main: Double = 0.0,
+    val macd_signal: Double = 0.0,
+    val stochastic: Double = 50.0,
+    val adx: Double = 0.0
+)
+
+@Serializable
+data class ASCSessionData(
+    val name: String = "OFF_HOURS",
+    val score: Double = 0.0,
+    val high_liquidity: Boolean = false
+)
+
+@Serializable
+data class ASCEntryData(
+    val state: String = "NO_ENTRY",
+    val style: String = "NO_TRADE",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val reason: String = "",
+    val quality: String = "LOW"
+)
+
+@Serializable
+data class ASCTradeParams(
+    val stop_loss: Double = 0.0,
+    val take_profit: Double = 0.0,
+    val risk_pct: Double = 0.0
+)
+
+@Serializable
+data class ASCPatternDetection(
+    val detected_pattern: String = "",
+    val pattern_confidence: Double = 0.0
+)
+
+@Serializable
+data class ASCChartPanelData(
+    val validator_active: Boolean = false,
+    val validator_allowed: Boolean = false,
+    val validator_direction: String = "",
+    val validator_pwin: Double = 0.0,
+    val validator_gate: Double = 0.0,
+    val quality_tier: String = "NONE",
+    val votes: ASCVotesData? = null,
+    val confidence_trend: ASCConfidenceTrendData? = null
+)
+
+@Serializable
+data class ASCVotesData(
+    val smc_bull: Int = 0,
+    val smc_bear: Int = 0,
+    val ai_bull: Int = 0,
+    val ai_bear: Int = 0,
+    val total_bull: Int = 0,
+    val total_bear: Int = 0,
+    val win_pct: Double = 0.0,
+    val direction: String = "NONE"
+)
+
+@Serializable
+data class ASCConfidenceTrendData(
+    val indicator: String = "STABLE",
+    val strength: Double = 0.0
+)
+
+@Serializable
+data class ASCValidationData(
+    val state: String = "UNKNOWN",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val spread_ok: Boolean = false,
+    val timing_ok: Boolean = false,
+    val rr_ok: Boolean = false,
+    val market_ok: Boolean = false,
+    val mtf_ok: Boolean = false
+)
+
+@Serializable
+data class ASCQualityData(
+    val grade: String = "F",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val strengths: Int = 0,
+    val weaknesses: Int = 0,
+    val total_feeders: Int = 0,
+    val top_strength: String = "",
+    val top_weakness: String = ""
+)
+
+@Serializable
+data class ASCMacroData(
+    val trend: String = "UNKNOWN",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val reason: String = "",
+    val d1_trend_strength: Double = 0.0,
+    val w1_trend_strength: Double = 0.0,
+    val bullish_flag: Boolean = false,
+    val bearish_flag: Boolean = false
+)
+
+@Serializable
+data class ASCHTFContextData(
+    val context: String = "UNKNOWN",
+    val bias: String = "NEUTRAL",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val reason: String = "",
+    val support: Double = 0.0,
+    val resistance: Double = 0.0,
+    val near_support: Boolean = false,
+    val near_resistance: Boolean = false
+)
+
+@Serializable
+data class ASCConfluenceData(
+    val state: String = "NO_CONFLUENCE",
+    val score: Double = 0.0,
+    val confidence: Double = 0.0,
+    val reason: String = "",
+    val bull_confluences: Int = 0,
+    val bear_confluences: Int = 0
+)
+
+@Serializable
+data class ASCChartPanelsData(
+    val news_sentiment: String = "",
+    val market_phase: String = "",
+    val smc_details: String = "",
+    val momentum: String = "",
+    val market_structure: String = "",
+    val time_filter: String = "",
+    val win_probability: String = "",
+    val risk_reward: String = "",
+    val daily_pnl: String = "",
+    val session_details: String = "",
+    val spread_monitor: String = "",
+    val correlation_alert: String = "",
+    val cross_correlation: String = "",
+    val session_intelligence: String = "",
+    val portfolio_management: String = "",
+    val criteria_score: String = "",
+    val exhaustion_analysis: String = "",
+    val zone_context: String = "",
+    val equity_info: String = "",
+    val risk_management: String = "",
+    val smc_status: String = "",
+    val module_reliability: String = ""
+)
+
+// Helper function to load ASC signal data from MT5 JSON file
+fun loadASCSignalData(symbol: String): ASCSignalData? {
+    return try {
+        // Construct path to MT5 Files directory
+        val userHome = System.getProperty("user.home")
+        val mt5FilesPath = "$userHome\\AppData\\Roaming\\MetaQuotes\\Terminal\\D0E8209F77C8CF37AD8BF550E51FF075\\MQL5\\Files\\ai_signals_mq5.json"
+        
+        val file = java.io.File(mt5FilesPath)
+        if (!file.exists()) {
+            android.util.Log.w("ASC_EA", "Signal file not found: $mt5FilesPath")
+            return null
+        }
+        
+        val jsonString = file.readText()
+        if (jsonString.isBlank()) {
+            android.util.Log.w("ASC_EA", "Signal file is empty")
+            return null
+        }
+        
+        // Parse JSON using kotlinx.serialization
+        val json = kotlinx.serialization.json.Json { 
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+        }
+        val signalData = json.decodeFromString<ASCSignalData>(jsonString)
+        
+        // Optional: Filter by symbol if needed (currently MT5 writes one signal per file)
+        // For multi-symbol support, you'd need to modify MT5 EA to write array of signals
+        
+        android.util.Log.d("ASC_EA", "Loaded signal for ${signalData.asset}: ${signalData.direction} @ ${signalData.confidence}")
+        return signalData
+        
+    } catch (e: Exception) {
+        android.util.Log.e("ASC_EA", "Failed to load ASC signal data: ${e.message}", e)
+        return null
+    }
+}
+
+
+// Convert ASC Signal Data to WatchlistItem
+fun ASCSignalData.toWatchlistItem(): WatchlistItem {
+    return WatchlistItem(
+        id = "${this.asset}_${this.timestamp}",
+        assetName = this.asset,
+        status = when (this.direction) {
+            "BUY", "SELL" -> "READY"
+            "WAIT" -> "WAITING"
+            "NONE" -> "NO_SIGNAL"
+            else -> "ANALYZING"
+        },
+        confidence = this.confidence,
+        newsRisk = "Low", // TODO: Add news risk to ASC EA
+        moveProbability = (this.confidence * 100).toInt(),
+        priority = when {
+            this.confidence >= 0.7 -> 1
+            this.confidence >= 0.5 -> 2
+            else -> 3
+        },
+        preMoveSignal = this.regime?.trend ?: "NEUTRAL",
+        volatilityScore = ((this.volatility?.score ?: 0.0) * 100).toInt(),
+        triggerEvent = this.pattern_detection?.detected_pattern ?: "",
+        timeToEvent = when (this.entry?.state) {
+            "OPTIMAL" -> "Now"
+            "GOOD" -> "5m"
+            "ACCEPTABLE" -> "15m"
+            else -> "Wait"
+        },
+        price = 0.0, // TODO: Add current price to ASC EA
+        changePercent = 0.0, // TODO: Add price change to ASC EA
+        category = MarketCategory.FOREX, // TODO: Detect from asset name
+        rationale = this.entry?.reason ?: "",
+        isNew = (System.currentTimeMillis() - this.timestamp * 1000) < 300000, // New if < 5 minutes old
+        
+        // ASC EA Integration Fields
+        alignment_percentage = this.alignment_percentage,
+        structure_score = this.structure?.score ?: 0.0,
+        regime_state = this.regime?.state ?: "",
+        trend_state = this.regime?.trend ?: "",
+        volatility_state = this.volatility?.state ?: "",
+        liquidity_bias = this.liquidity?.bias ?: "",
+        structure_bias = this.structure?.bias ?: "",
+        indicator_bias = this.indicators?.bias ?: "",
+        
+        // Zone Context Fields
+        zone_context_valid = this.zone_context_valid,
+        zone_context_type = this.zone_context_type,
+        zone_relationship = this.zone_relationship,
+        current_zones = this.current_zones,
+        target_zone = this.target_zone,
+        zone_distance_pips = this.zone_distance_pips,
+        
+        // Exhaustion Analysis Fields
+        exhaustion_detected = this.exhaustion_detected,
+        exhaustion_bias = this.exhaustion_bias,
+        exhaustion_score = this.exhaustion_score,
+        rsi_value = this.indicators?.rsi ?: 50.0
+    )
+}
+
+// Load all ASC signals and convert to WatchlistItems
+fun loadWatchlistFromASCEA(): List<WatchlistItem> {
+    // Currently MT5 EA writes single signal to ai_signals_mq5.json
+    // TODO: Modify MT5 EA to write array of signals for multiple symbols
+    val signalData = loadASCSignalData("current") ?: return emptyList()
+    return listOf(signalData.toWatchlistItem())
+}

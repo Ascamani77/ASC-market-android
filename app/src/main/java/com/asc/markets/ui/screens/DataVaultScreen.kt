@@ -98,7 +98,12 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
     }
 
     val streamData = decisions.mapIndexed { index, item ->
-        val confidenceVal = item.journal_score ?: 0.0
+        val finalState = item.final_trade_state?.uppercase() ?: "REJECTED"
+        val confidenceVal = if (finalState == "TRADE_CANDIDATE") {
+            (item.final_trade_score?.takeIf { it.isFinite() }?.let { it * 100 } ?: 0.0)
+        } else {
+            (item.pre_move_ai_score?.takeIf { it.isFinite() }?.let { it * 100 } ?: item.journal_score ?: 0.0)
+        }
         val confStr = "${confidenceVal.toInt()}%"
         val statusStr = if (confidenceVal >= 75) "VERIFIED" else if (confidenceVal >= 50) "PENDING" else "REJECT"
         val color = if (confidenceVal >= 75) Color(0xFF2EE08A) else if (confidenceVal >= 50) Color(0xFFFFC700) else Color(0xFF5E7A9E)
@@ -288,6 +293,28 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Button(
+                            onClick = { viewModel.syncCalendarEventsNow() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            enabled = !commandStatus.isLoading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF6A00),
+                                disabledContainerColor = Color(0xFFFF6A00).copy(alpha = 0.35f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                "📅 SYNC CALENDAR EVENTS",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
                             onClick = { viewModel.runAiPipelineNow() },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -369,7 +396,7 @@ fun DataVaultScreen(viewModel: ForexViewModel = viewModel()) {
                             ) {
                                 Text("⏱️", fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text(lastVector.take(7), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(lastVector, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text("VECTOR", color = SlateText, fontSize = 9.sp)
                             }

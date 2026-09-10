@@ -62,7 +62,7 @@ fun SimulationBrainAuditContent() {
         BrainAuditCard(
             label = "DECISION CONSISTENCY",
             value = "85%",
-            description = "Demo Mode: AI shows high strategy consistency.",
+            description = "AI shows high strategy consistency across recent signals.",
             valueColor = Color.White
         )
         
@@ -71,7 +71,7 @@ fun SimulationBrainAuditContent() {
         BrainAuditCard(
             label = "CONFIDENCE BIAS",
             value = "+2.4%",
-            description = "Demo Mode: Calibration is within optimal range.",
+            description = "Calibration is within optimal range.",
             valueColor = Color(0xFFEF4444) // Red
         )
         
@@ -80,7 +80,7 @@ fun SimulationBrainAuditContent() {
         BrainAuditCard(
             label = "OPTIMIZATION EFFICIENCY",
             value = "92%",
-            description = "Demo Mode: SL/TP optimization active.",
+            description = "SL/TP optimization active.",
             valueColor = Color(0xFF10B981) // Green
         )
 

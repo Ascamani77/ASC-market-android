@@ -1,6 +1,7 @@
 package com.asc.markets.data
 
 import android.util.Log
+import com.trading.app.components.defaultQuoteSymbols
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,28 @@ object MarketDataStore {
     private const val timedHistoryLength = 4000
     private const val TAG = "MarketDataStore"
 
-    private val _allPairs = MutableStateFlow(FOREX_PAIRS.filterNot { isUsdtSymbol(it.symbol) })
+    private val _allPairs = MutableStateFlow(
+        (FOREX_PAIRS + defaultQuoteSymbols().map {
+            val category = when {
+                it.type.contains("forex", true) -> MarketCategory.FOREX
+                it.type.contains("crypto", true) -> MarketCategory.CRYPTO
+                it.type.contains("stock", true) -> MarketCategory.STOCK
+                it.type.contains("index", true) -> MarketCategory.INDICES
+                it.type.contains("bond", true) -> MarketCategory.BONDS
+                else -> MarketCategory.COMMODITIES
+            }
+            ForexPair(
+                symbol = it.ticker,
+                name = it.name,
+                price = it.price.toDouble(),
+                change = it.change.toDouble(),
+                changePercent = it.changePercent.toDouble(),
+                category = category
+            )
+        })
+        .filterNot { isUsdtSymbol(it.symbol) }
+        .distinctBy { it.symbol }
+    )
     val allPairs: StateFlow<List<ForexPair>> = _allPairs.asStateFlow()
 
     private val _priceHistory = MutableStateFlow<Map<String, List<Double>>>(emptyMap())
@@ -26,33 +48,21 @@ object MarketDataStore {
     val timedPriceHistory: StateFlow<Map<String, List<TimedPrice>>> = _timedPriceHistory.asStateFlow()
 
     fun pairSnapshot(symbol: String): ForexPair? {
-        if (isUsdtSymbol(symbol)) {
-            return BinanceDataStore.pairSnapshot(symbol)
-        }
         return findBestMatch(_allPairs.value, symbol)
     }
 
     fun historySnapshot(symbol: String): List<Double> {
-        if (isUsdtSymbol(symbol)) {
-            return BinanceDataStore.historySnapshot(symbol)
-        }
         val pair = pairSnapshot(symbol) ?: return emptyList()
         return _priceHistory.value[pair.symbol] ?: emptyList()
     }
 
     fun pairFlow(symbol: String): Flow<ForexPair?> {
-        if (isUsdtSymbol(symbol)) {
-            return BinanceDataStore.pairFlow(symbol)
-        }
         return allPairs
             .map { pairs -> findBestMatch(pairs, symbol) }
             .distinctUntilChanged()
     }
 
     fun historyFlow(symbol: String): Flow<List<Double>> {
-        if (isUsdtSymbol(symbol)) {
-            return BinanceDataStore.historyFlow(symbol)
-        }
         return combine(pairFlow(symbol), priceHistory) { pair, history ->
             if (pair == null) {
                 emptyList()
@@ -83,16 +93,18 @@ object MarketDataStore {
     }
 
     fun updatePair(incoming: ForexPair) {
-        if (isUsdtSymbol(incoming.symbol)) {
-            BinanceDataStore.updatePair(incoming)
-            return
-        }
-
         val currentPairs = _allPairs.value
+        var metadataChanged = false
         val updatedPairs = currentPairs.map { existing ->
             if (!shouldMirrorUpdate(existing, incoming)) {
                 existing
             } else {
+                val isPriceOnlyChange = existing.price != incoming.price &&
+                    existing.name == incoming.name &&
+                    existing.category == incoming.category
+                
+                if (!isPriceOnlyChange) metadataChanged = true
+
                 existing.copy(
                     price = incoming.price,
                     change = incoming.change,
@@ -102,20 +114,17 @@ object MarketDataStore {
         }
 
         if (updatedPairs == currentPairs) {
-            if (incoming.category == MarketCategory.FOREX || incoming.category == MarketCategory.STOCK) {
-                Log.w(TAG, "Ignored unmatched ${incoming.category} update: ${incoming.symbol} ${incoming.price}")
-            }
             return
         }
 
+        // Only update the StateFlow if metadata changed or it's a new symbol
+        // Price updates should ideally be handled via a separate mechanism
+        // to avoid recomposing every collector of allPairs.
+        // For now, we still update it but we can use this metadataChanged flag
+        // to potentially skip heavy operations.
         _allPairs.value = updatedPairs
-
-        if (incoming.category == MarketCategory.FOREX || incoming.category == MarketCategory.STOCK) {
-            Log.i(TAG, "Applied ${incoming.category} update: ${incoming.symbol} ${incoming.price}")
-        }
         
-        // Record telemetry for Market Data Bus - use CTRADER_LIVE as default for Pepperstone
-        SystemTelemetry.recordTick("CTRADER_LIVE", 5.0) // cTrader typically has ~5ms latency
+
 
         val updateTimestamp = System.currentTimeMillis()
         val nextHistory = _priceHistory.value.toMutableMap()
@@ -133,11 +142,6 @@ object MarketDataStore {
     }
 
     fun replaceHistory(symbol: String, prices: List<Double>) {
-        if (isUsdtSymbol(symbol)) {
-            BinanceDataStore.replaceHistory(symbol, prices)
-            return
-        }
-
         val pair = pairSnapshot(symbol) ?: return
         val sanitized = prices
             .filter { it.isFinite() && it > 0.0 }
@@ -158,11 +162,6 @@ object MarketDataStore {
     }
 
     fun replaceTimedHistory(symbol: String, prices: List<TimedPrice>) {
-        if (isUsdtSymbol(symbol)) {
-            BinanceDataStore.replaceTimedHistory(symbol, prices)
-            return
-        }
-
         val pair = pairSnapshot(symbol) ?: return
         val sanitized = prices
             .filter { it.timestampMillis > 0L && it.price.isFinite() && it.price > 0.0 }
@@ -255,7 +254,7 @@ object MarketDataStore {
             if (normalized.endsWith(suffix) && normalized.length > suffix.length) {
                 // Only strip if it's a suffix and leaves a valid base
                 // Special case: don't strip 'F' from 'USDCHF' or 'US' from 'EURUSD'
-                if (suffix == "F" && (normalized.endsWith("CHF") || normalized.endsWith("XAU") || normalized.endsWith("XAG"))) continue
+                if (suffix == "F" && (normalized.endsWith("CHF") || normalized.endsWith("XAU") || normalized.endsWith("XAG") || normalized.contains("CRUDE") || normalized.contains("BRENT"))) continue
                 if (suffix == "US" && (normalized.startsWith("EUR") || normalized.startsWith("GBP") || normalized.startsWith("AUD"))) continue
                 
                 normalized = normalized.substring(0, normalized.length - suffix.length)

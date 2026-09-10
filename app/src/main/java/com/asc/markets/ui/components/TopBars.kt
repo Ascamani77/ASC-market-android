@@ -31,7 +31,7 @@ fun HideOnScrollTopWithPinnedSecondary(
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = title,
-            colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Transparent),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             scrollBehavior = scrollBehavior
         )
 

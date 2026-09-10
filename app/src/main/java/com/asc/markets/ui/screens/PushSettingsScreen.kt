@@ -1,6 +1,9 @@
 package com.asc.markets.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.*
@@ -20,7 +24,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.notifications.NotificationHelper
 import com.asc.markets.ui.theme.*
+import com.google.firebase.messaging.FirebaseMessaging
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
@@ -28,8 +37,13 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("asc_prefs", Context.MODE_PRIVATE) }
     val firebaseConfigured = remember { context.resources.getIdentifier("google_app_id", "string", context.packageName) != 0 }
+    val permissionGranted = remember {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
 
-    var enablePush by remember { mutableStateOf(prefs.getBoolean("enable_push", false)) }
+    var enablePush by remember { mutableStateOf(prefs.getBoolean("enable_push", true)) }
+    var allowSignalPush by remember { mutableStateOf(prefs.getBoolean("allow_signal_push", true)) }
     var allowVolatilityPush by remember { mutableStateOf(prefs.getBoolean("allow_volatility_push", true)) }
     var allowAiPush by remember { mutableStateOf(prefs.getBoolean("allow_ai_push", true)) }
     var allowNewsPush by remember { mutableStateOf(prefs.getBoolean("allow_news_push", true)) }
@@ -41,6 +55,17 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
     var groupedNotifications by remember { mutableStateOf(prefs.getBoolean("push_grouped_notifications", true)) }
     var cooldownMinutes by remember { mutableStateOf(prefs.getInt("push_cooldown_minutes", 10).coerceIn(1, 60)) }
     var maxAlertsPerHour by remember { mutableStateOf(prefs.getInt("push_max_alerts_per_hour", 8).coerceIn(1, 50)) }
+    var fcmToken by remember { mutableStateOf(prefs.getString("fcm_token", null)) }
+
+    LaunchedEffect(Unit) {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val t = task.result
+                prefs.edit().putString("fcm_token", t).apply()
+                fcmToken = t
+            }
+        }
+    }
 
     fun saveBoolean(key: String, value: Boolean) {
         prefs.edit().putBoolean(key, value).apply()
@@ -69,6 +94,15 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
                 onCheckedChange = {
                     enablePush = it
                     saveBoolean("enable_push", it)
+                }
+            )
+            PushToggleRow(
+                label = "Signal Alerts",
+                sub = "EA entry signals sent to the alerts feed when a possible good entry is found",
+                checked = allowSignalPush,
+                onCheckedChange = {
+                    allowSignalPush = it
+                    saveBoolean("allow_signal_push", it)
                 }
             )
             PushToggleRow(
@@ -188,9 +222,64 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
 
         PushSettingsSection(title = "DEVICE TOKEN STATUS", icon = Icons.Default.Shield) {
             PushStatusRow("Push Service", if (firebaseConfigured) "Configured" else "Firebase Config Missing", if (firebaseConfigured) EmeraldSuccess else RoseError)
-            PushStatusRow("FCM Token", if (firebaseConfigured) "Pending Runtime Registration" else "Unavailable", if (firebaseConfigured) IndigoAccent else SlateText)
-            PushStatusRow("Permission Gate", if (enablePush) "Enabled by app" else "Muted by app", if (enablePush) EmeraldSuccess else Color(0xFFF59E0B))
-            PushStatusRow("Backend Sync", "Preference flags stored locally in asc_prefs", SlateText)
+            PushStatusRow(
+                "FCM Token",
+                fcmToken?.let { t -> "${t.take(8)}…${t.takeLast(6)}" } ?: "Not registered yet",
+                if (fcmToken != null) EmeraldSuccess else SlateText
+            )
+            PushStatusRow(
+                "Permission Gate",
+                if (permissionGranted) "Granted (OS)" else "Denied — grant in App Info",
+                if (permissionGranted) EmeraldSuccess else RoseError
+            )
+            PushStatusRow("Backend Sync", "Flags gate delivery in NotificationHelper", SlateText)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val t = task.result
+                                prefs.edit().putString("fcm_token", t).apply()
+                                fcmToken = t
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D2B4F)),
+                    modifier = Modifier.weight(1f).height(40.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, null, tint = IndigoAccent, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("REFRESH TOKEN", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        PushSettingsSection(title = "TEST DELIVERY", icon = Icons.Default.Smartphone) {
+            Text(
+                "Fires a local test notification through the same policy as live alerts (respects master gate, categories, frequency limits).",
+                color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily
+            )
+            Button(
+                onClick = {
+                    NotificationHelper.showAlert(
+                        context,
+                        "Test Notification",
+                        "Push notifications are working — ${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())}",
+                        "test", "TEST"
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = IndigoAccent),
+                modifier = Modifier.fillMaxWidth().height(42.dp)
+            ) {
+                Text("SEND TEST NOTIFICATION", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))

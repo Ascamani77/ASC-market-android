@@ -20,12 +20,12 @@ enum class AccumulationRadarTimeframe(
         const val PREF_KEY = "accumulation_radar_timeframe"
 
         fun fromPref(value: String?): AccumulationRadarTimeframe {
-            return values().firstOrNull { it.prefValue.equals(value, ignoreCase = true) } ?: DAY_1
+            return values().firstOrNull { it.prefValue.equals(value, ignoreCase = true) } ?: HOUR_1
         }
 
         fun current(context: Context): AccumulationRadarTimeframe {
             val prefs = context.applicationContext.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-            return fromPref(prefs.getString(PREF_KEY, DAY_1.prefValue))
+            return fromPref(prefs.getString(PREF_KEY, HOUR_1.prefValue))
         }
     }
 }

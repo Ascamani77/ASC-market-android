@@ -26,6 +26,7 @@ import kotlin.random.Random
 
 /**
  * Macro Intelligence Ledger (DashboardTrade) - Institutional Audit layout
+ * NOTE: This component uses sample data for demonstration. Replace with real trade data from execution ledger.
  */
 @Composable
 fun DashboardTrade() {

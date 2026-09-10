@@ -27,8 +27,8 @@ fun FullAssetHeader(pair: ForexPair) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(
-                    text = pair.symbol, 
-                    color = Color.White, 
+                    text = pair.symbol,
+                    color = Color.White,
                     fontSize = DashboardFontSizes.dashboardActiveSession,
                     fontWeight = FontWeight.Black,
                     fontFamily = InterFontFamily,
@@ -36,13 +36,21 @@ fun FullAssetHeader(pair: ForexPair) {
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(modifier = Modifier.size(6.dp).background(EmeraldSuccess, CircleShape))
+                    val precision = if (pair.symbol.contains("JPY") || pair.symbol.contains("BTC") || pair.symbol.contains("XAU")) 2 else 5
                     Text(
-                        text = "NY4 EQUINIX / FEED: TOP-OF-BOOK", 
-                        color = SlateText, 
-                        fontSize = DashboardFontSizes.microCaption, 
-                        fontWeight = FontWeight.Black, 
-                        fontFamily = InterFontFamily,
-                        letterSpacing = 1.sp
+                        text = String.format(java.util.Locale.US, "%.${precision}f", pair.price),
+                        color = Color.White,
+                        fontSize = DashboardFontSizes.bodyTiny,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = InterFontFamily
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${if (pair.change >= 0) "+" else ""}${String.format(java.util.Locale.US, "%.2f", pair.changePercent)}%",
+                        color = if (pair.change >= 0) EmeraldSuccess else RoseError,
+                        fontSize = DashboardFontSizes.bodyTiny,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = InterFontFamily
                     )
                 }
             }

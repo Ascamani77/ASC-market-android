@@ -1,12 +1,10 @@
 package com.asc.markets.ui.screens
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -16,33 +14,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.data.EALiveDataStore
+import com.asc.markets.data.EASignalLiveStore
+import com.asc.markets.data.ScannerSignalsStore
 import com.asc.markets.logic.ForexViewModel
-import com.asc.markets.logic.VigilanceNodeEngine
 import com.asc.markets.logic.VigilanceNode
+import com.asc.markets.logic.VigilanceNodeEngine
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.screens.dashboard.marketOverviewAssets
 import com.asc.markets.ui.theme.*
+import com.trading.app.components.AssetIcon
+import com.trading.app.models.SymbolInfo
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertsScreen(viewModel: ForexViewModel) {
-    var isSmartMode by remember { mutableStateOf(true) }
-    val selectedConfirmations = remember { mutableStateListOf<String>() }
     val scrollState = rememberScrollState()
-    val activeNodes = remember { mutableStateListOf<com.asc.markets.logic.VigilanceNode>() }
-    
-    
-    // Load active nodes on composition
+    val liveAssets by EALiveDataStore.liveAssets.collectAsState()
+    val signalsByAsset by EASignalLiveStore.signalsByAsset.collectAsState()
+    val scannerSignals by ScannerSignalsStore.signals.collectAsState()
+    val activeNodes = remember { mutableStateListOf<VigilanceNode>() }
+
     LaunchedEffect(Unit) {
         activeNodes.addAll(VigilanceNodeEngine.getActiveNodes())
-    }
-    
-    val logicScore = remember(selectedConfirmations.size) {
-        40 + (selectedConfirmations.size * 15).coerceAtMost(60)
     }
 
     fun registerNode(node: VigilanceNode) {
@@ -55,7 +55,6 @@ fun AlertsScreen(viewModel: ForexViewModel) {
             .fillMaxSize()
             .background(DeepBlack)
             .padding(16.dp)
-            .verticalScroll(scrollState)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Surface(
@@ -64,51 +63,538 @@ fun AlertsScreen(viewModel: ForexViewModel) {
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("⚡", fontSize = 20.sp)
+                    Text("\u26A1", fontSize = 20.sp)
                 }
             }
             Column {
                 Text("VIGILANCE SETUP", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("TRADING-TYPE ALERT LOGIC WITH MULTI-CONDITION DEPLOYMENT", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
+                Text("EA-POWERED ALERT MONITORING", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontFamily = InterFontFamily)
             }
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
 
-        Row(modifier = Modifier.fillMaxWidth().background(PureBlack, RoundedCornerShape(12.dp)).padding(4.dp)) {
-            listOf(true to "SMART ALERT", false to "SIMPLE").forEach { (mode, label) ->
-                val active = isSmartMode == mode
-                Surface(
-                    color = if (active) Color(0xFF2B2B2B) else Color.Transparent,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f).height(36.dp).clickable { isSmartMode = mode }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(if (mode) "⊙" else "⊙", fontSize = 12.sp, color = if (active) Color.White else Color.Gray)
-                            Text(label, color = if (active) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, letterSpacing = 1.sp)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+        // ─── EA STATUS ───
+        val connected by EASignalLiveStore.isConnected.collectAsState()
+        val eaConnected by EALiveDataStore.isConnected.collectAsState()
+        InfoBox {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(if (connected && eaConnected) EmeraldSuccess else Color(0xFFEF4444), RoundedCornerShape(4.dp))
+                    )
+                    Text("EA FEED", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                }
+                Text(
+                    if (connected && eaConnected) "LIVE \u2022 ${liveAssets.size} assets" else "OFFLINE",
+                    color = if (connected && eaConnected) EmeraldSuccess else Color(0xFFEF4444),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = InterFontFamily
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // ─── ASSET SELECTOR ───
+        var selectedAsset by remember { mutableStateOf("") }
+        val liveSymbols = liveAssets.map { it.symbol }.distinct()
+        val pickerAssets = remember(liveSymbols) {
+            val canonical = marketOverviewAssets()
+            val known = canonical.map { normalizeSignalKey(it.symbol) }.toSet()
+            val extras = liveSymbols.filter { s -> normalizeSignalKey(s) !in known }.map { s ->
+                PickerAsset(symbol = s, name = s, type = guessAssetType(s))
+            }
+            canonical.map { a ->
+                PickerAsset(symbol = a.symbol, name = a.name, type = assetTypeFor(a.category))
+            } + extras
+        }
+        val assetList = pickerAssets.map { it.symbol }
+
+        LaunchedEffect(assetList) {
+            if (selectedAsset.isEmpty() && assetList.isNotEmpty()) {
+                selectedAsset = assetList.first()
+            }
+        }
+
+        // Keep this asset's EA write-up streaming so the live panel — and the
+        // vigilance monitor — always have fresh data while this page is open.
+        LaunchedEffect(selectedAsset, eaConnected) {
+            if (selectedAsset.isNotEmpty() && eaConnected) {
+                EASignalLiveStore.requestSignal(selectedAsset)
+            }
+        }
+
+        // Warm the EA feed for every canonical asset so the picker and live
+        // panel show vote / direction data even before an asset is selected.
+        LaunchedEffect(assetList, eaConnected) {
+            if (eaConnected) {
+                assetList.forEach { EASignalLiveStore.requestSignal(it) }
+            }
+        }
+
+        InfoBox {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("TARGET ASSET", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+
+                var showAssetPicker by remember { mutableStateOf(false) }
+                Box {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().height(48.dp).clickable { showAssetPicker = true },
+                        color = Color.White.copy(alpha = 0.02f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (selectedAsset.isEmpty()) "Select asset..." else selectedAsset,
+                                color = if (selectedAsset.isEmpty()) Color.Gray else Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                fontFamily = InterFontFamily
+                            )
+                            Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+
+                if (showAssetPicker) {
+                    AssetPickerSheet(
+                        assets = pickerAssets,
+                        signalsByAsset = signalsByAsset,
+                        selectedAsset = selectedAsset,
+                        onSelect = { asset ->
+                            selectedAsset = asset
+                            showAssetPicker = false
+                        },
+                        onDismiss = { showAssetPicker = false }
+                    )
+                }
+
+                // Show current EA data for selected asset
+                if (selectedAsset.isNotEmpty()) {
+                    val signal = findSignalFor(signalsByAsset, selectedAsset)
+                    val scanKey = selectedAsset.uppercase()
+                        .replace("/", "").replace("-", "").replace("_", "")
+                        .replace(" ", "").replace(".", "").removeSuffix("M")
+                    val scanner = scannerSignals.firstOrNull {
+                        it.asset.uppercase().replace("/", "").removeSuffix("M") == scanKey
+                    }
+
+                    if (signal != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Real AI score: signal.confidence (0-1) + direction, not the
+                        // validator's internal confidence. Vote normalized (EA sends 0-100).
+                        val votePct = normVotePct(signal.chart_panel?.votes?.win_pct ?: 0.0)
+                        val aiConfPct = (signal.confidence * 100).toInt().coerceIn(0, 100)
+                        val dirLabel = when (signal.direction.uppercase()) {
+                            "BUY" -> "LONG"
+                            "SELL" -> "SHORT"
+                            else -> signal.direction.uppercase().ifBlank { "---" }
+                        }
+                        val tier = signal.chart_panel?.quality_tier ?: "NONE"
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            MiniStat("VOTE", "$votePct%", if (votePct >= 50) EmeraldSuccess else Color.Gray, Modifier.weight(1f))
+                            MiniStat("AI CONF", "$aiConfPct%", if (aiConfPct >= 60) EmeraldSuccess else Color.Gray, Modifier.weight(1f))
+                            MiniStat("DIR", dirLabel, if (dirLabel == "LONG") EmeraldSuccess else if (dirLabel == "SHORT") RoseError else Color.Gray, Modifier.weight(1f))
+                            MiniStat("TIER", tier.replace("_", " "), when (tier.uppercase()) {
+                                "ELITE" -> EmeraldSuccess
+                                "STRONG", "HIGH", "VALID" -> IndigoAccent
+                                else -> Color.Gray
+                            }, Modifier.weight(1f))
+                        }
+
+                        // Live scanner line (P(T) + age) when the MT5 scanner has this asset
+                        if (scanner != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("SCANNER", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                val scConf = if (scanner.confidence > 1.0) scanner.confidence.toInt().coerceIn(0, 100) else (scanner.confidence * 100).toInt().coerceIn(0, 100)
+                                Text(
+                                    "${scanner.direction.uppercase()} • P $scConf% • ${scanner.age}s ago",
+                                    color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily
+                                )
+                            }
+                        }
+
+                        // How the scores work: live contributor breakdown
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("LIVE SCORE BREAKDOWN", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val votes = signal.chart_panel?.votes
+                        ScoreBar("SMC bull/bear", votes?.smc_bull ?: 0, (votes?.smc_bull ?: 0) + (votes?.smc_bear ?: 0))
+                        ScoreBar("AI bull/bear", votes?.ai_bull ?: 0, (votes?.ai_bull ?: 0) + (votes?.ai_bear ?: 0))
+                        ScoreBar("Regime ${(signal.regime?.trend ?: "").replace("_", " ")}", (signal.regime?.score?.times(100))?.toInt() ?: 0, 100)
+                        ScoreBar("Volatility ${(signal.volatility?.state ?: "").replace("_", " ")}", (signal.volatility?.score?.times(100))?.toInt() ?: 0, 100)
+                        ScoreBar("Structure ${(signal.structure?.bias ?: "").replace("_", " ")}", (signal.structure?.score?.times(100))?.toInt() ?: 0, 100)
+                        ScoreBar("Indicators ${(signal.indicators?.bias ?: "").replace("_", " ")}", (signal.indicators?.score?.times(100))?.toInt() ?: 0, 100)
+                        ScoreBar("Confluence ${(signal.confluence?.state ?: "").replace("_", " ")}", (signal.confluence?.score?.times(100))?.toInt() ?: 0, 100)
+                        val validatorActive = signal.chart_panel?.validator_active == true
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Validator ${(signal.chart_panel?.validator_direction ?: "").replace("_", " ")}${if (validatorActive) " • ON" else " • OFF"}",
+                                color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily
+                            )
+                            val pwin = signal.chart_panel?.validator_pwin ?: 0.0
+                            val pwinPct = if (pwin > 1.0) pwin.toInt().coerceIn(0, 100) else (pwin * 100).toInt().coerceIn(0, 100)
+                            Text("$pwinPct% win", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                        }
+
+                        // Live SMC state — mirrors what the chart stream sees
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("LIVE SMC STATE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val liq = signal.liquidity
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SmcStateChip("FVG", (liq?.fvg_bull == true || liq?.fvg_bear == true), Modifier.weight(1f))
+                            SmcStateChip("BOS", (liq?.bos_bull == true || liq?.bos_bear == true), Modifier.weight(1f))
+                            SmcStateChip("SWEEP", (liq?.sweep_high == true || liq?.sweep_low == true), Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        if (isSmartMode) {
-            SmartCalibration(logicScore, selectedConfirmations, viewModel) { node ->
-                registerNode(node)
-            }
-        } else {
-            SimpleCalibration { node ->
-                registerNode(node)
+        // ─── TRIGGER CONDITIONS ───
+        var voteThreshold by remember { mutableStateOf(40) }
+        var confThreshold by remember { mutableStateOf(50) }
+        var eaSide by remember { mutableStateOf("ANY") }
+        var aiSide by remember { mutableStateOf("ANY") }
+        var filterDirection by remember { mutableStateOf("ANY") }
+        var filterTier by remember { mutableStateOf("ANY") }
+        var requireFvg by remember { mutableStateOf(false) }
+        var requireBos by remember { mutableStateOf(false) }
+        var requireSweep by remember { mutableStateOf(false) }
+        var requirePd by remember { mutableStateOf(false) }
+        var pTradeThreshold by remember { mutableStateOf(0) }
+        var combineScoreThreshold by remember { mutableStateOf(0) }
+        var validatorFilter by remember { mutableStateOf("ANY") }
+        var cooldownMinutes by remember { mutableStateOf(30) }
+
+        InfoBox {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = IndigoAccent,
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("1", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Text("TRIGGER CONDITIONS", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
+                        Text("EA-BASED", color = IndigoAccent, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(6.dp, 3.dp))
+                    }
+                }
+
+                // Vote Threshold
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("EA SCORE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("${voteThreshold}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("ANY" to IndigoAccent, "LONG" to EmeraldSuccess, "SHORT" to RoseError).forEach { (side, color) ->
+                            val isSelected = eaSide == side
+                            Surface(
+                                modifier = Modifier.weight(1f).height(30.dp).clickable { eaSide = side },
+                                color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(side, color = if (isSelected) color else Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = voteThreshold.toFloat(),
+                        onValueChange = { voteThreshold = it.toInt() },
+                        valueRange = 0f..100f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("0%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                        Text("100%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    }
+                }
+
+                // AI Confidence Threshold
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("AI SCORE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("${confThreshold}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("ANY" to IndigoAccent, "LONG" to EmeraldSuccess, "SHORT" to RoseError).forEach { (side, color) ->
+                            val isSelected = aiSide == side
+                            Surface(
+                                modifier = Modifier.weight(1f).height(30.dp).clickable { aiSide = side },
+                                color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(side, color = if (isSelected) color else Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = confThreshold.toFloat(),
+                        onValueChange = { confThreshold = it.toInt() },
+                        valueRange = 0f..100f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("0%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                        Text("100%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    }
+                }
+
+                // P TRADE Threshold (scanner)
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("P TRADE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text(if (pTradeThreshold > 0) "${pTradeThreshold}%" else "OFF", color = if (pTradeThreshold > 0) IndigoAccent else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Slider(
+                        value = pTradeThreshold.toFloat(),
+                        onValueChange = { pTradeThreshold = it.toInt() },
+                        valueRange = 0f..100f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("OFF", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                        Text("100%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    }
+                }
+
+                // Validator State Filter
+                Column {
+                    Text("VALIDATOR STATE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("ANY" to IndigoAccent, "LONG" to EmeraldSuccess, "SHORT" to RoseError, "INACTIVE" to SlateText).forEach { (state, color) ->
+                            val isSelected = validatorFilter == state
+                            Surface(
+                                modifier = Modifier.weight(1f).height(36.dp).clickable { validatorFilter = state },
+                                color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(state, color = if (isSelected) color else Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
+                    }
+                    Text("LONG/SHORT = validator active with that direction • INACTIVE = validator off", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily, modifier = Modifier.padding(top = 4.dp))
+                }
+
+                // COMBINE SCORE Threshold
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("COMBINE SCORE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text(if (combineScoreThreshold > 0) "${combineScoreThreshold}%" else "OFF", color = if (combineScoreThreshold > 0) IndigoAccent else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Slider(
+                        value = combineScoreThreshold.toFloat(),
+                        onValueChange = { combineScoreThreshold = it.toInt() },
+                        valueRange = 0f..100f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("OFF", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                        Text("100%", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    }
+                }
+
+                // Direction Filter
+                Column {
+                    Text("VALIDATOR DIRECTION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("ANY" to IndigoAccent, "LONG" to EmeraldSuccess, "SHORT" to RoseError).forEach { (dir, color) ->
+                            val isSelected = filterDirection == dir
+                            Surface(
+                                modifier = Modifier.weight(1f).height(40.dp).clickable { filterDirection = dir },
+                                color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(dir, color = if (isSelected) color else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Quality Tier Filter
+                Column {
+                    Text("QUALITY TIER", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("ANY", "ELITE", "HIGH", "STANDARD").forEach { tier ->
+                            val isSelected = filterTier == tier
+                            val tierColor = when (tier) {
+                                "ELITE" -> EmeraldSuccess
+                                "HIGH" -> IndigoAccent
+                                "STANDARD" -> Color(0xFFFFA500)
+                                else -> Color.Gray
+                            }
+                            Surface(
+                                modifier = Modifier.weight(1f).height(36.dp).clickable { filterTier = tier },
+                                color = if (isSelected) tierColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) tierColor.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(tier, color = if (isSelected) tierColor else Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // SMC Flags
+                Column {
+                    Text("SMC FLAGS (OPTIONAL)", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SMCFlagRow("Fair Value Gap (FVG)", "Bullish or Bearish FVG detected", requireFvg) { requireFvg = it }
+                        SMCFlagRow("Break of Structure (BOS)", "Bullish or Bearish BOS confirmed", requireBos) { requireBos = it }
+                        SMCFlagRow("Liquidity Sweep", "High or Low sweep detected", requireSweep) { requireSweep = it }
+                        SMCFlagRow("Premium / Discount (PD)", "Price trading in a premium or discount zone", requirePd) { requirePd = it }
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // DEPLOYMENT CONFIRMATION
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // ─── COOLDOWN ───
+        InfoBox {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = IndigoAccent,
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("2", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                    Text("COOLDOWN", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Slider(
+                            value = cooldownMinutes.toFloat(),
+                            onValueChange = { cooldownMinutes = it.toInt() },
+                            valueRange = 5f..120f,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("${cooldownMinutes}m", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("5 min", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                        Text("120 min", color = Color.Gray, fontSize = 8.sp, fontFamily = InterFontFamily)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // ─── DEPLOY ───
+        Button(
+            onClick = {
+                val node = VigilanceNodeEngine.createEAAlert(
+                    pair = selectedAsset,
+                    voteThreshold = voteThreshold,
+                    confidenceThreshold = confThreshold,
+                    directionFilter = filterDirection,
+                    qualityTierFilter = filterTier,
+                    requireFvg = requireFvg,
+                    requireBos = requireBos,
+                    requireSweep = requireSweep,
+                    requirePd = requirePd,
+                    pTradeThreshold = pTradeThreshold,
+                    combineScoreThreshold = combineScoreThreshold,
+                    validatorFilter = validatorFilter,
+                    eaSide = eaSide,
+                    aiSide = aiSide,
+                    cooldownMinutes = cooldownMinutes
+                )
+                registerNode(node)
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B)),
+            enabled = selectedAsset.isNotEmpty()
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("\u25C1", fontSize = 16.sp, color = Color.White)
+                Text("DEPLOY VIGILANCE NODE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
+            }
+        }
+
+        Text(
+            "MONITORS EA SIGNALS IN REAL-TIME \u2022 FIRES WHEN CONDITIONS MATCH",
+            color = SlateText,
+            fontSize = 8.sp,
+            fontFamily = InterFontFamily,
+            modifier = Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ─── ACTIVE NODES ───
         if (activeNodes.isNotEmpty()) {
+            NodesSectionHeader("ACTIVE NODES")
+            Spacer(modifier = Modifier.height(8.dp))
+
             Surface(
                 color = EmeraldSuccess.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(12.dp),
@@ -128,1056 +614,383 @@ fun AlertsScreen(viewModel: ForexViewModel) {
                             .background(EmeraldSuccess, RoundedCornerShape(4.dp))
                     )
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("${activeNodes.size} VIGILANCE NODE${if (activeNodes.size > 1) "S" else ""} DEPLOYED", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("View and manage in My Alerts", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                        Text("${activeNodes.size} NODE${if (activeNodes.size > 1) "S" else ""} ACTIVE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                        Text("Monitoring EA feed for trigger conditions", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            activeNodes.forEach { node ->
+                ActiveNodeCard(node, signalsByAsset, scannerSignals) { /* breakdown not shown inline */ }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
-        
+
         Spacer(modifier = Modifier.height(80.dp))
+        }
     }
 }
 
-@Composable
-fun SmartCalibration(score: Int, selections: MutableList<String>, viewModel: ForexViewModel, onNodeDeployed: (VigilanceNode) -> Unit) {
-    var selectedAsset by remember { mutableStateOf("EUR/USD") }
-    var primaryEvent by remember { mutableStateOf("Break of Previous High") }
-    var cooldownMinutes by remember { mutableStateOf(30) }
-    var selectedPreset by remember { mutableStateOf<String?>(null) }
-    val environmentSelections = remember { mutableStateListOf<String>() }
-    val riskFilterSelections = remember { mutableStateListOf<String>() }
-    var selectedDirection by remember { mutableStateOf("BOTH") }
-    var selectedRegime by remember { mutableStateOf("ANY") }
-    var selectedVolatility by remember { mutableStateOf("ANY") }
-    var confluenceThreshold by remember { mutableStateOf(0) }
-    
-    val validations = listOf(
-        "CANDLE_CLOSE_BEYOND_LEVEL" to "CANDLE (+15%)",
-        "STRONG_BODY_CLOSE" to "CANDLE (+15%)",
-        "ENGULFING_CANDLE" to "CANDLE (+15%)",
-        "PRICE_ABOVE_BELOW_MA" to "MA (+10%)",
-        "MA_SLOPE_ALIGNMENT" to "MA (+10%)",
-        "RSI_EXIT_DIVERGENCE" to "MOMENTUM (+10%)"
-    )
-    val environmentOptions = listOf(
-        "HTF_BULLISH_BIAS" to "(+10%)",
-        "HTF_BEARISH_BIAS" to "(+10%)",
-        "LONDON_SESSION_ACTIVE" to "(+10%)",
-        "NEW_YORK_SESSION_ACTIVE" to "(+10%)",
-        "NY_REVERSAL_WINDOW" to "(+10%)",
-        "AT_PREMIUM_ZONE" to "(+5%)",
-        "AT_DISCOUNT_ZONE" to "(+5%)"
-    )
-    val riskFilters = listOf("IGNORE_LOW_LIQUIDITY", "IGNORE_NEWS_WINDOW", "ENHANCED_NOISE_REDUCTION")
-    
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Quick Calibration Presets
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("📌", fontSize = 14.sp)
-                    Text("QUICK CALIBRATION PRESETS", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                }
-                listOf(
-                    "BREAKOUT WATCH" to "HIGH SENSITIVITY MONITORING",
-                    "CONFIRMED CONTINUATION" to "INSTITUTIONAL TREND ALIGNMENT",
-                    "REVERSAL WINDOW" to "COUNTER-TREND EXHAUSTION"
-                ).forEach { (title, desc) ->
-                    val isPresetSelected = selectedPreset == title
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(48.dp).clickable { selectedPreset = if (isPresetSelected) null else title },
-                        color = if (isPresetSelected) IndigoAccent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPresetSelected) IndigoAccent.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.08f))
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.Center) {
-                            Text(title, color = if (isPresetSelected) Color.White else Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text(desc, color = if (isPresetSelected) Color.White.copy(alpha = 0.85f) else SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Asset Target
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("ASSET TARGET", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+// EA sends win_pct 0-100 (e.g. 98.1); normalize anything 0-1 to percent as well.
+private fun normVotePct(raw: Double): Int =
+    if (raw > 1.0) raw.toInt().coerceIn(0, 100) else (raw * 100).toInt().coerceIn(0, 100)
 
-                // Dropdown state and asset lists
-                val forex = listOf("EUR/USD","GBP/USD","USD/JPY","AUD/USD","USD/CAD","USD/CHF","NZD/USD","EUR/GBP","EUR/JPY","GBP/JPY")
-                val stocks = listOf("AAPL","MSFT","GOOGL","AMZN","TSLA")
-                val indices = listOf("SPX/500","NAS100","DOW30")
-                val commodities = listOf("XAU/USD","XAG/USD","WTI")
-                val crypto = listOf("BTC/USDT","ETH/USDT","BNB/USDT")
-                val grouped = listOf(
-                    "Forex" to forex,
-                    "Stocks" to stocks,
-                    "Indices" to indices,
-                    "Commodities" to commodities,
-                    "Crypto" to crypto
-                )
+/** Asset entry in the picker: symbol + display name + icon type (matches the Market Overview page). */
+private data class PickerAsset(
+    val symbol: String,
+    val name: String,
+    val type: String
+)
 
-                var assetMenuExpanded by remember { mutableStateOf(false) }
+/** Map canonical category to the icon type used by AssetIcon, exactly as the Markets page does. */
+private fun assetTypeFor(category: com.asc.markets.data.MarketCategory): String = when (category) {
+    com.asc.markets.data.MarketCategory.FOREX -> "forex"
+    com.asc.markets.data.MarketCategory.CRYPTO -> "crypto"
+    com.asc.markets.data.MarketCategory.COMMODITIES -> "commodity"
+    com.asc.markets.data.MarketCategory.INDICES -> "index"
+    com.asc.markets.data.MarketCategory.STOCK -> "stock"
+    com.asc.markets.data.MarketCategory.BONDS -> "bond"
+    com.asc.markets.data.MarketCategory.FUTURES -> "futures"
+}
 
-                Box {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(48.dp).clickable { assetMenuExpanded = true },
-                        color = Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(selectedAsset, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = assetMenuExpanded,
-                        onDismissRequest = { assetMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.95f)
-                    ) {
-                        val scroll = rememberScrollState()
-                        Column(modifier = Modifier.heightIn(max = 340.dp).verticalScroll(scroll)) {
-                            grouped.forEach { (group, items) ->
-                                Text(group.uppercase(), color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(12.dp, 8.dp), fontFamily = InterFontFamily)
-                                items.forEach { item ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Surface(
-                                                    color = Color.White.copy(alpha = 0.03f),
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    modifier = Modifier.size(36.dp)
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Text(item.takeWhile { it != '/' }.take(1), color = Color.White, fontWeight = FontWeight.Black)
-                                                    }
-                                                }
-                                                Text(item, color = Color.White, modifier = Modifier.padding(start = 12.dp), fontFamily = InterFontFamily)
-                                            }
-                                        },
-                                        onClick = {
-                                            selectedAsset = item
-                                            assetMenuExpanded = false
-                                            viewModel.selectPairBySymbolNoNavigate(item)
-                                        }
-                                    )
-                                }
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.03f))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Direction Selector
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = IndigoAccent,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("D", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    Text("TRADE DIRECTION", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("LONG" to EmeraldSuccess, "SHORT" to RoseError, "BOTH" to IndigoAccent).forEach { (dir, color) ->
-                        val isSelected = selectedDirection == dir
-                        Surface(
-                            modifier = Modifier.weight(1f).height(44.dp).clickable { selectedDirection = dir },
-                            color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(dir, color = if (isSelected) color else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Primary Structural Event
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(
-                            color = IndigoAccent,
-                            shape = RoundedCornerShape(50),
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("1", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                        Text("PRIMARY STRUCTURAL EVENT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    }
-                    Surface(color = RoseError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                        Text("MANDATORY", color = RoseError, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(6.dp, 3.dp))
-                    }
-                }
-                // Primary event dropdown
-                val primaryOptions = listOf(
-                    "Break of Previous High",
-                    "Break of Previous Low",
-                    "Break of Range High",
-                    "Break of Range Low",
-                    "Break of Support Level",
-                    "Break of Resistance Level",
-                    "Break of Trendline",
-                    "Wick Rejection at Level",
-                    "False Break / Sweep",
-                    "Change of Character (CHoCH)",
-                    "Market Structure Shift (MSS)"
-                )
-                var primaryMenuExpanded by remember { mutableStateOf(false) }
-
-                Box {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(48.dp).clickable { primaryMenuExpanded = true },
-                        color = Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(primaryEvent, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = primaryMenuExpanded,
-                        onDismissRequest = { primaryMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.95f)
-                    ) {
-                        val scroll = rememberScrollState()
-                        Column(modifier = Modifier.heightIn(max = 360.dp).verticalScroll(scroll)) {
-                            primaryOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Text(option, color = if (option == primaryEvent) Color.Black else Color.White, modifier = Modifier.weight(1f), fontFamily = InterFontFamily)
-                                            if (option == primaryEvent) {
-                                                Surface(color = IndigoAccent, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(start = 8.dp)) {
-                                                    Text("✓", color = Color.White, modifier = Modifier.padding(6.dp, 2.dp))
-                                                }
-                                            }
-                                        }
-                                    },
-                                    onClick = {
-                                        primaryEvent = option
-                                        primaryMenuExpanded = false
-                                    }
-                                )
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.03f))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Validation Confirmations
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(
-                            color = IndigoAccent,
-                            shape = RoundedCornerShape(50),
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("2", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                        Text("VALIDATION CONFIRMATIONS", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    }
-                    Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                        Text("MIN. 1 REQUIRED", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(6.dp, 3.dp))
-                    }
-                }
-                
-                for (i in validations.indices step 2) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (j in 0..1) {
-                            if (i + j < validations.size) {
-                                val (label, scoring) = validations[i + j]
-                                val isSelected = selections.contains(label)
-                                Surface(
-                                    modifier = Modifier.weight(1f).heightIn(min = 72.dp).clickable { if (isSelected) selections.remove(label) else selections.add(label) },
-                                    color = if (isSelected) Color.White.copy(alpha = 0.05f) else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.3f) else Color.Transparent)
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.Top) {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Box(modifier = Modifier.size(14.dp).background(if (isSelected) IndigoAccent else Color.Transparent, RoundedCornerShape(3.dp)).border(1.dp, if (isSelected) IndigoAccent else Color.DarkGray, RoundedCornerShape(3.dp)))
-                                            Text(label.replace("_", " "), color = if (isSelected) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(scoring, color = SlateText, fontSize = 8.sp, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Environment Context
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = IndigoAccent,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("3", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    Text("ENVIRONMENT CONTEXT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    environmentOptions.forEach { (label, scoring) ->
-                        val isSelected = environmentSelections.contains(label)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(40.dp).clickable { if (isSelected) environmentSelections.remove(label) else environmentSelections.add(label) },
-                            color = if (isSelected) IndigoAccent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.05f))
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(label.replace("_", " "), color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                Text(scoring, color = if (isSelected) Color.White else IndigoAccent, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Risk Filtering
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = IndigoAccent,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("5", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    Text("RISK FILTERING", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    riskFilters.forEach { filter ->
-                        val isSelected = riskFilterSelections.contains(filter)
-                        Row(modifier = Modifier.fillMaxWidth().clickable { if (isSelected) riskFilterSelections.remove(filter) else riskFilterSelections.add(filter) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(filter.replace("_", " "), color = Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                            Box(modifier = Modifier.size(20.dp).background(if (isSelected) IndigoAccent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.05f), RoundedCornerShape(4.dp)).border(1.dp, if (isSelected) IndigoAccent else Color.DarkGray, RoundedCornerShape(4.dp)))
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Volatility Filter
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = IndigoAccent,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("6", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    Text("VOLATILITY STATE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                        Text("+5% BONUS", color = EmeraldSuccess, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, modifier = Modifier.padding(6.dp, 3.dp))
-                    }
-                }
-                
-                val volatilityOptions = listOf("ANY" to "No Filter", "EXPANDING" to "Momentum Building", "COMPRESSED" to "Pre-Expansion", "DEAD" to "Avoid Dead Markets")
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    volatilityOptions.forEach { (vol, desc) ->
-                        val isSelected = selectedVolatility == vol
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(44.dp).clickable { selectedVolatility = vol },
-                            color = if (isSelected) IndigoAccent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.05f))
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Column {
-                                    Text(vol, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontFamily = InterFontFamily)
-                                    Text(desc, color = if (isSelected) Color.White.copy(alpha = 0.7f) else SlateText, fontSize = 9.sp, fontFamily = InterFontFamily)
-                                }
-                                if (isSelected) {
-                                    Surface(color = IndigoAccent, shape = RoundedCornerShape(4.dp), modifier = Modifier.wrapContentSize()) {
-                                        Text("✓", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Logic Control
-        InfoBox {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = IndigoAccent,
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("7", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                    Text("LOGIC CONTROL", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                }
-                
-                // Confluence Threshold
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("CONFLUENCE THRESHOLD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Text("${confluenceThreshold}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Slider(
-                            value = confluenceThreshold.toFloat(),
-                            onValueChange = { confluenceThreshold = it.toInt() },
-                            valueRange = 0f..100f,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("0=Off", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Cooldown
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("COOLDOWN PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Slider(
-                            value = cooldownMinutes.toFloat(),
-                            onValueChange = { cooldownMinutes = it.toInt() },
-                            valueRange = 15f..120f,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("${cooldownMinutes}m", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Button(
-                    onClick = {
-                        val node = VigilanceNodeEngine.createSmartAlert(
-                            pair = selectedAsset,
-                            primaryEvent = primaryEvent,
-                            confirmations = selections.toList(),
-                            environmentContext = environmentSelections.joinToString(","),
-                            riskFilters = riskFilterSelections.toList(),
-                            direction = selectedDirection,
-                            regimeFilter = selectedRegime,
-                            volatilityFilter = selectedVolatility,
-                            confluenceThreshold = confluenceThreshold,
-                            cooldownMinutes = cooldownMinutes
-                        )
-                        onNodeDeployed(node)
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("◇", fontSize = 16.sp, color = Color.White)
-                        Text("DEPLOY SURVEILLANCE NODE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
-                    }
-                }
-                
-                Text("COMMIT PARAMETERS TO ACTIVATE NODE MONITORING", color = SlateText, fontSize = 9.sp, fontFamily = InterFontFamily, modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-        }
-        
-
+/** Best-effort icon type for live EA symbols that aren't in the canonical trained list. */
+private fun guessAssetType(symbol: String): String {
+    val s = symbol.uppercase()
+    return when {
+        s == "USOIL" || s == "UKOIL" || s == "BRENT" || s.startsWith("XAU") || s.startsWith("XAG") || s.startsWith("XCU") || s.startsWith("XPT") -> "commodity"
+        s == "DE30" || s == "DXY" || s == "JP225" || s == "STOXX50" || s == "UK100" || s == "US30" || s == "US500" || s == "USTEC" -> "index"
+        s.contains("BTC") || s.contains("ETH") || s.contains("USDT") || s == "USDC" -> "crypto"
+        s in listOf("AAPL", "AMZN", "META", "MSFT", "NFLX", "NVDA", "PYPL", "TSLA") -> "stock"
+        else -> "forex"
     }
 }
 
+/** Normalize an asset symbol to match live EA signal keys (e.g. EURUSD ↔ EURUSDm). */
+private fun normalizeSignalKey(symbol: String): String = symbol.uppercase()
+    .replace("/", "").replace("-", "").replace("_", "")
+    .replace(" ", "").replace(".", "").removeSuffix("M")
+
+/** Find a live signal for `symbol`, tolerating the EA's trailing-M / separator variants. */
+private fun findSignalFor(
+    signalsByAsset: Map<String, com.asc.markets.data.ASCSignalData>,
+    symbol: String
+): com.asc.markets.data.ASCSignalData? {
+    val exact = signalsByAsset.entries.find { it.key.equals(symbol, ignoreCase = true) }
+    if (exact != null) return exact.value
+    val key = normalizeSignalKey(symbol)
+    return signalsByAsset.entries.firstOrNull { normalizeSignalKey(it.key) == key }?.value
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SimpleCalibration(onNodeDeployed: (VigilanceNode) -> Unit) {
-    var selectedPair by remember { mutableStateOf("EUR/USD") }
-    var selectedTrigger by remember { mutableStateOf("PRICE_THRESHOLD") }
-    var selectedTimeframe by remember { mutableStateOf("H1") }
-    var selectedDirection by remember { mutableStateOf("BOTH") }
-    var priceLevel by remember { mutableStateOf("1.0850") }
-    var thresholdValue by remember { mutableStateOf("75") }
-    var comparisonMode by remember { mutableStateOf("ABOVE") }
-    var selectedAiPhase by remember { mutableStateOf("PRE-MOVE") }
-    var selectedVolatilityState by remember { mutableStateOf("EXPANDING") }
-    var rsiPeriod by remember { mutableStateOf("14") }
-    var rsiLevel by remember { mutableStateOf("70") }
-    var maFastPeriod by remember { mutableStateOf("9") }
-    var maSlowPeriod by remember { mutableStateOf("21") }
-    var cooldownMinutes by remember { mutableStateOf(30) }
-    
-    val pairs = listOf(
-        // Forex majors
-        "EUR/USD","GBP/USD","USD/JPY","AUD/USD","USD/CAD","USD/CHF","NZD/USD","EUR/GBP","EUR/JPY","GBP/JPY",
-        // Stocks
-        "AAPL","MSFT","GOOGL","AMZN","TSLA",
-        // Indices
-        "SPX/500","NAS100","DOW30",
-        // Commodities
-        "XAU/USD","XAG/USD","WTI",
-        // Crypto
-        "BTC/USDT","ETH/USDT","BNB/USDT"
+private fun AssetPickerSheet(
+    assets: List<PickerAsset>,
+    signalsByAsset: Map<String, com.asc.markets.data.ASCSignalData>,
+    selectedAsset: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
     )
-    val triggers = listOf(
-        "PRICE_THRESHOLD" to "Price Threshold",
-        "RSI_LEVEL" to "RSI Level",
-        "MA_CROSS" to "MA Cross",
-        "TRENDLINE_BREAK" to "Trendline Break",
-        "AI_LINE_CROSS_PRICE" to "AI Line Crosses Price",
-        "AI_LINE_TOUCH_PRICE" to "AI Line Touches Price",
-        "VOLATILITY_SCORE" to "Volatility Score",
-        "AI_PROGRESSIVE_SCALE" to "AI Progressive Scale",
-        "AI_PHASE_STATE" to "AI Phase State",
-        "VOLATILITY_STATE" to "Volatility State",
-        "ORDERBOOK_IMBALANCE" to "Orderbook Imbalance",
-        "LIQUIDATION_RISK" to "Liquidation Risk",
-        "CURRENCY_STRENGTH" to "Currency Strength"
-    )
-    val timeframes = listOf("M5", "M15", "H1", "H4", "D1")
-    val comparisonOptions = listOf("ABOVE", "BELOW")
-    val aiPhaseOptions = listOf("NOISE", "STRUCTURE", "COMPRESSION", "PRE-MOVE", "EXPANSION")
-    val volatilityStateOptions = listOf("DEAD", "COMPRESSED", "NORMAL", "EXPANDING", "BURST", "EXPLOSIVE")
-    
-    InfoBox {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Text("THRESHOLD EVALUATOR L14", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Text("Deterministic Rule-Based Triggers", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
-            
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            // Pair selector (grouped dropdown like SmartCalibration)
-            Text("PAIR", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(8.dp))
-            val forex = listOf("EUR/USD","GBP/USD","USD/JPY","AUD/USD","USD/CAD","USD/CHF","NZD/USD","EUR/GBP","EUR/JPY","GBP/JPY")
-            val stocks = listOf("AAPL","MSFT","GOOGL","AMZN","TSLA")
-            val indices = listOf("SPX/500","NAS100","DOW30")
-            val commodities = listOf("XAU/USD","XAG/USD","WTI")
-            val crypto = listOf("BTC/USDT","ETH/USDT","BNB/USDT")
-            val grouped = listOf(
-                "Forex" to forex,
-                "Stocks" to stocks,
-                "Indices" to indices,
-                "Commodities" to commodities,
-                "Crypto" to crypto
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF121212),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFF363A45))
             )
-
-            var pairMenuExpanded by remember { mutableStateOf(false) }
-            Box {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().height(48.dp).clickable { pairMenuExpanded = true },
-                    color = Color.White.copy(alpha = 0.02f),
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                ) {
-                    Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(selectedPair, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = pairMenuExpanded,
-                    onDismissRequest = { pairMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.95f)
-                ) {
-                    val scroll = rememberScrollState()
-                    Column(modifier = Modifier.heightIn(max = 340.dp).verticalScroll(scroll)) {
-                        grouped.forEach { (group, items) ->
-                            Text(group.uppercase(), color = SlateText, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(12.dp, 8.dp), fontFamily = InterFontFamily)
-                            items.forEach { item ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(modifier = Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Surface(
-                                                color = Color.White.copy(alpha = 0.03f),
-                                                shape = RoundedCornerShape(8.dp),
-                                                modifier = Modifier.size(36.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text(item.takeWhile { it != '/' }.take(1), color = Color.White, fontWeight = FontWeight.Black)
-                                                }
-                                            }
-                                            Text(item, color = Color.White, modifier = Modifier.padding(start = 12.dp), fontFamily = InterFontFamily)
-                                        }
-                                    },
-                                    onClick = {
-                                        selectedPair = item
-                                        pairMenuExpanded = false
-                                    }
-                                )
-                            }
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.03f))
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Direction Selector
-            Text("DIRECTION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("LONG" to EmeraldSuccess, "SHORT" to RoseError, "BOTH" to IndigoAccent).forEach { (dir, color) ->
-                    val isSelected = selectedDirection == dir
-                    Surface(
-                        modifier = Modifier.weight(1f).height(36.dp).clickable { selectedDirection = dir },
-                        color = if (isSelected) color.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) color.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(dir, color = if (isSelected) color else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Trigger selector
-            Text("TRIGGER TYPE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                triggers.forEach { (trigger, label) ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(40.dp).clickable { selectedTrigger = trigger },
-                        color = if (selectedTrigger == trigger) Color.White.copy(alpha = 0.05f) else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedTrigger == trigger) IndigoAccent.copy(alpha = 0.3f) else Color.Transparent)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                            Text(label, color = if (selectedTrigger == trigger) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Trigger-specific configuration
-            when (selectedTrigger) {
-                "PRICE_THRESHOLD" -> {
-                    Text("PRICE LEVEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        color = Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("$", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            androidx.compose.foundation.text.BasicTextField(
-                                value = priceLevel,
-                                onValueChange = { priceLevel = it },
-                                modifier = Modifier.weight(1f),
-                                textStyle = androidx.compose.ui.text.TextStyle(
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontFamily = InterFontFamily,
-                                    fontWeight = FontWeight.Black
-                                ),
-                                singleLine = true
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "RSI_LEVEL" -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("RSI PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("7", "14", "21").forEach { period ->
-                                val isSelected = rsiPeriod == period
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(36.dp).clickable { rsiPeriod = period },
-                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(period, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Text("RSI LEVEL", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("30" to "Oversold", "70" to "Overbought", "80" to "Extreme").forEach { (level, label) ->
-                                val isSelected = rsiLevel == level
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(44.dp).clickable { rsiLevel = level },
-                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                                        Text(level, color = if (isSelected) Color.White else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                        Text(label, color = if (isSelected) Color.White.copy(alpha = 0.7f) else SlateText, fontSize = 8.sp, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "MA_CROSS" -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("FAST MA PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("5", "9", "12", "20").forEach { period ->
-                                val isSelected = maFastPeriod == period
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(36.dp).clickable { maFastPeriod = period },
-                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(period, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Text("SLOW MA PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("21", "50", "100", "200").forEach { period ->
-                                val isSelected = maSlowPeriod == period
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(36.dp).clickable { maSlowPeriod = period },
-                                    color = if (isSelected) EmeraldSuccess.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) EmeraldSuccess.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(period, color = if (isSelected) EmeraldSuccess else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "VOLATILITY_SCORE", "AI_PROGRESSIVE_SCALE" -> {
-                    val fieldLabel = if (selectedTrigger == "VOLATILITY_SCORE") "VOLATILITY SCORE" else "AI SCALE SCORE"
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(fieldLabel, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            color = Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                androidx.compose.foundation.text.BasicTextField(
-                                    value = thresholdValue,
-                                    onValueChange = { thresholdValue = it },
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = androidx.compose.ui.text.TextStyle(
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontFamily = InterFontFamily,
-                                        fontWeight = FontWeight.Black
-                                    ),
-                                    singleLine = true
-                                )
-                                Text("0-100", color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            comparisonOptions.forEach { option ->
-                                val isSelected = comparisonMode == option
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(36.dp).clickable { comparisonMode = option },
-                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(option, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "AI_PHASE_STATE" -> {
-                    Text("AI PHASE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        aiPhaseOptions.chunked(2).forEach { row ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                row.forEach { phase ->
-                                    val isSelected = selectedAiPhase == phase
-                                    Surface(
-                                        modifier = Modifier.weight(1f).height(38.dp).clickable { selectedAiPhase = phase },
-                                        color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                        shape = RoundedCornerShape(8.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(phase, color = if (isSelected) Color.White else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                        }
-                                    }
-                                }
-                                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "VOLATILITY_STATE" -> {
-                    Text("VOLATILITY STATE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        volatilityStateOptions.chunked(2).forEach { row ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                row.forEach { state ->
-                                    val isSelected = selectedVolatilityState == state
-                                    Surface(
-                                        modifier = Modifier.weight(1f).height(38.dp).clickable { selectedVolatilityState = state },
-                                        color = if (isSelected) EmeraldSuccess.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.02f),
-                                        shape = RoundedCornerShape(8.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) EmeraldSuccess.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.05f))
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(state, color = if (isSelected) EmeraldSuccess else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "AI_LINE_CROSS_PRICE", "AI_LINE_TOUCH_PRICE" -> {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color.White.copy(alpha = 0.02f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("AI PRE-MOVE CHART LINKED", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text("This alert arms when the AI line crosses or touches the live price line for the selected symbol and timeframe.", color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "ORDERBOOK_IMBALANCE", "CURRENCY_STRENGTH" -> {
-                    val fieldLabel = if (selectedTrigger == "ORDERBOOK_IMBALANCE") "IMBALANCE %" else "STRENGTH SCORE"
-                    val limitRange = if (selectedTrigger == "ORDERBOOK_IMBALANCE") "0-100" else "0-100"
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(fieldLabel, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            color = Color.White.copy(alpha = 0.02f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                androidx.compose.foundation.text.BasicTextField(
-                                    value = thresholdValue,
-                                    onValueChange = { thresholdValue = it },
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = androidx.compose.ui.text.TextStyle(
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontFamily = InterFontFamily,
-                                        fontWeight = FontWeight.Black
-                                    ),
-                                    singleLine = true
-                                )
-                                Text(limitRange, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            comparisonOptions.forEach { option ->
-                                val isSelected = comparisonMode == option
-                                Surface(
-                                    modifier = Modifier.weight(1f).height(36.dp).clickable { comparisonMode = option },
-                                    color = if (isSelected) IndigoAccent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.02f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) IndigoAccent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(option, color = if (isSelected) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                "LIQUIDATION_RISK" -> {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = RoseError.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.2f))
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("LIQUIDATION RISK MONITOR", color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                            Text("This alert arms when the current price drops within 2% of the estimated liquidation level for the selected pair based on margin.", color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-            
-            // Cooldown
-            Text("COOLDOWN PERIOD", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Slider(
-                    value = cooldownMinutes.toFloat(),
-                    onValueChange = { cooldownMinutes = it.toInt() },
-                    valueRange = 15f..120f,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("${cooldownMinutes}m", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Timeframe selector
-            Text("RESOLUTION", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                timeframes.forEach { tf ->
-                    Surface(
-                        color = if (selectedTimeframe == tf) Color.White else Color.Transparent,
-                        shape = RoundedCornerShape(6.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedTimeframe == tf) Color.White else Color.Gray.copy(alpha = 0.3f)),
-                        modifier = Modifier.weight(1f).height(32.dp).clickable { selectedTimeframe = tf }
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(tf, color = if (selectedTimeframe == tf) Color.Black else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Button(
-                onClick = {
-                    val priceLevelValue = when (selectedTrigger) {
-                        "PRICE_THRESHOLD" -> priceLevel.takeIf { it.isNotEmpty() }?.toDoubleOrNull()
-                        "VOLATILITY_SCORE", "AI_PROGRESSIVE_SCALE", "ORDERBOOK_IMBALANCE", "CURRENCY_STRENGTH" -> thresholdValue.takeIf { it.isNotEmpty() }?.toDoubleOrNull()
-                        else -> null
-                    }
-                    
-                    val node = VigilanceNodeEngine.createSimpleAlert(
-                        pair = selectedPair,
-                        trigger = selectedTrigger,
-                        timeframe = selectedTimeframe,
-                        direction = selectedDirection,
-                        priceLevel = priceLevelValue,
-                        rsiPeriod = rsiPeriod.toIntOrNull() ?: 14,
-                        rsiLevel = rsiLevel.toIntOrNull() ?: 70,
-                        maFastPeriod = maFastPeriod.toIntOrNull() ?: 9,
-                        maSlowPeriod = maSlowPeriod.toIntOrNull() ?: 21,
-                        comparisonMode = comparisonMode,
-                        phaseState = if (selectedTrigger == "AI_PHASE_STATE") selectedAiPhase else "ANY",
-                        volatilityState = if (selectedTrigger == "VOLATILITY_STATE") selectedVolatilityState else "ANY",
-                        cooldownMinutes = cooldownMinutes
-                    )
-                    onNodeDeployed(node)
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B2B2B))
+        },
+        contentWindowInsets = { WindowInsets(0) },
+        modifier = Modifier
+            .fillMaxHeight(0.95f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("DEPLOY SIMPLE NODE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = InterFontFamily)
+                Column {
+                    Text(
+                        text = "Select asset",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = InterFontFamily
+                    )
+                    Text(
+                        text = "TARGET FOR VIGILANCE",
+                        color = SlateText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        fontFamily = InterFontFamily
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, null, tint = Color.Gray)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val scroll = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scroll)
+            ) {
+                assets.forEach { asset ->
+                    val symbol = asset.symbol
+                    val signal = findSignalFor(signalsByAsset, symbol)
+                    val isSelected = symbol.equals(selectedAsset, ignoreCase = true)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) IndigoAccent.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.02f))
+                            .clickable { onSelect(symbol) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            AssetIcon(
+                                symbol = SymbolInfo(ticker = symbol.replace("/", "").removeSuffix("M").removeSuffix("m"), name = asset.name, type = asset.type),
+                                size = 34
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(symbol, color = if (isSelected) IndigoAccent else Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(asset.name, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                // Same signal flag chips as the Market Overview page.
+                                val panel = signal?.chart_panel
+                                val liq = signal?.liquidity
+                                val flagChips = buildList {
+                                    val vDir = panel?.validator_direction
+                                    val vActive = panel?.validator_active == true
+                                    if (vActive && !vDir.isNullOrBlank()) {
+                                        add(vDir.uppercase() to when (vDir.uppercase()) {
+                                            "LONG", "BUY" -> EmeraldSuccess
+                                            "SHORT", "SELL" -> RoseError
+                                            else -> SlateText
+                                        })
+                                    } else {
+                                        add("INACTIVE" to SlateText)
+                                    }
+                                    val tier = panel?.quality_tier
+                                    if (!tier.isNullOrBlank() && tier != "NONE") {
+                                        add(tier to when (tier) {
+                                            "ELITE" -> EmeraldSuccess
+                                            "STRONG" -> Color(0xFF60A5FA)
+                                            "VALID" -> Color(0xFFF59E0B)
+                                            "FILTERED" -> RoseError
+                                            else -> SlateText
+                                        })
+                                    }
+                                    if (liq != null) {
+                                        if (liq.fvg_bull || liq.fvg_bear) add("FVG" to Color(0xFF60A5FA))
+                                        if (liq.bos_bull || liq.bos_bear) add("BOS" to Color(0xFFA78BFA))
+                                        if (liq.sweep_high || liq.sweep_low) add("SWEEP" to Color(0xFFF59E0B))
+                                    }
+                                }
+                                if (flagChips.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        flagChips.take(4).forEach { (label, color) ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(color.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(label, color = color, fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, fontFamily = InterFontFamily)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
             }
         }
     }
 }
+
 @Composable
-fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (String) -> Unit) {
-    val infiniteTransition = rememberInfiniteTransition(label = "glow")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
-        label = "glowPulse"
-    )
-    
+private fun ScoreBar(label: String, value: Int, max: Int) {
+    val frac = if (max > 0) (value.toFloat() / max.toFloat()).coerceIn(0f, 1f) else 0f
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily, modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(if (max == 100) "$value%" else "$value/$max", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = frac,
+            color = IndigoAccent,
+            trackColor = Color.White.copy(alpha = 0.08f),
+            modifier = Modifier.fillMaxWidth().height(4.dp)
+        )
+    }
+}
+
+@Composable
+private fun SmcStateChip(label: String, active: Boolean, modifier: Modifier = Modifier) {
+    val color = if (active) EmeraldSuccess else Color.Gray
+    Surface(
+        color = color.copy(alpha = if (active) 0.15f else 0.06f),
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = if (active) 0.45f else 0.2f)),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(modifier = Modifier.size(7.dp).background(color, RoundedCornerShape(4.dp)))
+            Text(label, color = color, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+        }
+    }
+}
+
+@Composable
+private fun MiniStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {    Surface(
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(6.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text(label, color = SlateText, fontSize = 7.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+        }
+    }
+}
+
+@Composable
+private fun SMCFlagRow(label: String, description: String, enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle(!enabled) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = if (enabled) Color.White else Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+            Text(description, color = SlateText, fontSize = 8.sp, fontFamily = InterFontFamily)
+        }
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .background(
+                    if (enabled) IndigoAccent.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f),
+                    RoundedCornerShape(4.dp)
+                )
+                .border(1.dp, if (enabled) IndigoAccent else Color.DarkGray, RoundedCornerShape(4.dp))
+        )
+    }
+}
+
+@Composable
+fun ActiveNodeCard(
+    node: VigilanceNode,
+    signalsByAsset: Map<String, com.asc.markets.data.ASCSignalData> = emptyMap(),
+    scannerSignals: List<com.asc.markets.data.ScannerSignal> = emptyList(),
+    onShowBreakdown: (String) -> Unit
+) {
     val strengthColor = when (node.strength) {
         "STRONG" -> EmeraldSuccess
         "MEDIUM" -> Color(0xFFFFA500)
         else -> RoseError
     }
-    
+
+    // Live match status: evaluate this node's conditions against its asset's
+    // current EA signal so the user sees exactly why it has / hasn't fired.
+    val liveSignal = remember(node.pair, signalsByAsset) {
+        signalsByAsset.entries.find {
+            it.key.equals(node.pair, ignoreCase = true) ||
+                it.key.replace("/", "").removeSuffix("M").equals(
+                    node.pair.uppercase().replace("/", "").replace("-", "")
+                        .replace("_", "").replace(" ", "").removeSuffix("M"),
+                    ignoreCase = true
+                )
+        }?.value
+    }
+    val checks = remember(node.id, liveSignal) {
+        if (node.alertType != "EA_LIVE" || liveSignal == null) emptyList()
+        else {
+            val dir = when (liveSignal.direction.uppercase()) {
+                "BUY" -> "LONG"
+                "SELL" -> "SHORT"
+                else -> liveSignal.direction.uppercase()
+            }
+            val rawVote = liveSignal.chart_panel?.votes?.win_pct ?: 0.0
+            val rawConf = liveSignal.confidence
+            val liq = liveSignal.liquidity
+            val rawPwin = liveSignal.chart_panel?.validator_pwin ?: 0.0
+            val pwinPct = (if (rawPwin > 1.0) rawPwin else rawPwin * 100.0).toInt()
+            val scannerSig = scannerSignals.firstOrNull {
+                it.asset.uppercase().replace("/", "").removeSuffix("M") == normalizeSignalKey(liveSignal.asset.ifBlank { node.pair })
+            }
+            val pTradePct = scannerSig?.pTrade?.let { if (it > 1.0) it else it * 100.0 }?.toInt() ?: -1
+            val pdActive = liveSignal.zone_context_type.contains("PREMIUM", true) ||
+                liveSignal.zone_context_type.contains("DISCOUNT", true) ||
+                liveSignal.target_zone.contains("PREMIUM", true) ||
+                liveSignal.target_zone.contains("DISCOUNT", true) ||
+                liveSignal.chart_panels?.smc_details.orEmpty().contains("PREMIUM", true) ||
+                liveSignal.chart_panels?.smc_details.orEmpty().contains("DISCOUNT", true) ||
+                liveSignal.chart_panels?.smc_status.orEmpty().contains("PREMIUM", true) ||
+                liveSignal.chart_panels?.smc_status.orEmpty().contains("DISCOUNT", true)
+            VigilanceNodeEngine.checkEANode(
+                nodeId = node.id,
+                votePct = if (rawVote > 1.0) rawVote else rawVote * 100.0,
+                confidence = if (rawConf > 1.0) (rawConf / 100.0).coerceIn(0.0, 1.0) else rawConf.coerceIn(0.0, 1.0),
+                direction = dir,
+                qualityTier = liveSignal.chart_panel?.quality_tier?.ifBlank { "NONE" } ?: "NONE",
+                fvgBull = liq?.fvg_bull == true,
+                fvgBear = liq?.fvg_bear == true,
+                bosBull = liq?.bos_bull == true,
+                bosBear = liq?.bos_bear == true,
+                sweepHigh = liq?.sweep_high == true,
+                sweepLow = liq?.sweep_low == true,
+                pdActive = pdActive,
+                pTradePct = pTradePct.toDouble(),
+                pwinPct = pwinPct.toDouble(),
+                validatorActive = liveSignal.chart_panel?.validator_active == true,
+                validatorAllowed = liveSignal.chart_panel?.validator_allowed == true,
+                validatorDirection = liveSignal.chart_panel?.validator_direction ?: ""
+            )
+        }
+    }
+    val armed = VigilanceNodeEngine.canTriggerNode(node.id)
+    val allPass = checks.isNotEmpty() && checks.all { it.passed }
+
     Surface(
-        color = if (node.isActive) Color.White.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.01f),
+        color = Color.White.copy(alpha = 0.02f),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5f.dp, strengthColor.copy(alpha = if (node.isActive) glowAlpha else 0.05f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, strengthColor.copy(alpha = 0.2f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1185,7 +998,6 @@ fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(node.pair, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                        // Status indicator - pulsing dot if active
                         if (node.isActive) {
                             Box(
                                 modifier = Modifier
@@ -1194,13 +1006,10 @@ fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(node.trigger, color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, fontFamily = InterFontFamily)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(node.description, color = Color.Gray, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily)
+                    Text(node.description, color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
                 }
-                
-                // Strength badge
+
                 Surface(
                     color = strengthColor.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(6.dp),
@@ -1216,29 +1025,62 @@ fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("CONFIDENCE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("SCORE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
                     Text("${node.confidenceScore}%", color = strengthColor, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
-                
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("TIMEFRAME", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                    Text(node.timeframe, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                    
-                    if (node.alertType == "SMART") {
-                        Text("| ", color = SlateText, fontSize = 9.sp)
-                        Text("COOLDOWN", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
-                        Text("${node.cooldownMinutes}M", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+                Text("${node.cooldownMinutes}m cooldown", color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily)
+            }
+
+            // Live match status: which conditions pass/fail against the live signal
+            if (node.alertType == "EA_LIVE") {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("LIVE MATCH", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                    val stateLabel = when {
+                        liveSignal == null -> "NO DATA"
+                        !armed -> "COOLDOWN"
+                        allPass -> "MATCH"
+                        else -> "WAITING"
                     }
+                    val stateColor = when (stateLabel) {
+                        "MATCH" -> EmeraldSuccess
+                        "COOLDOWN" -> Color(0xFFFFA500)
+                        "NO DATA" -> Color.Gray
+                        else -> SlateText
+                    }
+                    Text(stateLabel, color = stateColor, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 }
-                
-                // Breakdown button
-                IconButton(onClick = { onShowBreakdown(node.id) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                if (liveSignal == null) {
+                    Text(
+                        "No live EA signal for ${node.pair} yet — open the asset or wait for the feed.",
+                        color = Color.Gray, fontSize = 10.sp, fontFamily = InterFontFamily
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        checks.forEach { check ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    if (check.passed) "✓" else "✗",
+                                    color = if (check.passed) EmeraldSuccess else RoseError,
+                                    fontSize = 11.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily
+                                )
+                                Text(check.label, color = Color.White.copy(alpha = 0.85f), fontSize = 10.sp, fontFamily = InterFontFamily)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1246,9 +1088,20 @@ fun ActiveNodeCard(node: com.asc.markets.logic.VigilanceNode, onShowBreakdown: (
 }
 
 @Composable
+private fun NodesSectionHeader(title: String) {
+    Text(
+        text = title,
+        color = Color(0xFF999999),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 0.dp, vertical = 12.dp)
+    )
+}
+
+@Composable
 fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
     val breakdown = VigilanceNodeEngine.getScoringBreakdown(nodeId)
-    
+
     Surface(
         color = Color.White.copy(alpha = 0.03f),
         shape = RoundedCornerShape(12.dp),
@@ -1262,9 +1115,9 @@ fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
                     Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             for ((factor, points) in breakdown) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(factor, color = SlateText, fontSize = 11.sp, fontFamily = InterFontFamily)
@@ -1272,32 +1125,13 @@ fun ScoringBreakdownPanel(nodeId: String, onDismiss: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            
+
             HorizontalDivider(color = IndigoAccent.copy(alpha = 0.1f), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
-            
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("TOTAL SCORE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
                 Text("${breakdown.values.sum()}%", color = IndigoAccent, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
             }
-        }
-    }
-}
-
-@Composable
-fun RejectedPatternCard(pair: String, pattern: String, reason: String) {
-    Surface(
-        color = RoseError.copy(alpha = 0.02f),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RoseError.copy(alpha = 0.1f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(pair, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text(pattern, color = RoseError, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(reason, color = SlateText, fontSize = 12.sp, lineHeight = 18.sp, fontFamily = InterFontFamily)
         }
     }
 }

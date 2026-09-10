@@ -3,13 +3,12 @@
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
+import com.asc.markets.data.ForexPair
 import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.data.trade.TradeEntity
 import com.asc.markets.ui.screens.tradeDashboard.model.*
-import com.trading.app.data.PaperTradingAccountSnapshot
+
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,8 +21,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-class DashboardViewModel {
+class DashboardViewModel(private val tradeRepository: com.asc.markets.data.trade.TradeHistoryRepository? = null) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    val aiRepository = com.asc.markets.data.repository.AiRepository()
+
+    fun saveTrade(entity: com.asc.markets.data.trade.TradeEntity) {
+        tradeRepository?.let { repo ->
+            scope.launch(Dispatchers.IO) {
+                repo.saveTrade(entity)
+            }
+        }
+    }
 
     var accountInfo by mutableStateOf<AccountInfo?>(null)
         private set
@@ -74,28 +82,9 @@ class DashboardViewModel {
         observeMarketData()
     }
 
-    fun updateAccountSnapshot(snapshot: PaperTradingAccountSnapshot) {
-        val hasAccount = snapshot.hasLiveAccountData ||
-            snapshot.balance != 0.0 ||
-            snapshot.equity != 0.0 ||
-            snapshot.margin != 0.0 ||
-            snapshot.freeMargin != 0.0
-
-        accountInfo = if (hasAccount || snapshot.activeTrades > 0 || snapshot.activeOrders > 0) {
-            AccountInfo(
-                balance = snapshot.balance,
-                equity = snapshot.equity,
-                margin = snapshot.margin + snapshot.ordersMargin,
-                freeMargin = snapshot.freeMargin,
-                marginLevel = snapshot.marginLevel,
-                profit = snapshot.floatingPnl + snapshot.realizedPnl
-            )
-        } else {
-            null
-        }
-
-        positions = snapshot.toOpenPositions()
-        snapshot.currentTradeSymbol?.takeIf { it.isNotBlank() }?.let { updateSelectedSymbol(it) }
+    fun updateAccountSnapshot(snapshot: Unit? = null) {
+        accountInfo = null
+        positions = emptyList()
     }
 
     fun updateClosedTrades(trades: List<TradeEntity>) {
@@ -127,11 +116,7 @@ class DashboardViewModel {
             null
         }
 
-        val history = (if (BinanceDataStore.isUsdtSymbol(normalized)) {
-            BinanceDataStore.historySnapshot(normalized)
-        } else {
-            MarketDataStore.historySnapshot(normalized)
-        })
+        val history = MarketDataStore.historySnapshot(normalized)
             .filter { it.isFinite() && it > 0.0 }
             .takeLast(80)
 
@@ -173,13 +158,7 @@ class DashboardViewModel {
 
     private fun observeMarketData() {
         scope.launch {
-            combine(
-                MarketDataStore.allPairs,
-                BinanceDataStore.allPairs,
-                CombinedFallbackDataStore.allPairs
-            ) { marketPairs, binancePairs, fallbackPairs ->
-                marketPairs + binancePairs + fallbackPairs
-            }.collect { pairs ->
+            MarketDataStore.allPairs.collect { pairs ->
                 val livePair = pairs.firstOrNull { it.price.isFinite() && it.price > 0.0 }
                 if (currentPrice == null && livePair != null) {
                     updateSelectedSymbol(livePair.symbol)
@@ -190,36 +169,8 @@ class DashboardViewModel {
         }
     }
 
-    private fun PaperTradingAccountSnapshot.toOpenPositions(): List<Position> {
-        val symbol = currentTradeSymbol?.takeIf { it.isNotBlank() } ?: return emptyList()
-        val entry = currentTradeEntryPrice ?: return emptyList()
-        val price = currentTradePrice ?: livePairSnapshot(symbol)?.price ?: entry
-        val side = currentTradeSide.orEmpty().uppercase(Locale.US)
-        val type = if (side.contains("SELL") || side.contains("SHORT")) TradeType.SELL else TradeType.BUY
-        val profit = currentTradePnl ?: 0.0
-        val volume = currentTradeVolume ?: 0.0
-
-        return listOf(
-            Position(
-                id = "live-$symbol",
-                ticketId = "LIVE",
-                symbol = symbol,
-                type = type,
-                volume = volume,
-                openPrice = entry,
-                currentPrice = price,
-                tp = null,
-                sl = null,
-                swap = 0.0,
-                commission = 0.0,
-                profit = profit,
-                healthScore = healthScore(profit, openRisk)
-            )
-        )
-    }
-
     private fun livePairSnapshot(symbol: String) =
-        BinanceDataStore.pairSnapshot(symbol) ?: MarketDataStore.pairSnapshot(symbol)
+        MarketDataStore.pairSnapshot(symbol)
 
     private fun TradeEntity.toHistoricalTrade(): HistoricalTrade {
         val type = if (direction.uppercase(Locale.US).contains("SELL") || direction.uppercase(Locale.US).contains("SHORT")) {
@@ -315,11 +266,6 @@ class DashboardViewModel {
             portfolio_decision_reason
         )
         return lines.joinToString("\n")
-    }
-
-    private fun healthScore(profit: Double, openRisk: Double): Int {
-        val denominator = openRisk.takeIf { it > 0.0 } ?: abs(profit).coerceAtLeast(1.0)
-        return ((1.0 + (profit / denominator)).coerceIn(0.0, 1.0) * 100.0).toInt()
     }
 
     private fun percentInt(value: Double?): Int {

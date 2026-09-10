@@ -31,7 +31,6 @@ import com.asc.markets.ui.theme.*
 @Composable
 fun GlobalHeader(
     currentView: AppView,
-    selectedPair: ForexPair,
     onOpenDrawer: () -> Unit,
     onSearch: () -> Unit,
     onNotifications: () -> Unit,

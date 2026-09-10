@@ -26,7 +26,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.logic.*
-import com.asc.markets.data.BinanceDataStore
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.MicroJitterSnapshot
 import com.asc.markets.data.PreMoveIntelligenceStore
@@ -118,12 +117,13 @@ fun TextRowLabel(text: String) {
 fun DiagnosticsScreen() {
     val viewModel: ForexViewModel = viewModel()
     val selectedPair by viewModel.selectedPair.collectAsState()
-    val aiDeployments by viewModel.aiDeployments.collectAsState()
+    
+    // AI DEPLOYMENTS REMOVED - NO LONGER USING AI BACKEND
+    val aiDeployments: com.asc.markets.data.remote.LatestDeploymentsResponse? = null
     val marketTimedHistory by MarketDataStore.timedPriceHistory.collectAsState()
-    val binanceTimedHistory by BinanceDataStore.timedPriceHistory.collectAsState()
-    val fallbackTimedHistory by com.asc.markets.data.CombinedFallbackDataStore.timedPriceHistory.collectAsState()
-    val timedHistory = remember(marketTimedHistory, binanceTimedHistory, fallbackTimedHistory) {
-        marketTimedHistory + binanceTimedHistory + fallbackTimedHistory
+    // BINANCE AND FALLBACK REMOVED - EA ONLY
+    val timedHistory = remember(marketTimedHistory) {
+        marketTimedHistory
     }
     val snapshot = PreMoveIntelligenceStore.buildMicroJitterSnapshot(selectedPair, timedHistory)
     
@@ -295,48 +295,6 @@ fun KpiGridSection(connState: ConnectionState, metrics: HealthMetrics, terminalG
 }
 
 @Composable
-fun RealTimeIngestionCard(feedsList: List<FeedStatus>, terminalGreen: Color) {
-    val now = System.currentTimeMillis()
-    Surface(
-        color = Color(0xFF000000),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, terminalGreen.copy(alpha = 0.12f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("REAL-TIME INGESTION", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Text("BUFFER", color = Color.White, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Text("POLLING EVERY", color = terminalGreen.copy(alpha = 0.6f), fontFamily = InterFontFamily, fontSize = 9.sp)
-                Text("250MS", color = terminalGreen.copy(alpha = 0.6f), fontFamily = InterFontFamily, fontSize = 9.sp)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (feedsList.size >= 4) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (0..1).forEach { idx ->
-                            val feed = feedsList[idx]
-                            val isStale = (now - feed.lastTickAt) > 2000
-                            val color = if (isStale) Color(0xFFFFA500) else terminalGreen
-                            FeedTile(feed.symbol, color, modifier = Modifier.weight(1f), isFresh = !isStale)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (2..3).forEach { idx ->
-                            val feed = feedsList[idx]
-                            val isStale = (now - feed.lastTickAt) > 2000
-                            val color = if (isStale) Color(0xFFFFA500) else terminalGreen
-                            FeedTile(feed.symbol, color, modifier = Modifier.weight(1f), isFresh = !isStale)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun SafetyInterlockSection(context: android.content.Context, terminalGreen: Color) {
     var interlock by remember { mutableStateOf(false) }
     Surface(
@@ -391,29 +349,6 @@ fun SafetyInterlockSection(context: android.content.Context, terminalGreen: Colo
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, terminalGreen)
             ) {
                 Text("↻ FORCE RECONNECT", color = terminalGreen, fontFamily = InterFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
-fun IngestionBufferList(feeds: List<FeedStatus>, terminalGreen: Color) {
-    Surface(
-        color = Color(0xFF000000),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, terminalGreen.copy(alpha = 0.12f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            feeds.forEach { feed ->
-                val age = System.currentTimeMillis() - feed.lastTickAt
-                val fresh = age <= 5000
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).background(if (fresh) terminalGreen else Color(0xFFFFA500), RoundedCornerShape(3.dp)))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(feed.symbol, color = terminalGreen, fontFamily = InterFontFamily, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    Text(if (fresh) "FRESH" else "STALE", color = if (fresh) terminalGreen else Color(0xFFFFA500), fontFamily = InterFontFamily, fontSize = 11.sp)
-                }
             }
         }
     }

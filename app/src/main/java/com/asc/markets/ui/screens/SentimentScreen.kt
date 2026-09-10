@@ -50,7 +50,30 @@ fun SentimentScreen(viewModel: ForexViewModel) {
     }
     val totalDirectional = maxOf(1, longCount + shortCount)
     
-    val globalConfidence = decisions.mapNotNull { it.journal_score }.average().let { if (it.isNaN()) 0.0 else it } * 100
+    // Calculate global confidence from feeder scores instead of journal_score (0 for NO_TRADE)
+    val globalConfidence = decisions.map { decision ->
+        // Use journal_score if available and > 0, otherwise calculate from feeder scores
+        when {
+            decision.journal_score != null && decision.journal_score > 0.0 -> decision.journal_score * 100
+            else -> {
+                val volatilityScore = (decision.feeder_volatility_score ?: 0.0) * 100
+                val structureScore = (decision.structure_score ?: 0.0) * 100
+                val chartScore = (decision.chart_context_score ?: 0.0) * 100
+                val preMoveScore = (decision.pre_move_ai_score ?: 0.0) * 100  // FIX: multiply by 100
+                val riskScore = (decision.feeder_risk_score ?: 0.0) * 100  // ADD: risk score
+                
+                val scores = listOfNotNull(
+                    volatilityScore.takeIf { it > 0 },
+                    structureScore.takeIf { it > 0 },
+                    chartScore.takeIf { it > 0 },
+                    preMoveScore.takeIf { it > 0 },
+                    riskScore.takeIf { it > 0 }
+                )
+                if (scores.isNotEmpty()) scores.average() else 0.0
+            }
+        }
+    }.average().let { if (it.isNaN()) 0.0 else it }
+    
     val globalSentiment = if (longCount >= shortCount) "BULLISH" else "BEARISH"
     val globalColor = if (globalSentiment == "BULLISH") EmeraldSuccess else RoseError
 
@@ -578,7 +601,7 @@ fun SentimentScreen(viewModel: ForexViewModel) {
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Confidence", color = SlateText, fontSize = 10.sp)
-                        val pairConfidence = watchlist.firstOrNull { it.assetName.contains(strongest) && it.assetName.contains(weakest) }?.confidence ?: 0
+                        val pairConfidence = watchlist.firstOrNull { it.assetName.contains(strongest) && it.assetName.contains(weakest) }?.moveProbability ?: 0
                         Text("$pairConfidence%", color = if (pairConfidence > 60) EmeraldSuccess else SlateText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }

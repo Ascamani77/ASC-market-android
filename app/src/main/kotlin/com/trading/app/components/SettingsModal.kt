@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
@@ -148,7 +149,7 @@ fun SettingsModal(
                             Text(
                                 "Settings",
                                 color = Color.White,
-                                fontSize = 22.sp,
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = onClose) {
@@ -182,13 +183,13 @@ fun SettingsModal(
                                         Text(
                                             "Search settings",
                                             color = Color(0xFF787B86),
-                                            fontSize = 14.sp
+                                            fontSize = 16.sp
                                         )
                                     }
                                     BasicTextField(
                                         value = searchQuery,
                                         onValueChange = { searchQuery = it },
-                                        textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                                        textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
                                         cursorBrush = SolidColor(Color.White),
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -245,8 +246,8 @@ fun SettingsModal(
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(item.label, color = Color.White, fontSize = 14.sp)
-                                                Text(item.category, color = Color(0xFF787B86), fontSize = 11.sp)
+                                                Text(item.label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                                Text(item.category, color = Color(0xFF787B86), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                         if (item != filteredOptions.last()) {
@@ -274,7 +275,7 @@ fun SettingsModal(
                                     modifier = Modifier.fillMaxSize().padding(32.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("No results found", color = Color(0xFF787B86))
+                                    Text("No results found", color = Color(0xFF787B86), fontSize = 14.sp)
                                 }
                             }
                         }
@@ -305,7 +306,7 @@ fun SettingsModal(
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.height(36.dp)
                                 ) {
-                                    Text("Cancel", color = Color.White, fontSize = 14.sp)
+                                    Text("Cancel", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Button(
@@ -314,7 +315,7 @@ fun SettingsModal(
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.height(36.dp)
                                 ) {
-                                    Text("Ok", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text("Ok", color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -346,7 +347,7 @@ fun SettingsItem(label: String, icon: ImageVector, onClick: () -> Unit) {
     ) {
         Icon(icon, null, tint = Color(0xFFD1D4DC), modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        Text(label, color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF787B86), modifier = Modifier.size(20.dp))
     }
 }

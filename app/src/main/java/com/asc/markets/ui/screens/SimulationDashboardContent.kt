@@ -29,9 +29,8 @@ import androidx.compose.ui.unit.sp
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.Trade
 import com.asc.markets.logic.PriceStreamManager
-import com.trading.app.data.BinanceService
 import com.trading.app.data.PaperTradingAccountSnapshot
-import com.trading.app.data.PaperTradingSnapshotStore
+
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.abs
@@ -171,10 +170,9 @@ fun MySimulationDashboard(
     onExportPerformance: () -> Unit,
     exportStatus: String?
 ) {
-    val snapshot = PaperTradingSnapshotStore.snapshot
     val currentPrice = rememberBtcLivePrice()
-    val activeTrade = remember(snapshot, openTrades, currentPrice) {
-        simulationDisplayTrade(snapshot, openTrades, currentPrice)
+    val activeTrade = remember(openTrades, currentPrice) {
+        simulationDisplayTrade(openTrades, currentPrice)
     }
     val allTrades = openTrades + closedTrades
     val wins = closedTrades.count { it.profitLoss > 0.0 }
@@ -455,18 +453,17 @@ fun PnlPositionOverviewCard(
     onExpand: () -> Unit = {}
 ) {
     val miniInfoBoxColor = Color.White.copy(alpha = 0.035f)
-    val snapshot = PaperTradingSnapshotStore.snapshot
+    val snapshot: Unit? = null
     val currentPrice = rememberBtcLivePrice()
     var selectedTab by remember { mutableStateOf(PnlDetailTab.ACCOUNT) }
     val openPnl = openTrades.sumOf { calculateTradePnl(it, currentPrice) ?: 0.0 }
     val realizedPnl = closedTrades.sumOf { it.profitLoss }
     val localBalance = SimulationStartingBalance + realizedPnl
-    val usesLiveSnapshot = snapshot.hasLiveAccountData || snapshot.hasLiveTradeData
-    val totalPnl = if (usesLiveSnapshot) snapshot.floatingPnl + snapshot.realizedPnl else openPnl + realizedPnl
-    val balance = if (snapshot.hasLiveAccountData) snapshot.balance else localBalance
-    val equity = if (usesLiveSnapshot) snapshot.equity else balance + openPnl
-    val margin = if (usesLiveSnapshot) snapshot.margin else openTrades.sumOf { ((it.entryPrice * SimulationTradeSizeBtc) / 10.0) }
-    val activeTrade = remember(snapshot, openTrades, currentPrice) { simulationDisplayTrade(snapshot, openTrades, currentPrice) }
+    val totalPnl = openPnl + realizedPnl
+    val balance = localBalance
+    val equity = balance + openPnl
+    val margin = openTrades.sumOf { ((it.entryPrice * SimulationTradeSizeBtc) / 10.0) }
+    val activeTrade = remember(openTrades, currentPrice) { simulationDisplayTrade(openTrades, currentPrice) }
     val positionValue = activeTrade?.let { (it.currentPrice ?: it.entryPrice ?: 0.0) * (it.volume ?: SimulationTradeSizeBtc) } ?: 0.0
     val now = System.currentTimeMillis()
     val dayPnl = realizedPnlForWindow(closedTrades, 24L * 60L * 60L * 1000L, now) + openPnl
@@ -537,7 +534,7 @@ fun PnlPositionOverviewCard(
                     activeTrade = activeTrade,
                     equity = equity,
                     margin = margin,
-                    openPnl = if (usesLiveSnapshot) snapshot.floatingPnl else openPnl,
+                    openPnl = openPnl,
                     accentColor = accentColor
                 )
                 PnlDetailTab.CLOSED_ORDERS -> TradesListContent(
@@ -670,7 +667,7 @@ fun ActiveTradeBox(
     title: String,
     trade: SimulationDisplayTrade? = null
 ) {
-    val fallbackTrade = simulationDisplayTrade(PaperTradingSnapshotStore.snapshot, emptyList(), rememberBtcLivePrice())
+    val fallbackTrade = null
     val displayTrade = trade ?: fallbackTrade
     val pnl = displayTrade?.pnl
     val tradeColor = if ((pnl ?: 0.0) >= 0.0) accentColor else Color(0xFFEF4444)
@@ -756,25 +753,9 @@ fun rememberBtcLivePrice(): Double? {
 }
 
 fun simulationDisplayTrade(
-    snapshot: PaperTradingAccountSnapshot,
     openTrades: List<Trade>,
     currentPrice: Double?
 ): SimulationDisplayTrade? {
-    if (snapshot.currentTradeSymbol != null || snapshot.hasLiveTradeData) {
-        return SimulationDisplayTrade(
-            symbol = snapshot.currentTradeSymbol ?: "LIVE TRADE",
-            side = snapshot.currentTradeSide ?: "OPEN",
-            entryPrice = snapshot.currentTradeEntryPrice,
-            currentPrice = snapshot.currentTradePrice ?: currentPrice,
-            stopLoss = null,
-            takeProfit = null,
-            volume = snapshot.currentTradeVolume,
-            leverage = "LIVE",
-            pnl = snapshot.currentTradePnl,
-            pnlPct = snapshot.currentTradePnlPct
-        )
-    }
-
     val trade = openTrades.firstOrNull() ?: return null
     return SimulationDisplayTrade(
         symbol = trade.asset,
@@ -836,37 +817,13 @@ fun LiveBtcUsdChartCard(accentColor: Color, onExpand: () -> Unit = {}) {
     val pair by MarketDataStore.pairFlow("BTCUSD").collectAsState(initial = MarketDataStore.pairSnapshot("BTCUSD"))
     val rawHistory by MarketDataStore.historyFlow("BTCUSD").collectAsState(initial = MarketDataStore.historySnapshot("BTCUSD"))
     val marketOverviewPrices by PriceStreamManager.priceUpdates.collectAsState()
-    var candleHistory by remember { mutableStateOf<List<Double>>(emptyList()) }
-    val binanceService = remember {
-        BinanceService(
-            onQuoteUpdate = {},
-            onHistoryUpdate = { _, history ->
-                candleHistory = history
-                    .sortedBy { it.time }
-                    .map { it.close.toDouble() }
-                    .filter { it.isFinite() && it > 0.0 }
-                    .takeLast(100)
-            }
-        )
-    }
-
-    LaunchedEffect(binanceService) {
-        binanceService.fetchHistory("BTCUSDT", "1h", null)
-    }
-
-    DisposableEffect(binanceService) {
-        onDispose {
-            binanceService.disconnect()
-        }
-    }
-
+    val fallbackHistory = rawHistory.filter { it.isFinite() && it > 0.0 }.takeLast(100)
     val marketOverviewLivePrice = marketOverviewPrices["BTC/USDT"]
         ?: marketOverviewPrices["BTC/USD"]
         ?: marketOverviewPrices["BTCUSDT"]
         ?: marketOverviewPrices["BTCUSD"]
         ?: pair?.price
-    val fallbackHistory = rawHistory.filter { it.isFinite() && it > 0.0 }.takeLast(100)
-    val sourceHistory = if (candleHistory.size >= 2) candleHistory else fallbackHistory
+    val sourceHistory = fallbackHistory
     val liveHistory = if (sourceHistory.isNotEmpty() && marketOverviewLivePrice != null) {
         (sourceHistory.dropLast(1) + marketOverviewLivePrice).takeLast(100)
     } else {

@@ -45,9 +45,10 @@ import com.trading.app.models.BalanceRecord
 import com.trading.app.models.EconomicCalendarPayload
 import com.trading.app.models.OHLCData
 import com.trading.app.models.SymbolInfo
-import com.trading.app.data.BinanceMarketType
+import com.trading.app.models.UserAlert
 import com.trading.app.data.ChartFeedType
 import com.trading.app.data.Mt5Service
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import java.util.Locale
@@ -60,8 +61,11 @@ fun TradingChart2(
     chartSettings: ChartSettings,
     drawings: List<Drawing>,
     onDrawingUpdate: (Drawing) -> Unit,
+    onAlertPriceUpdate: (String, Float) -> Unit,
     activeTool: String?,
     onToolReset: () -> Unit,
+    userAlerts: List<UserAlert> = emptyList(),
+    onAlertTriggered: (UserAlert) -> Unit = {},
     showRsi: Boolean = false,
     rsiPeriod: Int = 14,
     showEma10: Boolean = false,
@@ -93,8 +97,9 @@ fun TradingChart2(
     onCrosshairToggle: (Boolean) -> Unit = {},
     onVolumeToggle: (Boolean) -> Unit = {},
     onIndicatorSettingsClick: (String) -> Unit = {},
+    hiddenIndicators: Set<String> = emptySet(),
+    onIndicatorHide: (String) -> Unit = {},
     chartFeedType: ChartFeedType? = null,
-    binanceMarketType: BinanceMarketType = BinanceMarketType.FUTURES,
     providerChartData: ProviderChartData? = null,
     isMagnetEnabled: Boolean = false,
     isLocked: Boolean = false,
@@ -133,7 +138,6 @@ fun TradingChart2(
     onSymbolsUpdate: (List<SymbolInfo>) -> Unit = {},
     isTradingBarVisible: Boolean = false,
     reverseBridge: com.trading.app.data.Mt5ReverseBridge? = null,
-    cTraderService: Any? = null,  // Can be CTraderService or CTraderDemoService
     onTradeNotification: (com.trading.app.models.TradeNotification) -> Unit = {},
     onRsiToggle: (Boolean) -> Unit = {},
     onEma10Toggle: (Boolean) -> Unit = {},
@@ -164,11 +168,66 @@ fun TradingChart2(
     macdShowLines: Boolean = false,
     volumeShowLabels: Boolean = true,
     volumeShowLines: Boolean = false,
+    showPremiumDiscount: Boolean = false,
+    onPremiumDiscountToggle: (Boolean) -> Unit = {},
+    showFairValueGap: Boolean = false,
+    onFairValueGapToggle: (Boolean) -> Unit = {},
+    fvgSettings: com.trading.app.indicators.FairValueGapSettings = com.trading.app.indicators.FairValueGapSettings(),
+    onFvgSettingsClick: () -> Unit = {},
+    showSupplyDemandDaily: Boolean = false,
+    onSupplyDemandDailyToggle: (Boolean) -> Unit = {},
+    showOteVisibleChart: Boolean = false,
+    onOteVisibleChartToggle: (Boolean) -> Unit = {},
+    showAutoFib: Boolean = false,
+    autoFibEnabled: Boolean = false,
+    onAutoFibToggle: (Boolean) -> Unit = {},
+    onAutoFibHide: (Boolean) -> Unit = {},
+    autoFibSettings: com.trading.app.indicators.AutoFibSettings = com.trading.app.indicators.AutoFibSettings(),
+    onAutoFibSettingsChange: (com.trading.app.indicators.AutoFibSettings) -> Unit = {},
+    onAutoFibSettingsClick: () -> Unit = {},
+    sdVrSettings: com.trading.app.indicators.SupplyDemandVrSettings = com.trading.app.indicators.SupplyDemandVrSettings(),
+    onSdVrSettingsClick: () -> Unit = {},
+    cfvgSettings: com.trading.app.indicators.ConfluenceFvgSettings = com.trading.app.indicators.ConfluenceFvgSettings(),
+    onCfvgSettingsClick: () -> Unit = {},
+    showConfluenceFvg: Boolean = false,
+    confluenceFvgEnabled: Boolean = false,
+    onConfluenceFvgToggle: (Boolean) -> Unit = {},
+    onConfluenceFvgHide: (Boolean) -> Unit = {},
     selectedIndicatorId: String? = null,
     onSelectedIndicatorIdChange: (String?) -> Unit = {},
     onIndicatorDataUpdate: (IndicatorData) -> Unit = {}
 ) {
-    var lotSize by remember { mutableStateOf("1.0") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("trading_prefs", android.content.Context.MODE_PRIVATE) }
+    var lotSize by remember { mutableStateOf(prefs.getString("lot_size", "1.0") ?: "1.0") }
+    
+    var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var isBarHiddenByInactivity by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isTradingBarVisible) {
+        if (isTradingBarVisible) {
+            isBarHiddenByInactivity = false
+            lastInteractionTime = System.currentTimeMillis()
+        }
+    }
+
+    LaunchedEffect(lastInteractionTime, isTradingBarVisible) {
+        if (isTradingBarVisible) {
+            while (true) {
+                delay(60000) // Check every minute
+                val inactiveTime = System.currentTimeMillis() - lastInteractionTime
+                if (inactiveTime >= 60000) {
+                    isBarHiddenByInactivity = true
+                }
+            }
+        }
+    }
+    
+    fun resetInactivityTimer() {
+        lastInteractionTime = System.currentTimeMillis()
+        isBarHiddenByInactivity = false
+    }
+
     var tpPrice by remember { mutableStateOf<Float?>(null) }
     var slPrice by remember { mutableStateOf<Float?>(null) }
     var pendingPartialOrders by remember { mutableStateOf<List<PartialOrder>>(emptyList()) }
@@ -179,6 +238,21 @@ fun TradingChart2(
     var offset by remember { mutableStateOf(IntOffset(100, 100)) }
     val tradeNotifications = remember { mutableStateListOf<com.trading.app.models.TradeNotification>() }
     val notificationsToDismiss = remember { mutableStateListOf<String>() }
+
+    // Sync alert price when alert_line drawing is dragged
+    LaunchedEffect(drawings) {
+        drawings.filter { it.type == "alert_line" }.forEach { drawing ->
+            val price = drawing.points.firstOrNull()?.price ?: 0f
+            val drawingId = drawing.id
+            userAlerts
+                .filter { it.drawingId == drawingId }
+                .forEach { alert ->
+                    if (Math.abs(alert.price - price) > 0.0001f) {
+                        onAlertPriceUpdate(drawingId, price)
+                    }
+                }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -191,6 +265,8 @@ fun TradingChart2(
                 onDrawingUpdate = onDrawingUpdate,
                 activeTool = activeTool,
                 onToolReset = onToolReset,
+                userAlerts = userAlerts,
+                onAlertTriggered = onAlertTriggered,
                 showRsi = showRsi,
                 rsiPeriod = rsiPeriod,
                 showEma10 = showEma10,
@@ -250,12 +326,38 @@ fun TradingChart2(
                 macdShowLines = macdShowLines,
                 volumeShowLabels = volumeShowLabels,
                 volumeShowLines = volumeShowLines,
+                showPremiumDiscount = showPremiumDiscount,
+                onPremiumDiscountToggle = onPremiumDiscountToggle,
+                showFairValueGap = showFairValueGap,
+                onFairValueGapToggle = onFairValueGapToggle,
+                fvgSettings = fvgSettings,
+                onFvgSettingsClick = onFvgSettingsClick,
+                showSupplyDemandDaily = showSupplyDemandDaily,
+                onSupplyDemandDailyToggle = onSupplyDemandDailyToggle,
+                showOteVisibleChart = showOteVisibleChart,
+                onOteVisibleChartToggle = onOteVisibleChartToggle,
+                showAutoFib = showAutoFib,
+                autoFibEnabled = autoFibEnabled,
+                onAutoFibToggle = onAutoFibToggle,
+                onAutoFibHide = onAutoFibHide,
+                autoFibSettings = autoFibSettings,
+                onAutoFibSettingsChange = onAutoFibSettingsChange,
+                onAutoFibSettingsClick = onAutoFibSettingsClick,
+                sdVrSettings = sdVrSettings,
+                onSdVrSettingsClick = onSdVrSettingsClick,
+                cfvgSettings = cfvgSettings,
+                onCfvgSettingsClick = onCfvgSettingsClick,
+                showConfluenceFvg = showConfluenceFvg,
+                confluenceFvgEnabled = confluenceFvgEnabled,
+                onConfluenceFvgToggle = onConfluenceFvgToggle,
+                onConfluenceFvgHide = onConfluenceFvgHide,
                 selectedIndicatorId = selectedIndicatorId,
                 onSelectedIndicatorIdChange = onSelectedIndicatorIdChange,
                 onIndicatorDataUpdate = onIndicatorDataUpdate,
                 onIndicatorSettingsClick = onIndicatorSettingsClick,
+                hiddenIndicators = hiddenIndicators,
+                onIndicatorHide = onIndicatorHide,
                 chartFeedType = chartFeedType,
-                binanceMarketType = binanceMarketType,
                 providerChartData = providerChartData,
                 isMagnetEnabled = isMagnetEnabled,
                 isLocked = isLocked,
@@ -315,18 +417,22 @@ fun TradingChart2(
         }
 
         // Floating Trading Bar
-        if (isTradingBarVisible && chartSettings.trading.oneClickTrading) {
+        if (isTradingBarVisible && chartSettings.trading.oneClickTrading && !isBarHiddenByInactivity) {
             Box(
                 modifier = Modifier
                     .offset { offset }
                     .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            offset = IntOffset(
-                                (offset.x + dragAmount.x).roundToInt(),
-                                (offset.y + dragAmount.y).roundToInt()
-                            )
-                        }
+                        detectDragGestures(
+                            onDragStart = { resetInactivityTimer() },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                offset = IntOffset(
+                                    (offset.x + dragAmount.x).roundToInt(),
+                                    (offset.y + dragAmount.y).roundToInt()
+                                )
+                                resetInactivityTimer()
+                            }
+                        )
                     }
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFF252525).copy(alpha = 0.95f))
@@ -358,122 +464,49 @@ fun TradingChart2(
                             .clip(RoundedCornerShape(18.dp))
                             .background(Color(0xFFF23645))
                             .clickable {
-                                android.util.Log.d("TradingChart2", "SELL button clicked! chartFeedType=$chartFeedType, cTraderService=$cTraderService")
-                                currentLiveQuote?.let { quote ->
-                                    val lotSizeValue = (lotSize.toFloatOrNull() ?: 1f).coerceAtLeast(0.01f)
-                                    val newPos = Position(
-                                        id = "temp_${System.currentTimeMillis()}",
+                                resetInactivityTimer()
+                                
+                                val quote = currentLiveQuote
+                                val lotSizeValue = (lotSize.toFloatOrNull() ?: 1f).coerceAtLeast(0.01f)
+                                val price = quote?.bid ?: 0f
+                                
+                                val newPos = Position(
+                                    id = "temp_${System.currentTimeMillis()}",
+                                    symbol = symbol,
+                                    type = "sell",
+                                    entryPrice = price,
+                                    volume = lotSizeValue,
+                                    time = System.currentTimeMillis(),
+                                    tp = tpPrice,
+                                    sl = slPrice,
+                                    partialOrders = pendingPartialOrders
+                                )
+                                
+                                // MT5-only: always route via onPlaceOrder (reverseBridge)
+                                if (onPlaceOrder != null) {
+                                    onPlaceOrder.invoke(newPos, "Market Execution", null)
+                                    val notification = com.trading.app.models.TradeNotification(
                                         symbol = symbol,
-                                        type = "sell",
-                                        entryPrice = quote.bid,
-                                        volume = lotSizeValue,
-                                        time = System.currentTimeMillis(),
-                                        tp = tpPrice,
-                                        sl = slPrice,
-                                        partialOrders = pendingPartialOrders
+                                        volume = newPos.volume,
+                                        price = price,
+                                        isBuy = false,
+                                        type = "pending",
+                                        exchange = "Exness"
                                     )
-                                    
-                                    // Place order based on feed type
-                                    when (chartFeedType) {
-                                        ChartFeedType.PEPPERSTONE_CTRADER -> {
-                                            android.util.Log.d("TradingChart2", "Placing SELL order via cTrader: symbol=$symbol, volume=${newPos.volume}")
-                                            (cTraderService as? com.trading.app.data.CTraderService)?.placeMarketOrder(
-                                                symbol = symbol,
-                                                side = "sell",
-                                                volume = newPos.volume.toDouble(),
-                                                stopLoss = slPrice?.toDouble(),
-                                                takeProfit = tpPrice?.toDouble()
-                                            ) { success, message ->
-                                                android.util.Log.d("TradingChart2", "Order result: success=$success, message=$message")
-                                                if (success) {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.bid,
-                                                        isBuy = false,
-                                                        type = "executed",
-                                                        exchange = "Pepperstone"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                } else {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.bid,
-                                                        isBuy = false,
-                                                        type = "failed",
-                                                        exchange = "Pepperstone"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                }
-                                            }
-                                        }
-                                        ChartFeedType.PEPPERSTONE_DEMO -> {
-                                            android.util.Log.d("TradingChart2", "Placing SELL order via cTrader DEMO: symbol=$symbol, volume=${newPos.volume}")
-                                            (cTraderService as? com.trading.app.data.CTraderDemoService)?.placeMarketOrder(
-                                                symbol = symbol,
-                                                side = "sell",
-                                                volume = newPos.volume.toDouble(),
-                                                stopLoss = slPrice?.toDouble(),
-                                                takeProfit = tpPrice?.toDouble()
-                                            ) { success, message ->
-                                                android.util.Log.d("TradingChart2", "DEMO Order result: success=$success, message=$message")
-                                                if (success) {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.bid,
-                                                        isBuy = false,
-                                                        type = "executed",
-                                                        exchange = "Pepperstone Demo"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                } else {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.bid,
-                                                        isBuy = false,
-                                                        type = "rejected",
-                                                        exchange = "Pepperstone"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                }
-                                            }
-                                        }
-                                        ChartFeedType.BINANCE, ChartFeedType.BINANCE_CONNECT, ChartFeedType.EXNESS -> {
-                                            // For Binance, Binance Connect, and Exness, use the proper order placement flow
-                                            android.util.Log.d("TradingChart2", "Placing SELL order via placeStreamOrder: volume=${newPos.volume}, lotSize=$lotSize, lotSizeValue=$lotSizeValue")
-                                            onPlaceOrder?.invoke(newPos, "Market Execution", null)
-                                            val notification = com.trading.app.models.TradeNotification(
-                                                symbol = symbol,
-                                                volume = newPos.volume,
-                                                price = quote.bid,
-                                                isBuy = false,
-                                                type = "pending"
-                                            )
-                                            onTradeNotification(notification)
-                                            tradeNotifications.add(notification)
-                                        }
-                                        else -> {
-                                            android.util.Log.d("TradingChart2", "Placing SELL order via reverseBridge (paper trading)")
-                                            reverseBridge?.placePosition(newPos)
-                                            onPositionUpdate(newPos)
-                                            val notification = com.trading.app.models.TradeNotification(
-                                                symbol = symbol,
-                                                volume = newPos.volume,
-                                                price = quote.bid,
-                                                isBuy = false,
-                                                type = "executed"
-                                            )
-                                            onTradeNotification(notification)
-                                            tradeNotifications.add(notification)
-                                        }
-                                    }
+                                    onTradeNotification(notification)
+                                    tradeNotifications.add(notification)
+                                } else {
+                                    reverseBridge?.placePosition(newPos)
+                                    onPositionUpdate(newPos)
+                                    val notification = com.trading.app.models.TradeNotification(
+                                        symbol = symbol,
+                                        volume = newPos.volume,
+                                        price = price,
+                                        isBuy = false,
+                                        type = "executed"
+                                    )
+                                    onTradeNotification(notification)
+                                    tradeNotifications.add(notification)
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -499,7 +532,11 @@ fun TradingChart2(
                         Text("0.0", color = Color(0xFF787B86), fontSize = 9.sp)
                         BasicTextField(
                             value = lotSize,
-                            onValueChange = { lotSize = it },
+                            onValueChange = { 
+                                lotSize = it 
+                                prefs.edit().putString("lot_size", it).apply()
+                                resetInactivityTimer()
+                            },
                             textStyle = TextStyle(
                                 color = Color.White,
                                 fontSize = 14.sp,
@@ -520,122 +557,49 @@ fun TradingChart2(
                             .clip(RoundedCornerShape(18.dp))
                             .background(Color(0xFF2962FF))
                             .clickable {
-                                android.util.Log.d("TradingChart2", "BUY button clicked! chartFeedType=$chartFeedType, cTraderService=$cTraderService")
-                                currentLiveQuote?.let { quote ->
-                                    val lotSizeValue = (lotSize.toFloatOrNull() ?: 1f).coerceAtLeast(0.01f)
-                                    val newPos = Position(
-                                        id = "temp_${System.currentTimeMillis()}",
+                                resetInactivityTimer()
+                                
+                                val quote = currentLiveQuote
+                                val lotSizeValue = (lotSize.toFloatOrNull() ?: 1f).coerceAtLeast(0.01f)
+                                val price = quote?.ask ?: 0f
+                                
+                                val newPos = Position(
+                                    id = "temp_${System.currentTimeMillis()}",
+                                    symbol = symbol,
+                                    type = "buy",
+                                    entryPrice = price,
+                                    volume = lotSizeValue,
+                                    time = System.currentTimeMillis(),
+                                    tp = tpPrice,
+                                    sl = slPrice,
+                                    partialOrders = pendingPartialOrders
+                                )
+                                
+                                // MT5-only: always route via onPlaceOrder (reverseBridge)
+                                if (onPlaceOrder != null) {
+                                    onPlaceOrder.invoke(newPos, "Market Execution", null)
+                                    val notification = com.trading.app.models.TradeNotification(
                                         symbol = symbol,
-                                        type = "buy",
-                                        entryPrice = quote.ask,
-                                        volume = lotSizeValue,
-                                        time = System.currentTimeMillis(),
-                                        tp = tpPrice,
-                                        sl = slPrice,
-                                        partialOrders = pendingPartialOrders
+                                        volume = newPos.volume,
+                                        price = price,
+                                        isBuy = true,
+                                        type = "pending",
+                                        exchange = "Exness"
                                     )
-                                    
-                                    // Place order based on feed type
-                                    when (chartFeedType) {
-                                        ChartFeedType.PEPPERSTONE_CTRADER -> {
-                                            android.util.Log.d("TradingChart2", "Placing BUY order via cTrader: symbol=$symbol, volume=${newPos.volume}")
-                                            (cTraderService as? com.trading.app.data.CTraderService)?.placeMarketOrder(
-                                                symbol = symbol,
-                                                side = "buy",
-                                                volume = newPos.volume.toDouble(),
-                                                stopLoss = slPrice?.toDouble(),
-                                                takeProfit = tpPrice?.toDouble()
-                                            ) { success, message ->
-                                                android.util.Log.d("TradingChart2", "Order result: success=$success, message=$message")
-                                                if (success) {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.ask,
-                                                        isBuy = true,
-                                                        type = "executed",
-                                                        exchange = "Pepperstone"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                } else {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.ask,
-                                                        isBuy = true,
-                                                        type = "rejected",
-                                                        exchange = "Pepperstone"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                }
-                                            }
-                                        }
-                                        ChartFeedType.PEPPERSTONE_DEMO -> {
-                                            android.util.Log.d("TradingChart2", "Placing BUY order via cTrader DEMO: symbol=$symbol, volume=${newPos.volume}")
-                                            (cTraderService as? com.trading.app.data.CTraderDemoService)?.placeMarketOrder(
-                                                symbol = symbol,
-                                                side = "buy",
-                                                volume = newPos.volume.toDouble(),
-                                                stopLoss = slPrice?.toDouble(),
-                                                takeProfit = tpPrice?.toDouble()
-                                            ) { success, message ->
-                                                android.util.Log.d("TradingChart2", "DEMO Order result: success=$success, message=$message")
-                                                if (success) {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.ask,
-                                                        isBuy = true,
-                                                        type = "executed",
-                                                        exchange = "Pepperstone Demo"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                } else {
-                                                    val notification = com.trading.app.models.TradeNotification(
-                                                        symbol = symbol,
-                                                        volume = newPos.volume,
-                                                        price = quote.ask,
-                                                        isBuy = true,
-                                                        type = "rejected",
-                                                        exchange = "Pepperstone Demo"
-                                                    )
-                                                    onTradeNotification(notification)
-                                                    tradeNotifications.add(notification)
-                                                }
-                                            }
-                                        }
-                                        ChartFeedType.BINANCE, ChartFeedType.BINANCE_CONNECT, ChartFeedType.EXNESS -> {
-                                            // For Binance, Binance Connect, and Exness, use the proper order placement flow
-                                            android.util.Log.d("TradingChart2", "Placing BUY order via placeStreamOrder: volume=${newPos.volume}, lotSize=$lotSize, lotSizeValue=$lotSizeValue")
-                                            onPlaceOrder?.invoke(newPos, "Market Execution", null)
-                                            val notification = com.trading.app.models.TradeNotification(
-                                                symbol = symbol,
-                                                volume = newPos.volume,
-                                                price = quote.ask,
-                                                isBuy = true,
-                                                type = "pending"
-                                            )
-                                            onTradeNotification(notification)
-                                            tradeNotifications.add(notification)
-                                        }
-                                        else -> {
-                                            android.util.Log.d("TradingChart2", "Placing BUY order via reverseBridge (paper trading)")
-                                            reverseBridge?.placePosition(newPos)
-                                            onPositionUpdate(newPos)
-                                            val notification = com.trading.app.models.TradeNotification(
-                                                symbol = symbol,
-                                                volume = newPos.volume,
-                                                price = quote.ask,
-                                                isBuy = true,
-                                                type = "executed"
-                                            )
-                                            onTradeNotification(notification)
-                                            tradeNotifications.add(notification)
-                                        }
-                                    }
+                                    onTradeNotification(notification)
+                                    tradeNotifications.add(notification)
+                                } else {
+                                    reverseBridge?.placePosition(newPos)
+                                    onPositionUpdate(newPos)
+                                    val notification = com.trading.app.models.TradeNotification(
+                                        symbol = symbol,
+                                        volume = newPos.volume,
+                                        price = price,
+                                        isBuy = true,
+                                        type = "executed"
+                                    )
+                                    onTradeNotification(notification)
+                                    tradeNotifications.add(notification)
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -655,7 +619,10 @@ fun TradingChart2(
                         modifier = Modifier
                             .padding(start = 4.dp, end = 2.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable { showModifyModal = true }
+                            .clickable { 
+                                resetInactivityTimer()
+                                showModifyModal = true 
+                            }
                             .padding(2.dp)
                     ) {
                         Icon(
@@ -928,7 +895,7 @@ fun ModifyTpSlModal(
         scrimColor = Color.Black.copy(alpha = 0.5f),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         tonalElevation = 0.dp,
-        windowInsets = WindowInsets(0)
+        contentWindowInsets = { WindowInsets(0) }
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxWidth()) {

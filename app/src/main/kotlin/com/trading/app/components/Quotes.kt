@@ -55,37 +55,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
 
-private val defaultQuotesCatalog = listOf(
-    SymbolInfo("BTCUSD", "Bitcoin / U.S. Dollar", "Bitstamp", "spot crypto"),
-    SymbolInfo("BTCUSDT", "Bitcoin / TetherUS", "Binance", "spot crypto"),
-    SymbolInfo("ETHUSD", "Ethereum / U.S. Dollar", "Bitstamp", "spot crypto"),
-    SymbolInfo("ETHUSDT", "Ethereum / TetherUS", "Binance", "spot crypto"),
-    SymbolInfo("EURUSD", "Euro / U.S. Dollar", "FXCM", "forex"),
-    SymbolInfo("GBPUSD", "British Pound / U.S. Dollar", "FXCM", "forex"),
-    SymbolInfo("USDJPY", "U.S. Dollar / Japanese Yen", "FXCM", "forex"),
-    SymbolInfo("AUDUSD", "Australian Dollar / U.S. Dollar", "OANDA", "forex"),
-    SymbolInfo("USDCAD", "U.S. Dollar / Canadian Dollar", "FXCM", "forex"),
-    SymbolInfo("USDCHF", "U.S. Dollar / Swiss Franc", "FXCM", "forex"),
-    SymbolInfo("Crude-F", "WTI Crude Oil", "TVC", "commodity cfd"),
-    SymbolInfo("USOIL", "WTI Crude Oil", "TVC", "commodity cfd"),
-    SymbolInfo("Brent-F", "Brent Crude Oil", "TVC", "commodity cfd"),
-    SymbolInfo("US02Y", "United States 2Y Gov Bond", "TVC", "bond"),
-    SymbolInfo("US10Y", "United States 10Y Gov Bond", "TVC", "bond"),
-    SymbolInfo("SPX", "S&P 500 Index", "S&P", "index"),
-    SymbolInfo("TSLA", "Tesla, Inc.", "NASDAQ", "stock"),
-    SymbolInfo("AAPL", "Apple Inc.", "NASDAQ", "stock"),
-    SymbolInfo("NVDA", "NVIDIA Corporation", "NASDAQ", "stock"),
-    SymbolInfo("NASDAQ100", "Nasdaq 100 Index", "NASDAQ", "index"),
-    SymbolInfo("XAGUSD", "Silver / U.S. Dollar", "OANDA", "commodity cfd"),
-    SymbolInfo("XAUUSD", "Gold / U.S. Dollar", "OANDA", "commodity cfd"),
-    SymbolInfo("MSFT", "Microsoft Corporation", "NASDAQ", "stock"),
-    SymbolInfo("AMZN", "Amazon.com, Inc.", "NASDAQ", "stock"),
-    SymbolInfo("DJIA", "Dow Jones Industrial Average", "DJI", "index"),
-    SymbolInfo("DGS2", "US 2-Year Treasury Yield", "FRED", "bond"),
-    SymbolInfo("DGS10", "US 10-Year Treasury Yield", "FRED", "bond"),
-    SymbolInfo("BRENTOIL", "Brent Crude Oil", "TVC", "commodity cfd")
-)
-
 private fun defaultBrokerSymbolFor(ticker: String, type: String): String {
     val normalizedTicker = ticker.trim()
     if (normalizedTicker.isEmpty()) return normalizedTicker
@@ -104,9 +73,23 @@ private fun defaultBrokerSymbolFor(ticker: String, type: String): String {
 }
 
 fun defaultQuoteSymbols(): List<SymbolInfo> {
-    return chartFeedQuotes(ChartFeedType.BINANCE) +
-           chartFeedQuotes(ChartFeedType.EXNESS) +
-           chartFeedQuotes(ChartFeedType.PEPPERSTONE_CTRADER)
+    val feedQuotes = chartFeedQuotes(ChartFeedType.EXNESS)
+    
+    val constantsQuotes = com.asc.markets.data.FOREX_PAIRS.map { pair ->
+        val ticker = pair.symbol.replace("/", "")
+        com.trading.app.models.SymbolInfo(
+            ticker = ticker,
+            name = pair.name,
+            exchange = "Exness",
+            type = pair.category.name.lowercase(Locale.US),
+            brokerSymbol = pair.symbol,
+            price = pair.price.toFloat(),
+            change = pair.change.toFloat(),
+            changePercent = pair.changePercent.toFloat()
+        )
+    }
+    
+    return (feedQuotes + constantsQuotes).distinctBy { it.ticker }
 }
 
 fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
@@ -114,22 +97,27 @@ fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
 }
 
 fun mergeQuoteCatalog(symbols: List<SymbolInfo>, baseQuotes: List<SymbolInfo>): List<SymbolInfo> {
-    val allowedTickers = baseQuotes
-        .map { it.ticker.uppercase(Locale.US) }
-        .toSet()
-    val incomingByTicker = symbols
+    val baseByTicker = baseQuotes
+        .groupBy { it.ticker.trim().uppercase(Locale.US) }
+        .mapValues { (_, candidates) -> candidates.first() }
+
+    // The MT5 broker symbol list is the source of truth - every symbol returned by the
+    // bridge appears in the quote search. The static catalog only enriches metadata.
+    val fromMt5 = symbols
         .asSequence()
         .mapNotNull { quote ->
             val ticker = quote.ticker.trim().uppercase(Locale.US)
-            if (ticker.isEmpty() || ticker !in allowedTickers) return@mapNotNull null
+            if (ticker.isEmpty()) return@mapNotNull null
 
+            val base = baseByTicker[ticker]
             val brokerSymbol = quote.brokerSymbol.trim().ifBlank {
                 defaultBrokerSymbolFor(ticker, quote.type)
             }
             quote.copy(
                 ticker = ticker,
                 brokerSymbol = brokerSymbol,
-                name = quote.name.ifBlank { ticker }
+                name = quote.name.ifBlank { base?.name ?: ticker },
+                exchange = quote.exchange.ifBlank { base?.exchange ?: "Exness" }
             )
         }
         .groupBy { it.ticker }
@@ -140,18 +128,14 @@ fun mergeQuoteCatalog(symbols: List<SymbolInfo>, baseQuotes: List<SymbolInfo>): 
             } ?: candidates.first()
         }
 
-    return baseQuotes.map { defaultQuote ->
-        val incoming = incomingByTicker[defaultQuote.ticker.uppercase(Locale.US)] ?: return@map defaultQuote
-        defaultQuote.copy(
-            name = incoming.name.ifBlank { defaultQuote.name },
-            exchange = incoming.exchange.ifBlank { defaultQuote.exchange },
-            type = incoming.type.ifBlank { defaultQuote.type },
-            brokerSymbol = incoming.brokerSymbol.ifBlank { defaultQuote.brokerSymbol },
-            price = incoming.price,
-            change = incoming.change,
-            changePercent = incoming.changePercent
-        )
+    val merged = fromMt5.values.toMutableList()
+
+    // Keep catalog-only entries until MT5 reports them so the list is never empty pre-sync.
+    baseQuotes.forEach { defaultQuote ->
+        if (defaultQuote.ticker.uppercase(Locale.US) !in fromMt5.keys) merged.add(defaultQuote)
     }
+
+    return merged
 }
 
 private fun isForexTicker(ticker: String): Boolean {
@@ -229,7 +213,20 @@ fun Quotes(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     val quoteCatalog = quotes.toList()
-    val categories = listOf("All", "Stocks", "Forex", "Crypto", "Indices", "Bonds", "Commodities")
+    
+    val categories = remember(quoteCatalog) {
+        val baseCategories = mutableListOf("All")
+        val types = quoteCatalog.map { it.type.lowercase(Locale.US) }
+        
+        if (types.any { it.contains("stock") }) baseCategories.add("Stocks")
+        if (types.any { it.contains("forex") }) baseCategories.add("Forex")
+        if (types.any { it.contains("crypto") }) baseCategories.add("Crypto")
+        if (types.any { it.contains("index") }) baseCategories.add("Indices")
+        if (types.any { it.contains("bond") }) baseCategories.add("Bonds")
+        if (types.any { it.contains("commodity") || it.contains("cfd") }) baseCategories.add("Commodities")
+        
+        baseCategories.distinct()
+    }
 
     val filteredQuotes = remember(quoteCatalog, searchQuery, selectedCategory) {
         quoteCatalog.filter { quote ->
@@ -242,7 +239,7 @@ fun Quotes(
                 "Crypto" -> quote.type.contains("crypto", ignoreCase = true)
                 "Bonds" -> quote.type.contains("bond", ignoreCase = true)
                 "Indices" -> quote.type.contains("index", ignoreCase = true)
-                "Commodities" -> quote.type.contains("commodity", ignoreCase = true) || quote.type.contains("cfd", ignoreCase = true)
+                "Commodities" -> (quote.type.contains("commodity", ignoreCase = true) || quote.type.contains("cfd", ignoreCase = true)) && !quote.type.contains("crypto", ignoreCase = true)
                 else -> true
             }
             matchesSearch && matchesCategory
@@ -350,13 +347,18 @@ fun Quotes(
                     state = listState,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(filteredQuotes) { item ->
+                    items(
+                        items = filteredQuotes,
+                        key = { it.ticker + it.exchange }
+                    ) { item ->
+                        val liveQuote = resolveQuoteForSymbol(item, quotesByTicker)
                         QuoteListItem(
                             quoteInfo = item,
                             onSelect = {
                                 onQuoteSelect(item)
                                 onClose()
-                            }
+                            },
+                            liveQuote = liveQuote
                         )
                         Divider(color = Color(0xFF121212), thickness = 0.5.dp)
                     }
@@ -369,7 +371,8 @@ fun Quotes(
 @Composable
 fun QuoteListItem(
     quoteInfo: SymbolInfo,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    liveQuote: SymbolQuote? = null
 ) {
     Row(
         modifier = Modifier
@@ -399,20 +402,19 @@ fun QuoteListItem(
         }
 
         Column(horizontalAlignment = Alignment.End) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = quoteInfo.exchange,
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                SourceLogo(quoteInfo.exchange)
-            }
+            // Display actual price (use live quote if available, otherwise show placeholder)
+            val priceToShow = liveQuote?.lastPrice ?: quoteInfo.price
+            val changeToShow = liveQuote?.changePercent ?: quoteInfo.changePercent
             Text(
-                text = quoteInfo.type,
-                color = Color(0xFF787B86),
-                fontSize = 12.sp
+                text = formatQuoteValue(quoteInfo.ticker, priceToShow),
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "${if (changeToShow >= 0) "+" else ""}${String.format(Locale.US, "%.2f%%", changeToShow)}",
+                color = if (changeToShow >= 0) Color(0xFF089981) else Color(0xFFF23645),
+                fontSize = 13.sp
             )
         }
     }
@@ -423,7 +425,7 @@ fun SourceLogo(exchange: String) {
     val logoColor = when (exchange.lowercase()) {
         "binance" -> Color(0xFFF3BA2F)
         "exness" -> Color(0xFFFFD500)
-        "pepperstone" -> Color(0xFF0052FF)
+        
         else -> Color(0xFF787B86)
     }
     

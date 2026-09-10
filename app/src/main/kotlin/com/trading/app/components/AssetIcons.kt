@@ -32,11 +32,10 @@ fun AssetIcon(symbol: SymbolInfo, modifier: Modifier = Modifier, size: Int = 32)
         contentAlignment = Alignment.Center
     ) {
         when {
-            // Crypto + Fiat Pair (e.g. BTCUSD, ETHUSD)
-            (type.contains("crypto") || ticker.startsWith("BTC") || ticker.startsWith("ETH")) && 
-            ticker.length > 3 && isFiat(ticker.takeLast(3)) -> {
-                val crypto = ticker.take(ticker.length - 3)
+            // Crypto + Fiat Pair (e.g. BTCUSD, ETHUSD, SOLUSD)
+            type.contains("crypto") && ticker.length > 3 && isFiat(ticker.takeLast(3)) -> {
                 val fiat = ticker.takeLast(3)
+                val crypto = ticker.substring(0, ticker.length - 3)
                 
                 Box(modifier = Modifier.fillMaxSize()) {
                     CryptoLogo(crypto, size = (size * 0.75).toInt(), modifier = Modifier.align(Alignment.TopStart))
@@ -72,8 +71,8 @@ fun AssetIcon(symbol: SymbolInfo, modifier: Modifier = Modifier, size: Int = 32)
                     )
                 }
             }
-            // Pure Crypto (e.g. BTC, ETH)
-            type.contains("crypto") || ticker in listOf("BTC", "ETH", "SOL", "USDT") -> {
+            // Pure Crypto or USDT pairs (e.g. BTC, ETH, BTCUSDT)
+            type.contains("crypto") -> {
                 CryptoLogo(ticker, size = size)
             }
             // Stocks (Company Logo)
@@ -287,6 +286,20 @@ fun CryptoLogo(ticker: String, modifier: Modifier = Modifier, size: Int = 32) {
         ticker.contains("ETH") -> "https://assets.coingecko.com/coins/images/279/small/ethereum.png"
         ticker.contains("USDT") -> "https://assets.coingecko.com/coins/images/325/small/tether.png"
         ticker.contains("SOL") -> "https://assets.coingecko.com/coins/images/4128/small/solana.png"
+        ticker.contains("BNB") -> "https://assets.coingecko.com/coins/images/825/small/binance-coin-logo.png"
+        ticker.contains("XRP") -> "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png"
+        ticker.contains("ADA") -> "https://assets.coingecko.com/coins/images/975/small/cardano.png"
+        ticker.contains("DOGE") -> "https://assets.coingecko.com/coins/images/5/small/dogecoin.png"
+        ticker.contains("AVAX") -> "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png"
+        ticker.contains("LINK") -> "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png"
+        ticker.contains("DOT") -> "https://assets.coingecko.com/coins/images/12171/small/polkadot.png"
+        ticker.contains("MATIC") -> "https://assets.coingecko.com/coins/images/4713/small/matic-token-icon.png"
+        ticker.contains("LTC") -> "https://assets.coingecko.com/coins/images/2/small/litecoin.png"
+        ticker.contains("SHIB") -> "https://assets.coingecko.com/coins/images/11939/small/shiba.png"
+        ticker.contains("TRX") -> "https://assets.coingecko.com/coins/images/1094/small/tron.png"
+        ticker.contains("XLM") -> "https://assets.coingecko.com/coins/images/100/small/stellar.png"
+        ticker.contains("BCH") -> "https://assets.coingecko.com/coins/images/780/small/bitcoin-cash.png"
+        ticker.contains("UNI") -> "https://assets.coingecko.com/coins/images/12551/small/uniswap-uni.png"
         else -> null
     }
     
@@ -310,37 +323,13 @@ fun CryptoLogo(ticker: String, modifier: Modifier = Modifier, size: Int = 32) {
 fun CompanyLogo(ticker: String, modifier: Modifier = Modifier, size: Int = 32) {
     val url = "https://assets.parqet.com/logos/symbol/$ticker?format=png"
     
-    SubcomposeAsyncImage(
+    AsyncImage(
         model = url,
         contentDescription = ticker,
         modifier = modifier.size(size.dp).clip(CircleShape),
         contentScale = ContentScale.Crop,
-        loading = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color(0xFF2C2C2E)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = ticker.take(1).uppercase(),
-                    color = Color.White,
-                    fontSize = (size * 0.45).sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        error = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color(0xFF2C2C2E)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = ticker.take(1).uppercase(),
-                    color = Color.White,
-                    fontSize = (size * 0.45).sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        placeholder = null,
+        error = null
     )
 }
 
@@ -351,7 +340,7 @@ fun ExchangeIcon(exchange: String, modifier: Modifier = Modifier) {
         "oanda" -> Color(0xFF2962FF)
         "fxcm" -> Color(0xFF003399)
         "bitstamp" -> Color(0xFF4CAF50)
-        "pepperstone" -> Color(0xFF003399)
+        
         "exness" -> Color(0xFFFFB115)
         else -> Color(0xFF787B86)
     }

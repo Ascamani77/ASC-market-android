@@ -17,8 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.terminal.theme.*
 
@@ -32,10 +30,9 @@ fun SymbolSearchModal(
 
     var query by remember { mutableStateOf("") }
     val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by BinanceDataStore.allPairs.collectAsState()
-    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
-    val symbols = remember(marketPairs, binancePairs, fallbackPairs, query) {
-        (marketPairs + binancePairs + fallbackPairs)
+    // BINANCE AND FALLBACK REMOVED - EA ONLY
+    val symbols = remember(marketPairs, query) {
+        (marketPairs)
             .distinctBy { it.symbol }
             .map { pair ->
                 SymbolItem(

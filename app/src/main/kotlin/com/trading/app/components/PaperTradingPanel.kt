@@ -1,9 +1,10 @@
-package com.trading.app.components
+﻿package com.trading.app.components
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
@@ -60,9 +61,12 @@ fun PaperTradingPanel(
     val useSnapshotStats = preferSnapshotStats && snapshot.hasLiveTradeData && snapshot.activeTrades > 0 && snapshot.currentTradeSymbol != null
 
     // Calculations for Header Stats
+    val allBrokerProfit = positions.isNotEmpty() && positions.all { it.hasBrokerProfit }
+    val brokerProfitSum = if (allBrokerProfit) positions.sumOf { (it.profit + it.swap).toDouble() } else null
     val totalUnrealizedPnl = if (useSnapshotStats) {
         snapshot.floatingPnl
-    } else accountInfo?.unrealizedPnl ?: positions.sumOf {
+    } else accountInfo?.unrealizedPnl
+        ?: brokerProfitSum ?: positions.sumOf {
         ((currentPrice - it.entryPrice) * it.volume * (if (it.type == "buy") 1f else -1f)).toDouble()
     }
     val displayBalance = if (useSnapshotStats) snapshot.balance else accountInfo?.balance ?: balance
@@ -86,6 +90,16 @@ fun PaperTradingPanel(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Back arrow - returns to the chart
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(26.dp)
+                    .clickable { onClose() }
+                    .padding(end = 10.dp)
+            )
             Column(modifier = Modifier.clickable { 
                 if (onAccountChange != null) {
                     showAccountDropdown = true 
@@ -118,7 +132,7 @@ fun PaperTradingPanel(
                             }
                         },
                         onClick = {
-                            onAccountChange?.invoke(ChartFeedType.PEPPERSTONE_CTRADER)
+                            onAccountChange?.invoke(ChartFeedType.EXNESS)
                             showAccountDropdown = false
                         }
                     )

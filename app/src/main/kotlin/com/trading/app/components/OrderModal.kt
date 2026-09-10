@@ -186,7 +186,7 @@ fun OrderModal(
         scrimColor = Color.Black.copy(alpha = 0.5f),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         tonalElevation = 0.dp,
-        windowInsets = WindowInsets(0),
+        contentWindowInsets = { WindowInsets(0) },
         modifier = Modifier.padding(bottom = AppBottomNavHeight)
     ) {
         Box(

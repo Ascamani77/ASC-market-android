@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.asc.markets.data.UiAppearanceStore
 import com.asc.markets.ui.theme.*
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -22,7 +23,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 
 /**
  * Institutional InfoBox: thin 1px hairline border, charcoal surface, rounded corners.
- * Matches provided design: 1.dp white border at 18% alpha, RoundedCornerShape(12.dp)
+ * Matches provided design: 1.dp white border at 18% alpha, RoundedCornerShape(4.dp)
  * Background updated to DeepBlack (#121212) per design request.
  */
 @Composable
@@ -33,13 +34,20 @@ fun InfoBox(
     containerColor: Color = DeepBlack,
     onClick: (() -> Unit)? = null,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(1.dp),
+    curve: Dp = 4.dp,
     content: @Composable BoxScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Surround all boxes with the white hairline border (HairlineBorder = 18% alpha white)
-    val borderColor = if (isPressed) HairlineHighlight else HairlineBorder
+    // Surround all boxes with the white hairline border. Brightness follows the
+    // user-controlled UiAppearanceStore.borderAlpha (0 = invisible, 1 = solid).
+    val outlineAlpha by UiAppearanceStore.borderAlpha.collectAsState()
+    val borderColor = if (isPressed) {
+        Color.White.copy(alpha = (outlineAlpha + 0.12f).coerceIn(0f, 1f))
+    } else {
+        Color.White.copy(alpha = outlineAlpha)
+    }
 
     // Do not force fillMaxWidth here. Let the caller decide sizing so
     // InfoBox can be used inside horizontal LazyRow items without
@@ -50,7 +58,7 @@ fun InfoBox(
 
     Surface(
         color = containerColor,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(curve),
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -82,7 +90,7 @@ fun InfoBox(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(brush = shineBrush, shape = RoundedCornerShape(12.dp))
+                    .background(brush = shineBrush, shape = RoundedCornerShape(curve))
                     .padding(contentPadding)
             ) {
                 CompositionLocalProvider(LocalTextStyle provides shinyTextStyle) {

@@ -21,7 +21,7 @@ fun NotificationSettingsPanel(userSettings: UserSettings, onBack: () -> Unit) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(title = { Text("Notifications") }, navigationIcon = {
                 IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
-            }, colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = PureBlack))
+            }, colors = TopAppBarDefaults.topAppBarColors(containerColor = PureBlack))
 
             Spacer(modifier = Modifier.height(12.dp))
 

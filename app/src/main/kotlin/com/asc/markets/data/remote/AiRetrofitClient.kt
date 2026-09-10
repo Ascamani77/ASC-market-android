@@ -1,70 +1,60 @@
 package com.asc.markets.data.remote
 
-import android.content.Context
-import com.asc.markets.data.NetworkConfig
-import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import com.asc.markets.data.NetworkConfig
+
+interface AiApi {
+    @GET("latest-deployments")
+    suspend fun getLatestDeployments(): LatestDeploymentsResponse
+
+    @GET("signals")
+    suspend fun getHybridSignals(): HybridSignalsResponse
+
+    @POST("run-ai")
+    suspend fun runAi(@Body request: RunAiRequest): RunAiResponse
+
+    @GET("scalping-signals")
+    suspend fun getScalpingSignals(): ScalpingSignalsResponse
+
+    @GET("swing-signals")
+    suspend fun getSwingSignals(): ScalpingSignalsResponse
+    
+    @POST("api/simulate-trade")
+    suspend fun simulateTrade(@Body request: TradeSimulationRequest): TradeSimulationResponse
+    
+    @GET("api/simulation-status")
+    suspend fun getSimulationStatus(): SimulationStatusResponse
+    
+    @POST("api/chart-display-settings")
+    suspend fun saveChartDisplaySettings(@Body request: ChartDisplaySettingsRequest): ChartDisplaySettingsResponse
+    
+    @GET("api/chart-display-settings")
+    suspend fun getChartDisplaySettings(): ChartDisplaySettingsResponse
+}
 
 object AiRetrofitClient {
+    private var baseUrl = "http://${NetworkConfig.DEFAULT_HOST}:5000/"
 
-    // Replace 10.95.77.133 with your laptop's actual Wi-Fi IP address
-    // Do NOT use 127.0.0.1 or localhost - those point to the phone/emulator, not your PC
-    private val DEFAULT_BASE_URL = "${NetworkConfig.DEFAULT_BACKEND_URL}/"
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(120, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .writeTimeout(120, TimeUnit.SECONDS)
-        .build()
-
-    @Volatile
-    private var configuredBaseUrl: String = DEFAULT_BASE_URL
-
-    @Volatile
-    private var cachedBaseUrl: String? = null
-
-    @Volatile
-    private var cachedApi: AiApiService? = null
-
-    fun configure(context: Context) {
-        configure(NetworkConfig.backendUrl(context))
-    }
-
-    fun configure(baseUrl: String) {
-        configuredBaseUrl = normalizeBaseUrl(baseUrl)
-    }
-
-    val api: AiApiService
-        get() {
-            val baseUrl = configuredBaseUrl
-            val existing = cachedApi
-            if (existing != null && cachedBaseUrl == baseUrl) {
-                return existing
-            }
-
-            return synchronized(this) {
-                val current = cachedApi
-                if (current != null && cachedBaseUrl == baseUrl) {
-                    current
-                } else {
-                    Retrofit.Builder()
-                        .baseUrl(baseUrl)
-                        .client(okHttpClient)
-                        .addConverterFactory(GsonConverterFactory.create())
-                        .build()
-                        .create(AiApiService::class.java)
-                        .also {
-                            cachedApi = it
-                            cachedBaseUrl = baseUrl
-                        }
-                }
-            }
+    private var _api: AiApi? = null
+    val api: AiApi
+        get() = _api ?: synchronized(this) {
+            _api ?: buildApi(baseUrl).also { _api = it }
         }
 
-    private fun normalizeBaseUrl(baseUrl: String): String {
-        val normalized = NetworkConfig.normalizedBackendUrl(baseUrl)
-        return if (normalized.endsWith("/")) normalized else "$normalized/"
+    fun configure(url: String) {
+        baseUrl = if (url.endsWith("/")) url else "$url/"
+        _api = buildApi(baseUrl)
+    }
+
+    private fun buildApi(url: String): AiApi {
+        return Retrofit.Builder()
+            .baseUrl(url)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(AiApi::class.java)
     }
 }

@@ -11,24 +11,107 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.data.AppView
 import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.data.remote.LatestDeploymentsResponse
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.screens.dashboard.CurrencyStrengthPanel
 import com.asc.markets.ui.screens.dashboard.MarketCompareDensity
 import com.asc.markets.ui.theme.*
+import com.researchcenter.ui.viewmodel.NewsViewModel as ResearchNewsViewModel
+import com.researchcenter.ui.viewmodel.NewsViewModelFactory as ResearchNewsViewModelFactory
+import com.researchcenter.data.models.NewsArticle as ResearchNewsArticle
+import com.asc.markets.state.AssetContext
+import com.asc.markets.state.AssetContextStore
+import com.asc.markets.ui.theme.InterFontFamily
+import androidx.compose.ui.platform.LocalContext
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.roundToInt
+
+// --- News Data Model ---
+data class NewsItem(
+    val headline: String,
+    val source: String,
+    val timestamp: String,
+    val assetType: String,
+    val assetSymbol: String = "",
+    val imageUrl: String = ""
+)
+
+// --- Helper Functions ---
+private fun formatArticleTime(publishedAt: String): String {
+    return try {
+        OffsetDateTime.parse(publishedAt)
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("dd MMM HH:mm"))
+    } catch (_: Exception) {
+        publishedAt.take(16).ifBlank { "Unknown time" }
+    }
+}
+
+private fun inferNewsAssetSymbol(assetType: String, headline: String): String {
+    val normalizedHeadline = headline.lowercase(Locale.US)
+    return when (assetType.lowercase(Locale.US)) {
+        "forex" -> when {
+            normalizedHeadline.contains("yen") -> "USD/JPY"
+            normalizedHeadline.contains("euro") || normalizedHeadline.contains("ecb") -> "EUR/USD"
+            normalizedHeadline.contains("pound") || normalizedHeadline.contains("boe") -> "GBP/USD"
+            else -> "EUR/USD"
+        }
+        "crypto" -> when {
+            normalizedHeadline.contains("ethereum") -> "ETH/USD"
+            else -> "BTC/USD"
+        }
+        "commodities" -> when {
+            normalizedHeadline.contains("oil") || normalizedHeadline.contains("crude") -> "WTI"
+            else -> "XAU/USD"
+        }
+        "indices" -> when {
+            normalizedHeadline.contains("nasdaq") -> "IXIC"
+            normalizedHeadline.contains("ftse") -> "FTSE"
+            else -> "SPX"
+        }
+        "futures" -> when {
+            normalizedHeadline.contains("nasdaq") -> "NQ1!"
+            else -> "SPX"
+        }
+        "stocks" -> when {
+            normalizedHeadline.contains("intel") -> "INTC"
+            normalizedHeadline.contains("apple") -> "AAPL"
+            normalizedHeadline.contains("nvidia") -> "NVDA"
+            else -> "AAPL"
+        }
+        "bonds" -> "US10Y"
+        else -> ""
+    }
+}
 
 @Composable
 fun HomeAlertsScreen(viewModel: ForexViewModel) {
+    val context = LocalContext.current
+    val researchNewsViewModel: ResearchNewsViewModel = viewModel(factory = ResearchNewsViewModelFactory(context))
+    val researchArticles by researchNewsViewModel.articles.collectAsState()
+    val aiDiscoveryArticles by researchNewsViewModel.aiDiscoveryArticles.collectAsState()
+
+    LaunchedEffect(Unit) {
+        researchNewsViewModel.fetchAiSortedNews()
+    }
+
+    val newsItemsForCtx = if (aiDiscoveryArticles.isNotEmpty()) aiDiscoveryArticles else researchArticles
+
     val aiResponseState = viewModel.aiDeployments.collectAsState()
     val aiResponse: LatestDeploymentsResponse? = aiResponseState.value
     val allSignals = aiResponse?.final_decision ?: emptyList<FinalDecisionItem>()
-    
+
     // Top 3 signals by score
     val topSignals = remember(allSignals) {
         allSignals.sortedByDescending { it.journal_score ?: 0.0 }.take(3)
@@ -77,6 +160,39 @@ fun HomeAlertsScreen(viewModel: ForexViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
             CurrencyStrengthPanel(density = MarketCompareDensity.COMPACT)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // News Flow Section
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("📊", fontSize = 18.sp)
+                    Text("Raw Feed", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (newsItemsForCtx.isEmpty()) {
+                        Text("No asset-tagged headlines available.", color = SlateText, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                    } else {
+                        val mappedNews = newsItemsForCtx.take(5).map { article ->
+                            NewsItem(
+                                headline = article.title,
+                                source = article.source,
+                                timestamp = formatArticleTime(article.publishedAt),
+                                assetType = article.category,
+                                assetSymbol = "",
+                                imageUrl = article.imageUrl ?: ""
+                            )
+                        }
+                        mappedNews.forEach { item ->
+                            RawFeedNewsRow(newsItem = item, fallbackSymbol = inferNewsAssetSymbol(item.assetType, item.headline))
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -212,5 +328,49 @@ private fun HomeSignalAlertItem(item: FinalDecisionItem, onClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RawFeedNewsRow(newsItem: NewsItem, fallbackSymbol: String) {
+    val assetSymbol = newsItem.assetSymbol
+        .ifBlank { fallbackSymbol }
+        .ifBlank { inferNewsAssetSymbol(newsItem.assetType, newsItem.headline) }
+    val headline = remember(newsItem.headline, assetSymbol) {
+        if (assetSymbol.isBlank() || newsItem.headline.startsWith("$assetSymbol:", ignoreCase = true)) {
+            newsItem.headline
+        } else {
+            "$assetSymbol: ${newsItem.headline}"
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PairFlags(symbol = assetSymbol, size = 18)
+            Text(
+                text = newsItem.timestamp,
+                color = Color(0xFF8B8B8B),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = headline,
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 24.sp,
+            fontFamily = InterFontFamily,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

@@ -1,11 +1,11 @@
 {
   "type": "ai_watchlist",
-  "timestamp": "2026-06-03T22:10:18.152979+00:00",
+  "timestamp": "2026-06-25T22:50:23.133975+00:00",
   "source": "AI_SYSTEM",
   "version": "v1",
   "items": [
     {
-      "id": "ai_AAPL_1780524583",
+      "id": "ai_AAPL_1782427704",
       "assetName": "AAPL",
       "status": "Ranging",
       "confidence": 50,
@@ -21,10 +21,10 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": true,
-      "addedAt": 1780524583006
+      "addedAt": 1782427704048
     },
     {
-      "id": "ai_AMZN_1780524585",
+      "id": "ai_AMZN_1782427708",
       "assetName": "AMZN",
       "status": "Ranging",
       "confidence": 50,
@@ -40,12 +40,12 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": true,
-      "addedAt": 1780524585292
+      "addedAt": 1782427708466
     },
     {
-      "id": "ai_AUDUSD_1780524586",
+      "id": "ai_AUDUSD_1782427711",
       "assetName": "AUDUSD",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -59,12 +59,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": true,
-      "addedAt": 1780524586859
+      "addedAt": 1782427711329
     },
     {
-      "id": "ai_BTCUSD_1780524589",
+      "id": "ai_BTCUSD_1782427719",
       "assetName": "BTCUSD",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -78,10 +78,10 @@
       "category": "CRYPTO",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524589582
+      "addedAt": 1782427719406
     },
     {
-      "id": "ai_BTCUSDT_1780524591",
+      "id": "ai_BTCUSDT_1782427722",
       "assetName": "BTCUSDT",
       "status": "Compressed",
       "confidence": 50,
@@ -97,12 +97,12 @@
       "category": "CRYPTO",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524591724
+      "addedAt": 1782427722913
     },
     {
-      "id": "ai_DXY_1780524593",
+      "id": "ai_DXY_1782427727",
       "assetName": "DXY",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -116,12 +116,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524593406
+      "addedAt": 1782427727941
     },
     {
-      "id": "ai_ETHUSD_1780524593",
+      "id": "ai_ETHUSD_1782427729",
       "assetName": "ETHUSD",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -135,12 +135,12 @@
       "category": "CRYPTO",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524593767
+      "addedAt": 1782427729553
     },
     {
-      "id": "ai_ETHUSDT_1780524594",
+      "id": "ai_ETHUSDT_1782427731",
       "assetName": "ETHUSDT",
-      "status": "Dead_Market",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -154,12 +154,12 @@
       "category": "CRYPTO",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524594170
+      "addedAt": 1782427731221
     },
     {
-      "id": "ai_EURGBP_1780524595",
+      "id": "ai_EURGBP_1782427732",
       "assetName": "EURGBP",
-      "status": "Compressed",
+      "status": "Ranging",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -173,12 +173,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524595163
+      "addedAt": 1782427732770
     },
     {
-      "id": "ai_EURJPY_1780524595",
+      "id": "ai_EURJPY_1782427734",
       "assetName": "EURJPY",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -192,12 +192,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524595932
+      "addedAt": 1782427734763
     },
     {
-      "id": "ai_GBPUSD_1780524598",
-      "assetName": "GBPUSD",
-      "status": "Ranging",
+      "id": "ai_EURUSD_1782427739",
+      "assetName": "EURUSD",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -211,12 +211,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524598601
+      "addedAt": 1782427739768
     },
     {
-      "id": "ai_MSFT_1780524600",
-      "assetName": "MSFT",
-      "status": "Ranging",
+      "id": "ai_GBPUSD_1782427745",
+      "assetName": "GBPUSD",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -227,14 +227,14 @@
       "timeToEvent": "",
       "price": 0.0,
       "changePercent": 0.0,
-      "category": "INDICES",
+      "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524600419
+      "addedAt": 1782427745070
     },
     {
-      "id": "ai_NAS100_1780524601",
-      "assetName": "NAS100",
+      "id": "ai_MSFT_1782427749",
+      "assetName": "MSFT",
       "status": "Ranging",
       "confidence": 50,
       "newsRisk": "Low",
@@ -249,12 +249,12 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524601538
+      "addedAt": 1782427749240
     },
     {
-      "id": "ai_NVDA_1780524603",
-      "assetName": "NVDA",
-      "status": "Ranging",
+      "id": "ai_NAS100_1782427755",
+      "assetName": "NAS100",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -268,11 +268,11 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524603353
+      "addedAt": 1782427755896
     },
     {
-      "id": "ai_SPX500_1780524605",
-      "assetName": "SPX500",
+      "id": "ai_NVDA_1782427759",
+      "assetName": "NVDA",
       "status": "Ranging",
       "confidence": 50,
       "newsRisk": "Low",
@@ -287,12 +287,12 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524605552
+      "addedAt": 1782427759775
     },
     {
-      "id": "ai_TSLA_1780524607",
-      "assetName": "TSLA",
-      "status": "Ranging",
+      "id": "ai_SPX500_1782427763",
+      "assetName": "SPX500",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -306,11 +306,11 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524607398
+      "addedAt": 1782427763924
     },
     {
-      "id": "ai_US02Y_1780524609",
-      "assetName": "US02Y",
+      "id": "ai_TSLA_1782427767",
+      "assetName": "TSLA",
       "status": "Ranging",
       "confidence": 50,
       "newsRisk": "Low",
@@ -322,15 +322,15 @@
       "timeToEvent": "",
       "price": 0.0,
       "changePercent": 0.0,
-      "category": "FOREX",
+      "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524609470
+      "addedAt": 1782427767975
     },
     {
-      "id": "ai_US10Y_1780524610",
-      "assetName": "US10Y",
-      "status": "Ranging",
+      "id": "ai_US02Y_1782427771",
+      "assetName": "US02Y",
+      "status": "Dead_Market",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -344,12 +344,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524610741
+      "addedAt": 1782427771205
     },
     {
-      "id": "ai_US30_1780524612",
+      "id": "ai_US30_1782427777",
       "assetName": "US30",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -363,10 +363,10 @@
       "category": "INDICES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524612474
+      "addedAt": 1782427777335
     },
     {
-      "id": "ai_USDCAD_1780524613",
+      "id": "ai_USDCAD_1782427780",
       "assetName": "USDCAD",
       "status": "Ranging",
       "confidence": 50,
@@ -382,10 +382,10 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524613019
+      "addedAt": 1782427780409
     },
     {
-      "id": "ai_USDCHF_1780524613",
+      "id": "ai_USDCHF_1782427782",
       "assetName": "USDCHF",
       "status": "Ranging",
       "confidence": 50,
@@ -401,12 +401,12 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524613721
+      "addedAt": 1782427782766
     },
     {
-      "id": "ai_USDJPY_1780524615",
+      "id": "ai_USDJPY_1782427785",
       "assetName": "USDJPY",
-      "status": "Ranging",
+      "status": "Dead_Market",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -420,10 +420,10 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524615229
+      "addedAt": 1782427785671
     },
     {
-      "id": "ai_XAGUSD_1780524615",
+      "id": "ai_XAGUSD_1782427797",
       "assetName": "XAGUSD",
       "status": "Ranging",
       "confidence": 50,
@@ -439,12 +439,12 @@
       "category": "COMMODITIES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524615785
+      "addedAt": 1782427797716
     },
     {
-      "id": "ai_XAUUSD_1780524618",
+      "id": "ai_XAUUSD_1782427823",
       "assetName": "XAUUSD",
-      "status": "Ranging",
+      "status": "Compressed",
       "confidence": 50,
       "newsRisk": "Low",
       "moveProbability": 55,
@@ -458,10 +458,10 @@
       "category": "COMMODITIES",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524618152
+      "addedAt": 1782427823133
     },
     {
-      "id": "ai_Brent-F_1780524592",
+      "id": "ai_Brent-F_1782427724",
       "assetName": "Brent-F",
       "status": "Unknown",
       "confidence": 50,
@@ -477,10 +477,10 @@
       "category": "COMMODITIES",
       "rationale": "Moderate volatility (50/100) with expansion potential.",
       "isNew": false,
-      "addedAt": 1780524592423
+      "addedAt": 1782427724041
     },
     {
-      "id": "ai_Crude-F_1780524592",
+      "id": "ai_Crude-F_1782427725",
       "assetName": "Crude-F",
       "status": "Unknown",
       "confidence": 50,
@@ -496,11 +496,11 @@
       "category": "COMMODITIES",
       "rationale": "Moderate volatility (50/100) with expansion potential.",
       "isNew": false,
-      "addedAt": 1780524592798
+      "addedAt": 1782427725348
     },
     {
-      "id": "ai_EURUSD_1780524597",
-      "assetName": "EURUSD",
+      "id": "ai_US10Y_1782427772",
+      "assetName": "US10Y",
       "status": "Trending",
       "confidence": 50,
       "newsRisk": "Low",
@@ -515,10 +515,10 @@
       "category": "FOREX",
       "rationale": "Low volatility (0/100) suggests imminent expansion.",
       "isNew": false,
-      "addedAt": 1780524597204
+      "addedAt": 1782427772896
     },
     {
-      "id": "ai_BRENTCMDUSD_1780524587",
+      "id": "ai_BRENTCMDUSD_1782427713",
       "assetName": "BRENTCMDUSD",
       "status": "Nan",
       "confidence": 50,
@@ -534,10 +534,10 @@
       "category": "COMMODITIES",
       "rationale": "Moderate volatility (50/100) with expansion potential.",
       "isNew": false,
-      "addedAt": 1780524587640
+      "addedAt": 1782427713531
     },
     {
-      "id": "ai_UKOIL_1780524608",
+      "id": "ai_UKOIL_1782427769",
       "assetName": "UKOIL",
       "status": "Nan",
       "confidence": 50,
@@ -553,7 +553,7 @@
       "category": "COMMODITIES",
       "rationale": "Moderate volatility (50/100) with expansion potential.",
       "isNew": false,
-      "addedAt": 1780524608720
+      "addedAt": 1782427769939
     }
   ]
 }

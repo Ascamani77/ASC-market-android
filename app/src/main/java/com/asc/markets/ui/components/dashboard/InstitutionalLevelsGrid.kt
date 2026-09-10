@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.ui.components.InfoBox
+import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.theme.*
 import java.util.Locale
 
@@ -63,7 +64,7 @@ private fun LevelBox(label: String, value: Double, modifier: Modifier) {
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Black,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                fontFamily = com.asc.markets.ui.theme.InterFontFamily
             )
         }
     }

@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.PreMoveCandidate
 import com.asc.markets.data.MarketDataStore
-import com.asc.markets.data.BinanceDataStore
 import com.asc.markets.ui.theme.InterFontFamily
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.components.PairFlags
@@ -42,9 +41,8 @@ fun MarketWatchScreen() {
     // Convert AI decisions to PreMoveCandidates using backend data + live prices
     val candidates = aiDecisions.mapNotNull { decision ->
         val symbol = decision.asset_1 ?: return@mapNotNull null
-        // Use only MarketDataStore and BinanceDataStore (no fallback sources)
+        // Use only MarketDataStore (EA data only)
         val livePair = MarketDataStore.pairSnapshot(symbol)
-            ?: BinanceDataStore.pairSnapshot(symbol)
         
         // Debug logging
         android.util.Log.d("MarketWatch", "Processing symbol: $symbol, livePair found: ${livePair != null}, price: ${livePair?.price}, change: ${livePair?.changePercent}")
@@ -55,12 +53,11 @@ fun MarketWatchScreen() {
     // Debug logging for final candidates
     android.util.Log.d("MarketWatch", "Total AI decisions: ${aiDecisions.size}, Final candidates: ${candidates.size}")
     
-    // Debug: Log all available pairs in MarketDataStore and BinanceDataStore
+    // Debug: Log all available pairs in MarketDataStore
     val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by BinanceDataStore.allPairs.collectAsState()
-    LaunchedEffect(marketPairs.size, binancePairs.size) {
+    LaunchedEffect(marketPairs.size) {
         android.util.Log.d("MarketWatch", "MarketDataStore has ${marketPairs.size} pairs: ${marketPairs.map { "${it.symbol}=${it.price}" }.joinToString(", ")}")
-        android.util.Log.d("MarketWatch", "BinanceDataStore has ${binancePairs.size} pairs: ${binancePairs.map { "${it.symbol}=${it.price}" }.joinToString(", ")}")
+        // BINANCE REMOVED - EA ONLY
     }
     
     val samples = candidates
@@ -99,12 +96,26 @@ fun MarketWatchScreen() {
         // Removed: Engine card with scan status
         
         // Sample signals list — directly show the cards
-        Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp), 
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            samples.forEach { candidate ->
-                MarketWatchSignalCard(candidate)
+        if (samples.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("NO ACTIVE AI SIGNALS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                    Text("AI is monitoring markets for high-probability setups.", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
+                }
+            }
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp), 
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                samples.forEach { candidate ->
+                    MarketWatchSignalCard(candidate)
+                }
             }
         }
         
@@ -165,7 +176,7 @@ private fun MarketWatchSignalCard(s: PreMoveCandidate) {
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("IGNITION", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
+                    Text("BREAKOUT", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                     Text("${s.ignitionScore}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, fontFamily = InterFontFamily)
                 }
 

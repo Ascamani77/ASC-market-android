@@ -1,8 +1,8 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.asc.markets.ui.components
 
+import android.content.Context
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +35,33 @@ import androidx.compose.ui.platform.LocalContext
 import com.asc.markets.data.AppView
 import com.asc.markets.data.QuickAccessManager
 import com.asc.markets.data.QuickAccessItem
-import com.asc.markets.ui.theme.*
+import com.asc.markets.data.SystemLinkMonitor
+import com.asc.markets.data.UserProfileStore
+import com.asc.markets.ui.theme.PureBlack
+import com.asc.markets.ui.theme.DeepBlack
+import com.asc.markets.ui.theme.HairlineBorder
+
+private data class SidebarSearchEntry(
+    val icon: ImageVector,
+    val label: String,
+    val keywords: String,
+    val view: AppView
+)
+
+private val sidebarSearchEntries = listOf(
+    SidebarSearchEntry(Icons.Default.BarChart, "Markets Overview", "markets dashboard", AppView.MARKETS),
+    SidebarSearchEntry(Icons.Default.Visibility, "Watchlist", "watch assets", AppView.WATCHLIST),
+    SidebarSearchEntry(Icons.Default.Schedule, "Event Calendar", "calendar events news", AppView.CALENDAR),
+    SidebarSearchEntry(Icons.Default.Notifications, "Vigilance Setup", "alert monitoring deployment", AppView.ALERTS),
+    SidebarSearchEntry(Icons.Default.List, "My Alerts", "triggered events alerts", AppView.MY_ALERTS),
+    SidebarSearchEntry(Icons.Default.PlayCircleOutline, "AI Simulation", "simulate backtest analyze", AppView.SIMULATION),
+    SidebarSearchEntry(Icons.Default.SmartToy, "Auto Trade", "automated trading", AppView.AUTO_TRADE),
+    SidebarSearchEntry(Icons.Default.Settings, "AI & Connection", "settings ai connection server", AppView.AI_SETTINGS),
+    SidebarSearchEntry(Icons.Default.Smartphone, "Push Notification", "push notifications settings", AppView.PUSH_SETTINGS),
+    SidebarSearchEntry(Icons.AutoMirrored.Filled.ReceiptLong, "Trade Ledger", "trade closed positions book ledger", AppView.TRADE),
+    SidebarSearchEntry(Icons.Default.List, "Post-Move Audit", "audit trade review outcomes", AppView.POST_MOVE_AUDIT),
+    SidebarSearchEntry(Icons.Default.AssignmentReturned, "Post-Move Reconstruction", "reconstruction forensics trade", AppView.TRADE_RECONSTRUCTION)
+)
 
 @Composable
 fun AscSidebar(
@@ -50,14 +76,12 @@ fun AscSidebar(
     val scrollState = rememberScrollState()
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    
-    // Initialize QuickAccessManager
-    LaunchedEffect(Unit) {
-        QuickAccessManager.initialize(context)
-    }
-    
-    val quickAccessItems by QuickAccessManager.quickAccessItems.collectAsState()
-    var showRemoveDialog by remember { mutableStateOf<QuickAccessItem?>(null) }
+
+    // Observe real link status: APP + EA + AI all connected = Online
+    val links by SystemLinkMonitor.state.collectAsState()
+
+    // Observe real user profile from backend
+    val userProfile by UserProfileStore.profile.collectAsState()
 
     Surface(
         color = PureBlack,
@@ -128,15 +152,16 @@ fun AscSidebar(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Avatar "E" Orange
+                                // Avatar with user initials from profile
                                 Box(
                                     modifier = Modifier
                                         .size(38.dp)
-                                        .background(Color(0xFFFF6A00), CircleShape),
+                                        .background(Color(0xFFFF6A00), CircleShape)
+                                        .clickable { onViewChange(AppView.PROFILE) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "E",
+                                        userProfile.initials,
                                         color = Color.White,
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Black
@@ -154,16 +179,21 @@ fun AscSidebar(
                                 Spacer(modifier = Modifier.width(10.dp))
 
                                 Text(
-                                    "El Jeffe",
+                                    userProfile.fullName,
                                     color = Color.White,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                // Offline badge with red dot
+                                // Connection status badge (Online only when APP + EA + AI are all connected)
+                                val online = links.allConnected
+                                val (statusText, statusColor, dotColor) = if (online)
+                                    Triple("Online", Color(0xFF0C3D2C), Color(0xFF10B981))
+                                else
+                                    Triple("Offline", Color(0xFF2C0B0B), Color(0xFFEF4444))
                                 Surface(
-                                    color = Color(0xFF2C0B0B),
+                                    color = statusColor,
                                     shape = RoundedCornerShape(14.dp),
                                     modifier = Modifier.padding(end = 4.dp)
                                 ) {
@@ -174,12 +204,12 @@ fun AscSidebar(
                                         Box(
                                             modifier = Modifier
                                                 .size(5.dp)
-                                                .background(Color(0xFFEF4444), CircleShape)
+                                                .background(dotColor, CircleShape)
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
                                         Text(
-                                            "Offline",
-                                            color = Color(0xFFEF4444),
+                                            statusText,
+                                            color = dotColor,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -205,245 +235,103 @@ fun AscSidebar(
                     .verticalScroll(scrollState)
                     .padding(bottom = 32.dp)
             ) {
-                // QUICK ACCESS Section
-                SectionHeader("Quick Access")
-                
-                // Show remove dialog
-                if (showRemoveDialog != null) {
-                    AlertDialog(
-                        onDismissRequest = { showRemoveDialog = null },
-                        title = { Text("Remove from Quick Access?", color = Color.White) },
-                        text = { Text("Remove \"${showRemoveDialog?.label}\" from Quick Access? You can add it back later from the menu sections below.", color = Color.White.copy(alpha = 0.7f)) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showRemoveDialog?.let { item ->
-                                    QuickAccessManager.removeFromQuickAccess(context, item.id)
+                val trimmedQuery = searchQuery.trim()
+                if (isSearchActive && trimmedQuery.isNotEmpty()) {
+                    val term = trimmedQuery.lowercase()
+                    val results = remember(term) {
+                        sidebarSearchEntries.filter { entry ->
+                            entry.label.lowercase().contains(term) || entry.keywords.contains(term)
+                        }
+                    }
+                    SectionHeader("Search Results")
+                    if (results.isEmpty()) {
+                        Text(
+                            text = "No pages match \"$trimmedQuery\"",
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                        )
+                    } else {
+                        MenuGroupContainer {
+                            results.forEachIndexed { index, entry ->
+                                val alertBadge = when (entry.view) {
+                                    AppView.ALERTS, AppView.MY_ALERTS -> alertBadgeCount.takeIf { it > 0 }?.toString()
+                                    else -> null
                                 }
-                                showRemoveDialog = null
-                            }) {
-                                Text("Remove", color = Color(0xFFEF4444))
+                                MenuItem(entry.icon, entry.label, badgeText = alertBadge, appView = entry.view) {
+                                    onViewChange(entry.view)
+                                    isSearchActive = false
+                                    searchQuery = ""
+                                }
+                                if (index < results.lastIndex) MenuDivider()
                             }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showRemoveDialog = null }) {
-                                Text("Cancel", color = Color.White)
-                            }
-                        },
-                        containerColor = Color(0xFF121212),
-                        tonalElevation = 0.dp
-                    )
-                }
-                
-                // Render Quick Access items dynamically
-                if (quickAccessItems.isEmpty()) {
-                    // Show empty state
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.TouchApp,
-                                contentDescription = null,
-                                tint = Color.Gray,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                "No Quick Access items",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                "Long press any menu item below to add",
-                                color = Color.Gray.copy(alpha = 0.7f),
-                                fontSize = 12.sp
-                            )
                         }
                     }
                 } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Render items in rows of 2
-                        quickAccessItems.chunked(2).forEach { rowItems ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                rowItems.forEach { item ->
-                                    QuickAccessCard(
-                                        modifier = Modifier.weight(1f),
-                                        icon = item.icon,
-                                        label = item.label,
-                                        badgeText = if (item.appView == AppView.ALERTS || item.appView == AppView.MY_ALERTS) 
-                                            alertBadgeCount.takeIf { it > 0 }?.toString() else null,
-                                        onClick = { onViewChange(item.appView) },
-                                        onLongClick = { showRemoveDialog = item }
-                                    )
-                                }
-                                // Add spacer if odd number of items in row
-                                if (rowItems.size == 1) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
+                    // ─── CORE WORKFLOW ───
+                    SectionHeader("Workflow")
+                    MenuGroupContainer {
+                        MenuItem(Icons.Default.BarChart, "Markets Overview", appView = AppView.MARKETS) { onViewChange(AppView.MARKETS) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.Visibility, "Watchlist", appView = AppView.WATCHLIST) { onViewChange(AppView.WATCHLIST) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.Schedule, "Event Calendar", appView = AppView.CALENDAR) { onViewChange(AppView.CALENDAR) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.Notifications, "Vigilance Setup", appView = AppView.ALERTS, badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()) { onViewChange(AppView.ALERTS) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.List, "My Alerts", appView = AppView.MY_ALERTS, badgeText = alertBadgeCount.takeIf { it > 0 }?.toString()) { onViewChange(AppView.MY_ALERTS) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation", appView = AppView.SIMULATION) { onViewChange(AppView.SIMULATION) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.SmartToy, "Auto Trade", appView = AppView.AUTO_TRADE) { onViewChange(AppView.AUTO_TRADE) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.Settings, "AI & Connection", appView = AppView.AI_SETTINGS) { onViewChange(AppView.AI_SETTINGS) }
+                        MenuDivider()
+                        MenuItem(Icons.Default.Smartphone, "Push Notification", appView = AppView.PUSH_SETTINGS) { onViewChange(AppView.PUSH_SETTINGS) }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // TRACK Section
-                SectionHeader("TRACK")
-                MenuGroupContainer {
-                    MenuItem(
-                        icon = Icons.Default.Notifications,
-                        label = "Vigilance Setup",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
-                        appView = AppView.ALERTS
-                    ) { onViewChange(AppView.ALERTS) }
-                    MenuDivider()
-                    MenuItem(
-                        icon = Icons.Default.List,
-                        label = "My Alerts",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
-                        appView = AppView.MY_ALERTS
-                    ) { onViewChange(AppView.MY_ALERTS) }
-                    MenuDivider()
-                    MenuItem(
-                        icon = Icons.Default.NotificationsActive,
-                        label = "Notification",
-                        badgeText = alertBadgeCount.takeIf { it > 0 }?.toString(),
-                        appView = AppView.NOTIFICATIONS
-                    ) { onViewChange(AppView.NOTIFICATIONS) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.PlayCircleOutline, "AI Simulation", appView = AppView.SIMULATION) { onViewChange(AppView.SIMULATION) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Timeline, "Backtest", appView = AppView.MY_SIMULATION) { onViewChange(AppView.MY_SIMULATION) }
-                    MenuDivider()
-                    MenuItem(Icons.AutoMirrored.Filled.ShowChart, "AI Sentiment", appView = AppView.SENTIMENT) { onViewChange(AppView.SENTIMENT) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // LIVE MARKETS Section
-                SectionHeader("LIVE MARKETS")
-                MenuGroupContainer {
-                    MenuItem(Icons.Default.BarChart, "Markets Overview", appView = AppView.MARKETS) { onViewChange(AppView.MARKETS) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.List, "Quotes Feed", appView = AppView.QUOTES) { onViewChange(AppView.QUOTES) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Schedule, "Market Status", appView = AppView.MARKET_STATUS) { onViewChange(AppView.MARKET_STATUS) }
-                    MenuDivider()
-                    MenuItem(Icons.Outlined.MenuBook, "Analysis & Opinion", appView = AppView.ANALYSIS_OPINION) { onViewChange(AppView.ANALYSIS_OPINION) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // MARKET INTELLIGENCE Section
-                SectionHeader("MARKET INTELLIGENCE")
-                MenuGroupContainer {
-                    MenuItem(Icons.Default.Visibility, "Market Watch", appView = AppView.MARKET_WATCH) { onViewChange(AppView.MARKET_WATCH) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.AddPhotoAlternate, "Chart Analysis Node", appView = AppView.CHART_ANALYSIS) { onViewChange(AppView.CHART_ANALYSIS) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Layers, "Liquidity Maps", appView = AppView.LIQUIDITY_HUB) { onViewChange(AppView.LIQUIDITY_HUB) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.GridView, "Multi-Timeframe Analysis", appView = AppView.MULTI_TIMEFRAME) { onViewChange(AppView.MULTI_TIMEFRAME) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Shield, "System Diagnostics", appView = AppView.DIAGNOSTICS) { onViewChange(AppView.DIAGNOSTICS) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.List, "Market Data Bus", appView = AppView.DATA_HUB) { onViewChange(AppView.DATA_HUB) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // INTELLIGENCE & DECISION Section
-                SectionHeader("INTELLIGENCE & DECISION")
-                MenuGroupContainer {
-                    MenuItem(Icons.Default.Memory, "AI Intel", appView = AppView.CHAT) { onViewChange(AppView.CHAT) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.History, "Logic Simulation", appView = AppView.BACKTEST) { onViewChange(AppView.BACKTEST) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Language, "Event Stream", appView = AppView.INTELLIGENCE_STREAM) { onViewChange(AppView.INTELLIGENCE_STREAM) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Lock, "Node Data Vault", appView = AppView.DATA_VAULT) { onViewChange(AppView.DATA_VAULT) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // PORTFOLIO & OPERATIONS Section
-                SectionHeader("PORTFOLIO & OPERATIONS")
-                MenuGroupContainer {
-                    MenuItem(Icons.Default.AttachMoney, "Active Inventory", appView = AppView.PORTFOLIO_MANAGER) { onViewChange(AppView.PORTFOLIO_MANAGER) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.CurrencyExchange, "Live Trade", appView = AppView.PAPER_TRADING) { onViewChange(AppView.PAPER_TRADING) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.CalendarToday, "Event Calendar", appView = AppView.CALENDAR) { onViewChange(AppView.CALENDAR) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.Smartphone, "Push Notification", appView = AppView.PUSH_SETTINGS) { onViewChange(AppView.PUSH_SETTINGS) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // EXECUTION POST REVIEW Section
-                SectionHeader("EXECUTION POST REVIEW")
-                MenuGroupContainer {
-                    MenuItem(Icons.AutoMirrored.Filled.ReceiptLong, "Trade Ledger", appView = AppView.TRADE) { onViewChange(AppView.TRADE) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.List, "Post-Move Audit", appView = AppView.POST_MOVE_AUDIT) { onViewChange(AppView.POST_MOVE_AUDIT) }
-                    MenuDivider()
-                    MenuItem(Icons.Default.AssignmentReturned, "Post-Move Reconstruction", appView = AppView.TRADE_RECONSTRUCTION) { onViewChange(AppView.TRADE_RECONSTRUCTION) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // LEGAL Section
-                SectionHeader("LEGAL")
-                MenuGroupContainer {
-                    MenuItem(Icons.Default.Shield, "Risk Disclosure", appView = AppView.EDUCATION) { onViewChange(AppView.EDUCATION) }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // REMOTE STATUS Section
-                SectionHeader("REMOTE STATUS")
-                Surface(
-                    color = DeepBlack,
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, HairlineBorder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Remote: RESPECT  10000ms",
-                            color = Color(0xFFFF6A00),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    // ─── REVIEW / PORTFOLIO (collapsible) ───
+                    val reviewPrefs = context.getSharedPreferences("sidebar_state", Context.MODE_PRIVATE)
+                    var reviewExpanded by remember { mutableStateOf(reviewPrefs.getBoolean("review_portfolio_expanded", false)) }
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .clickable {
+                                    reviewExpanded = !reviewExpanded
+                                    reviewPrefs.edit().putBoolean("review_portfolio_expanded", reviewExpanded).apply()
+                                }
+                                .background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp))
+                        ) {
                             Text(
-                                "Macro Normal",
-                                color = Color.White,
-                                fontSize = 14.sp
+                                text = "Review / Portfolio",
+                                color = Color(0xFF999999),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(Color(0xFFEF4444), CircleShape)
+                            Icon(
+                                imageVector = if (reviewExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = "Toggle",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "last: never",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
+                        }
+                        AnimatedVisibility(
+                            visible = reviewExpanded,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            MenuGroupContainer {
+                                MenuItem(Icons.AutoMirrored.Filled.ReceiptLong, "Trade Ledger", appView = AppView.TRADE) { onViewChange(AppView.TRADE) }
+                                MenuDivider()
+                                MenuItem(Icons.Default.List, "Post-Move Audit", appView = AppView.POST_MOVE_AUDIT) { onViewChange(AppView.POST_MOVE_AUDIT) }
+                                MenuDivider()
+                                MenuItem(Icons.Default.AssignmentReturned, "Post-Move Reconstruction", appView = AppView.TRADE_RECONSTRUCTION) { onViewChange(AppView.TRADE_RECONSTRUCTION) }
+                            }
                         }
                     }
                 }
@@ -644,17 +532,7 @@ fun MenuItem(
                     )
                 }
             }
-            // Show indicator if in Quick Access
-            if (isInQuickAccess) {
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    Icons.Default.Star,
-                    contentDescription = "In Quick Access",
-                    tint = Color(0xFFFFA500),
-                    modifier = Modifier.size(14.dp)
-                )
             }
-        }
         Icon(
             Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = null,

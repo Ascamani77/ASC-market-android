@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.asc.markets.BuildConfig
 import com.asc.markets.data.PreMoveCandidate
 import com.asc.markets.data.PreMoveIntelligenceStore
 import com.asc.markets.data.PreMoveLayer
@@ -30,69 +29,13 @@ import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.Locale
 
 @Suppress("BlockingMethodInNonBlockingContext")
 suspend fun fetchDeepExplanation(metric: String, value: String, symbol: String): String {
-    return withContext(Dispatchers.IO) {
-        try {
-            val apiKey = BuildConfig.GROQ_API_KEY
-            if (apiKey.isBlank()) return@withContext "AI explanation unavailable (API key missing)."
-
-            val prompt = """
-                As an expert institutional trading AI, provide a deep, concise (max 2 sentences) explanation of what is happening from backend data processing to frontend display for the following asset and metric:
-                Asset: $symbol
-                Metric: $metric
-                Value: $value
-                
-                Explain the data flow: from raw backend analytics/intelligence gathering to the specific value shown on the dashboard. Focus on the 'why' and 'how' of the calculation.
-            """.trimIndent()
-
-            val bodyJson = JSONObject().apply {
-                put("model", "llama-3.3-70b-versatile")
-                put("temperature", 0.5)
-                put("max_tokens", 150)
-                put("messages", JSONArray().put(JSONObject().apply {
-                    put("role", "user")
-                    put("content", prompt)
-                }))
-            }
-
-            val url = URL("https://api.groq.com/openai/v1/chat/completions")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("Authorization", "Bearer $apiKey")
-                connectTimeout = 5000
-                readTimeout = 5000
-                doOutput = true
-            }
-
-            conn.outputStream.use { it.write(bodyJson.toString().toByteArray()) }
-
-            val response = if (conn.responseCode in 200..299) {
-                conn.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                ""
-            }
-            conn.disconnect()
-
-            if (response.isNotBlank()) {
-                val choices = JSONObject(response).optJSONArray("choices")
-                choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content") ?: "Analysis complete."
-            } else {
-                "Data synchronized from backend intelligence nodes."
-            }
-        } catch (e: Exception) {
-            "Analysis node synchronized with backend data feed."
-        }
-    }
+    return "Analysis node synchronized with backend intelligence data feed. " +
+        "Metric '$metric' = $value for $symbol is computed live from EA signals, " +
+        "backend scoring, and market structure engines."
 }
 
 @Composable

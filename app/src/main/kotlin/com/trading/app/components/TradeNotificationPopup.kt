@@ -36,6 +36,8 @@ fun TradeNotificationPopup(
     
     LaunchedEffect(Unit) {
         visible = true
+        delay(3000) // Auto-dismiss after 3 seconds
+        isDismissing = true
     }
 
     LaunchedEffect(isDismissing, dismissTrigger) {

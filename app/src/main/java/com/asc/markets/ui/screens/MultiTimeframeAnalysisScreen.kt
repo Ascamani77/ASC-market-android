@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
-import com.asc.markets.data.BinanceDataStore
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.data.remote.LatestDeploymentsResponse
 import com.asc.markets.ui.components.InfoBox
@@ -51,12 +50,13 @@ data class TimeframeAlignment(
 fun MultiTimeframeAnalysisScreen() {
     val viewModel: ForexViewModel = viewModel()
     val selectedPair by viewModel.selectedPair.collectAsState()
-    val aiDeployments by viewModel.aiDeployments.collectAsState()
     
-    // Get all available pairs
+    // AI DEPLOYMENTS REMOVED - NO LONGER USING AI BACKEND
+    val aiDeployments: com.asc.markets.data.remote.LatestDeploymentsResponse? = null
+    
+    // Get all available pairs (EA only)
     val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by BinanceDataStore.allPairs.collectAsState()
-    val allPairs = (marketPairs + binancePairs).distinctBy { it.symbol }
+    val allPairs = marketPairs.distinctBy { it.symbol }
     
     // Timeframes to analyze
     val timeframes = listOf("M15", "M30", "H1", "H4", "D1")

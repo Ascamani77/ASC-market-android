@@ -42,6 +42,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun PostMoveAuditItem(
@@ -59,8 +60,7 @@ fun PostMoveAuditItem(
     }
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         color = PureBlack,
         shape = RoundedCornerShape(0.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
@@ -123,15 +123,34 @@ fun PostMoveAuditItem(
                 if (!isExpanded) {
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { expanded[entry.id] = true }) {
-                        Text("VIEW CONTEXT ›", color = IndigoAccent, style = TerminalTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily, letterSpacing = 0.08.em))
+                        Text("VIEW CONTEXT \u203A", color = IndigoAccent, style = TerminalTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontFamily = InterFontFamily, letterSpacing = 0.08.em))
                     }
                 } else {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                        // Thesis
                         Text("POST-MOVE THESIS", color = SlateText, style = TerminalTypography.labelSmall.copy(letterSpacing = 1.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(entry.thesis, color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, fontFamily = InterFontFamily), modifier = Modifier.padding(horizontal = 8.dp))
 
                         Spacer(modifier = Modifier.height(12.dp))
+
+                        // Failure reason if present
+                        if (entry.failureReason != null) {
+                            Surface(
+                                color = RoseError.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, RoseError.copy(alpha = 0.2f)),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = RoseError, modifier = Modifier.size(16.dp))
+                                    Text(entry.failureReason, color = RoseError, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Audit Trace Log header
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
                             Icon(Icons.Default.History, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -140,26 +159,16 @@ fun PostMoveAuditItem(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Source Node + Outcome Check
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))
-                            ) {
+                            Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)), colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))) {
                                 Column(modifier = Modifier.padding(6.dp)) {
                                     Text("Source Node", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(entry.nodeId, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium, fontFamily = InterFontFamily)
                                 }
                             }
-
-                            Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))
-                            ) {
+                            Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)), colors = CardDefaults.cardColors(containerColor = Color(0xFF070707))) {
                                 Column(modifier = Modifier.padding(6.dp)) {
                                     Text("OUTCOME CHECK", color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily)
                                     Spacer(modifier = Modifier.height(2.dp))
@@ -170,11 +179,81 @@ fun PostMoveAuditItem(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        InfoBox(modifier = Modifier.fillMaxWidth()) {
+                        // Regime Stack Card
+                        if (entry.regimeStack.isNotBlank()) {
+                            Surface(
+                                color = IndigoAccent.copy(alpha = 0.06f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.2f)),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.AccountTree, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(16.dp))
+                                    Column {
+                                        Text("REGIME STACK", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                        Text(entry.regimeStack, color = IndigoAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Pre-Move Intelligence Scores
+                        if (entry.preMoveScoreAtEntry != null || entry.compressionScoreAtEntry != null || entry.ignitionScoreAtEntry != null) {
+                            InfoBox(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("PRE-MOVE INTELLIGENCE AT ENTRY", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        entry.preMoveScoreAtEntry?.let { score ->
+                                            Column {
+                                                Text("PRE-MOVE", color = SlateText, fontSize = 9.sp)
+                                                Text("$score%", color = when { score >= 70 -> EmeraldSuccess; score >= 50 -> Color(0xFFFFC107); else -> RoseError }, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                            }
+                                        }
+                                        entry.compressionScoreAtEntry?.let { score ->
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text("COMPRESSION", color = SlateText, fontSize = 9.sp)
+                                                Text("$score%", color = when { score >= 70 -> EmeraldSuccess; score >= 50 -> Color(0xFFFFC107); else -> RoseError }, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                            }
+                                        }
+                                        entry.ignitionScoreAtEntry?.let { score ->
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text("IGNITION", color = SlateText, fontSize = 9.sp)
+                                                Text("$score%", color = when { score >= 70 -> EmeraldSuccess; score >= 50 -> Color(0xFFFFC107); else -> RoseError }, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Liquidity Target
+                        if (entry.liquidityTarget != null) {
+                            Surface(
+                                color = Color(0xFFFFA500).copy(alpha = 0.06f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFFA500).copy(alpha = 0.15f)),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.CompassCalibration, contentDescription = null, tint = Color(0xFFFFA500), modifier = Modifier.size(16.dp))
+                                    Column {
+                                        Text("LIQUIDITY MAGNET", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                        Text(entry.liquidityTarget, color = Color(0xFFFFA500), fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = InterFontFamily)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Analytical Context
+                        InfoBox(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("ANALYTICAL CONTEXT", color = SlateText, fontSize = 12.sp, fontFamily = InterFontFamily)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                if (entry.direction != "UNSPECIFIED" || entry.riskPct != null) {
+                                if (entry.direction != "UNSPECIFIED" || entry.riskPct != null || entry.deploymentLabel != null) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                         if (entry.direction != "UNSPECIFIED") {
                                             Column {
@@ -199,7 +278,9 @@ fun PostMoveAuditItem(
                                 }
                                 Text(buildExpandedAnalyticalContext(entry, entry.nodeId), color = Color.White, style = Typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp, fontFamily = InterFontFamily))
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text("PRICES & MOVEMENT", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                     Column {
                                         Text("ENTRY", color = SlateText, fontSize = 10.sp)
                                         Text(PostMoveAuditStore.formatPrice(entry.entryPrice), color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
@@ -208,12 +289,66 @@ fun PostMoveAuditItem(
                                         Text("EXIT", color = SlateText, fontSize = 10.sp)
                                         Text(PostMoveAuditStore.formatPrice(entry.exitPrice), color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
                                     }
+                                    if (entry.pnl != null) {
+                                        Column {
+                                            Text("P&L", color = SlateText, fontSize = 10.sp)
+                                            Text(PostMoveAuditStore.formatSigned(entry.pnl), color = if (entry.pnl >= 0) EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    if (entry.actualMovePct != null) {
+                                        Column {
+                                            Text("ACTUAL MOVE", color = SlateText, fontSize = 10.sp)
+                                            Text(PostMoveAuditStore.formatPercent(entry.actualMovePct), color = if (entry.actualMovePct >= 0) EmeraldSuccess else RoseError, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        }
+                                    }
+                                    if (entry.maxFavorableExcursionPct != null) {
+                                        Column {
+                                            Text("MFE", color = SlateText, fontSize = 10.sp)
+                                            Text(PostMoveAuditStore.formatPercent(entry.maxFavorableExcursionPct), color = EmeraldSuccess, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        }
+                                    }
+                                    if (entry.maxAdverseExcursionPct != null) {
+                                        Column {
+                                            Text("MAE", color = SlateText, fontSize = 10.sp)
+                                            Text(PostMoveAuditStore.formatPercent(entry.maxAdverseExcursionPct), color = RoseError, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        }
+                                    }
+                                }
+                                if (entry.timeToTargetMs != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row {
+                                        Text("DURATION: ", color = SlateText, fontSize = 10.sp)
+                                        Text(PostMoveAuditStore.formatDuration(entry.timeToTargetMs), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        if (entry.slippagePips != null) {
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Text("SLIPPAGE: ", color = SlateText, fontSize = 10.sp)
+                                            Text(String.format(Locale.US, "%.2f pips", entry.slippagePips), color = if (entry.slippagePips > 2.0) RoseError else EmeraldSuccess, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Reconstruction lines
+                        if (entry.reconstructionLines.isNotEmpty()) {
+                            InfoBox(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("RECONSTRUCTION", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontFamily = InterFontFamily)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    entry.reconstructionLines.forEach { line ->
+                                        Text(line, color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp, fontFamily = InterFontFamily, lineHeight = 16.sp)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Action Buttons
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {

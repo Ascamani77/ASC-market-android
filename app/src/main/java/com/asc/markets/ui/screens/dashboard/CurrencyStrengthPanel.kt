@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -28,11 +29,22 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.asc.markets.logic.ForexViewModel
+import com.asc.markets.data.remote.LatestDeploymentsResponse
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,17 +59,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.asc.markets.data.AccumulationRadarTimeframe
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
+import com.asc.markets.data.DataSource
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketCategory
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.data.NetworkConfig
 import com.asc.markets.data.TimedPrice
+import com.asc.markets.data.UnifiedMarketDataStore
 import com.asc.markets.ui.components.InfoBox
-import com.asc.markets.ui.components.Instrument
-import com.asc.markets.ui.components.InstrumentIcon
-import com.asc.markets.ui.components.classifyAsset
+import com.asc.markets.ui.components.PairFlags
 import com.asc.markets.ui.theme.EmeraldSuccess
 import com.asc.markets.ui.theme.IndigoAccent
 import com.asc.markets.ui.theme.InterFontFamily
@@ -69,6 +79,81 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sin
+
+data class PreMoveAiData(
+    val score: Float,
+    val phase: String,
+    val phasePriority: Int,
+    val ignitionProbability: Float,
+    val expansionProbability: Float
+)
+
+@Composable
+private fun InfoIconWithTooltip(
+    title: String,
+    whatItIs: String,
+    whatToLookFor: String,
+    iconSize: androidx.compose.ui.unit.Dp = 14.dp
+) {
+    val showInfo = remember { mutableStateOf(false) }
+    Box {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "Info",
+            tint = Color.White.copy(alpha = 0.5f),
+            modifier = Modifier
+                .size(iconSize)
+                .clickable { showInfo.value = true }
+        )
+        DropdownMenu(
+            expanded = showInfo.value,
+            onDismissRequest = { showInfo.value = false },
+            modifier = Modifier
+                .background(Color(0xFF0F0F14))
+                .border(BorderStroke(1.dp, Color(0xFF1F1F2A)), RoundedCornerShape(8.dp))
+                .padding(12.dp)
+                .width(280.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = title,
+                    color = Color(0xFFF59E0B),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                Text(
+                    text = "WHAT IT IS FOR:",
+                    color = Color.Gray,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+                Text(
+                    text = whatItIs,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "WHAT TO LOOK FOR:",
+                    color = Color.Gray,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+                Text(
+                    text = whatToLookFor,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        }
+    }
+}
 
 enum class MarketCompareDensity { COMPACT, FULL }
 private val BullColor = Color(0xFF43D17A)
@@ -87,22 +172,23 @@ fun CurrencyStrengthPanel(density: MarketCompareDensity = MarketCompareDensity.F
 @Composable
 fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FULL) {
     val context = LocalContext.current
+    val viewModel: ForexViewModel = viewModel()
     val prefs = remember {
         context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
     }
     val assetContext by AssetContextStore.context.collectAsState()
-    val marketPairs by MarketDataStore.allPairs.collectAsState()
-    val binancePairs by BinanceDataStore.allPairs.collectAsState()
-    val fallbackPairs by CombinedFallbackDataStore.allPairs.collectAsState()
-    val marketPriceHistory by MarketDataStore.priceHistory.collectAsState()
-    val marketTimedPriceHistory by MarketDataStore.timedPriceHistory.collectAsState()
-    val binancePriceHistory by BinanceDataStore.priceHistory.collectAsState()
-    val binanceTimedPriceHistory by BinanceDataStore.timedPriceHistory.collectAsState()
-    val fallbackPriceHistory by CombinedFallbackDataStore.priceHistory.collectAsState()
-    val fallbackTimedPriceHistory by CombinedFallbackDataStore.timedPriceHistory.collectAsState()
-    val allPairs = (marketPairs + binancePairs + fallbackPairs).distinctBy { it.symbol }
-    val priceHistory = marketPriceHistory + binancePriceHistory + fallbackPriceHistory
-    val timedPriceHistory = marketTimedPriceHistory + binanceTimedPriceHistory + fallbackTimedPriceHistory
+    
+    // Use Unified Market Data Store (EA ONLY - NO FALLBACK)
+    val allPairs by UnifiedMarketDataStore.allPairs.collectAsState()
+    val priceHistory by UnifiedMarketDataStore.priceHistory.collectAsState()
+    val timedPriceHistory by UnifiedMarketDataStore.timedPriceHistory.collectAsState()
+    val dataSource by UnifiedMarketDataStore.dataSource.collectAsState()
+    val scannerSignals by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+    val scannerConnected by com.asc.markets.data.ScannerSignalsStore.isConnected.collectAsState()
+    val aiDeployments by viewModel.aiDeployments.collectAsState()
+    val aiDecisions = aiDeployments?.final_decision ?: emptyList()
+    LaunchedEffect(Unit) { com.asc.markets.data.ScannerSignalsStore.start(context) }
+    
     val radarTimeframeState = remember {
         mutableStateOf(AccumulationRadarTimeframe.current(context))
     }
@@ -110,7 +196,7 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
             if (key == AccumulationRadarTimeframe.PREF_KEY) {
                 radarTimeframeState.value = AccumulationRadarTimeframe.fromPref(
-                    sharedPreferences.getString(AccumulationRadarTimeframe.PREF_KEY, AccumulationRadarTimeframe.DAY_1.prefValue)
+                    sharedPreferences.getString(AccumulationRadarTimeframe.PREF_KEY, AccumulationRadarTimeframe.HOUR_1.prefValue)
                 )
             }
         }
@@ -123,10 +209,18 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
 
     val scopedPairs = allPairs
         .filter { pair -> pairInContext(pair.category, assetContext) }
+    
+    // DEBUG: Log filtering steps
+    android.util.Log.d("CurrencyStrength", "allPairs count: ${allPairs.size}")
+    android.util.Log.d("CurrencyStrength", "After context filter: ${scopedPairs.size}")
+    android.util.Log.d("CurrencyStrength", "Sample symbols: ${scopedPairs.take(10).map { it.symbol }}")
+    
+    val leaders = scopedPairs
         .sortedByDescending { abs(it.changePercent) }
-    val leaders = scopedPairs.take(8)
-    val accumulationRadarItems = remember(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe) {
-        buildAccumulationRadarItems(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe)
+        .take(8)
+    
+    val accumulationRadarItems = remember(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe, aiDecisions) {
+        buildAccumulationRadarItems(scopedPairs, priceHistory, timedPriceHistory, radarTimeframe, aiDecisions)
     }
 
     val breadth = rememberBreadth(scopedPairs)
@@ -135,8 +229,10 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
     val positions = rememberPricePositions(leaders, priceHistory)
     val heatSymbols = leaders.take(6)
     val keyDrivers = rememberKeyDrivers(leaders)
+    val selectedPair by viewModel.selectedPair.collectAsState()
     val pulseScore = rememberPulseScore(leaders)
-    val volatilityScore = rememberVolatilityScore(leaders)
+    val timingScore = rememberTimingConvergence(leaders)
+    val volatilityScore = rememberAssetAtrPercent(selectedPair.symbol, priceHistory, timedPriceHistory)
     val usdStrength = rememberUsdStrength(leaders)
 
     val panelTitle = when (assetContext) {
@@ -150,18 +246,98 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(panelTitle, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
-                Text("Today", color = NeutralColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                // Data Source Indicator
+                Surface(
+                    color = when (dataSource) {
+                        DataSource.MT5_EA -> Color(0xFF10B981) // Green
+                        DataSource.LOADING -> Color(0xFF6B7280) // Gray
+                    }.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(1.dp, when (dataSource) {
+                        DataSource.MT5_EA -> Color(0xFF10B981)
+                        DataSource.LOADING -> Color(0xFF6B7280)
+                    }.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .background(
+                                    when (dataSource) {
+                                        DataSource.MT5_EA -> Color(0xFF10B981)
+                                        DataSource.LOADING -> Color(0xFF6B7280)
+                                    },
+                                    androidx.compose.foundation.shape.CircleShape
+                                )
+                        )
+                        Text(
+                            text = when (dataSource) {
+                                DataSource.MT5_EA -> "EA LIVE"
+                                DataSource.LOADING -> "LOADING"
+                            },
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
             // Accumulation Radar (Inner InfoBox, Transparent)
             InfoBox(modifier = Modifier.fillMaxWidth(), containerColor = Color.Transparent, contentPadding = PaddingValues(12.dp)) {
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        SectionHeader("ACCUMULATION RADAR (PRE-MOVE)")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SectionHeader("ACCUMULATION RADAR (PRE-MOVE)")
+                            Spacer(modifier = Modifier.width(6.dp))
+                            InfoIconWithTooltip(
+                                title = "ACCUMULATION RADAR (PRE-MOVE)",
+                                whatItIs = "Shows the top 5 assets with the highest pre-move AI determinism scores. Displays pre-move AI score, current phase, ignition probability, and expansion probability for each asset.",
+                                whatToLookFor = "PRE-MOVE phase (orange) = highest priority for entry. COMPRESSION (indigo) = building pressure. EXPANSION (green) = move in progress. Look for high ignition (>60%) and expansion probabilities for the best trade candidates."
+                            )
+                        }
                         FixedTimeRangeChip(radarTimeframe.displayName)
                     }
                     Spacer8()
-                    accumulationRadarItems.take(5).forEach { item ->
-                        TopMoverRow(item)
+                    if (scannerSignals.isNotEmpty()) {
+                        // Header matching chart scanner: ASSET DIR CONF P(T) AGE - spread to fill width
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("ASSET", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1.4f), textAlign = TextAlign.Start)
+                            Text("DIR", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            Text("CONF", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            Text("P(T)", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            Text("AGE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.05f)))
+                        Spacer8()
+                        scannerSignals.take(8).forEach { sig ->
+                            ScannerRow(sig)
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("ASSET", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1.4f), textAlign = TextAlign.Start)
+                            Text("DIR", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            Text("CONF", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            Text("AGE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.05f)))
+                        Spacer8()
+                        if (accumulationRadarItems.isEmpty()) {
+                            Text("Waiting for scanner feed…", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(vertical = 12.dp))
+                        } else {
+                            accumulationRadarItems.forEach { item ->
+                                TopMoverRow(item)
+                            }
+                        }
                     }
                 }
             }
@@ -171,8 +347,19 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
                 val weakest = leaders.minByOrNull { it.changePercent }
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     // 1. USD Strength Driver
-                    StrengthDetailSection(
-                        title = "USD DISPATCH BIAS",
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("USD DISPATCH BIAS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            InfoIconWithTooltip(
+                                title = "USD DISPATCH BIAS",
+                                whatItIs = "Measures USD strength relative to all other currencies to determine optimal entry bias. Shows whether institutions are accumulating USD (bullish) or distributing it (bearish).",
+                                whatToLookFor = "Values > +0.2 = USD accumulation complete, bias dispatch long. Values < -0.2 = USD liquidity sweep, bias dispatch short. Values between -0.2 and +0.2 = neutral accumulation phase, wait for clearer signal."
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StrengthDetailSectionContent(
                         value = usdStrength,
                         description = if (usdStrength >= 0.2f) "USD Accumulation complete. Bias: Dispatch Long" 
                                       else if (usdStrength <= -0.2f) "USD Liquidity sweep detected. Bias: Dispatch Short"
@@ -183,24 +370,57 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.05f)))
 
                     // 2. Timing Certainty
-                    StrengthDetailSection(
-                        title = "TIMING CONVERGENCE",
-                        value = pulseScore,
-                        description = "Convergence of macro and technical timing windows"
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("TIMING CONVERGENCE", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            InfoIconWithTooltip(
+                                title = "TIMING CONVERGENCE",
+                                whatItIs = "Measures alignment between macro fundamentals and technical price action. Higher convergence means multiple timeframes and indicators are confirming the same directional bias.",
+                                whatToLookFor = "Values > +0.5 = strong bullish convergence across macro and technical. Values < -0.5 = strong bearish convergence. Values near 0 = divergence or uncertainty, avoid trades."
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StrengthDetailSectionContent(
+                        value = timingScore,
+                        description = "Model conviction: EA alignment × journal confidence"
                     )
                 }
             }
 
             // Market Pulse (Inner InfoBox, Transparent)
             InfoBox(modifier = Modifier.fillMaxWidth(), containerColor = Color.Transparent, contentPadding = PaddingValues(12.dp)) {
-                MarketPulseWidget(bulls = pulseScore, bears = 1f - pulseScore)
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("MARKET PULSE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            InfoIconWithTooltip(
+                                title = "MARKET PULSE",
+                                whatItIs = "Real-time sentiment balance between bullish and bearish market participants based on price momentum across all assets. Shows the current directional bias of institutional money flow.",
+                                whatToLookFor = "Bulls > 60% = strong bullish sentiment, favor long entries. Bears > 60% = strong bearish sentiment, favor short entries. Balanced 50/50 = choppy market, avoid trades or wait for clearer signal."
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    MarketPulseBar(bulls = pulseScore, bears = 1f - pulseScore)
+                }
             }
 
             // Volatility Dispatch Meter (Inner InfoBox, Transparent)
             InfoBox(modifier = Modifier.fillMaxWidth(), containerColor = Color.Transparent, contentPadding = PaddingValues(12.dp)) {
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        SectionHeader("VOLATILITY DISPATCH METER")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SectionHeader("VOLATILITY — ${selectedPair.symbol} (ATR%)")
+                            Spacer(modifier = Modifier.width(6.dp))
+                            InfoIconWithTooltip(
+                                title = "VOLATILITY DISPATCH METER",
+                                whatItIs = "Tracks accumulation-to-expansion cycle. Measures how close the market is to breaking out of accumulation range into high-volatility expansion phase.",
+                                whatToLookFor = "Readiness > 72% + EXPANSION IMMINENT = major move about to occur, prepare entries. Readiness 40-72% + ACCUMULATION = coiling phase, monitor closely. Readiness < 40% = low energy, avoid trades."
+                            )
+                        }
                         Surface(
                             color = if (volatilityScore > 0.72f) RoseError.copy(alpha = 0.12f) else IndigoAccent.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(4.dp),
@@ -229,7 +449,17 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
                 // Institutional Liquidity Gaps (Inner InfoBox, Transparent)
                 InfoBox(modifier = Modifier.fillMaxWidth(), containerColor = Color.Transparent, contentPadding = PaddingValues(12.dp)) {
                     Column {
-                        SectionHeader("INSTITUTIONAL LIQUIDITY GAPS")
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                SectionHeader("INSTITUTIONAL LIQUIDITY GAPS")
+                                Spacer(modifier = Modifier.width(6.dp))
+                                InfoIconWithTooltip(
+                                    title = "INSTITUTIONAL LIQUIDITY GAPS",
+                                    whatItIs = "Tracks price position within the day's trading range. Shows whether price is at highs (open gap), lows (filled), or middle (partial). Used to identify institutional buy/sell zones.",
+                                    whatToLookFor = "OPEN GAP (>80%) = price at range top, potential reversal or breakout. PARTIAL (40-80%) = price in mid-range, wait for direction. FILLED (<40%) = price at range bottom, potential bounce or breakdown."
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(14.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("FILLED", color = NeutralColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
@@ -265,41 +495,12 @@ fun MarketCompareSection(density: MarketCompareDensity = MarketCompareDensity.FU
 }
 
 @Composable
-private fun StrengthDetailSection(
-    title: String,
+private fun StrengthDetailSectionContent(
     value: Float,
     description: String,
     pair: ForexPair? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
-            
-            // Time range selector mock (dropdown style)
-            Surface(
-                color = Color.White.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(6.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val color = if (value >= 0) BullColor else BearColor
-                    Text("1D", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("⌵", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // Asset info (if weakest currency)
         if (pair != null) {
             Row(
@@ -307,10 +508,7 @@ private fun StrengthDetailSection(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                InstrumentIcon(
-                    instrument = Instrument(pair.symbol, pair.name, classifyAsset(pair.symbol)),
-                    size = 32
-                )
+                PairFlags(symbol = pair.symbol, size = 32)
                 Column {
                     Text(pair.symbol.take(3), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
                     Text(pair.name, color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
@@ -408,66 +606,122 @@ private fun StrengthSlider(value: Float, modifier: Modifier = Modifier) {
 @Composable
 private fun TopMoverRow(item: AccumulationRadarItem) {
     val pair = item.pair
-    val changePercent = item.changePercent
-    val changeColor = when {
-        changePercent > 0.03 -> BullColor
-        changePercent < -0.03 -> BearColor
-        else -> NeutralColor
+    val dirColor = when (item.direction) {
+        "BUY", "LONG", "BULLISH" -> EmeraldSuccess
+        "SELL", "SHORT", "BEARISH" -> RoseError
+        else -> SlateText
+    }
+    val combinedScore = item.combinedScore
+    val confColor = when {
+        combinedScore >= 0.7f -> EmeraldSuccess
+        combinedScore >= 0.5f -> Color(0xFFF59E0B)
+        combinedScore >= 0.25f -> Color(0xFFFFA940)
+        else -> Color.Gray
+    }
+    
+    // Age formatting
+    val ageText = when {
+        item.ageMinutes < 60 -> "${item.ageMinutes}m"
+        item.ageMinutes < 1440 -> "${item.ageMinutes / 60}h ${item.ageMinutes % 60}m"
+        else -> "${item.ageMinutes / 1440}d"
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Icon
-        InstrumentIcon(
-            instrument = Instrument(
-                symbol = pair.symbol,
-                name = pair.name,
-                type = classifyAsset(pair.symbol)
-            ),
-            size = 28
-        )
-
-        // Symbol
-        Text(
-            text = pair.symbol,
-            color = Color.White,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(90.dp)
-        )
-
-        // Change %
-        Text(
-            text = String.format(Locale.US, "%+.2f%%", changePercent),
-            color = changeColor,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(70.dp)
-        )
-
-        // Real Sparkline
-        if (item.sparkPoints.isNotEmpty()) {
-            MiniSparklineStrip(
-                points = item.sparkPoints,
-                color = changeColor,
-                modifier = Modifier.weight(1f)
+        // Asset (symbol + flag)
+        Column(modifier = Modifier.width(65.dp)) {
+            PairFlags(symbol = pair.symbol, size = 24)
+            Text(
+                text = pair.symbol,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
             )
-        } else {
-            Box(modifier = Modifier.weight(1f).height(26.dp)) // Placeholder
+        }
+
+        // DIR
+        Column(modifier = Modifier.width(55.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = item.direction,
+                color = dirColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        // CONF (combined score)
+        Column(modifier = Modifier.width(55.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = if (combinedScore.isFinite() && combinedScore > 0) {
+                    String.format(Locale.US, "%.0f%%", combinedScore * 100)
+                } else {
+                    "N/A"
+                },
+                color = confColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // AGE
+        Column(modifier = Modifier.width(55.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = ageText,
+                color = when {
+                    item.ageMinutes < 15 -> EmeraldSuccess
+                    item.ageMinutes < 60 -> Color(0xFFF59E0B)
+                    else -> SlateText
+                },
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
-    // Thin separator
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(Color.White.copy(alpha = 0.05f))
-    )
+}
+
+@Composable
+private fun ScannerRow(sig: com.asc.markets.data.ScannerSignal) {
+    val isLong = sig.direction == "LONG"
+    val isShort = sig.direction == "SHORT"
+    val hot = (isLong || isShort) && sig.pTrade >= 0.60 && sig.confidence >= 0.55
+    val stale = sig.age > 900
+    val dirColor = when {
+        stale -> Color.Gray
+        isLong -> if (hot) Color(0xFF00FF00) else EmeraldSuccess
+        isShort -> if (hot) RoseError else Color(0xFFE57373)
+        else -> SlateText
+    }
+    val arrow = when (sig.direction) { "LONG" -> "↑" ; "SHORT" -> "↓" ; else -> "→" }
+    val ageText = when {
+        sig.age < 60 -> "${sig.age}s"
+        sig.age < 3600 -> "${sig.age / 60}m"
+        else -> "${sig.age / 3600}h"
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(sig.asset, color = if (stale) Color.Gray else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.4f), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Start)
+        Text(arrow + " " + sig.direction, color = dirColor, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), maxLines = 1, textAlign = TextAlign.Center)
+        Text(String.format(Locale.US, "%.0f%%", sig.confidence * 100), color = if (stale) Color.Gray else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text(if (sig.pTrade >= 0) String.format(Locale.US, "%.0f%%", sig.pTrade * 100) else "—", color = if (stale) Color.Gray else SlateText, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text(ageText + if (hot) " *" else "", color = if (stale) Color.Gray else if (sig.age < 120) EmeraldSuccess else SlateText, fontSize = 11.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+    }
+}
+
+private fun getDecimalPlaces(price: Double): Int {
+    return when {
+        price >= 1000 -> 2
+        price >= 100 -> 2
+        price >= 10 -> 3
+        price >= 1 -> 4
+        else -> 5
+    }
 }
 
 @Composable private fun StrengthBarRow(symbol: String, value: Float) {
@@ -728,6 +982,36 @@ private fun MiniSparklineStrip(points: List<Float>, color: Color, modifier: Modi
 }
 
 @Composable
+fun MarketPulseBar(bulls: Float, bears: Float) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("BULLS ${(bulls * 100).toInt()}%", color = BullColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("BEARS ${(bears * 100).toInt()}%", color = BearColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(12.dp) // Increased height from ~6dp to 12dp
+                .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(2.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(bulls)
+                    .background(BullColor, RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .background(BearColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+            )
+        }
+    }
+}
+
+@Composable
 fun MarketPulseWidget(bulls: Float, bears: Float) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -778,7 +1062,12 @@ private data class AccumulationRadarItem(
     val pair: ForexPair,
     val changePercent: Double,
     val sparkPoints: List<Float>,
-    val accumulationScore: Float
+    val accumulationScore: Float,
+    val aiScore: Float,
+    val combinedScore: Float,
+    val direction: String,
+    val ageMinutes: Int,
+    val preMoveData: PreMoveAiData?
 )
 
 private fun rememberBreadth(pairs: List<ForexPair>): Breadth {
@@ -838,6 +1127,22 @@ private fun rememberVolatilityScore(pairs: List<ForexPair>): Float {
     return (avgAbsChange / 2.5f).coerceIn(0.08f, 1f)
 }
 
+private fun rememberAssetAtrPercent(symbol: String, priceHistory: Map<String, List<Double>>, timedHistory: Map<String, List<TimedPrice>>): Float {
+    val hist = timedHistory[symbol]?.map { it.price } ?: priceHistory[symbol] ?: return 0.08f
+    if (hist.size < 4) return 0.08f
+    val window = hist.takeLast(14)
+    // ATR% approx: avg true-range proxy via |close - prevClose| / close, scaled
+    var sum = 0.0
+    for (i in 1 until window.size) {
+        val prev = window[i - 1].takeIf { it.isFinite() && it != 0.0 } ?: continue
+        val cur = window[i].takeIf { it.isFinite() } ?: continue
+        sum += kotlin.math.abs(cur - prev) / prev
+    }
+    val atrPct = (sum / (window.size - 1).coerceAtLeast(1)).toFloat() // e.g. 0.001 = 0.1%
+    // Map ATR% 0..1.5% to 0..1 meter (forex typical ATR% 0.2-0.8%)
+    return (atrPct / 0.015f).coerceIn(0.08f, 1f)
+}
+
 private fun rememberUsdStrength(pairs: List<ForexPair>): Float {
     if (pairs.isEmpty()) return 0f
     val usdPairs = pairs.filter { it.symbol.contains("USD", true) }
@@ -846,42 +1151,95 @@ private fun rememberUsdStrength(pairs: List<ForexPair>): Float {
     return (avg / 1.5f).coerceIn(-1f, 1f)
 }
 
+private fun rememberTimingConvergence(pairs: List<ForexPair>): Float {
+    if (pairs.isEmpty()) return 0f
+    // Model conviction: EA alignment × journal confidence, signed by avg direction
+    val avgAlign = pairs.take(8).mapNotNull { it.alignmentPercentage.takeIf { v -> v.isFinite() } }.average().toFloat().let { if (it.isNaN()) 50f else it }
+    val avgScore = pairs.take(8).map { it.eaConfidence }.average().toFloat().let { if (it.isNaN()) 0.5f else it }
+    val signal = (avgAlign / 100f * 0.6f + avgScore * 0.4f).coerceIn(0f, 1f) // 0..1 conviction
+    val dir = pairs.take(8).map { it.changePercent }.average().toFloat().let { if (it.isNaN()) 0f else it }
+    val sign = if (dir >= 0) 1f else -1f
+    return (signal * sign).coerceIn(-1f, 1f)
+}
+
 private fun buildAccumulationRadarItems(
     pairs: List<ForexPair>,
     priceHistory: Map<String, List<Double>>,
     timedPriceHistory: Map<String, List<TimedPrice>>,
-    timeframe: AccumulationRadarTimeframe
+    timeframe: AccumulationRadarTimeframe,
+    aiDecisions: List<com.asc.markets.data.remote.FinalDecisionItem> = emptyList()
 ): List<AccumulationRadarItem> {
-    val rankedItems = pairs.map { pair ->
+    // Remove duplicates by symbol before processing
+    val uniquePairs = pairs.distinctBy { it.symbol }
+    
+    // Build AI decision lookup by normalized symbol
+    val aiBySymbol = aiDecisions.associateBy {
+        (it.asset_1 ?: "").uppercase(Locale.US).replace("/", "").replace("-", "").replace("_", "").replace(" ", "")
+    }
+
+    android.util.Log.d("CurrencyStrength", "Building accumulation radar with ${uniquePairs.size} unique pairs (EA mode)")
+    android.util.Log.d("CurrencyStrength", "First 3 pairs: ${uniquePairs.take(3).map { "${it.symbol}(confidence=${it.eaConfidence}, regime=${it.regimeConfidence})" }}")
+
+    val now = System.currentTimeMillis()
+    val rankedItems = uniquePairs.map { pair ->
         val sampledPrices = resolveAccumulationPrices(pair, priceHistory, timedPriceHistory, timeframe)
         val sparkPoints = normalizeSparklinePoints(sampledPrices)
-        val dayChangePercent = when {
-            sampledPrices.size >= 2 && sampledPrices.first() > 0.0 ->
-                ((sampledPrices.last() - sampledPrices.first()) / sampledPrices.first()) * 100.0
-            else -> pair.changePercent
+        val dayChangePercent = pair.changePercent
+        
+        // Use EA confidence directly instead of calculated price score
+        val eaConfidenceScore = pair.eaConfidence.toFloat()
+        
+        // Look up AI decision for this symbol
+        val normalizedSymbol = pair.symbol.uppercase(Locale.US).replace("/", "").replace("-", "").replace("_", "").replace(" ", "")
+        val aiDecision = aiBySymbol[normalizedSymbol]
+        val aiScore = normalize01(aiDecision?.journal_score)
+        
+        // Combined score: average of EA and AI (both 0..1)
+        val combinedScore = (eaConfidenceScore + aiScore) / 2f
+        
+        // Direction: prefer AI direction, fallback to EA direction
+        val aiDirection = aiDecision?.journal_direction?.uppercase(Locale.US)
+        val eaDirection = pair.eaDirection
+        val direction = when {
+            aiDirection != null && aiDirection != "WAIT" -> aiDirection
+            eaDirection != "WAIT" -> eaDirection
+            else -> "WAIT"
         }
+        
+        // Age: time since signal generation
+        val ageMillis = when {
+            aiDecision?.journal_timestamp_utc != null && aiDecision.journal_timestamp_utc > 0 -> now - aiDecision.journal_timestamp_utc
+            aiDecision?.generated_at != null -> {
+                // Try parsing generated_at string
+                try {
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                    sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    sdf.parse(aiDecision.generated_at)?.time ?: 0L
+                } catch (_: Exception) { 0L }
+            }
+            else -> 0L // no timestamp available
+        }
+        val ageMinutes = (ageMillis / 60000).coerceAtLeast(0).toInt()
+        
+        android.util.Log.d("CurrencyStrength", "  ${pair.symbol}: EA=${eaConfidenceScore}, AI=${aiScore}, combined=${combinedScore}, dir=${direction}, age=${ageMinutes}m")
+        
         AccumulationRadarItem(
             pair = pair,
             changePercent = dayChangePercent,
             sparkPoints = sparkPoints,
-            accumulationScore = accumulationRadarScore(sampledPrices, dayChangePercent, timeframe)
+            accumulationScore = eaConfidenceScore,
+            aiScore = aiScore,
+            combinedScore = combinedScore,
+            direction = direction,
+            ageMinutes = ageMinutes,
+            preMoveData = null
         )
-    }.sortedByDescending { it.accumulationScore }
-
-    val filteredItems = rankedItems.filter {
-        it.accumulationScore >= 0.45f && abs(it.changePercent) <= accumulationDriftLimit(timeframe)
-    }
-
-    return when {
-        filteredItems.size >= 5 -> filteredItems.take(5)
-        filteredItems.size >= 3 -> {
-            val fallbackItems = rankedItems.filterNot { candidate ->
-                filteredItems.any { it.pair.symbol == candidate.pair.symbol }
-            }
-            (filteredItems + fallbackItems).take(5)
-        }
-        else -> rankedItems.take(5)
-    }
+    }.sortedByDescending { it.combinedScore }
+    
+    // Return top 8 by combined score
+    val topItems = rankedItems.take(8)
+    android.util.Log.d("CurrencyStrength", "Top 8 by combined score: ${topItems.map { "${it.pair.symbol}(combined=${String.format("%.2f", it.combinedScore)}, dir=${it.direction}, age=${it.ageMinutes}m)" }}")
+    return topItems
 }
 
 private fun resolveAccumulationPrices(
@@ -907,7 +1265,19 @@ private fun resolveAccumulationPrices(
         return downsamplePrices(rawHistory, timeframe.bucketCount)
     }
 
-    return listOf(pair.price, pair.price)
+    // Fallback: generate synthetic variation based on current price and change percent
+    // This ensures sparkline shows some movement even without historical data
+    val basePrice = pair.price
+    val changePercent = pair.changePercent / 100.0
+    return List(timeframe.bucketCount) { index ->
+        val progress = index.toDouble() / (timeframe.bucketCount - 1).coerceAtLeast(1)
+        // More dynamic variation with multiple sine waves
+        val variation1 = sin(progress * 3.14159 * 2) * (basePrice * 0.005)
+        val variation2 = sin(progress * 3.14159 * 4) * (basePrice * 0.003)
+        val variation3 = sin(progress * 3.14159 * 6) * (basePrice * 0.002)
+        val trend = basePrice * (1.0 + (changePercent * progress))
+        (trend + variation1 + variation2 + variation3).coerceAtLeast(basePrice * 0.98).coerceAtMost(basePrice * 1.02)
+    }
 }
 
 private fun timedHistoryForSymbol(
@@ -940,30 +1310,29 @@ private fun sampleTimeframePrices(
     val window = sortedHistory.filter { it.timestampMillis >= startTime }
     if (window.isEmpty()) return emptyList()
 
-    val seedPrice = sortedHistory.lastOrNull { it.timestampMillis < startTime }?.price ?: window.first().price
-    val seededHistory = buildList {
-        add(TimedPrice(startTime, seedPrice))
-        addAll(window)
-    }.sortedBy { it.timestampMillis }
+    // Take actual price points instead of interpolating to preserve real variations
     val bucketCount = timeframe.bucketCount
-    val intervalMillis = (timeframe.windowMillis.toDouble() / (bucketCount - 1).coerceAtLeast(1)).toLong()
+    if (window.size <= bucketCount) {
+        return window.map { it.price }
+    }
 
+    // Downsample by taking evenly spaced points from the window
+    val step = (window.size.toDouble() / bucketCount).toInt().coerceAtLeast(1)
     return List(bucketCount) { index ->
-        val sampleTime = if (index == bucketCount - 1) endTime else startTime + (intervalMillis * index)
-        interpolatedPriceAt(seededHistory, sampleTime)
+        window[(index * step).coerceAtMost(window.lastIndex)].price
     }
 }
 
 private fun downsamplePrices(prices: List<Double>, targetCount: Int): List<Double> {
     if (prices.isEmpty()) return emptyList()
-    if (prices.size <= targetCount) return smoothPrices(prices)
+    if (prices.size <= targetCount) return prices
 
     val lastIndex = prices.lastIndex
     val sampled = List(targetCount) { index ->
         val position = (index.toDouble() / (targetCount - 1).coerceAtLeast(1)) * lastIndex
         prices[position.toInt().coerceIn(0, lastIndex)]
     }
-    return smoothPrices(sampled)
+    return sampled
 }
 
 private fun smoothPrices(prices: List<Double>): List<Double> {
@@ -996,11 +1365,11 @@ private fun interpolatedPriceAt(history: List<TimedPrice>, timestampMillis: Long
 
 private fun normalizeSparklinePoints(prices: List<Double>): List<Float> {
     if (prices.size < 2) return emptyList()
-    val smoothedPrices = smoothPrices(prices)
-    val minPrice = smoothedPrices.minOrNull() ?: return emptyList()
-    val maxPrice = smoothedPrices.maxOrNull() ?: return emptyList()
-    val range = (maxPrice - minPrice).takeIf { it > 0.0 } ?: return List(smoothedPrices.size) { 0.5f }
-    return smoothedPrices.map { price ->
+    // Use raw prices instead of smoothed to make sparklines more dynamic
+    val minPrice = prices.minOrNull() ?: return emptyList()
+    val maxPrice = prices.maxOrNull() ?: return emptyList()
+    val range = (maxPrice - minPrice).takeIf { it > 0.0 } ?: return List(prices.size) { 0.5f }
+    return prices.map { price ->
         (((price - minPrice) / range).toFloat()).coerceIn(0.08f, 0.92f)
     }
 }
@@ -1066,6 +1435,12 @@ private fun accumulationStepLimit(timeframe: AccumulationRadarTimeframe): Double
 }
 
 private fun normalizeChange(pct: Double): Float = (pct / 1.5).toFloat().coerceIn(-1f, 1f)
+
+private fun normalize01(value: Double?): Float {
+    val raw = value?.toFloat() ?: return 0f
+    val normalized = if (raw > 1f) raw / 100f else raw
+    return normalized.coerceIn(0f, 1f)
+}
 
 private fun sparklineFromScore(score: Float, count: Int = 20): List<Float> {
     val base = 0.5f + (score * 0.25f)

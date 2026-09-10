@@ -1,0 +1,15 @@
+- [x] Update `EventDetailsModal.kt`
+- [x] Update `ChatScreen.kt`
+- [x] Update `AnalysisHubModal.kt`
+- [x] Update `ChartSettingsBottomSheet.kt`
+- [x] Update `ChartTypeModal.kt`
+- [x] Update `DrawingsModal.kt`
+- [x] Update `ExitLevelsModal.kt`
+- [x] Update `MarketStatusModal.kt`
+- [x] Update `OrderModal.kt`
+- [x] Update `PaperTradingSettingsModal.kt`
+- [x] Update `PositionActionsModal.kt`
+- [x] Update `SimpleOrderPage.kt`
+- [x] Update `TradingChart.kt`
+- [x] Update `TradingChart2.kt`
+- [x] Verify build with `./gradlew :app:compileDebugKotlin`

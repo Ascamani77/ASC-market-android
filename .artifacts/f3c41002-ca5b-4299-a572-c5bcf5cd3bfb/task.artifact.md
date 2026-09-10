@@ -1,0 +1,4 @@
+- [x] Restore `aiDeployments` and implement AI sync methods in `ForexViewModel.kt`
+- [x] Fix derived AI states and missing definitions in UI screens (`MarketOverviewTab`, `AiStatusTab`)
+- [x] Fix `DashboardViewModel` collection logic and missing imports
+- [/] Verify build passes with `./gradlew :app:compileDebugKotlin` (Fixed AI-related errors, remaining errors are unrelated services)

@@ -15,7 +15,7 @@ import com.trading.app.TradingApp
 import com.trading.app.data.ChartFeedType
 
 @Composable
-fun StreamScreen() {
+fun StreamScreen(initialSymbol: String? = null) {
     val context = LocalContext.current
     val prefs = remember {
         context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
@@ -39,7 +39,8 @@ fun StreamScreen() {
     key(streamFeedType) {
         TradingApp(
             streamFeedType = streamFeedType,
-            stateNamespace = "stream_${streamFeedType.prefValue}"
+            stateNamespace = "stream_${streamFeedType.prefValue}",
+            initialSymbol = initialSymbol
         )
     }
 }

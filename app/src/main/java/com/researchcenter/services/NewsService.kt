@@ -3,7 +3,6 @@ package com.researchcenter.services
 import android.content.Context
 import android.util.Log
 import android.util.Xml
-import com.asc.markets.BuildConfig
 import com.researchcenter.data.models.Intelligence
 import com.researchcenter.data.models.NewsArticle
 import com.researchcenter.util.Constants
@@ -155,7 +154,6 @@ class NewsService(private val context: Context? = null) {
             val url = URL("${Constants.BASE_URL}/api/news/search?q=${java.net.URLEncoder.encode(query, "UTF-8")}")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.setRequestProperty("x-api-key", BuildConfig.GEMINI_API_KEY)
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
 
@@ -176,7 +174,6 @@ class NewsService(private val context: Context? = null) {
             val url = URL("${Constants.BASE_URL}/api/news/content/$articleId")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.setRequestProperty("x-api-key", BuildConfig.GEMINI_API_KEY)
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
 

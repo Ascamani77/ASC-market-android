@@ -2,8 +2,6 @@ package com.asc.markets.ui.terminal.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.asc.markets.data.BinanceDataStore
-import com.asc.markets.data.CombinedFallbackDataStore
 import com.asc.markets.data.ForexPair
 import com.asc.markets.data.MarketDataStore
 import com.asc.markets.ui.terminal.models.*
@@ -17,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class ChartViewModel : ViewModel() {
     private val _activeSymbol = MutableStateFlow(
-        BinanceDataStore.pairSnapshot("BTC/USDT")?.symbol ?: "BTC/USDT"
+        MarketDataStore.pairSnapshot("EURUSD")?.symbol ?: "EURUSD"
     )
     val activeSymbol: StateFlow<String> = _activeSymbol.asStateFlow()
 
@@ -70,14 +68,12 @@ class ChartViewModel : ViewModel() {
     val candleData: StateFlow<List<Candle>> = _candleData.asStateFlow()
 
     private val _currentPair = MutableStateFlow(
-        BinanceDataStore.pairSnapshot(_activeSymbol.value)
-            ?: MarketDataStore.pairSnapshot(_activeSymbol.value)
-            ?: CombinedFallbackDataStore.pairSnapshot(_activeSymbol.value)
-            ?: (BinanceDataStore.allPairs.value + MarketDataStore.allPairs.value + CombinedFallbackDataStore.allPairs.value).first()
+        MarketDataStore.pairSnapshot(_activeSymbol.value)
+            ?: MarketDataStore.allPairs.value.first()
     )
     val currentPair: StateFlow<ForexPair> = _currentPair.asStateFlow()
 
-    private val _priceHistory = MutableStateFlow(BinanceDataStore.historySnapshot(_activeSymbol.value))
+    private val _priceHistory = MutableStateFlow(MarketDataStore.historySnapshot(_activeSymbol.value))
     val priceHistory: StateFlow<List<Double>> = _priceHistory.asStateFlow()
 
     init {
@@ -87,27 +83,15 @@ class ChartViewModel : ViewModel() {
 
     private fun observeMarketData() {
         val marketData = combine(MarketDataStore.allPairs, MarketDataStore.priceHistory) { a, b -> a to b }
-        val binanceData = combine(BinanceDataStore.allPairs, BinanceDataStore.priceHistory) { a, b -> a to b }
-        val fallbackData = combine(CombinedFallbackDataStore.allPairs, CombinedFallbackDataStore.priceHistory) { a, b -> a to b }
         viewModelScope.launch {
             combine(
                 _activeSymbol,
-                marketData,
-                binanceData,
-                fallbackData
-            ) { symbol, market, binance, fallback ->
+                marketData
+            ) { symbol, market ->
                 val (marketPairs, marketHistories) = market
-                val (binancePairs, binanceHistories) = binance
-                val (fallbackPairs, fallbackHistories) = fallback
-                val pair = BinanceDataStore.pairSnapshot(symbol)
-                    ?: MarketDataStore.pairSnapshot(symbol)
-                    ?: CombinedFallbackDataStore.pairSnapshot(symbol)
-                    ?: (binancePairs + marketPairs + fallbackPairs).first()
-                val histories = when {
-                    BinanceDataStore.isUsdtSymbol(pair.symbol) -> binanceHistories
-                    MarketDataStore.pairSnapshot(pair.symbol) != null -> marketHistories
-                    else -> fallbackHistories
-                }
+                val pair = MarketDataStore.pairSnapshot(symbol)
+                    ?: marketPairs.first()
+                val histories = marketHistories
                 val history = histories[pair.symbol] ?: List(40) { pair.price }
                 pair to history
             }.collect { (pair, history) ->
@@ -198,8 +182,7 @@ class ChartViewModel : ViewModel() {
     }
 
     fun setSymbol(symbol: String) {
-        _activeSymbol.value = BinanceDataStore.pairSnapshot(symbol)?.symbol
-            ?: MarketDataStore.pairSnapshot(symbol)?.symbol
+        _activeSymbol.value = MarketDataStore.pairSnapshot(symbol)?.symbol
             ?: symbol.uppercase()
     }
 

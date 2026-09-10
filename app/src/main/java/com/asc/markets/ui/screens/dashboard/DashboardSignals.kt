@@ -30,6 +30,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
 import com.asc.markets.data.remote.FinalDecisionItem
+import com.asc.markets.data.remote.LatestDeploymentsResponse
 import com.asc.markets.state.AssetContext
 import com.asc.markets.state.AssetContextStore
 import com.asc.markets.logic.ForexViewModel
@@ -146,7 +147,7 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
             chunked.forEach { rowSignals ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     for (s in rowSignals) {
-                        SignalCard(item = s, modifier = Modifier.weight(1f)) { selected = it }
+                        SignalCard(item = s, aiResponse = aiResponse, modifier = Modifier.weight(1f)) { selected = it }
                     }
                     // fill remaining columns if needed
                     if (rowSignals.size < cols) {
@@ -215,7 +216,7 @@ fun DashboardSignals(viewModel: ForexViewModel = viewModel()) {
 }
 
 @Composable
-private fun SignalCard(item: FinalDecisionItem, modifier: Modifier = Modifier, onTap: (FinalDecisionItem) -> Unit) {
+private fun SignalCard(item: FinalDecisionItem, aiResponse: LatestDeploymentsResponse?, modifier: Modifier = Modifier, onTap: (FinalDecisionItem) -> Unit) {
     // Deterministic weighing engine
     val safetyClosed = isSafetyGateClosed()
     val safetyScore = if (safetyClosed) 0 else 100
@@ -240,10 +241,11 @@ private fun SignalCard(item: FinalDecisionItem, modifier: Modifier = Modifier, o
                 Text(item.journal_label ?: "H1", color = SlateText, fontSize = DashboardFontSizes.vitalsKpiLabel)
             }
 
-            // Trend sparkline preview
+            // Trend sparkline preview - use real AI scores from this asset's history
             val dirIsBuy = (item.journal_direction?.uppercase() ?: "BUY") == "BUY"
+            val assetHistory = aiResponse?.final_decision?.filter { it.asset_1 == item.asset_1 }?.take(18)?.map { (it.journal_score ?: 50f).toFloat() } ?: emptyList()
             MiniSparkline(
-                points = demoSparkline(count = 18, seed = (item.asset_1 ?: "BTC").hashCode(), trendBias = if (dirIsBuy) 0.02f else -0.015f),
+                points = assetHistory,
                 modifier = Modifier.fillMaxWidth().height(40.dp).background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(8.dp)),
                 color = if (dirIsBuy) EmeraldSuccess else RoseError,
                 fillColor = if (dirIsBuy) EmeraldSuccess.copy(alpha = 0.08f) else RoseError.copy(alpha = 0.08f)

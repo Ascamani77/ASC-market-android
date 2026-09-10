@@ -1,5 +1,7 @@
 package com.trading.app.data
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.trading.app.models.Order
 import com.trading.app.models.Position
@@ -18,19 +20,49 @@ class Mt5ReverseBridge(
     private var webSocket: WebSocket? = null
     private val TAG = "MT5_REVERSE_BRIDGE"
 
+    @Volatile private var isConnecting = false
+    @Volatile private var isManuallyDisconnected = false
+    private val pendingMessages = mutableListOf<String>()
+    private val reconnectHandler = Handler(Looper.getMainLooper())
+    private var reconnectAttempts = 0
+
     fun connect() {
+        if (isConnecting) return
+        isManuallyDisconnected = false
         val url = "ws://$pcIpAddress:$port"
         val request = Request.Builder().url(url).build()
-        
+        isConnecting = true
+
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.i(TAG, "Reverse Bridge Connected to MT5")
+                isConnecting = false
+                reconnectAttempts = 0
+                synchronized(pendingMessages) {
+                    pendingMessages.forEach(webSocket::send)
+                    pendingMessages.clear()
+                }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "Reverse Bridge Failure: ${t.message}")
+                isConnecting = false
+                scheduleReconnect()
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                isConnecting = false
+                if (!isManuallyDisconnected) scheduleReconnect()
             }
         })
+    }
+
+    private fun scheduleReconnect() {
+        if (isManuallyDisconnected) return
+        val delayMs = minOf(30000L, 2000L shl reconnectAttempts.coerceAtMost(4))
+        reconnectAttempts++
+        Log.i(TAG, "Scheduling reverse bridge reconnect in ${delayMs}ms")
+        reconnectHandler.postDelayed({ connect() }, delayMs)
     }
 
     fun placeOrder(order: Order) {
@@ -38,7 +70,7 @@ class Mt5ReverseBridge(
             put("action", "place_order")
             put("symbol", order.symbol)
             put("type", order.type.lowercase()) // "buy" or "sell"
-            
+
             // Map the detailed order types to MT5-compatible strings
             val typeStr = when (order.orderType) {
                 "Buy Limit" -> "limit"
@@ -107,14 +139,22 @@ class Mt5ReverseBridge(
     }
 
     private fun send(message: String) {
-        if (webSocket?.send(message) != true) {
-            Log.e(TAG, "Failed to send command to MT5: $message")
-        } else {
+        if (!isManuallyDisconnected && webSocket == null) connect()
+        if (webSocket?.send(message) == true) {
             Log.d(TAG, "Sent to MT5: $message")
+        } else {
+            synchronized(pendingMessages) {
+                if (pendingMessages.size >= 25) pendingMessages.removeAt(0)
+                pendingMessages.add(message)
+            }
+            Log.w(TAG, "Bridge not connected - queued trade command ($message)")
         }
     }
 
     fun disconnect() {
+        isManuallyDisconnected = true
+        reconnectHandler.removeCallbacksAndMessages(null)
         webSocket?.close(1000, "App closing")
+        webSocket = null
     }
 }

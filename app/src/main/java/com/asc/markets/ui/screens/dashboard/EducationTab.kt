@@ -197,7 +197,7 @@ fun EducationTab(viewModel: ForexViewModel = viewModel()) {
                             "OBSERVE" to Color(0xFFF59E0B),
                             "FOCUS" to EmeraldSuccess
                         ),
-                        activeIndex = 1, // demo: OBSERVE active
+                        activeIndex = 1,
                         modifier = Modifier.fillMaxWidth()
                     )
 

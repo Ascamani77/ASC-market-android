@@ -82,7 +82,7 @@ fun TimezoneModal(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("Search timezone...", color = TextSecondary, fontSize = 14.sp) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AccentBlue,
                         unfocusedBorderColor = BorderColor,
                         cursorColor = AccentBlue,

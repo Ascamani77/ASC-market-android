@@ -31,8 +31,7 @@ import com.asc.markets.data.remote.FinalDecisionItem
 import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.theme.*
 import com.asc.markets.ui.components.InfoBox
-import com.trading.app.data.PaperTradingAccountSnapshot
-import com.trading.app.data.PaperTradingSnapshotStore
+
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
@@ -42,28 +41,84 @@ import com.asc.markets.ui.screens.dashboard.CurrencyStrengthPanel
 
 @Composable
 fun CommandCenterTab(viewModel: ForexViewModel) {
-    val aiDeployments by viewModel.aiDeployments.collectAsState()
     val macroEvents by viewModel.macroStreamEvents.collectAsState()
     val isArmed by viewModel.isArmed.collectAsState()
     val status by viewModel.commandCenterStatus.collectAsState()
     val auditRecords by viewModel.auditRecords.collectAsState()
     val unread by viewModel.unreadCount.collectAsState()
-    val paperTradingSnapshot = PaperTradingSnapshotStore.snapshot
 
-    val signals = aiDeployments?.final_decision ?: emptyList()
-    val primaryCount = signals.count { it.portfolio_decision_label == "PRIMARY_DEPLOYMENT" }
-    val secondaryCount = signals.count { it.portfolio_decision_label == "SECONDARY_DEPLOYMENT" }
-    val rejectedCount = signals.count { it.portfolio_decision_label == "REJECTED_BY_PORTFOLIO" }
-    val longCount = signals.count { it.journal_direction.equals("LONG", ignoreCase = true) }
-    val shortCount = signals.count { it.journal_direction.equals("SHORT", ignoreCase = true) }
-    val rankedSignals = remember(signals) {
-        signals.sortedWith(
-            compareByDescending<FinalDecisionItem> { deploymentWeight(it) }
-                .thenByDescending { normalize01(it.journal_score) }
-        )
+
+    val deployments by viewModel.aiDeployments.collectAsState()
+    val allSignals = deployments?.final_decision ?: emptyList()
+    val signals = allSignals
+    val eaAssetsSnap by com.asc.markets.data.EALiveDataStore.liveAssets.collectAsState()
+    val eaBySym = remember(eaAssetsSnap) { eaAssetsSnap.associateBy { it.symbol.uppercase() } }
+    fun isEaVetoed(s: com.asc.markets.data.remote.FinalDecisionItem): Boolean {
+        val ea = eaBySym[s.asset_1?.uppercase() ?: ""] ?: return false
+        val dir = ea.eaAi?.direction ?: "WAIT"
+        val conf = ea.eaAi?.confidence ?: 0.0
+        return dir.equals("WAIT", true) || conf < 0.25
     }
-    val topSignals = rankedSignals.take(5)
-    val leadSignal = topSignals.firstOrNull()
+    fun isRejectedAi(s: com.asc.markets.data.remote.FinalDecisionItem) = (s.final_trade_state ?: "").equals("REJECTED", true)
+    val primaryCount = allSignals.count { ((it.portfolio_deployment_bucket ?: "").equals("PRIMARY", true) || (it.portfolio_decision_label ?: "").contains("PRIMARY", true)) && !isEaVetoed(it) && !isRejectedAi(it) }
+    val secondaryCount = allSignals.count { ((it.portfolio_deployment_bucket ?: "").equals("SECONDARY", true) || (it.portfolio_decision_label ?: "").contains("SECONDARY", true)) && !isEaVetoed(it) && !isRejectedAi(it) }
+    val rejectedCount = allSignals.count { isRejectedAi(it) || isEaVetoed(it) }
+    val longCount = allSignals.count { (it.journal_direction ?: "").equals("LONG", true) || (it.journal_direction ?: "").equals("BUY", true) }
+    val shortCount = allSignals.count { (it.journal_direction ?: "").equals("SHORT", true) || (it.journal_direction ?: "").equals("SELL", true) }
+    // Live fallback: the deployments backend (localhost:8003) doesn't exist on the
+    // phone, so when it yields nothing, derive the same headline numbers from the
+    // live EA write-ups + MT5 scanner feed instead of showing zeros.
+    val eaWriteupsHome by com.asc.markets.data.EASignalLiveStore.signalsByAsset.collectAsState()
+    val scannerHome by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+    val liveInfos = remember(eaWriteupsHome, scannerHome) {
+        buildLiveSignalInfos(eaWriteupsHome, scannerHome)
+    }
+    val useLiveCounts = allSignals.isEmpty() && liveInfos.isNotEmpty()
+    val dispTotal = if (useLiveCounts) liveInfos.size else signals.size
+    val dispPrimary = if (useLiveCounts) liveInfos.count { liveBucketOf(it) == 'P' } else primaryCount
+    val dispSecondary = if (useLiveCounts) liveInfos.count { liveBucketOf(it) == 'S' } else secondaryCount
+    val dispRejected = if (useLiveCounts) liveInfos.count { liveBucketOf(it) == 'R' } else rejectedCount
+    val dispLong = if (useLiveCounts) liveInfos.count { isLiveLong(it.direction) } else longCount
+    val dispShort = if (useLiveCounts) liveInfos.count { isLiveShort(it.direction) } else shortCount
+    val dispNext = if (useLiveCounts) liveInfos.firstOrNull()?.asset ?: "—" else allSignals.maxByOrNull { it.journal_score ?: 0.0 }?.asset_1 ?: "—"
+    // Hoisted upcoming feed: the same calendar-backed list the Upcoming Events box
+    // shows, so the SYSTEM TELEMETRY cards can count it too instead of zeros.
+    val calPayloadHome by com.trading.app.data.CalendarSnapshotStore.latestDisplayPayloadFlow.collectAsState()
+    val eaConnectedHome by com.asc.markets.data.EALiveDataStore.isConnected.collectAsState()
+    val upcomingHome = remember(macroEvents, calPayloadHome) {
+        if (macroEvents.isNotEmpty()) macroEvents.take(5)
+        else {
+            val cal = calPayloadHome?.events ?: emptyList()
+            val now = System.currentTimeMillis()
+            val parsed = cal.map { ev ->
+                val millis = try {
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                        timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    }.parse(ev.isoDateTime.take(19))?.time ?: 0L
+                } catch (_: Exception) { 0L }
+                millis to ev
+            }.sortedBy { it.first }
+            val upcoming = parsed.filter { it.first >= now - 3600_000L }.take(5)
+            (if (upcoming.isNotEmpty()) upcoming else parsed.take(5)).map { (millis, ev) ->
+                com.asc.markets.data.MacroEvent(
+                    title = ev.title,
+                    currency = ev.currencyCode.ifBlank { ev.countryCode },
+                    datetimeUtc = if (millis > 0L) millis else now,
+                    priority = when (ev.importance.uppercase()) { "HIGH", "HOLIDAY" -> com.asc.markets.data.ImpactPriority.CRITICAL; "MEDIUM" -> com.asc.markets.data.ImpactPriority.HIGH; else -> com.asc.markets.data.ImpactPriority.MEDIUM },
+                    status = com.asc.markets.data.MacroEventStatus.UPCOMING,
+                    source = "Calendar",
+                    actual = ev.actual,
+                    forecast = ev.forecast,
+                    previous = ev.previous
+                )
+            }
+        }
+    }
+    // The box is live when EITHER the command feed or the calendar snapshot
+    // backing it has data — not just when the command socket is up.
+    val feedLive = status.isConnected == true || calPayloadHome != null || macroEvents.isNotEmpty()
+    val topSignals = allSignals.sortedByDescending { it.journal_score ?: 0.0 }.take(5)
+    val leadSignal: FinalDecisionItem? = allSignals.maxByOrNull { it.journal_score ?: 0.0 }
     
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
@@ -78,16 +133,16 @@ fun CommandCenterTab(viewModel: ForexViewModel) {
         // 2. GLOBAL SNAPSHOT (Restored to top)
         item {
             SnapshotWidget(
-                totalSignals = signals.size,
-                primaryCount = primaryCount,
-                secondaryCount = secondaryCount,
-                rejectedCount = rejectedCount
+                totalSignals = dispTotal,
+                primaryCount = dispPrimary,
+                secondaryCount = dispSecondary,
+                rejectedCount = dispRejected
             )
         }
 
-        // 3. DETERMINISTIC LIQUIDITY RADAR (NEW - from NEW_ASC)
+        // 3. LIQUIDITY RADAR — EA live + AI deployments (no old detached AI)
         item {
-            LiquidityRadarWidget(signals)
+            LiquidityRadarWidget(signals = signals)
         }
 
         // 4. CURRENCY STRENGTH & MARKET PULSE
@@ -96,24 +151,23 @@ fun CommandCenterTab(viewModel: ForexViewModel) {
         }
 
         item {
-            AccountExecutionStateWidget(paperTradingSnapshot)
+            EaAiSummaryPanel(viewModel)
         }
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AiRunStatusWidget(
                     modifier = Modifier.weight(1f),
-                    lastUpdated = aiDeployments?.last_updated,
+                    lastUpdated = null,
                     status = status.lastMessage,
                     lastActionAtMillis = status.lastActionAtMillis,
                     isLoading = status.isLoading,
                     isConnected = status.isConnected,
-                    decisionCount = signals.size
+                    decisionCount = 0
                 )
                 JournalSummaryWidget(
                     modifier = Modifier.weight(1f),
-                    audits = auditRecords,
-                    snapshot = paperTradingSnapshot
+                    audits = auditRecords
                 )
             }
         }
@@ -126,56 +180,64 @@ fun CommandCenterTab(viewModel: ForexViewModel) {
             )
         }
 
+        // EA + AI live summary (replaces old Pre-Move board)
         item {
-            PreMoveIntelligenceBoard(
-                signal = leadSignal,
-                signals = signals,
-                isConnected = status.isConnected
-            )
+            EaAiLiveSummaryWidget(signals = signals, leadSignal = leadSignal, viewModel = viewModel)
         }
 
-        // TOP AI SIGNALS (Compact)
+        // TOP AI SIGNALS (Compact) — deployments backend first, live EA/scanner fallback
+        // (the deployments backend at localhost:8003 doesn't exist on the phone,
+        // so without the fallback this box is always empty).
         item {
-            CompactSignalsWidget(topSignals, viewModel)
+            val eaWriteupsTop by com.asc.markets.data.EASignalLiveStore.signalsByAsset.collectAsState()
+            val scannerTop by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+            val liveTop = remember(eaWriteupsTop, scannerTop) {
+                buildLiveTopSignals(eaWriteupsTop, scannerTop)
+            }
+            if (topSignals.isNotEmpty()) {
+                CompactSignalsWidget(topSignals, viewModel)
+            } else {
+                CompactLiveSignalsWidget(liveTop, viewModel)
+            }
         }
 
-        // 4. RAW FEED / MACRO STREAM (Compact + backend status)
+        // 4. UPCOMING EVENTS (Compact + backend status)
         item {
-            CompactMacroWidget(macroEvents.take(5), status.isConnected)
+            CompactMacroWidget(upcomingHome, feedLive)
         }
 
         // 5. EXECUTION QUEUE & RISK
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 ExecutionQueueWidget(
                     modifier = Modifier.weight(1.2f),
-                    ready = primaryCount + secondaryCount,
-                    blocked = rejectedCount,
-                    nextSignal = topSignals.firstOrNull()?.asset_1 ?: "—"
+                    ready = dispPrimary + dispSecondary,
+                    blocked = dispRejected,
+                    nextSignal = dispNext
                 )
                 RiskSummaryWidget(
                     modifier = Modifier.weight(1f),
-                    longCount = longCount,
-                    shortCount = shortCount,
-                    candidateCount = signals.size
+                    longCount = dispLong,
+                    shortCount = dispShort,
+                    candidateCount = dispTotal
                 )
             }
         }
 
-        // 6. HEALTH & TELEMETRY
+        // 6. HEALTH & TELEMETRY — the audit/alert/macro stores are never populated
+        // by any producer, so count the live equivalents instead of showing zeros.
         item {
             HealthTelemetryWidget(
-                isConnected = status.isConnected,
+                isConnected = status.isConnected == true || eaConnectedHome || calPayloadHome != null,
                 isLoading = status.isLoading,
-                macroCount = macroEvents.size,
-                unreadAlerts = unread,
-                auditCount = auditRecords.size
+                macroCount = if (macroEvents.isNotEmpty()) macroEvents.size else upcomingHome.size,
+                unreadAlerts = upcomingHome.count { it.priority == com.asc.markets.data.ImpactPriority.CRITICAL },
+                auditCount = eaWriteupsHome.values.count { it.chart_panel?.validator_active == true },
+                auditCaption = "validated live"
             )
-        }
-
-        // 7. QUICK ACTIONS & LINKS
-        item {
-            QuickActionsWidget(viewModel, status.isLoading)
         }
     }
 }
@@ -231,140 +293,14 @@ private fun SnapshotWidget(totalSignals: Int, primaryCount: Int, secondaryCount:
     }
 }
 
-@Composable
-private fun AccountExecutionStateWidget(snapshot: PaperTradingAccountSnapshot) {
-    val hasAccount = snapshot.hasLiveAccountData
-    val hasPnl = snapshot.hasLiveAccountData || snapshot.hasLiveTradeData
-    val pnlColor = if (!hasPnl) Color.Gray else if ((snapshot.currentTradePnl ?: snapshot.floatingPnl) >= 0.0) EmeraldSuccess else RoseError
-    val riskMeter = (snapshot.openRiskPct / 10.0).toFloat().coerceIn(0.04f, 1f)
-    InfoBox(minHeight = 318.dp) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("ACCOUNT / EXECUTION STATE", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                    Text(if (hasAccount) "live paper-trading account stream" else "waiting for live account stream", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                BackendStatusPill(snapshot.isConnected)
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccountMetricTile("Balance", liveMoneyText(snapshot.balance, hasAccount), "cash balance", if (hasAccount) 0.76f else 0.04f, EmeraldSuccess, Modifier.weight(1f))
-                AccountMetricTile("Equity", liveMoneyText(snapshot.equity, hasAccount), "balance + floating P/L", if (hasAccount) equityMeter(snapshot) else 0.04f, if (snapshot.equity >= snapshot.balance) EmeraldSuccess else RoseError, Modifier.weight(1f))
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccountMetricTile("Free Margin", liveMoneyText(snapshot.freeMargin, hasAccount), "available funds", if (hasAccount) freeMarginMeter(snapshot) else 0.04f, IndigoAccent, Modifier.weight(1f))
-                AccountMetricTile("Floating P/L", if (hasPnl) signedMoneyText(snapshot.floatingPnl) else "WAITING", "Realized ${if (hasAccount) signedMoneyText(snapshot.realizedPnl) else "WAITING"}", if (hasPnl) (kotlin.math.abs(snapshot.floatingPnl) / snapshot.equity.coerceAtLeast(1.0)).toFloat().coerceIn(0.04f, 1f) else 0.04f, pnlColor, Modifier.weight(1f))
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccountMetricTile("Active Trades", snapshot.activeTrades.toString(), "${snapshot.activeOrders} live orders", (snapshot.activeTrades / 8f).coerceIn(0.04f, 1f), IndigoAccent, Modifier.weight(1f))
-                AccountMetricTile("Margin Used", liveMoneyText(snapshot.margin, hasAccount || snapshot.activeTrades > 0), "Level ${String.format(Locale.US, "%.1f%%", snapshot.marginLevel)}", if (snapshot.equity > 0.0) (snapshot.margin / snapshot.equity).toFloat().coerceIn(0.04f, 1f) else 0.04f, IndigoAccent, Modifier.weight(1f))
-            }
-            LiveTradeStatePanel(snapshot)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Open Risk", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text(if (snapshot.activeTrades > 0) "${moneyLargeText(snapshot.openRisk)} • ${String.format(Locale.US, "%.2f%%", snapshot.openRiskPct)}" else "NO OPEN RISK", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                }
-                Box(modifier = Modifier.weight(1f).height(8.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(riskMeter)
-                            .fillMaxHeight()
-                            .background(if (snapshot.openRiskPct >= 5.0) RoseError else EmeraldSuccess, RoundedCornerShape(8.dp))
-                    )
-                }
-            }
-        }
-    }
-}
+/* AccountExecutionStateWidget REMOVED */
 
-@Composable
-private fun LiveTradeStatePanel(snapshot: PaperTradingAccountSnapshot) {
-    val pnl = snapshot.currentTradePnl
-    val pnlColor = if (pnl == null) Color.Gray else if (pnl >= 0.0) EmeraldSuccess else RoseError
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White.copy(alpha = 0.035f),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.07f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("CURRENT LIVE TRADE", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text(snapshot.currentTradeSymbol ?: "NO OPEN TRADE", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Surface(
-                    color = pnlColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(999.dp),
-                    border = BorderStroke(1.dp, pnlColor.copy(alpha = 0.35f))
-                ) {
-                    Text(
-                        text = snapshot.currentTradeSide?.uppercase(Locale.US) ?: "FLAT",
-                        color = pnlColor,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
-                    )
-                }
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TradeMiniStat("Price", priceText(snapshot.currentTradePrice), "${signedNumberText(snapshot.currentTradePriceChange)} • ${signedPercentText(snapshot.currentTradePriceChangePct)}", if ((snapshot.currentTradePriceChange ?: 0.0) >= 0.0) EmeraldSuccess else RoseError, Modifier.weight(1f))
-                TradeMiniStat("Trade P/L", pnl?.let { signedMoneyText(it) } ?: "WAITING", signedPercentText(snapshot.currentTradePnlPct), pnlColor, Modifier.weight(1f))
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Entry ${priceText(snapshot.currentTradeEntryPrice)}", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Size ${volumeText(snapshot.currentTradeVolume)}", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Tick ${formatMillisTime(snapshot.currentQuoteUpdatedMillis)}", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
-}
+/* LiveTradeStatePanel REMOVED */
 
-@Composable
-private fun TradeMiniStat(
-    label: String,
-    value: String,
-    caption: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(caption, color = Color.Gray, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
+/* TradeMiniStat REMOVED */
 
-@Composable
-private fun AccountMetricTile(
-    label: String,
-    value: String,
-    caption: String,
-    meter: Float,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        color = Color.White.copy(alpha = 0.035f),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
-    ) {
-        Column(modifier = Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(label, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(caption, color = Color.Gray, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(meter.coerceIn(0.04f, 1f))
-                        .fillMaxHeight()
-                        .background(color, RoundedCornerShape(4.dp))
-                )
-            }
-        }
-    }
-}
+/* AccountMetricTile REMOVED */
+
 
 @Composable
 private fun AiRunStatusWidget(
@@ -409,23 +345,23 @@ private fun AiRunStatusWidget(
 @Composable
 private fun JournalSummaryWidget(
     modifier: Modifier,
-    audits: List<AuditRecord>,
-    snapshot: PaperTradingAccountSnapshot
+    audits: List<AuditRecord>
 ) {
     val audited = audits.count { it.audited }
     val pending = (audits.size - audited).coerceAtLeast(0)
     val disciplineScore = if (audits.isEmpty()) 1f else (audited.toFloat() / audits.size.toFloat()).coerceIn(0f, 1f)
     InfoBox(modifier = modifier, height = 150.dp) {
-        Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.Top) {
+            Row(modifier = Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("JOURNAL SUMMARY", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Text("$pending pending audits", color = if (pending > 0) Color(0xFFF59E0B) else EmeraldSuccess, fontSize = 11.sp, fontWeight = FontWeight.Black)
                 }
-                Text(snapshot.balanceHistoryCount.toString(), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
             }
+            Spacer(modifier = Modifier.height(8.dp))
             PreMoveScale("Discipline Score", disciplineScore, "Open", "Reviewed", if (disciplineScore >= 0.7f) EmeraldSuccess else Color(0xFFF59E0B))
-            Text("Realized ${signedMoneyText(snapshot.realizedPnl)} • ${audits.size} audit records", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("${audits.size} audit records", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -922,7 +858,7 @@ private fun CompactSignalsWidget(signals: List<FinalDecisionItem>, viewModel: Fo
                     Text("ranked by deployment priority + confidence", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Text("VIEW ALL", color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
-                    viewModel.navigateTo(com.asc.markets.data.AppView.INTELLIGENCE_STREAM)
+                    viewModel.navigateTo(com.asc.markets.data.AppView.TRADE_DASHBOARD)
                 })
             }
             if (signals.isEmpty()) {
@@ -979,9 +915,191 @@ private fun TopSignalVisualRow(signal: FinalDecisionItem, rank: Int) {
     }
 }
 
+private data class LiveSignalInfo(
+    val asset: String,
+    val direction: String,
+    val score: Float,
+    val tier: String,
+    val hasSweep: Boolean,
+    val hasFvg: Boolean,
+    val hasBos: Boolean
+)
+
+// Merged live view of what the phone actually receives: EA write-ups first,
+// then MT5 scanner signals. Sorted by score, highest first.
+private fun buildLiveSignalInfos(
+    writeups: Map<String, com.asc.markets.data.ASCSignalData>,
+    scanner: List<com.asc.markets.data.ScannerSignal>
+): List<LiveSignalInfo> {
+    val merged = linkedMapOf<String, LiveSignalInfo>()
+    writeups.forEach { (key, s) ->
+        val dir = s.direction.uppercase(Locale.US)
+        val score = maxOf(normalize01(s.confidence), normalize01(s.chart_panel?.votes?.win_pct))
+        if (dir == "WAIT" && score <= 0f) return@forEach
+        val liq = s.liquidity
+        merged[key] = LiveSignalInfo(
+            asset = s.asset.ifBlank { key },
+            direction = dir,
+            score = score,
+            tier = (s.chart_panel?.quality_tier ?: "").uppercase(Locale.US),
+            hasSweep = liq?.sweep_high == true || liq?.sweep_low == true,
+            hasFvg = liq?.fvg_bull == true || liq?.fvg_bear == true,
+            hasBos = liq?.bos_bull == true || liq?.bos_bear == true
+        )
+    }
+    scanner.forEach { sc ->
+        val key = liveSignalKey(sc.asset)
+        if (merged.containsKey(key)) return@forEach
+        val dir = sc.direction.uppercase(Locale.US)
+        val score = normalize01(sc.confidence)
+        if (dir == "WAIT" && score <= 0f) return@forEach
+        merged[key] = LiveSignalInfo(
+            asset = sc.asset.removeSuffix("m").removeSuffix("M"),
+            direction = dir,
+            score = score,
+            tier = "",
+            hasSweep = false,
+            hasFvg = false,
+            hasBos = false
+        )
+    }
+    return merged.values.sortedByDescending { it.score }
+}
+
+// Deployment-bucket equivalent for live signals: rejected tiers stay rejected,
+// strong tiers / high scores go primary, valid / mid scores secondary.
+private fun liveBucketOf(info: LiveSignalInfo): Char = when {
+    info.tier == "FILTERED" || info.tier == "LOW" || info.tier == "REJECTED" -> 'R'
+    info.tier == "ELITE" || info.tier == "STRONG" || info.score >= 0.70f -> 'P'
+    info.tier == "VALID" || info.score >= 0.45f -> 'S'
+    else -> 'R'
+}
+
+private fun isLiveLong(direction: String): Boolean {
+    val d = direction.uppercase(Locale.US)
+    return d == "LONG" || d == "BUY" || d == "BULLISH"
+}
+
+private fun isLiveShort(direction: String): Boolean {
+    val d = direction.uppercase(Locale.US)
+    return d == "SHORT" || d == "SELL" || d == "BEARISH"
+}
+
+private data class LiveTopSignal(
+    val asset: String,
+    val direction: String,
+    val label: String,
+    val score: Float
+)
+
+private fun liveSignalKey(raw: String): String = raw.uppercase(Locale.US)
+    .replace("/", "").replace("-", "").replace("_", "")
+    .replace(" ", "").replace(".", "").removeSuffix("M")
+
+// Fallback ranking from data the phone actually receives: live EA write-ups
+// first, then MT5 scanner signals. Skips WAIT/empty entries.
+private fun buildLiveTopSignals(
+    writeups: Map<String, com.asc.markets.data.ASCSignalData>,
+    scanner: List<com.asc.markets.data.ScannerSignal>
+): List<LiveTopSignal> {
+    val merged = linkedMapOf<String, LiveTopSignal>()
+    writeups.forEach { (key, s) ->
+        val dir = s.direction.uppercase(Locale.US)
+        val score = maxOf(normalize01(s.confidence), normalize01(s.chart_panel?.votes?.win_pct))
+        if (dir == "WAIT" && score <= 0f) return@forEach
+        val label = s.chart_panel?.quality_tier?.takeIf { it.isNotBlank() && !it.equals("NONE", true) }
+            ?: s.regime?.state?.takeIf { it.isNotBlank() && !it.equals("UNKNOWN", true) }
+            ?: "EA write-up"
+        merged[key] = LiveTopSignal(
+            asset = s.asset.ifBlank { key },
+            direction = dir,
+            label = label.replace("_", " "),
+            score = score
+        )
+    }
+    scanner.forEach { sc ->
+        val key = liveSignalKey(sc.asset)
+        if (merged.containsKey(key)) return@forEach
+        val dir = sc.direction.uppercase(Locale.US)
+        val score = normalize01(sc.confidence)
+        if (dir == "WAIT" && score <= 0f) return@forEach
+        merged[key] = LiveTopSignal(
+            asset = sc.asset.removeSuffix("m").removeSuffix("M"),
+            direction = dir,
+            label = "P ${percentText(score)} • ${sc.age}s ago",
+            score = score
+        )
+    }
+    return merged.values.sortedByDescending { it.score }.take(5)
+}
+
 @Composable
-private fun SignalStrengthMiniChart(score: Float, color: Color, modifier: Modifier = Modifier) {
-    val clamped = score.coerceIn(0f, 1f)
+private fun CompactLiveSignalsWidget(signals: List<LiveTopSignal>, viewModel: ForexViewModel) {
+    InfoBox(minHeight = 188.dp) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("TOP AI SIGNALS", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                    Text("live EA write-ups + MT5 scanner", color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text("VIEW ALL", color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
+                    viewModel.navigateTo(com.asc.markets.data.AppView.TRADE_DASHBOARD)
+                })
+            }
+            if (signals.isEmpty()) {
+                Text("Scanning for tradeable signals...", color = Color.Gray, fontSize = 12.sp)
+            } else {
+                signals.forEachIndexed { index, signal ->
+                    LiveTopSignalRow(signal = signal, rank = index + 1)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveTopSignalRow(signal: LiveTopSignal, rank: Int) {
+    val bias = signal.direction.uppercase(Locale.US)
+    val color = when {
+        bias.contains("SHORT") || bias.contains("BEAR") || bias.contains("SELL") -> RoseError
+        bias.contains("LONG") || bias.contains("BULL") || bias.contains("BUY") -> EmeraldSuccess
+        else -> IndigoAccent
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White.copy(alpha = 0.035f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(24.dp).background(color.copy(alpha = 0.18f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(rank.toString(), color = color, fontSize = 10.sp, fontWeight = FontWeight.Black)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(signal.asset, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    Text(bias, color = color, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                }
+                Text(signal.label, color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            SignalStrengthMiniChart(score = signal.score, color = color, modifier = Modifier.width(72.dp).height(30.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(percentText(signal.score), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                Text("conf", color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SignalStrengthMiniChart(score: Float, color: Color, modifier: Modifier = Modifier) {    val clamped = score.coerceIn(0f, 1f)
     Canvas(modifier = modifier) {
         val bars = 7
         val gap = 3.dp.toPx()
@@ -1012,16 +1130,13 @@ private fun CompactMacroWidget(events: List<com.asc.markets.data.MacroEvent>, is
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("📊", fontSize = DashboardFontSizes.emojiIcon)
-                Text(
-                    "Raw Feed >",
-                    color = Color.White,
-                    fontSize = DashboardFontSizes.valueLarge,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = InterFontFamily
-                )
-            }
+            Text(
+                "Upcoming Events",
+                color = Color.White,
+                fontSize = DashboardFontSizes.valueLarge,
+                fontWeight = FontWeight.Black,
+                fontFamily = InterFontFamily
+            )
             BackendStatusPill(isConnected)
         }
         if (events.isEmpty()) {
@@ -1032,8 +1147,15 @@ private fun CompactMacroWidget(events: List<com.asc.markets.data.MacroEvent>, is
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
             )
         } else {
-            events.forEach { event ->
+            events.forEachIndexed { index, event ->
                 CommandCenterRawFeedRow(event)
+                if (index != events.lastIndex) {
+                    Divider(
+                        color = Color.White.copy(alpha = 0.06f),
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
             }
         }
     }
@@ -1041,15 +1163,14 @@ private fun CompactMacroWidget(events: List<com.asc.markets.data.MacroEvent>, is
 
 @Composable
 private fun BackendStatusPill(isConnected: Boolean?) {
-    val color = when (isConnected) {
+    val connected = isConnected ?: false
+    val color = when (connected) {
         true -> EmeraldSuccess
         false -> RoseError
-        null -> Color.Gray
     }
-    val label = when (isConnected) {
+    val label = when (connected) {
         true -> "CONNECTED"
         false -> "OFFLINE"
-        null -> "UNKNOWN"
     }
     Surface(
         color = color.copy(alpha = 0.12f),
@@ -1066,39 +1187,86 @@ private fun BackendStatusPill(isConnected: Boolean?) {
 
 @Composable
 private fun CommandCenterRawFeedRow(event: com.asc.markets.data.MacroEvent) {
-    val isCritical = event.priority == com.asc.markets.data.ImpactPriority.CRITICAL
-    Column(
+    // Severity color matches the calendar page: HIGH red, MEDIUM amber, LOW gray.
+    val sevColor = when (event.priority) {
+        com.asc.markets.data.ImpactPriority.CRITICAL -> Color(0xFFF23645)
+        com.asc.markets.data.ImpactPriority.HIGH -> Color(0xFFFFC857)
+        else -> Color(0xFF6B7280)
+    }
+    val hasAfp = event.actual.isNotBlank() || event.forecast.isNotBlank() || event.previous.isNotBlank()
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(if (hasAfp) 56.dp else 40.dp)
+                .background(sevColor, RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Box(
-                modifier = Modifier.size(18.dp).background(if (isCritical) RoseError.copy(alpha = 0.18f) else IndigoAccent.copy(alpha = 0.18f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(modifier = Modifier.size(7.dp).background(if (isCritical) RoseError else IndigoAccent, CircleShape))
+                Text(
+                    text = SimpleDateFormat("HH:mm", Locale.US).format(Date(event.datetimeUtc)),
+                    color = Color(0xFF8B8B8B),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                if (event.currency.isNotBlank()) {
+                    Text(
+                        text = event.currency.uppercase(Locale.US),
+                        color = sevColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
             }
             Text(
-                text = SimpleDateFormat("HH:mm", Locale.US).format(Date(event.datetimeUtc)),
-                color = Color(0xFF8B8B8B),
-                fontSize = DashboardFontSizes.labelMedium,
-                fontWeight = FontWeight.Medium
+                text = event.title,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = InterFontFamily,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
+            if (hasAfp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AfpMini("ACT", event.actual)
+                    AfpMini("FCST", event.forecast)
+                    AfpMini("PREV", event.previous)
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+    }
+}
+
+@Composable
+private fun AfpMini(label: String, value: String) {
+    Column {
         Text(
-            text = event.title,
-            color = Color.White,
-            fontSize = DashboardFontSizes.valueMediumLarge,
+            text = value.ifBlank { "--" },
+            color = Color(0xFFE8EAED),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 24.sp,
-            fontFamily = InterFontFamily,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis
+            maxLines = 1
+        )
+        Text(
+            text = label,
+            color = Color(0xFF8D95A5),
+            fontSize = 9.sp
         )
     }
 }
@@ -1107,7 +1275,7 @@ private fun CommandCenterRawFeedRow(event: com.asc.markets.data.MacroEvent) {
 private fun ExecutionQueueWidget(modifier: Modifier, ready: Int, blocked: Int, nextSignal: String) {
     val total = (ready + blocked).coerceAtLeast(1)
     val readyShare = ready.toFloat() / total.toFloat()
-    InfoBox(modifier = modifier, height = 124.dp) {
+    InfoBox(modifier = modifier, minHeight = 124.dp) {
         Row(modifier = Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QueueDonut(readyShare = readyShare, modifier = Modifier.size(58.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -1182,7 +1350,7 @@ private fun RiskSummaryWidget(modifier: Modifier, longCount: Int, shortCount: In
         "SHORT BIAS" -> RoseError
         else -> IndigoAccent
     }
-    InfoBox(modifier = modifier, height = 124.dp) {
+    InfoBox(modifier = modifier, minHeight = 124.dp) {
         Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
@@ -1242,7 +1410,8 @@ private fun HealthTelemetryWidget(
     isLoading: Boolean,
     macroCount: Int,
     unreadAlerts: Int,
-    auditCount: Int
+    auditCount: Int,
+    auditCaption: String = "journal trail"
 ) {
     val statusText = when {
         isLoading -> "RUN"
@@ -1268,7 +1437,7 @@ private fun HealthTelemetryWidget(
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TelemetryStatusCard("ALERTS", unreadAlerts.toString(), if (unreadAlerts > 0) "attention" else "clear", if (unreadAlerts > 0) 0.75f else 0.18f, if (unreadAlerts > 0) Color(0xFFF59E0B) else EmeraldSuccess, Modifier.weight(1f))
-                TelemetryStatusCard("AUDIT", auditCount.toString(), "journal trail", (auditCount / 20f).coerceIn(0.10f, 1f), Color.White, Modifier.weight(1f))
+                TelemetryStatusCard("AUDIT", auditCount.toString(), auditCaption, (auditCount / 20f).coerceIn(0.10f, 1f), Color.White, Modifier.weight(1f))
             }
         }
     }
@@ -1322,28 +1491,6 @@ private fun MiniTelemetryRing(progress: Float, color: Color, modifier: Modifier 
     }
 }
 
-@Composable
-private fun QuickActionsWidget(viewModel: ForexViewModel, isLoading: Boolean) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActionButton(if (isLoading) "RUNNING..." else "RUN PIPELINE", Icons.Default.PlayArrow, Modifier.weight(1f)) {
-                if (!isLoading) viewModel.runAiPipelineNow()
-            }
-            ActionButton("REFRESH", Icons.Default.Refresh, Modifier.weight(1f)) {
-                if (!isLoading) viewModel.refreshAiDeploymentsNow()
-            }
-            ActionButton("HEALTH", Icons.Default.Wifi, Modifier.weight(1f)) {
-                if (!isLoading) viewModel.checkAiHealthNow()
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LinkButton("JOURNAL", Modifier.weight(1f)) { viewModel.navigateTo(com.asc.markets.data.AppView.TRADE) }
-            LinkButton("SETTINGS", Modifier.weight(1f)) { viewModel.navigateTo(com.asc.markets.data.AppView.SETTINGS) }
-            LinkButton("AI CHAT", Modifier.weight(1f)) { viewModel.navigateTo(com.asc.markets.data.AppView.CHAT) }
-        }
-    }
-}
-
 private fun deploymentWeight(signal: FinalDecisionItem): Int {
     val label = signal.portfolio_decision_label?.uppercase(Locale.US) ?: ""
     val bucket = signal.portfolio_deployment_bucket?.uppercase(Locale.US) ?: ""
@@ -1358,37 +1505,129 @@ private fun deploymentWeight(signal: FinalDecisionItem): Int {
 
 @Composable
 private fun LiquidityRadarWidget(signals: List<FinalDecisionItem>) {
-    // Identify assets with sweep or displacement signals from the NEW_ASC logic
-    val highPriorityAssets = signals.filter { 
-        val reason = it.portfolio_decision_reason?.uppercase() ?: ""
-        reason.contains("SWEEP") || reason.contains("DISPLACEMENT") || reason.contains("CHOCH") || reason.contains("BOS")
-    }.take(4)
+    // EA + AI combined: join EA live assets with AI sweep/displacement signals, ranked by EA confidence + AI score
+    val eaAssets by com.asc.markets.data.EALiveDataStore.liveAssets.collectAsState()
+    val eaBySymbol = remember(eaAssets) { eaAssets.associateBy { it.symbol.uppercase() } }
+
+    // High-priority AI signals (sweep/displacement/choch/bos)
+    val highPriorityAi = remember(signals) {
+        signals.filter {
+            val reason = it.portfolio_decision_reason?.uppercase() ?: ""
+            reason.contains("SWEEP") || reason.contains("DISPLACEMENT") || reason.contains("CHOCH") || reason.contains("BOS")
+        }
+    }
+
+    // Merged EA+AI list: prefer assets that have both EA live data and AI signal, rank by combined score
+    val merged = remember(highPriorityAi, eaBySymbol) {
+        // Start from AI high-priority, enrich with EA; if AI empty, fall back to top EA by confidence
+        val fromAi = highPriorityAi.mapNotNull { s ->
+            val ea = eaBySymbol[s.asset_1?.uppercase() ?: ""]
+            // Combined score: AI journal_score (0-100) + EA confidence (0-1*100)
+            val aiScore = (s.journal_score ?: 0.0)
+            val eaScore = (ea?.eaAi?.confidence ?: 0.0) * 100
+            val combined = maxOf(aiScore, eaScore)
+            // Keep only if either side signals sweep/displacement or EA confidence meaningful
+            if (combined > 0) s to combined else null
+        }.sortedByDescending { it.second }.map { it.first }
+
+        if (fromAi.isNotEmpty()) fromAi.take(4)
+        else {
+            // No AI sweep signals: show top EA assets by confidence that have a direction
+            val topEaSignals = eaAssets
+                .filter { (it.eaAi?.confidence ?: 0.0) > 0.0 && (it.eaAi?.direction ?: "WAIT") != "WAIT" }
+                .sortedByDescending { it.eaAi?.confidence ?: 0.0 }
+                .take(4)
+            // Map EA to synthetic signal-like items for card display (keep signal type for card color)
+            topEaSignals.mapNotNull { ea ->
+                signals.find { it.asset_1?.equals(ea.symbol, true) == true }
+                    ?: signals.firstOrNull()
+            }.takeIf { it.isNotEmpty() } ?: emptyList()
+        }
+    }
+
+    val eaConnected by com.asc.markets.data.EALiveDataStore.isConnected.collectAsState()
+
+    // Live fallback: when the deployments backend yields nothing, radar the live
+    // EA liquidity flags (sweep/FVG/BOS) + top live scores instead of staying empty.
+    val wuRadar by com.asc.markets.data.EASignalLiveStore.signalsByAsset.collectAsState()
+    val scRadar by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+    val liveRadarCards = remember(wuRadar, scRadar, signals) {
+        if (signals.isNotEmpty()) emptyList()
+        else {
+            val infos = buildLiveSignalInfos(wuRadar, scRadar)
+            val flagged = infos.filter { it.hasSweep || it.hasFvg || it.hasBos }
+            (flagged + infos.filterNot { flagged.contains(it) }).take(4)
+        }
+    }
 
     InfoBox(minHeight = 160.dp) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("LIQUIDITY RADAR", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                    Text("Pre-move liquidity sweeps & displacement", color = SlateText, fontSize = 10.sp)
+                    Text(if (eaConnected) "EA live + AI deployments" else "AI deployments (EA offline)", color = SlateText, fontSize = 10.sp)
                 }
-                Surface(
-                    color = EmeraldSuccess.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text("DETERMINISTIC", color = EmeraldSuccess, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                Surface(color = (if (eaConnected) EmeraldSuccess else SlateText).copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
+                    Text(if (eaConnected) "EA + AI" else "AI ONLY", color = if (eaConnected) EmeraldSuccess else SlateText, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                 }
             }
 
-            if (highPriorityAssets.isEmpty()) {
+            if (merged.isEmpty() && liveRadarCards.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
-                    Text("No high-probability liquidity sweeps detected.", color = SlateText, fontSize = 11.sp)
+                    Text(if (eaConnected) "No EA/AI sweep signals at this time." else "Awaiting EA stream — showing AI when available.", color = SlateText, fontSize = 11.sp)
                 }
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    highPriorityAssets.forEach { signal ->
-                        LiquidityAssetCard(signal, Modifier.weight(1f))
+                    if (merged.isNotEmpty()) {
+                        merged.forEach { signal ->
+                            LiquidityAssetCard(signal, Modifier.weight(1f))
+                        }
+                    } else {
+                        liveRadarCards.forEach { info ->
+                            LiveLiquidityAssetCard(info, Modifier.weight(1f))
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveLiquidityAssetCard(info: LiveSignalInfo, modifier: Modifier = Modifier) {
+    val typeLabel = when {
+        info.hasSweep -> "SWEEP"
+        info.hasBos -> "DISPLACE"
+        info.hasFvg -> "FVG"
+        else -> "GAP"
+    }
+    val accent = when {
+        info.hasSweep -> RoseError
+        info.hasBos -> EmeraldSuccess
+        info.hasFvg -> Color(0xFF60A5FA)
+        else -> IndigoAccent
+    }
+    Surface(
+        modifier = modifier,
+        color = Color.White.copy(alpha = 0.035f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+    ) {
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(info.asset, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1)
+            Surface(
+                color = accent.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(3.dp)
+            ) {
+                Text(typeLabel, color = accent, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+            }
+            Box(modifier = Modifier.fillMaxWidth().height(3.dp).background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(2.dp))) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(info.score.coerceIn(0.2f, 1f))
+                        .fillMaxHeight()
+                        .background(accent, RoundedCornerShape(2.dp))
+                )
             }
         }
     }
@@ -1483,15 +1722,7 @@ private fun volumeText(value: Double?): String {
     return value?.let { String.format(Locale.US, "%,.4f", it) } ?: "WAITING"
 }
 
-private fun equityMeter(snapshot: PaperTradingAccountSnapshot): Float {
-    val baseline = kotlin.math.abs(snapshot.balance).coerceAtLeast(1.0)
-    return (snapshot.equity / baseline).toFloat().coerceIn(0.04f, 1f)
-}
 
-private fun freeMarginMeter(snapshot: PaperTradingAccountSnapshot): Float {
-    val baseline = kotlin.math.abs(snapshot.equity).coerceAtLeast(1.0)
-    return (snapshot.freeMargin / baseline).toFloat().coerceIn(0.04f, 1f)
-}
 
 private fun formatMillisTime(value: Long): String {
     return if (value > 0L) SimpleDateFormat("HH:mm", Locale.US).format(Date(value)) else "N/A"
@@ -1534,15 +1765,146 @@ private fun ActionButton(text: String, icon: ImageVector, modifier: Modifier, on
 }
 
 @Composable
-private fun LinkButton(text: String, modifier: Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier.height(32.dp).clickable { onClick() },
-        color = Color.Transparent,
-        shape = RoundedCornerShape(4.dp),
-        border = BorderStroke(1.dp, Color.White.copy(0.05f))
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(text, color = SlateText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+private fun EaAiSummaryPanel(viewModel: ForexViewModel) {
+    val eaAssets by com.asc.markets.data.EALiveDataStore.liveAssets.collectAsState()
+    val eaConnected by com.asc.markets.data.EALiveDataStore.isConnected.collectAsState()
+    val simResult by viewModel.simulationResult.collectAsState()
+    val deployments by viewModel.aiDeployments.collectAsState()
+    val aiCount = deployments?.final_decision?.size ?: 0
+    // Live fallback when the deployments backend is unreachable.
+    val wuPanel by com.asc.markets.data.EASignalLiveStore.signalsByAsset.collectAsState()
+    val scPanel by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+    val livePanelInfos = remember(wuPanel, scPanel, deployments) {
+        if (deployments != null) emptyList() else buildLiveSignalInfos(wuPanel, scPanel)
+    }
+    val livePanelTop = livePanelInfos.firstOrNull()
+    val aiDisplayCount = if (aiCount > 0) aiCount else livePanelInfos.size
+    InfoBox(minHeight = 110.dp) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("EA + AI LIVE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    DotLabel(if (eaConnected) "EA LIVE" else "EA OFFLINE", if (eaConnected) EmeraldSuccess else RoseError)
+                    DotLabel(
+                        if (aiCount > 0) "AI $aiCount" else if (livePanelTop != null) "AI $aiDisplayCount" else "AI idle",
+                        if (aiCount > 0 || livePanelTop != null) IndigoAccent else SlateText
+                    )
+                }
+            }
+            if (eaAssets.isEmpty() && aiCount == 0 && livePanelTop == null) {
+                Text("No live EA assets or AI deployments yet.", color = SlateText, fontSize = 11.sp)
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("EA Assets", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("${eaAssets.size} streaming", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        Text(eaAssets.take(3).joinToString(", ") { it.symbol }.ifEmpty { "—" }, color = SlateText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                        Text("Last AI Signal", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        val top = deployments?.final_decision?.maxByOrNull { it.journal_score ?: 0.0 }
+                        Text(top?.asset_1 ?: livePanelTop?.asset ?: "—", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                        if (simResult != null) Text("${((simResult!!.winProbability ?: 0.0) * 100).toInt()}% win prob", color = EmeraldSuccess, fontSize = 10.sp)
+                        else if (livePanelTop != null) Text("${(livePanelTop.score * 100).toInt()}% conf", color = EmeraldSuccess, fontSize = 10.sp)
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun EaAiLiveSummaryWidget(signals: List<com.asc.markets.data.remote.FinalDecisionItem>, leadSignal: com.asc.markets.data.remote.FinalDecisionItem?, viewModel: ForexViewModel) {
+    val eaAssets by com.asc.markets.data.EALiveDataStore.liveAssets.collectAsState()
+    val eaWriteups by com.asc.markets.data.EASignalLiveStore.signalsByAsset.collectAsState()
+    val scannerSignals by com.asc.markets.data.ScannerSignalsStore.signals.collectAsState()
+    // The live feed's ea_ai block is WAIT/0 until the MT5 EA writes per-asset AI
+    // values, so resolve each asset from the live EA write-up first, then the
+    // AI scanner, and only then fall back to the feed value.
+    fun resolveDirection(symbol: String, feedDir: String?): String {
+        if (!feedDir.isNullOrBlank() && !feedDir.equals("WAIT", true)) return feedDir.uppercase(java.util.Locale.US)
+        val key = symbol.uppercase(java.util.Locale.US)
+            .replace("/", "").replace("-", "").replace("_", "")
+            .replace(" ", "").replace(".", "").removeSuffix("M")
+        eaWriteups[key]?.direction?.takeIf { it.isNotBlank() && !it.equals("WAIT", true) }?.let {
+            return it.uppercase(java.util.Locale.US)
+        }
+        scannerSignals.firstOrNull {
+            it.asset.uppercase(java.util.Locale.US).replace("/", "").removeSuffix("M") == key
+        }?.direction?.takeIf { it.isNotBlank() && !it.equals("WAIT", true) }?.let {
+            return it.uppercase(java.util.Locale.US)
+        }
+        return "WAIT"
+    }
+    fun resolveConfidence(symbol: String, feedConf: Double?): Int {
+        if ((feedConf ?: 0.0) > 0.0) return ((feedConf ?: 0.0) * 100).toInt().coerceIn(0, 100)
+        val key = symbol.uppercase(java.util.Locale.US)
+            .replace("/", "").replace("-", "").replace("_", "")
+            .replace(" ", "").replace(".", "").removeSuffix("M")
+        eaWriteups[key]?.confidence?.takeIf { it > 0.0 }?.let {
+            return (it * 100).toInt().coerceIn(0, 100)
+        }
+        scannerSignals.firstOrNull {
+            it.asset.uppercase(java.util.Locale.US).replace("/", "").removeSuffix("M") == key
+        }?.confidence?.takeIf { it > 0.0 }?.let {
+            // Scanner confidence may be 0-1 or already 0-100.
+            return if (it > 1.0) it.toInt().coerceIn(0, 100) else (it * 100).toInt().coerceIn(0, 100)
+        }
+        return 0
+    }
+    InfoBox(minHeight = 220.dp) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("EA + AI SUMMARY", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+            if (eaAssets.isEmpty() && signals.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                    Text("Awaiting EA stream and AI deployments", color = SlateText, fontSize = 11.sp)
+                }
+            } else {
+                // EA top assets — rank by live signal (non-WAIT first, then confidence),
+                // not feed order, so the box doesn't stick on the first 4 symbols.
+                if (eaAssets.isNotEmpty()) {
+                    Text("EA Live — Top assets", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    val ranked = remember(eaAssets, eaWriteups, scannerSignals) {
+                        eaAssets.map { asset ->
+                            Triple(
+                                asset,
+                                resolveDirection(asset.symbol, asset.eaAi?.direction),
+                                resolveConfidence(asset.symbol, asset.eaAi?.confidence)
+                            )
+                        }.sortedWith(
+                            compareByDescending<Triple<com.asc.markets.data.EAAssetData, String, Int>> { it.second != "WAIT" }
+                                .thenByDescending { it.third }
+                        ).take(4)
+                    }
+                    ranked.forEach { (asset, dir, conf) ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(asset.symbol, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(dir, color = when (dir) { "BUY", "LONG" -> EmeraldSuccess; "SELL", "SHORT" -> RoseError; else -> SlateText }, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Text("$conf%", color = Color.White, fontSize = 11.sp)
+                        }
+                    }
+                    }
+                // AI deployments
+                if (signals.isNotEmpty()) {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                    Text("AI Deployments — ${signals.size}", color = SlateText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    signals.take(3).forEach { s ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(s.asset_1 ?: "—", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            Text(s.journal_direction ?: "—", color = SlateText, fontSize = 11.sp)
+                            Text("${(s.journal_score ?: 0.0).toInt()}%", color = IndigoAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DotLabel(text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
+        Text(text, color = color, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
 }

@@ -9,6 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,9 +22,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 
 @Composable
 fun ManualTradeModal(onDismiss: () -> Unit, accentColor: Color) {
+    var selectedSide by remember { mutableStateOf("BUY") }
+    
+    // Auto-dismiss after 1 minute
+    LaunchedEffect(Unit) {
+        delay(60000L) // 1 minute
+        onDismiss()
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
@@ -112,25 +126,25 @@ fun ManualTradeModal(onDismiss: () -> Unit, accentColor: Color) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Surface(
-                        onClick = { },
+                        onClick = { selectedSide = "BUY" },
                         modifier = Modifier.weight(1f).height(48.dp),
-                        color = accentColor.copy(alpha = 0.15f),
+                        color = if (selectedSide == "BUY") accentColor.copy(alpha = 0.15f) else Color.Transparent,
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, accentColor)
+                        border = BorderStroke(1.dp, if (selectedSide == "BUY") accentColor else Color(0xFF1C1C1E))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("BUY", color = accentColor, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.sp)
+                            Text("BUY", color = if (selectedSide == "BUY") accentColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.sp)
                         }
                     }
                     Surface(
-                        onClick = { },
+                        onClick = { selectedSide = "SELL" },
                         modifier = Modifier.weight(1f).height(48.dp),
-                        color = Color.Transparent,
+                        color = if (selectedSide == "SELL") accentColor.copy(alpha = 0.15f) else Color.Transparent,
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFF1C1C1E))
+                        border = BorderStroke(1.dp, if (selectedSide == "SELL") accentColor else Color(0xFF1C1C1E))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("SELL", color = Color.Gray, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.sp)
+                            Text("SELL", color = if (selectedSide == "SELL") accentColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.sp)
                         }
                     }
                 }
@@ -146,7 +160,11 @@ fun ManualTradeModal(onDismiss: () -> Unit, accentColor: Color) {
 
                 // Execute Button
                 Button(
-                    onClick = onDismiss,
+                    onClick = {
+                        // Execute trade based on selected side
+                        // TODO: Add actual trade execution logic here
+                        onDismiss()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -155,7 +173,7 @@ fun ManualTradeModal(onDismiss: () -> Unit, accentColor: Color) {
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                 ) {
                     Text(
-                        "OPEN SIMULATED POSITION",
+                        "OPEN ${selectedSide} POSITION",
                         color = Color.Black,
                         fontWeight = FontWeight.Black,
                         fontSize = 13.sp,
