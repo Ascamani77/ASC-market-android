@@ -36,7 +36,7 @@ If the OAuth flow doesn't work, you can contact Pepperstone support to get a dem
 - Phone: Check their website for your region
 
 **What to say:**
-> "I need a demo access token for my cTrader Open API application. My Client ID is 27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s and my demo account ID is 47340965. The OAuth portal is not accessible."
+> "I need a demo access token for my cTrader Open API application. My Client ID is YOUR_CTRADER_CLIENT_ID and my demo account ID is 47340965. The OAuth portal is not accessible."
 
 They should be able to generate a token for you.
 
@@ -65,7 +65,7 @@ If you're comfortable with manual steps:
 
 Open this URL in your browser:
 ```
-https://id.ctrader.com/my/settings/openapi/grantingaccess/?client_id=27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s&redirect_uri=http://localhost:8080/callback&scope=trading&product=web
+https://id.ctrader.com/my/settings/openapi/grantingaccess/?client_id=YOUR_CTRADER_CLIENT_ID&redirect_uri=http://localhost:8080/callback&scope=trading&product=web
 ```
 
 **Important:** Sign in with **DEMO credentials**!
@@ -83,8 +83,8 @@ Run this PowerShell command (replace `YOUR_CODE`):
 
 ```powershell
 $code = "YOUR_CODE"
-$clientId = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
-$clientSecret = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
+$clientId = "YOUR_CTRADER_CLIENT_ID"
+$clientSecret = "YOUR_CTRADER_CLIENT_SECRET"
 $redirectUri = "http://localhost:8080/callback"
 
 $tokenUrl = "https://openapi.ctrader.com/apps/token?grant_type=authorization_code&code=$code&redirect_uri=$([System.Uri]::EscapeDataString($redirectUri))&client_id=$clientId&client_secret=$clientSecret"

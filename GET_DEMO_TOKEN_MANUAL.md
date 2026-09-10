@@ -4,8 +4,8 @@
 - **Account ID (ctidTraderAccountId)**: `47340965`
 - **Account Number (display)**: `5288664`
 - **Balance**: $50,000 (demo)
-- **Client ID**: `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
-- **Client Secret**: `loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty`
+- **Client ID**: `YOUR_CTRADER_CLIENT_ID`
+- **Client Secret**: `YOUR_CTRADER_CLIENT_SECRET`
 
 ## Method 1: OAuth2 Flow (Recommended)
 
@@ -92,7 +92,7 @@ If you're comfortable with manual API calls:
 
 Open this URL in your browser (replace REDIRECT_URI):
 ```
-https://id.ctrader.com/my/settings/openapi/grantingaccess/?client_id=27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s&redirect_uri=YOUR_REDIRECT_URI&scope=trading&product=web
+https://id.ctrader.com/my/settings/openapi/grantingaccess/?client_id=YOUR_CTRADER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=trading&product=web
 ```
 
 Sign in with **DEMO credentials** and authorize. You'll be redirected to:
@@ -108,8 +108,8 @@ Run this PowerShell command (replace CODE and REDIRECT_URI):
 ```powershell
 $code = "YOUR_AUTHORIZATION_CODE"
 $redirectUri = "YOUR_REDIRECT_URI"
-$clientId = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
-$clientSecret = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
+$clientId = "YOUR_CTRADER_CLIENT_ID"
+$clientSecret = "YOUR_CTRADER_CLIENT_SECRET"
 
 $tokenUrl = "https://openapi.ctrader.com/apps/token?grant_type=authorization_code&code=$code&redirect_uri=$([System.Uri]::EscapeDataString($redirectUri))&client_id=$clientId&client_secret=$clientSecret"
 

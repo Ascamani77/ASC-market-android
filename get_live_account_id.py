@@ -9,8 +9,8 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import *
 from twisted.internet import reactor
 
 # Credentials
-CLIENT_ID = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
-CLIENT_SECRET = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
+CLIENT_ID = os.environ.get("CTRADER_CLIENT_ID", "")
+CLIENT_SECRET = os.environ.get("CTRADER_CLIENT_SECRET", "")
 
 # Try to load token from the new live token file
 try:

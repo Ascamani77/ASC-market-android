@@ -7,8 +7,8 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Load credentials
-$CLIENT_ID = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
-$CLIENT_SECRET = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
+$CLIENT_ID = "$env:CTRADER_CLIENT_ID"
+$CLIENT_SECRET = "$env:CTRADER_CLIENT_SECRET"
 
 # Load token from file
 $tokenFile = ".\ctrader_tokens.json"

@@ -121,8 +121,8 @@ As a temporary workaround:
 
 ### Current Configuration
 ```
-Client ID: 27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s
-Client Secret: loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty
+Client ID: YOUR_CTRADER_CLIENT_ID
+Client Secret: YOUR_CTRADER_CLIENT_SECRET
 Access Token: mW5eKJ0xZygSj4BnNvqlteOc_opHJ0EM9Qtcx8RvOfo
 Account ID (visible): 5288664
 Account ID (API): 47340965

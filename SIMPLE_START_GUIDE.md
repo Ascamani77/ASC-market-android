@@ -96,7 +96,7 @@ docker-compose -f docker-compose.ctrader.yml down
 No Podman needed. No long downloads. Just Docker working as it should.
 
 Your credentials are already configured in `docker-compose.ctrader.yml`:
-- Client ID: `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
+- Client ID: `YOUR_CTRADER_CLIENT_ID`
 - Account ID: `47341092`
 
 ---

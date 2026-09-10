@@ -38,8 +38,8 @@ docker run -d \
   --name ctrader-bridge-live \
   --network asc-network \
   -p 8082:8082 \
-  -e CLIENT_ID="27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s" \
-  -e CLIENT_SECRET="loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty" \
+  -e CLIENT_ID="YOUR_CTRADER_CLIENT_ID" \
+  -e CLIENT_SECRET="YOUR_CTRADER_CLIENT_SECRET" \
   -e ACCESS_TOKEN="YOUR_LIVE_TOKEN_HERE" \
   -e ACCOUNT_ID="47341092" \
   myrealapp-ctrader-bridge:latest

@@ -24,7 +24,7 @@ Hello Pepperstone Support,
 I need a demo access token for my cTrader Open API application.
 
 Application Details:
-- Client ID: 27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s
+- Client ID: YOUR_CTRADER_CLIENT_ID
 - Demo Account ID: 47340965
 - Demo Account Number: 5288664
 
@@ -152,8 +152,8 @@ This is a temporary issue with cTrader's infrastructure, not your setup.
 - Balance: $50,000 (demo)
 
 **Application**:
-- Client ID: `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
-- Client Secret: `loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty`
+- Client ID: `YOUR_CTRADER_CLIENT_ID`
+- Client Secret: `YOUR_CTRADER_CLIENT_SECRET`
 
 **Bridge**:
 - Port: `8083`

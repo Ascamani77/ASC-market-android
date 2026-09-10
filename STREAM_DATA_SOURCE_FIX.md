@@ -26,8 +26,8 @@ LaunchedEffect(Unit) {
 
 ### 2. cTrader Bridge Client ID Typo ✅ FIXED
 **Issue**: The PowerShell startup script had a typo in the CLIENT_ID:
-- Correct (from local.properties): `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nlO4hK6YaP0aBiY31q86s`
-- Wrong (in script): `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
+- Correct (from local.properties): `YOUR_CTRADER_CLIENT_ID`
+- Wrong (in script): `YOUR_CTRADER_CLIENT_ID`
 - Difference: `6nlO` (lowercase L) vs `6nIO` (uppercase i)
 
 **Fix Applied**: Corrected the CLIENT_ID in `start_ctrader_bridge.ps1` and added the REFRESH_TOKEN.
@@ -44,8 +44,8 @@ description: "wrong random id"
 **Current Status**: 
 - Bridge script exists at `MyRealApp/ctrader_bridge.py`
 - Credentials are configured in `local.properties`:
-  - `CTRADER_CLIENT_ID=27391_QneKEbL8qea5t4JDIT721RmcOd5i6nlO4hK6YaP0aBiY31q86s`
-  - `CTRADER_CLIENT_SECRET=loPssicrvxYshWozrxgGFL40yAxrZPPlBzUYBmC67cxHAKbjty`
+  - `CTRADER_CLIENT_ID=YOUR_CTRADER_CLIENT_ID`
+  - `CTRADER_CLIENT_SECRET=YOUR_CTRADER_CLIENT_SECRET`
   - `CTRADER_ACCESS_TOKEN=sfV4Gls2KooxFKKpsqaUpboQswkPBz65DddPOZkLX-E`
   - `CTRADER_REFRESH_TOKEN=O0QYC0A8aH4SH5JLfliBnj7w2K_MWJet4v9ZEpHv0mM`
   - `CTRADER_HOST_TYPE=demo`

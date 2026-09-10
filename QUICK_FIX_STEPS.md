@@ -127,7 +127,7 @@ If you've tried all steps and still get CANT_ROUTE_REQUEST:
 
 ### Current Configuration
 ```
-Client ID: 27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s
+Client ID: YOUR_CTRADER_CLIENT_ID
 Access Token: mW5eKJ0xZygSj4BnNvqlteOc_opHJ0EM9Qtcx8RvOfo
 Account (visible): 5288664
 Account (API): 47340965

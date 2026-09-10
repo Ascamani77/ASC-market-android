@@ -16,8 +16,8 @@ from OpenApiModelMessages_pb2 import *
 with open('ctrader_tokens.json', 'r') as f:
     token_data = json.load(f)
 
-CLIENT_ID = "27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s"
-CLIENT_SECRET = "loPssicrvxYshWozrxgGFL40yAxrZPPIBzUYBmC67cxHAKbjty"
+CLIENT_ID = os.environ.get("CTRADER_CLIENT_ID", "")
+CLIENT_SECRET = os.environ.get("CTRADER_CLIENT_SECRET", "")
 ACCESS_TOKEN = token_data['accessToken']
 
 print("=" * 60)

@@ -26,7 +26,7 @@ Sign in with your **DEMO** credentials.
 ### Step 2: Find Your Application
 
 Look for your application with:
-- **Client ID**: `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
+- **Client ID**: `YOUR_CTRADER_CLIENT_ID`
 
 ### Step 3: Add Redirect URI
 

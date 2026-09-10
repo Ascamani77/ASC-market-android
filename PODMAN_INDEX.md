@@ -283,7 +283,7 @@ cd C:\Users\HP\Documents\NEW_ASC
 - Redis (port 6379)
 
 **Your credentials** (already configured):
-- Live Client ID: `27391_QneKEbL8qea5t4JDIT721RmcOd5i6nIO4hK6YaP0aBiY31q86s`
+- Live Client ID: `YOUR_CTRADER_CLIENT_ID`
 - Live Account ID: `47341092`
 
 **To update**: Edit file and run `podman restart <service>`
