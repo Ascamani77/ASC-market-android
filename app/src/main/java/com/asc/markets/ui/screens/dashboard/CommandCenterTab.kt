@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +38,7 @@ import com.asc.markets.ui.components.InfoBox
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 import com.asc.markets.ui.screens.dashboard.CurrencyStrengthPanel
@@ -120,7 +124,24 @@ fun CommandCenterTab(viewModel: ForexViewModel) {
     val topSignals = allSignals.sortedByDescending { it.journal_score ?: 0.0 }.take(5)
     val leadSignal: FinalDecisionItem? = allSignals.maxByOrNull { it.journal_score ?: 0.0 }
     
+    val listState = rememberLazyListState()
+
+    // Collapse the Home/Signals/AI tabs + ASC MARKET header as this list scrolls.
+    // Quantized to ~5% steps so the shared header only recomposes ~20 times per
+    // full collapse instead of on every scroll frame (keeps scrolling buttery).
+    val collapseRange = 220f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            ((absoluteScroll / collapseRange).coerceIn(0f, 1f) * 20f).roundToInt() / 20f
+        }
+    }
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(bottom = 32.dp)
@@ -1530,13 +1551,13 @@ private fun LiquidityRadarWidget(signals: List<FinalDecisionItem>) {
             if (combined > 0) s to combined else null
         }.sortedByDescending { it.second }.map { it.first }
 
-        if (fromAi.isNotEmpty()) fromAi.take(4)
+        if (fromAi.isNotEmpty()) fromAi
         else {
-            // No AI sweep signals: show top EA assets by confidence that have a direction
+            // No AI sweep signals: show EA assets by confidence that have a direction.
+            // No cap — the row scrolls sideways when there are more than fit.
             val topEaSignals = eaAssets
                 .filter { (it.eaAi?.confidence ?: 0.0) > 0.0 && (it.eaAi?.direction ?: "WAIT") != "WAIT" }
                 .sortedByDescending { it.eaAi?.confidence ?: 0.0 }
-                .take(4)
             // Map EA to synthetic signal-like items for card display (keep signal type for card color)
             topEaSignals.mapNotNull { ea ->
                 signals.find { it.asset_1?.equals(ea.symbol, true) == true }
@@ -1556,7 +1577,7 @@ private fun LiquidityRadarWidget(signals: List<FinalDecisionItem>) {
         else {
             val infos = buildLiveSignalInfos(wuRadar, scRadar)
             val flagged = infos.filter { it.hasSweep || it.hasFvg || it.hasBos }
-            (flagged + infos.filterNot { flagged.contains(it) }).take(4)
+            flagged + infos.filterNot { flagged.contains(it) }
         }
     }
 
@@ -1577,14 +1598,19 @@ private fun LiquidityRadarWidget(signals: List<FinalDecisionItem>) {
                     Text(if (eaConnected) "No EA/AI sweep signals at this time." else "Awaiting EA stream — showing AI when available.", color = SlateText, fontSize = 11.sp)
                 }
             } else {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Horizontal rail: fixed-width cards — scrolls sideways when there
+                // are more assets than fit on screen.
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     if (merged.isNotEmpty()) {
-                        merged.forEach { signal ->
-                            LiquidityAssetCard(signal, Modifier.weight(1f))
+                        items(merged) { signal ->
+                            LiquidityAssetCard(signal, Modifier.width(140.dp))
                         }
                     } else {
-                        liveRadarCards.forEach { info ->
-                            LiveLiquidityAssetCard(info, Modifier.weight(1f))
+                        items(liveRadarCards) { info ->
+                            LiveLiquidityAssetCard(info, Modifier.width(140.dp))
                         }
                     }
                 }

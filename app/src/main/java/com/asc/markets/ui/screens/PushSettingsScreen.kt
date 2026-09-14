@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
@@ -24,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.asc.markets.notifications.AlertMonitorService
 import com.asc.markets.notifications.NotificationHelper
 import com.asc.markets.ui.theme.*
 import com.google.firebase.messaging.FirebaseMessaging
@@ -53,10 +56,16 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
     var vibration by remember { mutableStateOf(prefs.getBoolean("push_vibration_enabled", true)) }
     var showOnLockscreen by remember { mutableStateOf(prefs.getBoolean("push_lockscreen_enabled", true)) }
     var groupedNotifications by remember { mutableStateOf(prefs.getBoolean("push_grouped_notifications", true)) }
+    var runInBackground by remember { mutableStateOf(prefs.getBoolean("background_monitor_enabled", true)) }
     var cooldownMinutes by remember { mutableStateOf(prefs.getInt("push_cooldown_minutes", 10).coerceIn(1, 60)) }
     var maxAlertsPerHour by remember { mutableStateOf(prefs.getInt("push_max_alerts_per_hour", 8).coerceIn(1, 50)) }
     var fcmToken by remember { mutableStateOf(prefs.getString("fcm_token", null)) }
-
+    var mutedAssets by remember {
+        mutableStateOf<Set<String>>(
+            (prefs.getStringSet("muted_notification_symbols", emptySet()) ?: emptySet()).toSet()
+        )
+    }
+    var assetsExpanded by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -67,12 +76,30 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
         }
     }
 
+    val assetNames = remember(mutedAssets) {
+        val names = linkedSetOf<String>()
+        com.asc.markets.ui.screens.dashboard.marketOverviewAssets()
+            .forEach { names.add(it.symbol) }
+        mutedAssets.forEach { names.add(it) }
+        names.filter { it.isNotBlank() }
+            .sortedBy { NotificationHelper.normalizeSymbol(it) }
+    }
+
     fun saveBoolean(key: String, value: Boolean) {
         prefs.edit().putBoolean(key, value).apply()
     }
 
     fun saveInt(key: String, value: Int) {
         prefs.edit().putInt(key, value).apply()
+    }
+
+    fun toggleMute(asset: String) {
+        val key = NotificationHelper.normalizeSymbol(asset)
+        val updated = mutableSetOf<String>()
+        updated.addAll(mutedAssets)
+        if (!updated.add(key)) updated.remove(key)
+        mutedAssets = updated
+        prefs.edit().putStringSet("muted_notification_symbols", mutedAssets).apply()
     }
 
     Column(
@@ -155,6 +182,16 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
         Spacer(modifier = Modifier.height(14.dp))
 
         PushSettingsSection(title = "DELIVERY CONTROLS", icon = Icons.Default.Smartphone) {
+            PushToggleRow(
+                label = "Run in Background",
+                sub = "Keep listening for EA signals with the app closed (shows a persistent monitor notification)",
+                checked = runInBackground,
+                onCheckedChange = {
+                    runInBackground = it
+                    saveBoolean("background_monitor_enabled", it)
+                    if (it) AlertMonitorService.start(context) else AlertMonitorService.stop(context)
+                }
+            )
             PushToggleRow(
                 label = "Alert Sound",
                 sub = "Play an audible tone for allowed push categories",
@@ -255,6 +292,66 @@ fun PushSettingsScreen(viewModel: com.asc.markets.logic.ForexViewModel) {
                     Icon(Icons.Default.Refresh, null, tint = IndigoAccent, modifier = Modifier.size(15.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("REFRESH TOKEN", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        val assetNames = remember(mutedAssets) {
+            val names = linkedSetOf<String>()
+            com.asc.markets.ui.screens.dashboard.marketOverviewAssets()
+                .forEach { names.add(it.symbol) }
+            mutedAssets.forEach { names.add(it) }
+            names.filter { it.isNotBlank() }
+                .sortedBy { NotificationHelper.normalizeSymbol(it) }
+        }
+
+        PushSettingsSection(
+            title = if (mutedAssets.isEmpty()) "MUTED ASSETS" else "MUTED ASSETS (${mutedAssets.size})",
+            icon = Icons.Default.Shield
+        ) {
+            if (assetNames.isEmpty()) {
+                PushStatusRow("No assets", "Waiting for asset list…", SlateText)
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (mutedAssets.isEmpty()) "All ${assetNames.size} assets notify"
+                        else "${mutedAssets.size} of ${assetNames.size} assets muted",
+                        color = SlateText, fontSize = 10.sp, fontFamily = InterFontFamily
+                    )
+                    TextButton(
+                        onClick = { assetsExpanded = !assetsExpanded },
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Icon(
+                            if (assetsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            null, tint = IndigoAccent, modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            if (assetsExpanded) "COLLAPSE" else "EXPAND",
+                            color = IndigoAccent, fontSize = 10.sp, fontWeight = FontWeight.Black, fontFamily = InterFontFamily
+                        )
+                    }
+                }
+                if (assetsExpanded) {
+                    Text(
+                        "Turn off notifications per asset. Switch any asset off to silence its alerts.",
+                        color = SlateText, fontSize = 10.sp, lineHeight = 14.sp, fontFamily = InterFontFamily
+                    )
+                    assetNames.forEach { asset ->
+                        val key = NotificationHelper.normalizeSymbol(asset)
+                        PushToggleRow(
+                            label = asset,
+                            sub = if (key in mutedAssets) "Notifications muted" else "Notifications on",
+                            checked = key !in mutedAssets,
+                            onCheckedChange = { toggleMute(asset) }
+                        )
+                    }
                 }
             }
         }

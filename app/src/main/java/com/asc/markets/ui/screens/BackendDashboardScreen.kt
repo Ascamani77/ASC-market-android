@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -105,7 +106,7 @@ fun BackendDashboardScreen(
                         .background(Color.Black.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = LuminousBlue)
+                    AscRollingSpinner(color = LuminousBlue)
                 }
             }
 

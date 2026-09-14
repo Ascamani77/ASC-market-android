@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import android.content.Context
 import androidx.compose.foundation.background
@@ -358,7 +359,7 @@ private fun AiTestButton(label: String, isLoading: Boolean, onClick: () -> Unit)
     ) {
         Row(modifier = Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), color = IndigoAccent, strokeWidth = 2.dp)
+                AscRollingSpinner(modifier = Modifier.size(14.dp), color = IndigoAccent, strokeWidth = 2.dp)
             } else {
                 Icon(Icons.Default.WifiFind, contentDescription = null, tint = IndigoAccent, modifier = Modifier.size(14.dp))
             }

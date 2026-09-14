@@ -141,6 +141,7 @@ TIMEFRAME_MAP = {
 }
 
 HISTORY_CHUNK_SIZE = 1000
+HISTORY_FETCH_CHUNK = 250
 
 SYMBOL_ALIASES = {
     "SPX": ["US500m", "US500_x100m"],
@@ -998,6 +999,34 @@ def build_calendar_payload(selected_date):
     }
 
 
+def _rate_to_dict(rate):
+    tick_volume = 0.0
+    real_volume = 0.0
+    try:
+        tick_volume = float(rate["tick_volume"])
+    except Exception:
+        try:
+            tick_volume = float(rate[5])
+        except Exception:
+            tick_volume = 0.0
+    try:
+        real_volume = float(rate["real_volume"])
+    except Exception:
+        try:
+            real_volume = float(rate[7])
+        except Exception:
+            real_volume = 0.0
+
+    return {
+        "time": int(rate[0]),
+        "open": float(rate[1]),
+        "high": float(rate[2]),
+        "low": float(rate[3]),
+        "close": float(rate[4]),
+        "volume": real_volume if real_volume > 0 else tick_volume,
+    }
+
+
 def build_history_payload(symbol, timeframe, end_time=None, count=HISTORY_CHUNK_SIZE):
     # Ensure symbol is selected in Market Watch for history access
     resolved = resolve_symbol(symbol)
@@ -1025,35 +1054,7 @@ def build_history_payload(symbol, timeframe, end_time=None, count=HISTORY_CHUNK_
 
     print(f"History: {resolved} - retrieved {len(rates)} candles (requested {count})")
 
-    history = []
-    for rate in rates:
-        tick_volume = 0.0
-        real_volume = 0.0
-        try:
-            tick_volume = float(rate["tick_volume"])
-        except Exception:
-            try:
-                tick_volume = float(rate[5])
-            except Exception:
-                tick_volume = 0.0
-        try:
-            real_volume = float(rate["real_volume"])
-        except Exception:
-            try:
-                real_volume = float(rate[7])
-            except Exception:
-                real_volume = 0.0
-
-        history.append(
-            {
-                "time": int(rate[0]),
-                "open": float(rate[1]),
-                "high": float(rate[2]),
-                "low": float(rate[3]),
-                "close": float(rate[4]),
-                "volume": real_volume if real_volume > 0 else tick_volume,
-            }
-        )
+    history = [_rate_to_dict(rate) for rate in rates]
 
     return {
         "type": "history",
@@ -1334,11 +1335,52 @@ async def handle_client(websocket):
         return sorted(symbols)
 
     async def send_history(symbol, timeframe, end_time=None, count=HISTORY_CHUNK_SIZE):
-        payload = build_history_payload(symbol, timeframe, end_time, count)
-        if payload is None:
-            print(f"Failed to get rates for {symbol}")
+        resolved = resolve_symbol(symbol)
+        if not mt5.symbol_select(resolved, True):
+            print(f"Failed to select symbol: {resolved}")
             return
+
+        end_time_value = 0
+        if end_time is not None:
+            try:
+                end_time_value = int(end_time)
+            except (TypeError, ValueError):
+                end_time_value = 0
+
+        if end_time_value > 0:
+            payload = build_history_payload(symbol, timeframe, end_time, count)
+            if payload is not None:
+                await websocket.send(json.dumps(payload))
+            return
+
+        # Chunked fetch: the bridge is a single-threaded asyncio loop, and each
+        # copy_rates call blocks it while MT5 answers. Fetching the full N
+        # candles in one call can stall the event loop for seconds and starve
+        # every other connected client (e.g. the EA stream on the same port),
+        # which the app reads as "EA disconnected" whenever a chart subscribes.
+        # Read small slices instead and yield between each to keep the loop
+        # responsive for all clients.
+        chunk = HISTORY_FETCH_CHUNK
+        collected = []
+        fetched = 0
+        remaining = max(count, 1)
+        while fetched < remaining:
+            rates = mt5.copy_rates_from_pos(resolved, timeframe, fetched, min(chunk, remaining - fetched))
+            if rates is None or len(rates) == 0:
+                break
+            collected.append(rates)
+            fetched += len(rates)
+            if len(rates) < chunk:
+                break
+            await asyncio.sleep(0)
+
+        history = []
+        for rates in reversed(collected):
+            history.extend(_rate_to_dict(rate) for rate in rates)
+
+        payload = {"type": "history", "symbol": clean_symbol(symbol), "data": history}
         await websocket.send(json.dumps(payload))
+        print(f"History: {clean_symbol(symbol)} - retrieved {len(history)} candles (requested {fetched})")
 
     async def send_calendar(selected_date=None, force=False):
         nonlocal calendar_selected_date, last_calendar_refresh

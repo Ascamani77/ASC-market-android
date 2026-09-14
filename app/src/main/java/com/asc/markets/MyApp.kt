@@ -2,6 +2,7 @@ package com.asc.markets
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.room.Room
@@ -44,6 +45,16 @@ class MyApp : Application() {
         // Start vigilance alert monitor (evaluates deployed EA nodes live)
         com.asc.markets.logic.VigilanceMonitor.start(applicationContext)
         Log.d("MyApp", "✅ Vigilance Monitor started")
+
+        // Pin the process as foreground so the monitor keeps running (and alerting)
+        // while the app is backgrounded — without this, Android freezes/kills a
+        // backgrounded process and notifications only arrive after reopening the
+        // app. Can be switched off in Settings → Push Notification.
+        if (getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+                .getBoolean("background_monitor_enabled", true)
+        ) {
+            com.asc.markets.notifications.AlertMonitorService.start(applicationContext)
+        }
 
         // Register the Trading Alerts channel so Android Settings → Notifications
         // for this app exists and notifications can display on Android 8+.

@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -606,7 +607,7 @@ fun EASimulationPanel(
                 if (!hasSignal) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(
+                        AscRollingSpinner(
                             color = Color(0xFFFFA500),
                             modifier = Modifier.size(32.dp),
                             strokeWidth = 3.dp

@@ -178,6 +178,38 @@ fun TradingChart2(
     onSupplyDemandDailyToggle: (Boolean) -> Unit = {},
     showOteVisibleChart: Boolean = false,
     onOteVisibleChartToggle: (Boolean) -> Unit = {},
+    showLiquidityDeltaProfiler: Boolean = false,
+    ldpSettings: com.trading.app.indicators.LiquidityDeltaProfilerSettings = com.trading.app.indicators.LiquidityDeltaProfilerSettings(),
+    onLdpSettingsClick: () -> Unit = {},
+    onLiquidityDeltaProfilerToggle: (Boolean) -> Unit = {},
+    showEqhEqlLiquidityZones: Boolean = false,
+    eqhEqlSettings: com.trading.app.indicators.EqhEqlLiquidityZonesSettings = com.trading.app.indicators.EqhEqlLiquidityZonesSettings(),
+    onEqhEqlSettingsClick: () -> Unit = {},
+    onEqhEqlLiquidityZonesToggle: (Boolean) -> Unit = {},
+    showPowerHourBreakout: Boolean = false,
+    powerHourSettings: com.trading.app.indicators.PowerHourBreakoutSettings = com.trading.app.indicators.PowerHourBreakoutSettings(),
+    onPowerHourSettingsClick: () -> Unit = {},
+    onPowerHourBreakoutToggle: (Boolean) -> Unit = {},
+    showTrendlineBreakouts: Boolean = false,
+    trendlineSettings: com.trading.app.indicators.TrendlineBreakoutsSettings = com.trading.app.indicators.TrendlineBreakoutsSettings(),
+    onTrendlineSettingsClick: () -> Unit = {},
+    onTrendlineBreakoutsToggle: (Boolean) -> Unit = {},
+    showTrendlineNavigator: Boolean = false,
+    navigatorSettings: com.trading.app.indicators.TrendlineNavigatorSettings = com.trading.app.indicators.TrendlineNavigatorSettings(),
+    onNavigatorSettingsClick: () -> Unit = {},
+    onTrendlineNavigatorToggle: (Boolean) -> Unit = {},
+    showLiquidityPools: Boolean = false,
+    liquidityPoolsSettings: com.trading.app.indicators.LiquidityPoolsSettings = com.trading.app.indicators.LiquidityPoolsSettings(),
+    onLiquidityPoolsSettingsClick: () -> Unit = {},
+    onLiquidityPoolsToggle: (Boolean) -> Unit = {},
+    showOrderBlockBreaker: Boolean = false,
+    obbSettings: com.trading.app.indicators.OrderBlockBreakerSettings = com.trading.app.indicators.OrderBlockBreakerSettings(),
+    onObbSettingsClick: () -> Unit = {},
+    onOrderBlockBreakerToggle: (Boolean) -> Unit = {},
+    showVolumaticFvg: Boolean = false,
+    volumaticFvgSettings: com.trading.app.indicators.VolumaticFvgSettings = com.trading.app.indicators.VolumaticFvgSettings(),
+    onVolumaticFvgSettingsClick: () -> Unit = {},
+    onVolumaticFvgToggle: (Boolean) -> Unit = {},
     showAutoFib: Boolean = false,
     autoFibEnabled: Boolean = false,
     onAutoFibToggle: (Boolean) -> Unit = {},
@@ -336,6 +368,38 @@ fun TradingChart2(
                 onSupplyDemandDailyToggle = onSupplyDemandDailyToggle,
                 showOteVisibleChart = showOteVisibleChart,
                 onOteVisibleChartToggle = onOteVisibleChartToggle,
+                showLiquidityDeltaProfiler = showLiquidityDeltaProfiler,
+                ldpSettings = ldpSettings,
+                onLdpSettingsClick = onLdpSettingsClick,
+                onLiquidityDeltaProfilerToggle = onLiquidityDeltaProfilerToggle,
+                showEqhEqlLiquidityZones = showEqhEqlLiquidityZones,
+                eqhEqlSettings = eqhEqlSettings,
+                onEqhEqlSettingsClick = onEqhEqlSettingsClick,
+                onEqhEqlLiquidityZonesToggle = onEqhEqlLiquidityZonesToggle,
+                showPowerHourBreakout = showPowerHourBreakout,
+                powerHourSettings = powerHourSettings,
+                onPowerHourSettingsClick = onPowerHourSettingsClick,
+                onPowerHourBreakoutToggle = onPowerHourBreakoutToggle,
+                showTrendlineBreakouts = showTrendlineBreakouts,
+                trendlineSettings = trendlineSettings,
+                onTrendlineSettingsClick = onTrendlineSettingsClick,
+                onTrendlineBreakoutsToggle = onTrendlineBreakoutsToggle,
+                showTrendlineNavigator = showTrendlineNavigator,
+                navigatorSettings = navigatorSettings,
+                onNavigatorSettingsClick = onNavigatorSettingsClick,
+                onTrendlineNavigatorToggle = onTrendlineNavigatorToggle,
+                showLiquidityPools = showLiquidityPools,
+                liquidityPoolsSettings = liquidityPoolsSettings,
+                onLiquidityPoolsSettingsClick = onLiquidityPoolsSettingsClick,
+                onLiquidityPoolsToggle = onLiquidityPoolsToggle,
+                showOrderBlockBreaker = showOrderBlockBreaker,
+                obbSettings = obbSettings,
+                onObbSettingsClick = onObbSettingsClick,
+                onOrderBlockBreakerToggle = onOrderBlockBreakerToggle,
+                showVolumaticFvg = showVolumaticFvg,
+                volumaticFvgSettings = volumaticFvgSettings,
+                onVolumaticFvgSettingsClick = onVolumaticFvgSettingsClick,
+                onVolumaticFvgToggle = onVolumaticFvgToggle,
                 showAutoFib = showAutoFib,
                 autoFibEnabled = autoFibEnabled,
                 onAutoFibToggle = onAutoFibToggle,
@@ -808,9 +872,18 @@ fun ModifyTpSlModal(
 ) {
     var selectedTab by remember { mutableStateOf("Modify Position") }
     
-    val tickSize = if (symbol.uppercase().contains("BTC")) 0.1f else 0.00001f
-    val precision = if (symbol.uppercase().contains("BTC")) 1 else 5
-    fun formatPriceValue(price: Float): String = String.format("%.${precision}f", price).replace(",", ".")
+    val group = com.asc.markets.data.trainedAssetGroup(symbol)
+    val precision = when (group) {
+        "crypto" -> 2
+        "forex" -> 5
+        else -> if (symbol.uppercase(Locale.US).contains("BTC")) 1 else 2
+    }
+    val tickSize = when (group) {
+        "crypto" -> 0.01f
+        "forex" -> 0.00001f
+        else -> if (symbol.uppercase(Locale.US).contains("BTC")) 0.1f else 0.01f
+    }
+    fun formatPriceValue(price: Float): String = String.format(Locale.US, "%.${precision}f", price).replace(",", ".")
 
     var tpTriggerPrice by remember { mutableStateOf(initialTp?.let { formatPriceValue(it) } ?: "") }
     var slTriggerPrice by remember { mutableStateOf(initialSl?.let { formatPriceValue(it) } ?: "") }

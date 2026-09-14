@@ -1,5 +1,70 @@
 package com.asc.markets.data
 
+import java.util.Locale
+
+// ─── Canonical trained-asset registry ────────────────────────────────────────
+// These are the only symbols the app should ever show (all screens).
+
+val TRAINED_ASSET_SYMBOLS: Set<String> = setOf(
+    // Crypto (8)
+    "BTCUSD", "BTCUSDT", "BTCCNH", "BTCXAG", "BTCXAU",
+    "ETHUSD", "ETHUSDT", "ETHBTC",
+    // Forex / majors & metals (18)
+    "AUDJPY", "AUDUSD", "DXY", "EURCAD", "EURCHF", "EURGBP", "EURJPY", "EURUSD",
+    "GBPJPY", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDCNH", "USDJPY",
+    "XAGUSD", "XAUUSD", "XCUUSD",
+    // Commodities / energy (3)
+    "BRENTCMDUSD", "UKOIL", "USOIL",
+    // Indices (9)
+    "DE30", "JP225", "STOXX50", "UK100", "US30", "US500", "USTEC", "USTEC_x100", "SPCX",
+    // Stocks (8)
+    "AAPL", "AMZN", "META", "MSFT", "NFLX", "NVDA", "PYPL", "TSLA"
+)
+
+private val TRAINED_ASSET_KEYS: Set<String> =
+    TRAINED_ASSET_SYMBOLS.map { normalizeTickerKey(it) }.toSet()
+
+fun normalizeTickerKey(raw: String): String =
+    raw.uppercase(Locale.US)
+        .replace("/", "").replace("-", "").replace("_", "").replace(" ", "").replace(".", "")
+
+/** Returns true when the raw symbol (possibly broker-suffixed e.g. "BTCUSDm") matches a trained asset. */
+fun isTrainedAssetTicker(raw: String): Boolean {
+    val key = normalizeTickerKey(raw).let { k ->
+        // Strip broker suffix 'm'/'M' that Exness/Ctrader appends
+        if (k.endsWith("M")) k.dropLast(1) else k
+    }
+    return key in TRAINED_ASSET_KEYS
+}
+
+private val TRAINED_CRYPTO_KEYS = setOf(
+    "BTCUSD", "BTCUSDT", "BTCCNH", "BTCXAG", "BTCXAU", "ETHUSD", "ETHUSDT", "ETHBTC"
+)
+private val TRAINED_FOREX_KEYS = setOf(
+    "AUDJPY", "AUDUSD", "DXY", "EURCAD", "EURCHF", "EURGBP", "EURJPY", "EURUSD",
+    "GBPJPY", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDCNH", "USDJPY",
+    "XAGUSD", "XAUUSD", "XCUUSD"
+)
+private val TRAINED_COMMOD_KEYS = setOf("BRENTCMDUSD", "UKOIL", "USOIL")
+private val TRAINED_INDICES_KEYS = setOf(
+    "DE30", "JP225", "STOXX50", "UK100", "US30", "US500", "USTEC", "USTECX100", "SPCX"
+)
+private val TRAINED_STOCK_KEYS = setOf("AAPL", "AMZN", "META", "MSFT", "NFLX", "NVDA", "PYPL", "TSLA")
+
+/** Classifies a trained asset into "crypto"/"forex"/"commodity"/"index"/"stock"; null if not trained. */
+fun trainedAssetGroup(raw: String): String? {
+    val key = normalizeTickerKey(raw).let { if (it.endsWith("M")) it.dropLast(1) else it }
+    if (key !in TRAINED_ASSET_KEYS) return null
+    return when {
+        key in TRAINED_CRYPTO_KEYS -> "crypto"
+        key in TRAINED_FOREX_KEYS -> "forex"
+        key in TRAINED_COMMOD_KEYS -> "commodity"
+        key in TRAINED_INDICES_KEYS -> "index"
+        key in TRAINED_STOCK_KEYS -> "stock"
+        else -> null
+    }
+}
+
 val FOREX_PAIRS = listOf(
     // FOREX (8) - Added EURGBP, EURJPY, USDCAD to match AI system
     ForexPair("EUR/USD", "Euro / US Dollar", 1.0845, 0.0012, 0.11, com.asc.markets.data.MarketCategory.FOREX),
@@ -42,7 +107,7 @@ val FOREX_PAIRS = listOf(
     // BONDS (2)
     ForexPair("US10Y", "US 10Y Treasury Yield", 4.256, 0.012, 0.28, com.asc.markets.data.MarketCategory.BONDS),
     ForexPair("US02Y", "US 2Y Treasury Yield", 4.624, -0.005, -0.11, com.asc.markets.data.MarketCategory.BONDS)
-)
+).filter { isTrainedAssetTicker(it.symbol) }
 
 val MOCK_TRADES = listOf(
     AutomatedTrade(

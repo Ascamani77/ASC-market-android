@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.animation.*
 import com.asc.markets.ui.theme.InterFontFamily
@@ -654,7 +655,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                         modifier = Modifier.fillMaxWidth().height(42.dp)
                     ) {
                         if (isRunning) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
+                            AscRollingSpinner(color = Color.White, modifier = Modifier.size(18.dp))
                         } else {
                             Icon(Icons.Default.Bolt, contentDescription = null, tint = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
@@ -688,7 +689,7 @@ fun BacktestScreen(viewModel: ForexViewModel) {
                 ) {
                     if (!backtestTriggered) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = activeBorderColor, modifier = Modifier.size(24.dp))
+                            AscRollingSpinner(color = activeBorderColor, modifier = Modifier.size(24.dp))
                         }
                     } else {
                         when (currentTab) {

@@ -30,6 +30,7 @@ fun AnalysisHubModal(
     onIndicatorClick: () -> Unit = {},
     onCompareClick: () -> Unit = {},
     onAlertClick: () -> Unit = {},
+    hasAlerts: Boolean = false,
     onReplayClick: () -> Unit = {},
     onObjectTreeClick: () -> Unit = {},
     onChartTypeClick: () -> Unit = {},
@@ -98,7 +99,7 @@ fun AnalysisHubModal(
                     label = "Alerts",
                     onClick = onAlertClick,
                     modifier = Modifier.weight(1f),
-                    hasDot = true
+                    hasDot = hasAlerts
                 )
                 HubToolButton(
                     icon = Icons.Default.KeyboardDoubleArrowLeft,

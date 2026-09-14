@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
+import com.asc.markets.ui.components.AscRollingSpinner
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -314,7 +314,7 @@ fun AnalysisOpinionScreen(
             if (viewMode == ViewMode.LIST) {
                 if (isLoading && displayArticles.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = White)
+                        AscRollingSpinner(color = White)
                     }
                 } else {
                     AnalysisOpinionList(

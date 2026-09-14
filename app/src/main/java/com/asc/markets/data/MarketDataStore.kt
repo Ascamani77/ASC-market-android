@@ -38,6 +38,7 @@ object MarketDataStore {
             )
         })
         .filterNot { isUsdtSymbol(it.symbol) }
+        .filter { isTrainedAssetTicker(it.symbol) }
         .distinctBy { it.symbol }
     )
     val allPairs: StateFlow<List<ForexPair>> = _allPairs.asStateFlow()

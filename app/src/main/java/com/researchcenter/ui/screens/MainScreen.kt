@@ -1,4 +1,5 @@
 package com.researchcenter.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -300,7 +301,7 @@ fun MainScreen(
             if (viewMode == ViewMode.LIST) {
                 if (isLoading && displayArticles.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = White)
+                        AscRollingSpinner(color = White)
                     }
                 } else {
                     NewsList(

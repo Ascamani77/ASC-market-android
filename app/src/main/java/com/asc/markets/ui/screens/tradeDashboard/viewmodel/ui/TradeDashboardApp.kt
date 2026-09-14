@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens.tradeDashboard.ui
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,7 +68,7 @@ fun TradeDashboardApp(
     ) {
         if (viewModel.isLoading && viewModel.accountInfo == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF00C853))
+                AscRollingSpinner(color = Color(0xFF00C853))
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {

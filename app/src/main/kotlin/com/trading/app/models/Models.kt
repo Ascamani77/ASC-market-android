@@ -229,7 +229,22 @@ data class IndicatorsSettings(
     val macdShowLabels: Boolean = true,
     val macdShowLines: Boolean = false,
     val volumeShowLabels: Boolean = true,
-    val volumeShowLines: Boolean = false
+    val volumeShowLines: Boolean = false,
+    val showVolume: Boolean = false,
+    val showVolumeMa: Boolean = false,
+    val volumeMaLength: Int = 20,
+    val showPremiumDiscount: Boolean = false,
+    val showFairValueGap: Boolean = false,
+    val showSupplyDemandDaily: Boolean = false,
+    val showOteVisibleChart: Boolean = false,
+    val showLiquidityDeltaProfiler: Boolean = false,
+    val showEqhEqlLiquidityZones: Boolean = false,
+    val showPowerHourBreakout: Boolean = false,
+    val showTrendlineBreakouts: Boolean = false,
+    val showTrendlineNavigator: Boolean = false,
+    val showLiquidityPools: Boolean = false,
+    val showOrderBlockBreaker: Boolean = false,
+    val showVolumaticFvg: Boolean = false
 )
 
 data class ChartSettings(

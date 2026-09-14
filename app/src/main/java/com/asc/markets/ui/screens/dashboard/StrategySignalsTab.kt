@@ -4,10 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -20,6 +23,7 @@ import com.asc.markets.logic.ForexViewModel
 import com.asc.markets.ui.components.InfoBox
 import com.asc.markets.ui.theme.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun StrategySignalsTab(viewModel: ForexViewModel = viewModel()) {
@@ -28,7 +32,23 @@ fun StrategySignalsTab(viewModel: ForexViewModel = viewModel()) {
     val scannerConnected by ScannerSignalsStore.isConnected.collectAsState()
     LaunchedEffect(Unit) { ScannerSignalsStore.start(context) }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val listState = rememberLazyListState()
+
+    // Collapse the Home/Signals/AI tabs + ASC MARKET header as this list scrolls.
+    // Quantized to ~5% steps so the shared header only recomposes ~20 times per
+    // full collapse instead of on every scroll frame (keeps scrolling buttery).
+    val collapseRange = 220f
+    val collapseProgress by remember {
+        derivedStateOf {
+            val absoluteScroll = (listState.firstVisibleItemIndex * 100f) + listState.firstVisibleItemScrollOffset
+            ((absoluteScroll / collapseRange).coerceIn(0f, 1f) * 20f).roundToInt() / 20f
+        }
+    }
+    LaunchedEffect(collapseProgress) {
+        viewModel.setGlobalHeaderCollapse(collapseProgress)
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             InfoBox {
                 Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -72,7 +73,7 @@ fun MacroIntelScreen(viewModel: ResearchViewModel = viewModel()) {
             // News Feed
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color.White)
+                    AscRollingSpinner(color = Color.White)
                 }
             } else {
                 val filteredArticles = articles.filter { 

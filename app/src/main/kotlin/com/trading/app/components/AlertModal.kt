@@ -125,7 +125,10 @@ fun AlertModal(
                     priceStr = priceStr, onPriceStrChange = { priceStr = it },
                     smcZones = smcZonesState,
                     onSmcZoneToggle = { z ->
-                        val next = if (z in smcZonesState) smcZonesState - z else smcZonesState + z
+                        // Max 4 SMC zones per alert: ignore extra selections
+                        val next = if (z in smcZonesState) smcZonesState - z
+                            else if (smcZonesState.size >= com.trading.app.indicators.SmcZoneAlerts.MAX_ZONES_PER_ALERT) smcZonesState
+                            else smcZonesState + z
                         smcZonesState = next
                         if (smcMin > next.size) smcMin = next.size.coerceAtLeast(1)
                     },
@@ -196,8 +199,8 @@ fun AlertModal(
                                 if (current.condition == "SMC") {
                                     conditionKind = "SMC"
                                     crossingKind = "SMC"
-                                    smcZonesState = current.smcZones.toSet()
-                                    smcMin = current.smcMin
+                                    smcZonesState = current.smcZones.take(com.trading.app.indicators.SmcZoneAlerts.MAX_ZONES_PER_ALERT).toSet()
+                                    smcMin = current.smcMin.coerceIn(1, smcZonesState.size.coerceAtLeast(1))
                                 } else {
                                     conditionKind = "Price"
                                     crossingKind = current.condition
@@ -482,7 +485,7 @@ private fun CreateAlertContent(
         TvDropdownField(value = conditionKind, onClick = onConditionClick)
         Spacer(modifier = Modifier.height(8.dp))
         if (conditionKind == "SMC") {
-            Text("Zones (price must touch)", color = TextMuted, fontSize = 12.sp)
+            Text("Zones (price must touch) · max 4", color = TextMuted, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             SmcZoneChips(zones = smcZones, onToggle = onSmcZoneToggle)
             Spacer(modifier = Modifier.height(12.dp))

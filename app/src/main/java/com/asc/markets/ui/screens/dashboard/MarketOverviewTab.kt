@@ -63,29 +63,23 @@ private val CATEGORY_ORDER = listOf(
 // Only assets with trained ML models — matches ml_models/regime_*_model.joblib
 data class TrainedAsset(val symbol: String, val name: String, val category: MarketCategory)
 
-// The complete set of assets that have trained ML models (43). This is the canonical list shown
+// The complete set of assets that have trained ML models (46). This is the canonical list shown
 // on the Markets page regardless of the saved watchlist or live MT5 feed.
 private val TRAINED_ASSETS: List<TrainedAsset> = listOf(
-    // COMMODITIES (5)
-    TrainedAsset("UKOIL", "UK Brent Oil", MarketCategory.COMMODITIES),
-    TrainedAsset("USOIL", "WTI Crude Oil", MarketCategory.COMMODITIES),
-    TrainedAsset("XAGUSD", "Silver / US Dollar", MarketCategory.COMMODITIES),
-    TrainedAsset("XAUUSD", "Gold / US Dollar", MarketCategory.COMMODITIES),
-    TrainedAsset("XCUUSD", "Copper / US Dollar", MarketCategory.COMMODITIES),
-
     // CRYPTO (8)
-    TrainedAsset("BTCCNH", "Bitcoin / CNH", MarketCategory.CRYPTO),
     TrainedAsset("BTCUSD", "Bitcoin / US Dollar", MarketCategory.CRYPTO),
     TrainedAsset("BTCUSDT", "Bitcoin / Tether", MarketCategory.CRYPTO),
+    TrainedAsset("BTCCNH", "Bitcoin / CNH", MarketCategory.CRYPTO),
     TrainedAsset("BTCXAG", "Bitcoin / Silver", MarketCategory.CRYPTO),
     TrainedAsset("BTCXAU", "Bitcoin / Gold", MarketCategory.CRYPTO),
-    TrainedAsset("ETHBTC", "Ethereum / Bitcoin", MarketCategory.CRYPTO),
     TrainedAsset("ETHUSD", "Ethereum / US Dollar", MarketCategory.CRYPTO),
     TrainedAsset("ETHUSDT", "Ethereum / Tether", MarketCategory.CRYPTO),
+    TrainedAsset("ETHBTC", "Ethereum / Bitcoin", MarketCategory.CRYPTO),
 
-    // FOREX (14)
+    // FOREX / MAJORS & METALS (18)
     TrainedAsset("AUDJPY", "Aussie / Yen", MarketCategory.FOREX),
     TrainedAsset("AUDUSD", "Aussie / US Dollar", MarketCategory.FOREX),
+    TrainedAsset("DXY", "US Dollar Index", MarketCategory.FOREX),
     TrainedAsset("EURCAD", "Euro / Canadian Dollar", MarketCategory.FOREX),
     TrainedAsset("EURCHF", "Euro / Swiss Franc", MarketCategory.FOREX),
     TrainedAsset("EURGBP", "Euro / British Pound", MarketCategory.FOREX),
@@ -98,16 +92,25 @@ private val TRAINED_ASSETS: List<TrainedAsset> = listOf(
     TrainedAsset("USDCHF", "US Dollar / Swiss Franc", MarketCategory.FOREX),
     TrainedAsset("USDCNH", "US Dollar / Chinese Yuan", MarketCategory.FOREX),
     TrainedAsset("USDJPY", "US Dollar / Japanese Yen", MarketCategory.FOREX),
+    TrainedAsset("XAGUSD", "Silver / US Dollar", MarketCategory.FOREX),
+    TrainedAsset("XAUUSD", "Gold / US Dollar", MarketCategory.FOREX),
+    TrainedAsset("XCUUSD", "Copper / US Dollar", MarketCategory.FOREX),
 
-    // INDICES (8)
+    // COMMODITIES / ENERGY (3)
+    TrainedAsset("BRENTCMDUSD", "Brent Crude", MarketCategory.COMMODITIES),
+    TrainedAsset("UKOIL", "UK Brent Oil", MarketCategory.COMMODITIES),
+    TrainedAsset("USOIL", "WTI Crude Oil", MarketCategory.COMMODITIES),
+
+    // INDICES (9)
     TrainedAsset("DE30", "Germany DAX 30", MarketCategory.INDICES),
-    TrainedAsset("DXY", "US Dollar Index", MarketCategory.INDICES),
     TrainedAsset("JP225", "Japan Nikkei 225", MarketCategory.INDICES),
     TrainedAsset("STOXX50", "Euro Stoxx 50", MarketCategory.INDICES),
     TrainedAsset("UK100", "UK FTSE 100", MarketCategory.INDICES),
     TrainedAsset("US30", "Dow Jones 30", MarketCategory.INDICES),
     TrainedAsset("US500", "US S&P 500", MarketCategory.INDICES),
     TrainedAsset("USTEC", "US Tech 100", MarketCategory.INDICES),
+    TrainedAsset("USTEC_x100", "US Tech 100 x100", MarketCategory.INDICES),
+    TrainedAsset("SPCX", "S&P Composite", MarketCategory.INDICES),
 
     // STOCK (8)
     TrainedAsset("AAPL", "Apple Inc.", MarketCategory.STOCK),
@@ -314,7 +317,7 @@ private fun CategoryFilterBar(
     // Homepage tab style: plain text labels with a white underline on the
     // active item — no rounded chip backgrounds.
     val entries: List<Pair<String, MarketCategory?>> = remember {
-        listOf("ALL" to null) + CATEGORY_ORDER.map { categoryLabel(it) to it }
+        listOf("All" to null) + CATEGORY_ORDER.map { categoryLabel(it) to it }
     }
     Column(modifier = modifier.fillMaxWidth()) {
         LazyRow(
@@ -551,13 +554,13 @@ private fun signalForPair(pair: ForexPair, signalsByAsset: Map<String, ASCSignal
 }
 
 private fun categoryLabel(category: MarketCategory): String = when (category) {
-    MarketCategory.COMMODITIES -> "COMMODITIES"
-    MarketCategory.CRYPTO -> "CRYPTO"
-    MarketCategory.FOREX -> "FOREX"
-    MarketCategory.INDICES -> "INDICES"
-    MarketCategory.STOCK -> "STOCKS"
-    MarketCategory.BONDS -> "BONDS"
-    MarketCategory.FUTURES -> "FUTURES"
+    MarketCategory.COMMODITIES -> "Commodities"
+    MarketCategory.CRYPTO -> "Crypto"
+    MarketCategory.FOREX -> "Forex"
+    MarketCategory.INDICES -> "Indices"
+    MarketCategory.STOCK -> "Stocks"
+    MarketCategory.BONDS -> "Bonds"
+    MarketCategory.FUTURES -> "Futures"
 }
 
 private fun formatPrice(price: Double, symbol: String = ""): String {

@@ -1,4 +1,5 @@
 package com.asc.markets.ui.ai
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -69,7 +70,7 @@ fun AiScreen(
         // Loading State
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF00C853))
+                AscRollingSpinner(color = Color(0xFF00C853))
             }
         }
 

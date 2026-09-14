@@ -54,6 +54,7 @@ import com.trading.app.data.chartFeedQuotes
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
+import com.asc.markets.data.isTrainedAssetTicker
 
 private fun defaultBrokerSymbolFor(ticker: String, type: String): String {
     val normalizedTicker = ticker.trim()
@@ -89,7 +90,9 @@ fun defaultQuoteSymbols(): List<SymbolInfo> {
         )
     }
     
-    return (feedQuotes + constantsQuotes).distinctBy { it.ticker }
+    return (feedQuotes + constantsQuotes)
+        .distinctBy { it.ticker }
+        .filter { isTrainedAssetTicker(it.brokerSymbol) || isTrainedAssetTicker(it.ticker) }
 }
 
 fun mergeQuoteCatalog(symbols: List<SymbolInfo>): List<SymbolInfo> {
@@ -135,7 +138,10 @@ fun mergeQuoteCatalog(symbols: List<SymbolInfo>, baseQuotes: List<SymbolInfo>): 
         if (defaultQuote.ticker.uppercase(Locale.US) !in fromMt5.keys) merged.add(defaultQuote)
     }
 
-    return merged
+    // Regardless of what the bridge reports, only trained assets are ever shown.
+    return merged.filter {
+        isTrainedAssetTicker(it.brokerSymbol) || isTrainedAssetTicker(it.ticker)
+    }
 }
 
 private fun isForexTicker(ticker: String): Boolean {
@@ -403,7 +409,8 @@ fun QuoteListItem(
 
         Column(horizontalAlignment = Alignment.End) {
             // Display actual price (use live quote if available, otherwise show placeholder)
-            val priceToShow = liveQuote?.lastPrice ?: quoteInfo.price
+            val livePrice = liveQuote?.lastPrice?.takeIf { it > 0f }
+            val priceToShow = livePrice ?: quoteInfo.price
             val changeToShow = liveQuote?.changePercent ?: quoteInfo.changePercent
             Text(
                 text = formatQuoteValue(quoteInfo.ticker, priceToShow),

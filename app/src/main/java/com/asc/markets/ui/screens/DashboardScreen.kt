@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.painterResource
@@ -58,13 +61,22 @@ fun DashboardScreen(viewModel: ForexViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize().background(PureBlack)) {
-        // 1. Top Navbar
+        // Top Navbar stays pinned the whole time — it becomes the main header
+        // once ASC MARKET slides away (see MainActivity's GlobalHeader collapse).
+        // Its foot divider brightens to ground the bar when it reaches the top.
+        val rawCollapse by viewModel.globalHeaderCollapse.collectAsState(initial = 0f)
+        val dividerAlpha by animateFloatAsState(
+            targetValue = if (rawCollapse >= 0.35f) 0.16f else 0.10f,
+            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            label = "navbarDivider"
+        )
         DashboardTopNavbar(
             activeTab = activeTab,
             onTabSelected = { tab ->
                 activeTab = tab
                 viewModel.setDashboardTab(tab.name)
-            }
+            },
+            dividerAlpha = dividerAlpha
         )
 
         // Added space between navbar and content to prevent InfoBox from touching the navbar
@@ -86,7 +98,8 @@ fun DashboardScreen(viewModel: ForexViewModel) {
 @Composable
 fun DashboardTopNavbar(
     activeTab: DashboardTab,
-    onTabSelected: (DashboardTab) -> Unit
+    onTabSelected: (DashboardTab) -> Unit,
+    dividerAlpha: Float = 0.10f
 ) {
     val context = LocalContext.current
     Surface(
@@ -143,7 +156,7 @@ fun DashboardTopNavbar(
                     }
                 }
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+            HorizontalDivider(color = Color.White.copy(alpha = dividerAlpha), thickness = 1.dp)
         }
     }
 }

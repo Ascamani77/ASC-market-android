@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -359,7 +360,7 @@ fun ChartDisplaySettingsScreen(viewModel: ForexViewModel = viewModel()) {
                         enabled = !isSaving
                     ) {
                         if (isSaving) {
-                            CircularProgressIndicator(
+                            AscRollingSpinner(
                                 modifier = Modifier.size(16.dp),
                                 color = Color.White,
                                 strokeWidth = 2.dp

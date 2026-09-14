@@ -21,3 +21,8 @@ gradle.properties
 keystore.properties
 keystore/
 
+# Kotlin Gradle plugin / compiler state
+.kotlin/
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log

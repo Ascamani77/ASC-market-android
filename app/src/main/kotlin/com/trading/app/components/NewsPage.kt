@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
+import com.asc.markets.ui.components.AscRollingSpinner
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,7 +73,7 @@ fun NewsPage(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color(0xFF2962FF), modifier = Modifier.size(32.dp))
+                    AscRollingSpinner(color = Color(0xFF2962FF), modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Waiting for market news...",

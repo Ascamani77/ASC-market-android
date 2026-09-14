@@ -234,18 +234,9 @@ fun Header(
 
                 // HeaderDivider()
 
-                // MORE ICON WITH RED DOT
-                Box(modifier = Modifier.size(42.dp), contentAlignment = Alignment.Center) {
-                    IconButton(onClick = onMoreClick) {
-                        Icon(Icons.Default.MoreHoriz, "More", tint = secondaryWhite, modifier = Modifier.size(26.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 10.dp, end = 10.dp)
-                            .size(6.dp)
-                            .background(Color(0xFFF23645), CircleShape)
-                            .align(Alignment.TopEnd)
-                    )
+                // MORE ICON (opens Analysis hub; dot removed - no unseen-hub state exists)
+                IconButton(onClick = onMoreClick, modifier = Modifier.size(42.dp)) {
+                    Icon(Icons.Default.MoreHoriz, "More", tint = secondaryWhite, modifier = Modifier.size(26.dp))
                 }
 
                 // HeaderDivider()

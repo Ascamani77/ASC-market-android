@@ -36,6 +36,14 @@ fun IndicatorsModal(
         "Fair Value Gap [LuxAlgo]",
         "Supply and Demand Daily [LuxAlgo]",
         "OTE visible chart [twingall]",
+        "Liquidity Delta Profiler [LuxAlgo]",
+        "EQH/EQL Liquidity Zones [LuxAlgo]",
+        "Power Hour Breakout [LuxAlgo]",
+        "Trendline Breakouts With Targets [ChartPrime]",
+        "Trendline Breakout Navigator [LuxAlgo]",
+        "Liquidity Pools [LuxAlgo]",
+        "Pure Price Action Order & Breaker Blocks [LuxAlgo]",
+        "Volumatic Fair Value Gaps [BigBeluga]",
         "Auto Fib Retracement",
         "Confluence FVG Finder"
     )
@@ -162,6 +170,14 @@ fun IndicatorsModal(
                                             indicator.contains("Auto Fib", ignoreCase = true) -> "TradingView • Auto Fib Retracement • overlay=true • ATR-deviation ZigZag • 0-1 Fib Levels"
                                             indicator.contains("OTE", ignoreCase = true) -> "twingall • OTE visible chart • overlay=true • BasicVisibleChart • 61.8-78.6% Fib Box"
                                             indicator.contains("Supply and Demand", ignoreCase = true) -> "LuxAlgo • Supply and Demand Daily • overlay=true • max 500 boxes/lines"
+                                            indicator.contains("EQH", ignoreCase = true) -> "LuxAlgo • EQH/EQL Liquidity Zones • overlay=true • Equal Highs/Lows Boxes • Cluster Labels • Sweep States"
+                                            indicator.contains("Power Hour", ignoreCase = true) -> "LuxAlgo • Power Hour Breakout • overlay=true • NY Session Box • Extensions % • Fibonacci Levels • Breakout Triangles"
+                                            indicator.contains("Trendline Breakouts", ignoreCase = true) -> "ChartPrime • Trendline Breakouts • overlay=true • Pivot Trendlines • ATR Bands • Breakout Targets"
+                                            indicator.contains("Navigator", ignoreCase = true) -> "LuxAlgo • Trendline Breakout Navigator • overlay=true • Swing Trendlines • Wick Dots • HH/LL Tags"
+                                            indicator.contains("Liquidity Pools", ignoreCase = true) -> "LuxAlgo • Liquidity Pools • overlay=true • Running-Extreme Zone Boxes • Volume Labels • Contact Confirmations"
+                                            indicator.contains("Order & Breaker", ignoreCase = true) -> "LuxAlgo • Pure Price Action Order & Breaker Blocks • overlay=true • Swing Order Blocks • Breaker Transitions • Polarity Labels"
+                                            indicator.contains("Volumatic", ignoreCase = true) -> "BigBeluga • Volumatic Fair Value Gaps • overlay=true • Gap-Size Filters • Entropy Volume Split Bars • Crossed/Overlap Cleanup"
+                                            indicator.contains("Liquidity Delta", ignoreCase = true) -> "LuxAlgo • Liquidity Delta Profiler • overlay=true • BSL/SSL Pivot Zones • Volume-Delta Quadrants • ABS/EXH/DIV/REJ Reversals"
                                             indicator.contains("LuxAlgo", ignoreCase = true) -> "LuxAlgo • Fair Value Gap • overlay=true • max 500 boxes/lines"
                                             else -> "BigBeluga • Premium & Discount Delta Volume • overlay=true"
                                         }

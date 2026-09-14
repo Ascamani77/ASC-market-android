@@ -1,0 +1,189 @@
+package com.trading.app.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.trading.app.indicators.LiquidityPoolsSettings
+
+private val LP_TV_BG = Color(0xFF000000)
+private val LP_TV_DIVIDER = Color(0xFF2A2E39)
+private val LP_TV_FIELD_BORDER = Color(0xFF363A45)
+private val LP_TV_TEXT_PRIMARY = Color.White
+private val LP_TV_TEXT_SECONDARY = Color(0xFFD1D4DC)
+private val LP_TV_SECTION = Color(0xFF868993)
+
+private val LP_PALETTE = listOf(
+    "#089981", "#f23645", "#085def", "#ff5d00", "#787b86", "#2157f3",
+    "#f44336", "#81c784", "#4caf50", "#009688", "#64b5f6", "#2962ff",
+    "#9c27b0", "#e91e63", "#ff5d00", "#ff9800", "#c0c0c0", "#ffffff"
+)
+
+@Composable
+fun LiquidityPoolsSettingsModal(
+    settings: LiquidityPoolsSettings,
+    onChange: (LiquidityPoolsSettings) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = LP_TV_BG) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("LuxAlgo - Liquidity Pools", color = LP_TV_TEXT_PRIMARY, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = LP_TV_TEXT_PRIMARY)
+                    }
+                }
+                HorizontalDivider(color = LP_TV_DIVIDER, thickness = 1.dp)
+                Box(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Column {
+                        LpSection("CONFIRMATION SETTINGS")
+                        LpFieldRow("Zone Contact Amount", settings.cNum.toString()) {
+                            it.toIntOrNull()?.let { v -> onChange(settings.copy(cNum = v.coerceAtLeast(2))) }
+                        }
+                        LpFieldRow("Bars Required Between Each Contact", settings.gapCount.toString()) {
+                            it.toIntOrNull()?.let { v -> onChange(settings.copy(gapCount = v.coerceAtLeast(0))) }
+                        }
+                        LpFieldRow("Confirmation Bars", settings.wait.toString()) {
+                            it.toIntOrNull()?.let { v -> onChange(settings.copy(wait = v.coerceAtLeast(1))) }
+                        }
+
+                        LpSection("VOLUME LABELS")
+                        LpCheckboxRow("Display Volume Labels", settings.volTog) { onChange(settings.copy(volTog = it)) }
+                        LpFieldRow("Label Size (Tiny/Small/Normal/Large/Huge)", settings.volSize) {
+                            val t = it.trim()
+                            if (t.equals("Tiny", ignoreCase = true) || t.equals("Small", ignoreCase = true) || t.equals("Normal", ignoreCase = true) || t.equals("Large", ignoreCase = true) || t.equals("Huge", ignoreCase = true)) {
+                                onChange(settings.copy(volSize = LiquidityPoolsSettings.normalizeVolSize(t)))
+                            }
+                        }
+
+                        LpSection("STYLE")
+                        LpColorRow("Bull Zone Color", settings.bullColorHex) { hex -> onChange(settings.copy(bullColorHex = hex)) }
+                        LpColorRow("Bear Zone Color", settings.bearColorHex) { hex -> onChange(settings.copy(bearColorHex = hex)) }
+
+                        LpSection("CANVAS SETTINGS")
+                        LpCheckboxRow("Fill Candles Inside Zones", settings.canTog) { onChange(settings.copy(canTog = it)) }
+                        LpColorRow("Bull Candle Fill", settings.bullCanColorHex) { hex -> onChange(settings.copy(bullCanColorHex = hex)) }
+                        LpColorRow("Bear Candle Fill", settings.bearCanColorHex) { hex -> onChange(settings.copy(bearCanColorHex = hex)) }
+                        Text(
+                            "Zone colors store pure RGB; the renderer applies the Pine 80% transparency (20% opacity) automatically. Candle fill is stored but not rendered: the chart library has no per-bar candle recolor primitive.",
+                            color = LP_TV_SECTION,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+                HorizontalDivider(color = LP_TV_DIVIDER, thickness = 1.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = { onChange(LiquidityPoolsSettings()) },
+                        shape = RoundedCornerShape(6.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LP_TV_FIELD_BORDER),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LP_TV_TEXT_PRIMARY),
+                        modifier = Modifier.height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) { Text("···", fontSize = 16.sp, letterSpacing = 2.sp) }
+                    Spacer(Modifier.weight(1f))
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(6.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LP_TV_TEXT_PRIMARY),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LP_TV_TEXT_PRIMARY),
+                        modifier = Modifier.height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
+                    ) { Text("Cancel", fontSize = 14.sp) }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(6.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                        modifier = Modifier.height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 6.dp)
+                    ) { Text("Ok", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LpSection(text: String) {
+    Text(text, color = LP_TV_SECTION, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
+}
+
+@Composable
+private fun LpCheckboxRow(label: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onChecked(!checked) }) {
+        Checkbox(checked = checked, onCheckedChange = onChecked, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(label, color = LP_TV_TEXT_PRIMARY, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun LpFieldRow(label: String, value: String, onValueChange: (String) -> Unit) {
+    var text by remember(value) { mutableStateOf(value) }
+    LaunchedEffect(value) { if (text != value) text = value }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+        Text(label, color = LP_TV_TEXT_SECONDARY, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        BasicTextField(
+            value = text,
+            onValueChange = { text = it; onValueChange(it) },
+            singleLine = true,
+            textStyle = TextStyle(color = LP_TV_TEXT_PRIMARY, fontSize = 13.sp),
+            cursorBrush = SolidColor(Color.White),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            modifier = Modifier.width(140.dp).height(44.dp)
+                .background(Color.Black, RoundedCornerShape(4.dp))
+                .border(1.dp, LP_TV_FIELD_BORDER, RoundedCornerShape(4.dp))
+                .padding(horizontal = 12.dp),
+            decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.fillMaxSize()) { innerTextField() } }
+        )
+    }
+}
+
+@Composable
+private fun LpColorRow(label: String, hex: String, onPick: (String) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+        Text(label, color = LP_TV_TEXT_SECONDARY, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        Box(modifier = Modifier.size(width = 36.dp, height = 28.dp).clip(RoundedCornerShape(4.dp)).background(lpChecker()).border(1.dp, LP_TV_FIELD_BORDER, RoundedCornerShape(4.dp)).clickable {
+            val idx = LP_PALETTE.indexOfFirst { it.equals(hex, ignoreCase = true) }.coerceAtLeast(0)
+            onPick(LP_PALETTE[(idx + 1) % LP_PALETTE.size])
+        }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(try { Color(android.graphics.Color.parseColor("#FF" + hex.removePrefix("#"))) } catch (_: Exception) { Color.Gray }))
+        }
+    }
+}
+
+private fun lpChecker(): androidx.compose.ui.graphics.Brush = androidx.compose.ui.graphics.Brush.linearGradient(colors = listOf(Color(0xFF3A3E4A), Color(0xFF2A2E39)))

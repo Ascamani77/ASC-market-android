@@ -41,6 +41,34 @@ object VigilanceMonitor {
     /** Minimum silence between mirrored alerts per asset (avoid notification spam on refreshes). */
     private const val MIRROR_THROTTLE_MS = 5L * 60L * 1000L
 
+    // ── Same-content dedup ──────────────────────────────────────────────
+    // Identical signal content must never notify twice — not after a restart
+    // (in-memory maps are wiped), not on backend timestamp bumps, not after a
+    // node cooldown expires. Fingerprints persist in asc_prefs; only genuinely
+    // changed content (direction flip / different conviction) notifies again.
+    private const val FP_MIRROR_PREFIX = "ea_mirror_fp_"
+    private const val FP_NODE_PREFIX = "ea_node_fp_"
+
+    private fun fpPrefs(context: Context) =
+        context.getSharedPreferences("asc_prefs", Context.MODE_PRIVATE)
+
+    private fun lastFp(context: Context, key: String): String? =
+        runCatching { fpPrefs(context).getString(key, null) }.getOrNull()
+
+    private fun storeFp(context: Context, key: String, fp: String) {
+        runCatching { fpPrefs(context).edit().putString(key, fp).apply() }
+    }
+
+    private fun pruneDeadNodeFps(context: Context, liveIds: Set<String>) {
+        runCatching {
+            val p = fpPrefs(context)
+            val dead = p.all.keys.filter {
+                it.startsWith(FP_NODE_PREFIX) && it.removePrefix(FP_NODE_PREFIX) !in liveIds
+            }
+            if (dead.isNotEmpty()) p.edit().apply { dead.forEach { remove(it) } }.apply()
+        }
+    }
+
     /**
      * EA write-up timestamps are unix seconds (accept millis too). Fresh means
      * written within the last ~30 minutes — generous enough to tolerate the
@@ -104,6 +132,7 @@ object VigilanceMonitor {
         val firedKeys = mutableSetOf<String>()
         val nodes = VigilanceNodeEngine.getActiveNodes()
             .filter { it.alertType == "EA_LIVE" && it.isActive }
+        pruneDeadNodeFps(context, nodes.map { it.id }.toSet())
         if (nodes.isEmpty() || byAsset.isEmpty()) return firedKeys
 
         nodes.forEach { node ->
@@ -174,7 +203,13 @@ object VigilanceMonitor {
             }
             if (!fired) return@forEach
 
+            // Standing signal, already notified: never re-fire identical content.
+            val nodeFp = "$dir|${votePct.toInt()}|${(conf01 * 100).toInt()}|$tier"
+            val nodeFpKey = FP_NODE_PREFIX + node.id
+            if (lastFp(context, nodeFpKey) == nodeFp) return@forEach
+
             VigilanceNodeEngine.markEANodeTriggered(node.id) ?: return@forEach
+            storeFp(context, nodeFpKey, nodeFp)
             val title = "Vigilance alert: ${node.pair} $dir"
             val body = "${node.description} • Vote ${votePct.toInt()}% • AI ${(conf01 * 100).toInt()}% • $tier"
             val alert = TriggeredAlert(
@@ -238,8 +273,6 @@ object VigilanceMonitor {
 
             val lastFire = mirrorLastFireAt[key] ?: 0L
             if (now - lastFire < MIRROR_THROTTLE_MS) return@forEach
-
-            // Collapsed line: asset + direction + EA (SMC vote) + AI (ML vote) + combined.
             val votes = signal.chart_panel?.votes
             fun voteShare(favour: Int, against: Int): String {
                 val total = favour + against
@@ -256,6 +289,11 @@ object VigilanceMonitor {
             }
             val rawVote = votes?.win_pct ?: 0.0
             val combinedPct = (if (rawVote > 1.0) rawVote else rawVote * 100.0).toInt()
+            // Identical headline already notified (seen/opened or not): stay silent.
+            val fpKey = FP_MIRROR_PREFIX + normalizeKey(key)
+            val fp = "$dir|$eaShare|$aiShare|$combinedPct"
+            if (lastFp(context, fpKey) == fp) return@forEach
+            // Collapsed line: asset + direction + EA (SMC vote) + AI (ML vote) + combined.
             val title = "${signal.asset} $dir • EA $eaShare • AI $aiShare • Combined ${combinedPct}%"
             // Expanded lines: validator direction+score, P(Trade), P(Win), confidence.
             // (Shown via BigTextStyle on expand — no tap needed.)
@@ -295,6 +333,7 @@ object VigilanceMonitor {
                 Log.e(TAG, "Mirror onTriggered hook failed: ${e.message}")
             }
             mirrorLastFireAt[key] = now
+            storeFp(context, fpKey, fp)
             Log.i(TAG, "MIRRORED ${signal.asset} ($dir) conf=${confPct}% ts=$ts")
         }
     }

@@ -1,4 +1,5 @@
 package com.trading.app.components
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -64,7 +65,7 @@ fun AISentiment(
                         .height(100.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
+                    AscRollingSpinner(
                         color = Color(0xFF2962FF),
                         strokeWidth = 2.dp
                     )

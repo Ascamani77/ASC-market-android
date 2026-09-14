@@ -1,14 +1,10 @@
 package com.trading.app.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import com.asc.markets.ui.components.AppLogo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -16,15 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun ConnectingToServerOverlay(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color(0xFF131722),
-    onRetryBridge: (() -> Unit)? = null
+    backgroundColor: Color = Color(0xFF131722)
 ) {
     Box(
         modifier = modifier
@@ -38,36 +31,7 @@ fun ConnectingToServerOverlay(
             color = Color.White.copy(alpha = 0.05f)
         )
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator(
-                color = Color(0xFF2962FF),
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Connecting to Server...",
-                color = Color.White,
-                fontSize = 17.6.sp,
-                fontWeight = FontWeight.Medium
-            )
-            if (onRetryBridge != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onRetryBridge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2962FF),
-                        contentColor = Color.White
-                    ),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
-                ) {
-                    Text(text = "Retry Bridge")
-                }
-            }
-        }
+AppLogo(size = 72.dp)
     }
 }
 

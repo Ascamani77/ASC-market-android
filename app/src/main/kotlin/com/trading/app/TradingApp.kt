@@ -160,6 +160,30 @@ private fun persistNewsAiPayload(
     }
 }
 
+/**
+ * One-time migration: the Volume indicator (and its MA) used to be a hardcoded
+ * in-memory default of ON for every user, and the pre-persistence save already
+ * wrote showVolume=true into chart_settings. Force both back to OFF once so the
+ * volume pane stops appearing by default; everything else is left untouched.
+ */
+private fun migrateIndicatorDefaults(
+    sharedPrefs: android.content.SharedPreferences,
+    key: String,
+    settings: ChartSettings,
+    gson: Gson
+): ChartSettings {
+    if (sharedPrefs.getBoolean("indicator_defaults_applied_v2", false)) return settings
+    sharedPrefs.edit().putBoolean("indicator_defaults_applied_v2", true).apply()
+    val migrated = settings.copy(
+        indicators = settings.indicators.copy(
+            showVolume = false,
+            showVolumeMa = false
+        )
+    )
+    sharedPrefs.edit().putString(key, gson.toJson(migrated)).apply()
+    return migrated
+}
+
 @Composable
 fun TradingApp(
     startInPaperTradingPanel: Boolean = false,
@@ -276,12 +300,13 @@ fun TradingApp(
     
     // Loaded from settings
     var chartSettings by remember(streamStateNamespace) { 
+        val loaded = sharedPrefs.getString(streamScopedKey("chart_settings"), null)?.let {
+            try { 
+                gson.fromJson(it, ChartSettings::class.java)
+            } catch (e: Exception) { ChartSettings() }
+        } ?: ChartSettings()
         mutableStateOf(
-            sharedPrefs.getString(streamScopedKey("chart_settings"), null)?.let {
-                try { 
-                    gson.fromJson(it, ChartSettings::class.java)
-                } catch (e: Exception) { ChartSettings() }
-            } ?: ChartSettings()
+            migrateIndicatorDefaults(sharedPrefs, streamScopedKey("chart_settings"), loaded, gson)
         )
     }
 
@@ -431,7 +456,12 @@ fun TradingApp(
         listOf(catalogItem.ticker, catalogItem.brokerSymbol, incomingName)
             .filter { it.isNotBlank() }
             .distinctBy { it.uppercase(Locale.US) }
-            .forEach { key -> symbolQuotesByTicker[key.uppercase(Locale.US)] = keyedQuote }
+            .forEach { key ->
+                val upperKey = key.uppercase(Locale.US)
+                if (keyedQuote.lastPrice > 0f || symbolQuotesByTicker[upperKey] == null) {
+                    symbolQuotesByTicker[upperKey] = keyedQuote
+                }
+            }
         PriceStreamManager.updatePrice(catalogItem.ticker, keyedQuote.lastPrice.toDouble())
         
         // Update MarketDataStore so prices propagate to market overview list
@@ -797,26 +827,106 @@ onHistoryOrdersUpdate = { newHistory ->
     var macdShowLines by remember { mutableStateOf(chartSettings.indicators.macdShowLines) }
 
     // Volume State
-    var showVolume by remember { mutableStateOf(true) }
+    var showVolume by remember { mutableStateOf(chartSettings.indicators.showVolume) }
     var volumeShowLabels by remember { mutableStateOf(chartSettings.indicators.volumeShowLabels) }
     var volumeShowLines by remember { mutableStateOf(chartSettings.indicators.volumeShowLines) }
-    var showVolumeMa by remember { mutableStateOf(false) }
-    var volumeMaLength by remember { mutableIntStateOf(20) }
+    var showVolumeMa by remember { mutableStateOf(chartSettings.indicators.showVolumeMa) }
+    var volumeMaLength by remember { mutableIntStateOf(chartSettings.indicators.volumeMaLength) }
     var volumeMaColor by remember { mutableStateOf(Color(0xFF2196F3)) }
     var volumeGrowingColor by remember { mutableStateOf(Color(0xFF26A69A)) }
     var volumeFallingColor by remember { mutableStateOf(Color(0xFFEF5350)) }
     var volumeColorBasedOnPreviousClose by remember { mutableStateOf(false) }
 
     // Premium & Discount (Editors' picks) - BigBeluga overlay
-    var showPremiumDiscount by remember { mutableStateOf(false) }
+    var showPremiumDiscount by remember { mutableStateOf(chartSettings.indicators.showPremiumDiscount) }
     // Fair Value Gap (Editors' picks) - LuxAlgo overlay
-    var showFairValueGap by remember { mutableStateOf(false) }
+    var showFairValueGap by remember { mutableStateOf(chartSettings.indicators.showFairValueGap) }
     // Supply and Demand Daily (Editors' picks) - LuxAlgo overlay
-    var showSupplyDemandDaily by remember { mutableStateOf(false) }
+    var showSupplyDemandDaily by remember { mutableStateOf(chartSettings.indicators.showSupplyDemandDaily) }
     // OTE visible chart (Editors' picks) - twingall overlay (VisibleChart Fib Box 61.8-78.6%)
-    var showOteVisibleChart by remember { mutableStateOf(false) }
+    var showOteVisibleChart by remember { mutableStateOf(chartSettings.indicators.showOteVisibleChart) }
+    // Liquidity Delta Profiler (Editors' picks) - LuxAlgo overlay (BSL/SSL pivot zones + delta quadrants)
+    var showLiquidityDeltaProfiler by remember { mutableStateOf(chartSettings.indicators.showLiquidityDeltaProfiler) }
     // Auto Fib Retracement (Editors' picks) - enabled vs visible so Hide keeps it added
     val autoFibPrefs = remember { context.getSharedPreferences("trading_prefs", android.content.Context.MODE_PRIVATE) }
+    var ldpSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.LiquidityDeltaProfilerSettings.fromJson(
+                autoFibPrefs.getString("ldpSettings", null)
+            )
+        )
+    }
+    var showLdpSettingsModal by remember { mutableStateOf(false) }
+    // EQH/EQL Liquidity Zones (Editors' picks) - LuxAlgo overlay (equal highs/lows boxes)
+    var showEqhEqlLiquidityZones by remember { mutableStateOf(chartSettings.indicators.showEqhEqlLiquidityZones) }
+    var eqhEqlSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.EqhEqlLiquidityZonesSettings.fromJson(
+                autoFibPrefs.getString("eqhEqlSettings", null)
+            )
+        )
+    }
+    var showEqhEqlSettingsModal by remember { mutableStateOf(false) }
+    // Power Hour Breakout (Editors' picks) - LuxAlgo overlay (NY session box + extensions + fibos + breakouts)
+    var showPowerHourBreakout by remember { mutableStateOf(chartSettings.indicators.showPowerHourBreakout) }
+    var powerHourSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.PowerHourBreakoutSettings.fromJson(
+                autoFibPrefs.getString("powerHourSettings", null)
+            )
+        )
+    }
+    var showPowerHourSettingsModal by remember { mutableStateOf(false) }
+    // Trendline Breakouts With Targets (Editors' picks) - ChartPrime overlay
+    var showTrendlineBreakouts by remember { mutableStateOf(chartSettings.indicators.showTrendlineBreakouts) }
+    var trendlineSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.TrendlineBreakoutsSettings.fromJson(
+                autoFibPrefs.getString("trendlineSettings", null)
+            )
+        )
+    }
+    var showTrendlineSettingsModal by remember { mutableStateOf(false) }
+    // Trendline Breakout Navigator (Editors' picks) - LuxAlgo overlay (swing trendlines + wick dots)
+    var showTrendlineNavigator by remember { mutableStateOf(chartSettings.indicators.showTrendlineNavigator) }
+    var navigatorSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.TrendlineNavigatorSettings.fromJson(
+                autoFibPrefs.getString("navigatorSettings", null)
+            )
+        )
+    }
+    var showNavigatorSettingsModal by remember { mutableStateOf(false) }
+    // Liquidity Pools (Editors' picks) - LuxAlgo overlay (running-extreme zone boxes + volume labels)
+    var showLiquidityPools by remember { mutableStateOf(chartSettings.indicators.showLiquidityPools) }
+    var liquidityPoolsSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.LiquidityPoolsSettings.fromJson(
+                autoFibPrefs.getString("liquidityPoolsSettings", null)
+            )
+        )
+    }
+    var showLiquidityPoolsSettingsModal by remember { mutableStateOf(false) }
+    // Pure Price Action Order & Breaker Blocks (Editors' picks) - LuxAlgo overlay (last registered OB/BB panes)
+    var showOrderBlockBreaker by remember { mutableStateOf(chartSettings.indicators.showOrderBlockBreaker) }
+    var obbSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.OrderBlockBreakerSettings.fromJson(
+                autoFibPrefs.getString("orderBlockBreakerSettings", null)
+            )
+        )
+    }
+    var showObbSettingsModal by remember { mutableStateOf(false) }
+    // Volumatic Fair Value Gaps (Editors' picks) - BigBeluga overlay (volume-split FVG boxes)
+    var showVolumaticFvg by remember { mutableStateOf(chartSettings.indicators.showVolumaticFvg) }
+    var volumaticFvgSettings by remember {
+        mutableStateOf(
+            com.trading.app.indicators.VolumaticFvgSettings.fromJson(
+                autoFibPrefs.getString("volumaticFvgSettings", null)
+            )
+        )
+    }
+    var showVolumaticFvgSettingsModal by remember { mutableStateOf(false) }
     var fvgSettings by remember { mutableStateOf(com.trading.app.indicators.FairValueGapSettings.fromJson(autoFibPrefs.getString("fvgSettings", null))) }
     var showFvgSettingsModal by remember { mutableStateOf(false) }
     var autoFibEnabled by remember { mutableStateOf(autoFibPrefs.getBoolean("autoFibEnabled", false)) }
@@ -873,7 +983,8 @@ onHistoryOrdersUpdate = { newHistory ->
         showBb, bbPeriod, bbStdDev, bbShowLabels, bbShowLines,
         showAtr, atrPeriod, atrShowLabels, atrShowLines,
         showMacd, macdFast, macdSlow, macdSignal, macdShowLabels, macdShowLines,
-        volumeShowLabels, volumeShowLines) {
+        volumeShowLabels, volumeShowLines, showVolume, showVolumeMa, volumeMaLength,
+        showPremiumDiscount, showFairValueGap, showSupplyDemandDaily, showOteVisibleChart, showLiquidityDeltaProfiler, showEqhEqlLiquidityZones) {
         val updatedSettings = chartSettings.copy(
             quickActions = chartSettings.quickActions.copy(
                 isLocked = isLocked,
@@ -919,7 +1030,16 @@ onHistoryOrdersUpdate = { newHistory ->
                 macdShowLabels = macdShowLabels,
                 macdShowLines = macdShowLines,
                 volumeShowLabels = volumeShowLabels,
-                volumeShowLines = volumeShowLines
+                volumeShowLines = volumeShowLines,
+                showVolume = showVolume,
+                showVolumeMa = showVolumeMa,
+                volumeMaLength = volumeMaLength,
+                showPremiumDiscount = showPremiumDiscount,
+                showFairValueGap = showFairValueGap,
+                showSupplyDemandDaily = showSupplyDemandDaily,
+                showOteVisibleChart = showOteVisibleChart,
+                showLiquidityDeltaProfiler = showLiquidityDeltaProfiler,
+                showEqhEqlLiquidityZones = showEqhEqlLiquidityZones
             )
         )
         sharedPrefs.edit().putString(streamScopedKey("chart_settings"), gson.toJson(updatedSettings)).apply()
@@ -1096,6 +1216,30 @@ onHistoryOrdersUpdate = { newHistory ->
             showSupplyDemandDaily = !showSupplyDemandDaily
         } else if (lower.contains("ote") && lower.contains("visible")) {
             showOteVisibleChart = !showOteVisibleChart
+        } else if (lower.contains("eqh/eql")) {
+            showEqhEqlLiquidityZones = !showEqhEqlLiquidityZones
+            android.util.Log.d("TradingApp", "EQH/EQL toggled -> $showEqhEqlLiquidityZones")
+        } else if (lower.contains("power hour")) {
+            showPowerHourBreakout = !showPowerHourBreakout
+            android.util.Log.d("TradingApp", "Power Hour toggled -> $showPowerHourBreakout")
+        } else if (lower.contains("navigator")) {
+            showTrendlineNavigator = !showTrendlineNavigator
+            android.util.Log.d("TradingApp", "Trendline Navigator toggled -> $showTrendlineNavigator")
+        } else if (lower.contains("liquidity pools")) {
+            showLiquidityPools = !showLiquidityPools
+            android.util.Log.d("TradingApp", "Liquidity Pools toggled -> $showLiquidityPools")
+        } else if (lower.contains("order") || lower.contains("breaker")) {
+            showOrderBlockBreaker = !showOrderBlockBreaker
+            android.util.Log.d("TradingApp", "Order Block Breaker toggled -> $showOrderBlockBreaker")
+        } else if (lower.contains("volumatic")) {
+            showVolumaticFvg = !showVolumaticFvg
+            android.util.Log.d("TradingApp", "Volumatic FVG toggled -> $showVolumaticFvg")
+        } else if (lower.contains("trendline") || lower.contains("chartprime")) {
+            showTrendlineBreakouts = !showTrendlineBreakouts
+            android.util.Log.d("TradingApp", "Trendline Breakouts toggled -> $showTrendlineBreakouts")
+        } else if (lower.contains("liquidity delta")) {
+            showLiquidityDeltaProfiler = !showLiquidityDeltaProfiler
+            android.util.Log.d("TradingApp", "LDP toggled -> $showLiquidityDeltaProfiler")
         } else if (lower.contains("auto fib")) {
             autoFibEnabled = !autoFibEnabled
             if (autoFibEnabled) autoFibVisible = true
@@ -1124,7 +1268,7 @@ onHistoryOrdersUpdate = { newHistory ->
         }
         // debug: confirm indicator toggle
         try {
-            android.util.Log.d("TradingApp", "Indicator toggled: $id -> rsi:$showRsi ema10:$showEma10 ema20:$showEma20 sma1:$showSma1 sma2:$showSma2 vwap:$showVwap bb:$showBb vol:$showVolume atr:$showAtr premiumDiscount:$showPremiumDiscount fvg:$showFairValueGap supplyDemand:$showSupplyDemandDaily ote:$showOteVisibleChart autoFib:$autoFibEnabled confluenceFvg:$confluenceFvgEnabled")
+            android.util.Log.d("TradingApp", "Indicator toggled: $id -> rsi:$showRsi ema10:$showEma10 ema20:$showEma20 sma1:$showSma1 sma2:$showSma2 vwap:$showVwap bb:$showBb vol:$showVolume atr:$showAtr premiumDiscount:$showPremiumDiscount fvg:$showFairValueGap supplyDemand:$showSupplyDemandDaily ote:$showOteVisibleChart liquidDelta:$showLiquidityDeltaProfiler eqhEql:$showEqhEqlLiquidityZones autoFib:$autoFibEnabled confluenceFvg:$confluenceFvgEnabled")
             android.widget.Toast.makeText(context, "Toggled: $id", android.widget.Toast.LENGTH_SHORT).show()
         } catch (e: Exception) { /* ignore in non-UI tests */ }
     }
@@ -1265,6 +1409,38 @@ TradingChart2(
                                 onSupplyDemandDailyToggle = { showSupplyDemandDaily = it },
                                 showOteVisibleChart = showOteVisibleChart,
                                 onOteVisibleChartToggle = { showOteVisibleChart = it },
+                                showLiquidityDeltaProfiler = showLiquidityDeltaProfiler,
+                                ldpSettings = ldpSettings,
+                                onLdpSettingsClick = { showLdpSettingsModal = true },
+                                onLiquidityDeltaProfilerToggle = { showLiquidityDeltaProfiler = it },
+                                showEqhEqlLiquidityZones = showEqhEqlLiquidityZones,
+                                eqhEqlSettings = eqhEqlSettings,
+                                onEqhEqlSettingsClick = { showEqhEqlSettingsModal = true },
+                                onEqhEqlLiquidityZonesToggle = { showEqhEqlLiquidityZones = it },
+                                showPowerHourBreakout = showPowerHourBreakout,
+                                powerHourSettings = powerHourSettings,
+                                onPowerHourSettingsClick = { showPowerHourSettingsModal = true },
+                                onPowerHourBreakoutToggle = { showPowerHourBreakout = it },
+                                showTrendlineBreakouts = showTrendlineBreakouts,
+                                trendlineSettings = trendlineSettings,
+                                onTrendlineSettingsClick = { showTrendlineSettingsModal = true },
+                                onTrendlineBreakoutsToggle = { showTrendlineBreakouts = it },
+                                showTrendlineNavigator = showTrendlineNavigator,
+                                navigatorSettings = navigatorSettings,
+                                onNavigatorSettingsClick = { showNavigatorSettingsModal = true },
+                                onTrendlineNavigatorToggle = { showTrendlineNavigator = it },
+                                showLiquidityPools = showLiquidityPools,
+                                liquidityPoolsSettings = liquidityPoolsSettings,
+                                onLiquidityPoolsSettingsClick = { showLiquidityPoolsSettingsModal = true },
+                                onLiquidityPoolsToggle = { showLiquidityPools = it },
+                                showOrderBlockBreaker = showOrderBlockBreaker,
+                                obbSettings = obbSettings,
+                                onObbSettingsClick = { showObbSettingsModal = true },
+                                onOrderBlockBreakerToggle = { showOrderBlockBreaker = it },
+                                showVolumaticFvg = showVolumaticFvg,
+                                volumaticFvgSettings = volumaticFvgSettings,
+                                onVolumaticFvgSettingsClick = { showVolumaticFvgSettingsModal = true },
+                                onVolumaticFvgToggle = { showVolumaticFvg = it },
                                 showAutoFib = autoFibEnabled && autoFibVisible,
                                 autoFibEnabled = autoFibEnabled,
                                 onAutoFibToggle = { autoFibEnabled = it; if (!it) autoFibVisible = true; persistAutoFib() },
@@ -1309,10 +1485,16 @@ TradingChart2(
                                 onQuoteUpdate = { quote ->
                                     currentLiveQuote = quote
                                     recentPairQuotes[recentPairQuoteKey(symbol, timeframe)] = quote
-                                    symbolQuotesByTicker[quote.name.uppercase(Locale.US)] = quote
+                                    val quoteUpperKey = quote.name.uppercase(Locale.US)
+                                    if (quote.lastPrice > 0f || symbolQuotesByTicker[quoteUpperKey] == null) {
+                                        symbolQuotesByTicker[quoteUpperKey] = quote
+                                    }
                                 },
                                 onAnyQuoteUpdate = { quote ->
-                                    symbolQuotesByTicker[quote.name.uppercase(Locale.US)] = quote
+                                    val quoteUpperKey = quote.name.uppercase(Locale.US)
+                                    if (quote.lastPrice > 0f || symbolQuotesByTicker[quoteUpperKey] == null) {
+                                        symbolQuotesByTicker[quoteUpperKey] = quote
+                                    }
                                     val matchingPairs = recentPairs.filter { (pairSymbol, _) ->
                                         pairSymbol.equals(quote.name, ignoreCase = true)
                                     }
@@ -1500,12 +1682,7 @@ TradingChart2(
 
                             if (!isConnected) {
                                 ConnectingToServerOverlay(
-                                    backgroundColor = appBackgroundColor,
-                                    onRetryBridge = {
-                                        mt5Service.disconnect()
-                                        mt5Service.connect()
-                                        mt5Service.requestSymbols()
-                                    }
+                                    backgroundColor = appBackgroundColor
                                 )
                             }
 
@@ -1888,6 +2065,90 @@ TradingChart2(
                 onDismiss = { showFvgSettingsModal = false }
             )
         }
+        if (showLdpSettingsModal) {
+            LiquidityDeltaProfilerSettingsModal(
+                settings = ldpSettings,
+                onChange = {
+                    ldpSettings = it
+                    autoFibPrefs.edit().putString("ldpSettings", it.toJson()).apply()
+                },
+                onDismiss = { showLdpSettingsModal = false }
+            )
+        }
+        if (showEqhEqlSettingsModal) {
+            EqhEqlLiquidityZonesSettingsModal(
+                settings = eqhEqlSettings,
+                onChange = {
+                    eqhEqlSettings = it
+                    autoFibPrefs.edit().putString("eqhEqlSettings", it.toJson()).apply()
+                },
+                onDismiss = { showEqhEqlSettingsModal = false }
+            )
+        }
+        if (showPowerHourSettingsModal) {
+            PowerHourBreakoutSettingsModal(
+                settings = powerHourSettings,
+                onChange = {
+                    powerHourSettings = it
+                    autoFibPrefs.edit().putString("powerHourSettings", it.toJson()).apply()
+                },
+                onDismiss = { showPowerHourSettingsModal = false }
+            )
+        }
+        if (showTrendlineSettingsModal) {
+            TrendlineBreakoutsSettingsModal(
+                settings = trendlineSettings,
+                onChange = {
+                    trendlineSettings = it
+                    autoFibPrefs.edit().putString("trendlineSettings", it.toJson()).apply()
+                },
+                onDismiss = { showTrendlineSettingsModal = false }
+            )
+        }
+        if (showNavigatorSettingsModal) {
+            TrendlineNavigatorSettingsModal(
+                settings = navigatorSettings,
+                onChange = {
+                    navigatorSettings = it
+                    autoFibPrefs.edit().putString("navigatorSettings", it.toJson()).apply()
+                },
+                onDismiss = { showNavigatorSettingsModal = false }
+            )
+        }
+        if (showLiquidityPoolsSettingsModal) {
+            LiquidityPoolsSettingsModal(
+                settings = liquidityPoolsSettings,
+                onChange = {
+                    liquidityPoolsSettings = it
+                    autoFibPrefs.edit().putString("liquidityPoolsSettings", it.toJson()).apply()
+                },
+                onDismiss = { showLiquidityPoolsSettingsModal = false }
+            )
+        }
+        if (showObbSettingsModal) {
+            OrderBlockBreakerSettingsModal(
+                settings = obbSettings,
+                onChange = {
+                    obbSettings = it
+                    autoFibPrefs.edit().putString("orderBlockBreakerSettings", it.toJson()).apply()
+                },
+                onDismiss = { showObbSettingsModal = false }
+            )
+        }
+        if (showVolumaticFvgSettingsModal) {
+            VolumaticFvgSettingsModal(
+                settings = volumaticFvgSettings,
+                onSettingsChange = { it2 ->
+                    volumaticFvgSettings = it2
+                    autoFibPrefs.edit().putString("volumaticFvgSettings", it2.toJson()).apply()
+                },
+                onDismiss = { showVolumaticFvgSettingsModal = false },
+                onReset = {
+                    volumaticFvgSettings = com.trading.app.indicators.VolumaticFvgSettings()
+                    autoFibPrefs.edit().remove("volumaticFvgSettings").apply()
+                }
+            )
+        }
         if (showGoToDateModal) {
             GoToDateModal(
                 onClose = { showGoToDateModal = false },
@@ -1964,6 +2225,7 @@ TradingChart2(
                 onClose = { showAnalysisHubModal = false },
                 onIndicatorClick = { showIndicatorModal = true; showAnalysisHubModal = false },
                 onAlertClick = { showAlertModal = true; showAnalysisHubModal = false },
+                hasAlerts = userAlerts.value.isNotEmpty(),
                 onCalendarClick = {
                     showCalendarPage = true
                     showAnalysisHubModal = false

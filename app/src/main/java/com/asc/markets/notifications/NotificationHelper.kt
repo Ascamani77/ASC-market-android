@@ -5,8 +5,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.asc.markets.MainActivity
 import com.asc.markets.R
 
@@ -72,6 +75,26 @@ object NotificationHelper {
     }
 
     /**
+     * Canonical asset key used for per-asset muting: upper-case with the MT5
+     * mirror suffix stripped, so "GBPUSDm" and "GBPUSD" are treated as the same asset.
+     */
+    fun normalizeSymbol(symbol: String): String {
+        var s = symbol.uppercase().trim()
+        if (s.length > 3 && s.endsWith("M")) {
+            val base = s.dropLast(1)
+            if (base.all { it.isLetterOrDigit() }) s = base
+        }
+        return s
+    }
+
+    /** True = the user muted this asset in Settings → Push Notification → MUTED ASSETS. */
+    fun mutedAssets(prefs: android.content.SharedPreferences): Set<String> =
+        prefs.getStringSet("muted_notification_symbols", emptySet()) ?: emptySet()
+
+    private fun isMuted(prefs: android.content.SharedPreferences, symbol: String): Boolean =
+        symbol.isNotEmpty() && normalizeSymbol(symbol) in mutedAssets(prefs)
+
+    /**
      * Fire a notification through the user's push policy.
      * Suppressed entirely when the master gate is off, or when the alert's
      * category toggle is disabled in Settings → Push Notification.
@@ -89,6 +112,7 @@ object NotificationHelper {
         categoryKeyFor(type)?.let { key ->
             if (!prefs.getBoolean(key, true)) return
         }
+        if (isMuted(prefs, symbol)) return
         if (throttled(prefs)) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -96,6 +120,7 @@ object NotificationHelper {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("notification_type", type)
             putExtra("notification_symbol", symbol)
+            putExtra("notification_id", notificationId)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -105,6 +130,7 @@ object NotificationHelper {
 
         val builder = NotificationCompat.Builder(context, FirebaseMessagingServiceImpl.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setLargeIcon(appIconBitmap(context))
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -118,5 +144,27 @@ object NotificationHelper {
         if (prefs.getBoolean("push_grouped_notifications", true)) builder.setGroup("trading_alerts")
 
         manager.notify(notificationId++, builder.build())
+    }
+
+    /** App icon as a bitmap — shown large beside the notification title.
+     *  Rendered from the foreground at 1.4x so the "A" fills the icon instead of
+     *  sitting tiny inside adaptive-icon padding. */
+    private fun appIconBitmap(context: Context): Bitmap? = try {
+        val size = 192
+        val background = ContextCompat.getDrawable(context, R.drawable.ic_launcher_background)
+        val foreground = ContextCompat.getDrawable(context, R.drawable.ic_launcher_foreground)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        background?.setBounds(0, 0, size, size)
+        background?.draw(canvas)
+        if (foreground != null) {
+            val fw = (size * 1.4f).toInt()
+            val fh = (size * 1.4f).toInt()
+            foreground.setBounds((size - fw) / 2, (size - fh) / 2, (size + fw) / 2, (size + fh) / 2)
+            foreground.draw(canvas)
+        }
+        bitmap
+    } catch (e: Exception) {
+        null
     }
 }

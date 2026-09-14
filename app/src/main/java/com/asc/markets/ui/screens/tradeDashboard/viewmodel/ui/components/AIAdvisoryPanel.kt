@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens.tradeDashboard.ui.components
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -159,7 +160,7 @@ fun AIAdvisoryPanel(advisory: AIAdvisory, modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(16.dp)
         ) {
             if (isExecuting) {
-                CircularProgressIndicator(
+                AscRollingSpinner(
                     modifier = Modifier.size(20.dp),
                     color = Color.Black,
                     strokeWidth = 2.dp

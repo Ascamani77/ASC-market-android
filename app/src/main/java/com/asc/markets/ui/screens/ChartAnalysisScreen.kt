@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
@@ -205,7 +206,7 @@ fun ChartAnalysisScreen(
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = IndigoAccent)
+                                AscRollingSpinner(color = IndigoAccent)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text("ASC AI ANALYZING PIXELS...", color = Color.Gray, fontSize = 12.sp)
                             }

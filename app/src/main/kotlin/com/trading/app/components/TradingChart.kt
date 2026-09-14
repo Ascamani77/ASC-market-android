@@ -1,4 +1,4 @@
-﻿package com.trading.app.components
+package com.trading.app.components
 
 import android.util.Log
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -541,6 +541,38 @@ fun TradingChart(
     onSupplyDemandDailyToggle: (Boolean) -> Unit = {},
     showOteVisibleChart: Boolean = false,
     onOteVisibleChartToggle: (Boolean) -> Unit = {},
+    showLiquidityDeltaProfiler: Boolean = false,
+    ldpSettings: com.trading.app.indicators.LiquidityDeltaProfilerSettings = com.trading.app.indicators.LiquidityDeltaProfilerSettings(),
+    onLdpSettingsClick: () -> Unit = {},
+    onLiquidityDeltaProfilerToggle: (Boolean) -> Unit = {},
+    showEqhEqlLiquidityZones: Boolean = false,
+    eqhEqlSettings: com.trading.app.indicators.EqhEqlLiquidityZonesSettings = com.trading.app.indicators.EqhEqlLiquidityZonesSettings(),
+    onEqhEqlSettingsClick: () -> Unit = {},
+    onEqhEqlLiquidityZonesToggle: (Boolean) -> Unit = {},
+    showPowerHourBreakout: Boolean = false,
+    powerHourSettings: com.trading.app.indicators.PowerHourBreakoutSettings = com.trading.app.indicators.PowerHourBreakoutSettings(),
+    onPowerHourSettingsClick: () -> Unit = {},
+    onPowerHourBreakoutToggle: (Boolean) -> Unit = {},
+    showTrendlineBreakouts: Boolean = false,
+    trendlineSettings: com.trading.app.indicators.TrendlineBreakoutsSettings = com.trading.app.indicators.TrendlineBreakoutsSettings(),
+    onTrendlineSettingsClick: () -> Unit = {},
+    onTrendlineBreakoutsToggle: (Boolean) -> Unit = {},
+    showTrendlineNavigator: Boolean = false,
+    navigatorSettings: com.trading.app.indicators.TrendlineNavigatorSettings = com.trading.app.indicators.TrendlineNavigatorSettings(),
+    onNavigatorSettingsClick: () -> Unit = {},
+    onTrendlineNavigatorToggle: (Boolean) -> Unit = {},
+    showLiquidityPools: Boolean = false,
+    liquidityPoolsSettings: com.trading.app.indicators.LiquidityPoolsSettings = com.trading.app.indicators.LiquidityPoolsSettings(),
+    onLiquidityPoolsSettingsClick: () -> Unit = {},
+    onLiquidityPoolsToggle: (Boolean) -> Unit = {},
+    showOrderBlockBreaker: Boolean = false,
+    obbSettings: com.trading.app.indicators.OrderBlockBreakerSettings = com.trading.app.indicators.OrderBlockBreakerSettings(),
+    onObbSettingsClick: () -> Unit = {},
+    onOrderBlockBreakerToggle: (Boolean) -> Unit = {},
+    showVolumaticFvg: Boolean = false,
+    volumaticFvgSettings: com.trading.app.indicators.VolumaticFvgSettings = com.trading.app.indicators.VolumaticFvgSettings(),
+    onVolumaticFvgSettingsClick: () -> Unit = {},
+    onVolumaticFvgToggle: (Boolean) -> Unit = {},
     showAutoFib: Boolean = false,
     autoFibEnabled: Boolean = false,
     onAutoFibToggle: (Boolean) -> Unit = {},
@@ -585,6 +617,11 @@ fun TradingChart(
     var showIndicatorsList by remember { mutableStateOf(true) }
     var showIndicatorMoreMenu by remember { mutableStateOf(false) }
     var indicatorMoreMenuTarget by remember { mutableStateOf<String?>(null) }
+    // Guards live tick updates while a render pass (history setData, indicator overlay
+    // rebuild) is writing into the chart - the Android JS bridge throws asynchronously
+    // ("Error: Value is null") if a series update lands mid-rebuild and that exception
+    // cannot be caught by runCatching, so we avoid issuing the update at all.
+    var chartBusy by remember { mutableStateOf(false) }
 
     // Indicator series state
     val rsiPaneRefs = rememberRsiPaneRefs()
@@ -720,6 +757,69 @@ fun TradingChart(
     val oteBoxSeries = remember { mutableStateListOf<SeriesApi>() }
     val oteLineSeries = remember { mutableStateListOf<SeriesApi>() }
     var lastOteSig by remember { mutableStateOf<String?>(null) }
+
+    // Liquidity Delta Profiler (LuxAlgo) - BSL/SSL pivot zones + delta quadrants
+    val ldpBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val ldpPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var ldpPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastLdpSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var ldpPendingSeries by remember { mutableIntStateOf(0) }
+
+    // EQH/EQL Liquidity Zones (LuxAlgo) - equal highs/lows boxes + cluster labels
+    val eqhBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val eqhPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var eqhPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastEqhSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var eqhPendingSeries by remember { mutableIntStateOf(0) }
+
+    // Power Hour Breakout (LuxAlgo) - NY session boxes + level/ext lines + fibos + breakout markers
+    val phBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val phPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var phPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastPhSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var phPendingSeries by remember { mutableIntStateOf(0) }
+
+    // Trendline Breakouts With Targets (ChartPrime) - pivot trendlines + bands + signals + targets
+    val tbtBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val tbtPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var tbtPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastTbtSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var tbtPendingSeries by remember { mutableIntStateOf(0) }
+
+    // Trendline Breakout Navigator (LuxAlgo) - swing trendlines + wick dots + HH/LL tags
+    val tnavBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val tnavPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var tnavPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastTnavSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var tnavPendingSeries by remember { mutableIntStateOf(0) }
+
+    // Liquidity Pools (LuxAlgo) - running-extreme zone boxes + volume labels
+    val lpBoxSeries = remember { mutableStateListOf<SeriesApi>() }
+    val lpPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var lpPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastLpSig by remember { mutableStateOf<String?>(null) }
+    // Async series creations still in flight (onSeriesCreated not yet fired)
+    var lpPendingSeries by remember { mutableIntStateOf(0) }
+    val obbSeries = remember { mutableStateListOf<SeriesApi>() }
+    val obbPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var obbPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastObbSig by remember { mutableStateOf<String?>(null) }
+    var obbPendingSeries by remember { mutableIntStateOf(0) }
+    // Volumatic Fair Value Gaps (BigBeluga) - volume-split FVG zones
+    val vfvgSeries = remember { mutableStateListOf<SeriesApi>() }
+    val vfvgPriceLines = remember { mutableStateListOf<PriceLine>() }
+    var vfvgPriceLineOwner by remember { mutableStateOf<SeriesApi?>(null) }
+    var lastVfvgSig by remember { mutableStateOf<String?>(null) }
+    var vfvgPendingSeries by remember { mutableIntStateOf(0) }
+    // Volumatic FVG dashboard counts (Pine dash table: bullish/bearish on-chart counts)
+    var vfvgBullCount by remember { mutableIntStateOf(0) }
+    var vfvgBearCount by remember { mutableIntStateOf(0) }
+    var lastOverlayMarkersSig by remember { mutableStateOf<String?>(null) }
 
     // Auto Fib Retracement - fib levels rendered as chart-owned LineSeries + baseline fills
     val autoFibSeries = remember { mutableStateListOf<SeriesApi>() }
@@ -1025,7 +1125,7 @@ fun TradingChart(
         hasFittedInitialHistory = false
         when (chartFeedType) {
             ChartFeedType.EXNESS -> {
-                // MT5 bridge expects broker symbol with 'm' suffix (e.g. BTCUSDm) â€” chartFeedSymbolFor returns ticker, so resolve brokerSymbol
+                // MT5 bridge expects broker symbol with 'm' suffix (e.g. BTCUSDm) — chartFeedSymbolFor returns ticker, so resolve brokerSymbol
                 val catalog = chartFeedQuotes(ChartFeedType.EXNESS)
                 val broker = catalog.firstOrNull { it.ticker.equals(symbol, ignoreCase = true) || it.brokerSymbol.equals(symbol, ignoreCase = true) }?.brokerSymbol
                     ?: if (symbol.endsWith("m", ignoreCase = true) || symbol.endsWith("m")) symbol else symbol + "m"
@@ -1108,6 +1208,7 @@ fun TradingChart(
         if (ohlcList.isEmpty()) {
             // Asset switched (or history not loaded yet) - wipe whatever the previous
             // asset rendered so the switch is immediate instead of lingering.
+            chartBusy = false
             runCatching {
                 when (mainSeriesKind) {
                     MainSeriesKind.BAR -> mainSeriesApi?.setData(emptyList<BarData>())
@@ -1128,6 +1229,7 @@ fun TradingChart(
             return@LaunchedEffect
         }
 
+        chartBusy = true
         if (ohlcData.isNotEmpty()) {
             when (mainSeriesKind) {
                 MainSeriesKind.BAR -> mainSeriesApi?.setData(ohlcData.map(OHLCData::toBarSeriesData))
@@ -1253,6 +1355,24 @@ updateInlineRsiPaneData(
             oteBoxSeries.clear()
             oteLineSeries.clear()
             lastOteSig = null
+            ldpPriceLineOwner?.let { api ->
+                ldpPriceLines.forEach { safelyRemovePriceLine(api, it) }
+                ldpPriceLines.clear()
+            }
+            chartsViewApi?.api?.let { chartApi ->
+                ldpBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            ldpBoxSeries.clear()
+            lastLdpSig = null
+            eqhPriceLineOwner?.let { api ->
+                eqhPriceLines.forEach { safelyRemovePriceLine(api, it) }
+                eqhPriceLines.clear()
+            }
+            chartsViewApi?.api?.let { chartApi ->
+                eqhBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            eqhBoxSeries.clear()
+            lastEqhSig = null
             mainSeriesApi?.setData(emptyList())
             seriesApi?.priceScale()?.applyOptions(PriceScaleOptions(autoScale = true))
             rsiPaneRefs.clearData()
@@ -1277,6 +1397,7 @@ updateInlineRsiPaneData(
             volumeSeriesApi?.setData(emptyList())
             volumeMaSeriesApi?.setData(emptyList())
         }
+        chartBusy = false
     }
 
 
@@ -1630,7 +1751,56 @@ updateInlineRsiPaneData(
     }
 
     // Editors' Picks overlays: Premium/Discount, FVG, Supply & Demand, OTE - standalone render pass
-    LaunchedEffect(showPremiumDiscount, showFairValueGap, showSupplyDemandDaily, showOteVisibleChart, hiddenIndicators, ohlcData, seriesApi, chartsViewApi, timeframe) {
+    LaunchedEffect(showPremiumDiscount, showFairValueGap, showSupplyDemandDaily, showOteVisibleChart, showLiquidityDeltaProfiler, showEqhEqlLiquidityZones, showPowerHourBreakout, showTrendlineBreakouts, showTrendlineNavigator, showLiquidityPools, showOrderBlockBreaker, showVolumaticFvg, ldpSettings, eqhEqlSettings, powerHourSettings, trendlineSettings, navigatorSettings, liquidityPoolsSettings, obbSettings, volumaticFvgSettings, hiddenIndicators, ohlcData, seriesApi, chartsViewApi, timeframe) {
+        chartBusy = true
+        // Heavy LDP pivot/zone math off the main thread so ticks don't queue behind it
+        val ldpPrecomputed = if (showLiquidityDeltaProfiler && "LIQUIDITY_DELTA_PROFILER" !in hiddenIndicators && ohlcData.size >= 30) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.LiquidityDeltaProfilerIndicator.calculate(ohlcData, ldpSettings)
+            }
+        } else null
+        // Heavy EQH/EQL pivot/zone math off the main thread so ticks don't queue behind it
+        val eqhPrecomputed = if (showEqhEqlLiquidityZones && "EQH_EQL_LIQUIDITY_ZONES" !in hiddenIndicators && ohlcData.size >= 30) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.EqhEqlLiquidityZonesIndicator.calculate(ohlcData, eqhEqlSettings)
+            }
+        } else null
+        // Power Hour Breakout session scan off the main thread (session math + breakout pass)
+        val phPrecomputed = if (showPowerHourBreakout && "POWER_HOUR_BREAKOUT" !in hiddenIndicators && ohlcData.size >= 30) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.PowerHourBreakoutIndicator.calculate(ohlcData, powerHourSettings)
+            }
+        } else null
+        // Trendline Breakouts pivot/signal math off the main thread (ATR + pivots + one trade state)
+        val tbtPrecomputed = if (showTrendlineBreakouts && "TRENDLINE_BREAKOUTS" !in hiddenIndicators && ohlcData.size >= 60) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.TrendlineBreakoutsIndicator.calculate(ohlcData, trendlineSettings)
+            }
+        } else null
+        // Trendline Navigator swing math off the main thread (pivots + active-line state machine)
+        val tnavPrecomputed = if (showTrendlineNavigator && "TRENDLINE_NAVIGATOR" !in hiddenIndicators && ohlcData.size >= 80) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.TrendlineNavigatorIndicator.calculate(ohlcData, navigatorSettings)
+            }
+        } else null
+        // Liquidity Pools running-extreme math off the main thread (contacts + volume + zone state)
+        val lpPrecomputed = if (showLiquidityPools && "LIQUIDITY_POOLS" !in hiddenIndicators && ohlcData.size >= 15) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.LiquidityPoolsIndicator.calculate(ohlcData, liquidityPoolsSettings)
+            }
+        } else null
+        // Pure Price Action Order & Breaker Blocks swing/OB math off the main thread (vector swings + breaker state)
+        val obbPrecomputed = if (showOrderBlockBreaker && "ORDER_BLOCK_BREAKER" !in hiddenIndicators && ohlcData.size >= 15) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.OrderBlockBreakerIndicator.calculate(ohlcData, obbSettings)
+            }
+        } else null
+        // Volumatic Fair Value Gaps volume-split + cleanup math off the main thread (rolling max filter + zone state)
+        val vfvgPrecomputed = if (showVolumaticFvg && "VOLUMATIC_FVG" !in hiddenIndicators && ohlcData.size >= 15) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.trading.app.indicators.VolumaticFvgIndicator.calculate(ohlcData, volumaticFvgSettings)
+            }
+        } else null
         runCatching {
         val mainSeriesApi = seriesApi
         // Premium & Discount Delta Volume [BigBeluga] - Editors' picks overlay (exact Pine logic)
@@ -1656,7 +1826,7 @@ updateInlineRsiPaneData(
             val pd = com.trading.app.indicators.PremiumDiscountIndicator(50, 200).calculatePremiumDiscount(ohlcData)
             val ownerChanged = pdPriceLineOwner != mainSeriesApi
             // Recreating future-dated box series on every tick grows the time scale and
-            // slides candles right â€” rebuild only when levels/bars/timeframe actually change
+            // slides candles right — rebuild only when levels/bars/timeframe actually change
             val sig = if (pd == null) "null" else listOf(
                 pd.srUpperTop, pd.srUpperBottom, pd.srLowerTop, pd.srLowerBottom,
                 pd.macroUpperTop, pd.macroUpperBottom, pd.macroLowerTop, pd.macroLowerBottom,
@@ -1730,10 +1900,10 @@ updateInlineRsiPaneData(
                     PriceLineOptions(price = pd.srLowerBottom, color = IntColor(pdUpColorInt), lineWidth = LineWidth.ONE, lineStyle = LineStyle.DOTTED, lineVisible = true, axisLabelVisible = false, title = "DISCOUNT: ${String.format("%.0f", kotlin.math.abs(pd.posVolSRSum))} vol")
                 )
                 pdEquilibriumState.value = mainSeriesApi.createPriceLine(
-                    PriceLineOptions(price = pd.equilibrium, color = IntColor(pdEqColorInt), lineWidth = LineWidth.ONE, lineStyle = LineStyle.DASHED, lineVisible = true, axisLabelVisible = true, title = "Eq Î”Vol ${String.format("%.1f%%", pd.deltaVolSR)} ${if (pd.deltaVolSR > 0) "â†‘ Discount" else "â†“ Premium"}")
+                    PriceLineOptions(price = pd.equilibrium, color = IntColor(pdEqColorInt), lineWidth = LineWidth.ONE, lineStyle = LineStyle.DASHED, lineVisible = true, axisLabelVisible = true, title = "Eq ΔVol ${String.format("%.1f%%", pd.deltaVolSR)} ${if (pd.deltaVolSR > 0) "↑ Discount" else "↓ Premium"}")
                 )
                 pdMacroEquilibriumState.value = mainSeriesApi.createPriceLine(
-                    PriceLineOptions(price = pd.macroEquilibrium, color = IntColor(AndroidColor.parseColor("#363A45")), lineWidth = LineWidth.ONE, lineStyle = LineStyle.DASHED, lineVisible = true, axisLabelVisible = true, title = "Macro Î”Vol ${String.format("%.1f%%", pd.deltaVolMacro)}")
+                    PriceLineOptions(price = pd.macroEquilibrium, color = IntColor(AndroidColor.parseColor("#363A45")), lineWidth = LineWidth.ONE, lineStyle = LineStyle.DASHED, lineVisible = true, axisLabelVisible = true, title = "Macro ΔVol ${String.format("%.1f%%", pd.deltaVolMacro)}")
                 )
             }
                 lastPdSig = sig
@@ -1744,7 +1914,7 @@ updateInlineRsiPaneData(
             lastPdSig = null
         }
 
-        // Fair Value Gap [LuxAlgo] - Editors'' picks overlay (Pine-exact with full settings)
+        // Fair Value Gap [LuxAlgo] - Editors' picks overlay (Pine-exact with full settings)
         fun clearFvgRender(targetApi: SeriesApi?) {
             val api = targetApi ?: fvgPriceLineOwner ?: return
             fvgPriceLines.forEach { safelyRemovePriceLine(api, it) }
@@ -2010,7 +2180,7 @@ updateInlineRsiPaneData(
         if (showOteVisibleChart && "OTE_VISIBLE_CHART" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 3 && chartsViewApi != null) {
             val ownerChanged = otePriceLineOwner != mainSeriesApi
             val ote = com.trading.app.indicators.OteVisibleChartIndicator().calculateOte(ohlcData)
-            // Rebuild only on real changes â€” per-tick recreation slides candles right
+            // Rebuild only on real changes — per-tick recreation slides candles right
             val sig = if (ote == null) "null" else listOf(
                 ote.chartHigh, ote.chartLow, ote.boxTop, ote.boxBottom,
                 ote.isBull.toString(),
@@ -2106,7 +2276,1031 @@ updateInlineRsiPaneData(
             if (!showOteVisibleChart) otePriceLineOwner = null
             lastOteSig = null
         }
-        }.onFailure { android.util.Log.w("TradingChart", "render pass skipped: " + it.message) }
+
+        // Liquidity Delta Profiler [LuxAlgo] - Editors' picks overlay
+        // BSL/SSL pivot zones: 4 delta-colored quadrants (BaselineSeries boxes) + decay % + reversal signals
+        fun clearLdpRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: ldpPriceLineOwner ?: return
+            ldpPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            ldpPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                ldpBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            ldpBoxSeries.clear()
+        }
+        if (showLiquidityDeltaProfiler && "LIQUIDITY_DELTA_PROFILER" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 30 && chartsViewApi != null) {
+            val ldp = ldpPrecomputed
+            val ownerChanged = ldpPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "LDP pass: bars=${ohlcData.size} bsl=${ldp?.bslZones?.size} ssl=${ldp?.sslZones?.size} lastSigNull=${lastLdpSig == null} ownerChanged=$ownerChanged")
+            // Rebuild only when the computed layout actually changes (bars moved, zones/signals changed)
+            val sig = if (ldp == null) "null" else (
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" + ldpSettings.showSwept + "|" + ldpSettings.showDecay +
+                (ldp.bslZones + ldp.sslZones).joinToString(";") { z ->
+                    val ds = z.deltas.joinToString(",") { String.format(java.util.Locale.US, "%.2f", it) }
+                    "${if (z.isBsl) "b" else "s"}${z.leftIdx}${z.rightIdx}-${String.format(java.util.Locale.US, "%.5f", z.top)}-${String.format(java.util.Locale.US, "%.5f", z.bottom)}-${z.swept}-${z.healthPct}-${z.signalType}-${ds}"
+                }
+            )
+            if (ownerChanged || lastLdpSig != sig || ldpBoxSeries.isEmpty() && ldpPriceLines.isEmpty()) {
+                clearLdpRender(mainSeriesApi)
+                ldpPriceLineOwner = mainSeriesApi
+                ldpPendingSeries = 0
+                if (ldp != null) {
+                    fun LdpZoneBox(z: com.trading.app.indicators.LiquidityDeltaProfilerZone) {
+                        if (z.swept && !ldpSettings.showSwept) return
+                        if (z.leftIdx < 0 || z.leftIdx >= ohlcData.size) return
+                        val leftT = ohlcData[z.leftIdx].time
+                        val rightIdx = z.rightIdx.coerceIn(0, ohlcData.size - 1)
+                        val rightT = ohlcData[rightIdx].time
+                        val zoneColorInt = AndroidColor.parseColor(if (z.isBsl) ldpSettings.bslColorHex else ldpSettings.sslColorHex)
+                        val step = (z.top - z.bottom) / 4f
+                        var maxD = 0f
+                        for (d in z.deltas) { val a = kotlin.math.abs(d); if (a > maxD) maxD = a }
+                        val baseFillInt = if (z.isBsl) AndroidColor.parseColor(ldpSettings.bslColorHex) else AndroidColor.parseColor(ldpSettings.sslColorHex)
+                        for (j in 0..3) {
+                            val qBot = z.bottom + j * step
+                            val qTop = z.bottom + (j + 1) * step
+                            val d = z.deltas[j]
+                            val fillColorInt = if (kotlin.math.abs(d) > 0.001f && maxD > 0f)
+                                (if (d > 0f) AndroidColor.parseColor(ldpSettings.buyDeltaColorHex) else AndroidColor.parseColor(ldpSettings.sellDeltaColorHex))
+                            else baseFillInt
+                            // Pine transparency: delta-driven 100-(|d|/max)*60, default 60+((3-i)|i)*10
+                            val opPct = if (z.swept) 10
+                                else if (maxD > 0f && kotlin.math.abs(d) > 0.001f) (kotlin.math.abs(d) / maxD * 60f).toInt().coerceIn(0, 60)
+                                else if (z.isBsl) 10 + j * 10
+                                else 40 - j * 10
+                            val lineColor = IntColor(applyOpacity(zoneColorInt, if (z.swept) 20 else 40))
+                            val ldpChartApi = chartsViewApi?.api
+                            if (ldpChartApi != null) {
+                                ldpPendingSeries++
+                                ldpChartApi.addBaselineSeries(
+                                options = BaselineSeriesOptions(
+                                    baseValue = com.trading.app.indicators.FloatPriceBaseValue(qBot.toDouble()),
+                                    baseLineVisible = false,
+                                    baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                    topLineColor = lineColor,
+                                    topFillColor1 = IntColor(applyOpacity(fillColorInt, opPct)),
+                                    topFillColor2 = IntColor(applyOpacity(fillColorInt, opPct)),
+                                    bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                    bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                    bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                    lineWidth = LineWidth.ONE,
+                                    lineStyle = if (z.swept) LineStyle.DASHED else LineStyle.SOLID,
+                                    priceLineVisible = false,
+                                    lastValueVisible = false,
+                                    crosshairMarkerVisible = false
+                                ),
+                                onSeriesCreated = { box ->
+                                    box.setData(listOf(BaselineData(time = Time.Utc(leftT), value = qTop), BaselineData(time = Time.Utc(rightT), value = qTop)))
+                                    ldpBoxSeries.add(box)
+                                    ldpPendingSeries = (ldpPendingSeries - 1).coerceAtLeast(0)
+                                }
+                            )
+                            }
+                        }
+                    }
+                    for (z in ldp.bslZones + ldp.sslZones) LdpZoneBox(z)
+                    for (z in ldp.bslZones + ldp.sslZones) {
+                        if (z.swept && !ldpSettings.showSwept) continue
+                        // Zone decay: dashed mid line labeled with remaining health %
+                        if (ldpSettings.showDecay && !z.swept && z.healthPct >= 0) {
+                            ldpPriceLines.add(mainSeriesApi.createPriceLine(PriceLineOptions(
+                                price = (z.top + z.bottom) / 2f,
+                                color = IntColor(applyOpacity(AndroidColor.parseColor(if (z.isBsl) ldpSettings.bslColorHex else ldpSettings.sslColorHex), 60)),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.DOTTED,
+                                lineVisible = true,
+                                axisLabelVisible = true,
+                                title = "${z.healthPct}%"
+                            )))
+                        }
+                        // Reversal signal: dotted line labeled ABS/EXH/DIV/REJ
+                        if (z.signaled) {
+                            ldpPriceLines.add(mainSeriesApi.createPriceLine(PriceLineOptions(
+                                price = z.signalPrice,
+                                color = IntColor(AndroidColor.parseColor(if (z.isBsl) "#f23645" else "#089981")),
+                                lineWidth = LineWidth.TWO,
+                                lineStyle = LineStyle.DOTTED,
+                                lineVisible = true,
+                                axisLabelVisible = true,
+                                title = (if (z.isBsl) "BSL " else "SSL ") + z.signalType
+                            )))
+                        }
+                    }
+                }
+                lastLdpSig = sig
+                Log.d(LOG_TAG, "LDP drawn: boxes issued pending=$ldpPendingSeries priceLines=${ldpPriceLines.size}")
+            }
+        } else {
+            clearLdpRender(mainSeriesApi)
+            if (!showLiquidityDeltaProfiler) ldpPriceLineOwner = null
+            lastLdpSig = null
+        }
+
+        // EQH/EQL Liquidity Zones [LuxAlgo] - Editors' picks overlay
+        // Equal highs/lows boxes (BaselineSeries band) + dashed midline + cluster label lines + swept states
+        fun clearEqhRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: eqhPriceLineOwner ?: return
+            eqhPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            eqhPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                eqhBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            eqhBoxSeries.clear()
+        }
+        if (showEqhEqlLiquidityZones && "EQH_EQL_LIQUIDITY_ZONES" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 30 && chartsViewApi != null) {
+            val eqh = eqhPrecomputed
+            val ownerChanged = eqhPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "EQH pass: bars=${ohlcData.size} active=${eqh?.active?.size} swept=${eqh?.swept?.size} lastSigNull=${lastEqhSig == null} ownerChanged=$ownerChanged")
+            val allZones = (eqh?.active.orEmpty() + eqh?.swept.orEmpty())
+            val sig = (
+                eqhEqlSettings.zoneTransp.toString() + "|" + eqhEqlSettings.bullColorHex + "|" + eqhEqlSettings.bearColorHex + "|" +
+                eqhEqlSettings.showMidline + "|" + eqhEqlSettings.midlineColorHex + "|" + eqhEqlSettings.showVolume + "|" + eqhEqlSettings.showLabels + "|" + eqhEqlSettings.deleteOnSweep + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                allZones.joinToString(";") { z ->
+                    "${if (z.isHigh) "h" else "l"}${z.leftIdx}${z.rightIdx}-${String.format(java.util.Locale.US, "%.5f", z.top)}-${String.format(java.util.Locale.US, "%.5f", z.bottom)}-${z.swept}-${z.clusterLabel}"
+                }
+            )
+            if (ownerChanged || lastEqhSig != sig || eqhBoxSeries.isEmpty() && eqhPriceLines.isEmpty()) {
+                clearEqhRender(mainSeriesApi)
+                eqhPriceLineOwner = mainSeriesApi
+                eqhPendingSeries = 0
+                if (eqh != null) {
+                    fun EqhZoneBox(z: com.trading.app.indicators.EqhEqlZone) {
+                        if (z.leftIdx < 0 || z.leftIdx >= ohlcData.size) return
+                        val leftT = ohlcData[z.leftIdx].time
+                        val rightIdx = z.rightIdx.coerceIn(0, ohlcData.size - 1)
+                        var rightT = ohlcData[rightIdx].time
+                        // SD guards against duplicate timestamps (fatal assert in chart lib)
+                        if (rightT <= leftT) {
+                            val tfSec = when (currentTimeframe.value) {
+                                "1m" -> 60L; "5m" -> 300L; "15m" -> 900L; "30m" -> 1800L
+                                "1h" -> 3600L; "4h" -> 14400L; "1D" -> 86400L; "1W" -> 604800L
+                                else -> 60L
+                            }
+                            rightT = leftT + tfSec
+                        }
+                        val zoneHex = if (z.swept) "#787b86" else if (z.isHigh) eqhEqlSettings.bearColorHex else eqhEqlSettings.bullColorHex
+                        val zoneColorInt = AndroidColor.parseColor(zoneHex)
+                        // Pine: active fill = color.new(zone, zoneTransp); swept fill = color.new(fg, 95)
+                        // Use a 32% min fill so sub-pixel bands (0.03% of AUDUSD ~ 1px) read as shaded
+                        // zones rather than bare lines; on dark OLED Polo's 15% is near-invisible.
+                        val opPct = if (z.swept) 14 else maxOf(32, (100 - eqhEqlSettings.zoneTransp).coerceIn(0, 100))
+                        val eqhChartApi = chartsViewApi?.api
+                        if (eqhChartApi != null) {
+                            val edgeColor = IntColor(applyOpacity(zoneColorInt, if (z.swept) 35 else 100))
+                            val fillColor = IntColor(applyOpacity(zoneColorInt, opPct))
+                            eqhPendingSeries++
+                            eqhChartApi.addBaselineSeries(
+                                options = BaselineSeriesOptions(
+                                    baseValue = com.trading.app.indicators.FloatPriceBaseValue(z.bottom.toDouble()),
+                                    baseLineVisible = false,
+                                    baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                    topLineColor = edgeColor,
+                                    topFillColor1 = fillColor,
+                                    topFillColor2 = fillColor,
+                                    bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                    bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                    bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                    lineWidth = LineWidth.TWO,
+                                    lineStyle = LineStyle.SOLID,
+                                    priceLineVisible = false,
+                                    lastValueVisible = false,
+                                    crosshairMarkerVisible = false
+                                ),
+                                onSeriesCreated = { box ->
+                                    // Flat top line + fill down to base (bottom) — matches box.new(prev.idx, top, bar_index, bottom)
+                                    box.setData(listOf(BaselineData(time = Time.Utc(leftT), value = z.top), BaselineData(time = Time.Utc(rightT), value = z.top)))
+                                    eqhBoxSeries.add(box)
+                                    eqhPendingSeries = (eqhPendingSeries - 1).coerceAtLeast(0)
+                                }
+                            )
+                            // Bottom border: separate LineSeries is more reliable than baseline at base==value
+                            eqhPendingSeries++
+                            eqhChartApi.addLineSeries(
+                                options = LineSeriesOptions(
+                                    color = edgeColor,
+                                    lineWidth = LineWidth.TWO,
+                                    lineStyle = LineStyle.SOLID,
+                                    priceLineVisible = false,
+                                    lastValueVisible = false,
+                                    crosshairMarkerVisible = false
+                                ),
+                                onSeriesCreated = { edge ->
+                                    edge.setData(listOf(LineData(time = Time.Utc(leftT), value = z.bottom), LineData(time = Time.Utc(rightT), value = z.bottom)))
+                                    eqhBoxSeries.add(edge)
+                                    eqhPendingSeries = (eqhPendingSeries - 1).coerceAtLeast(0)
+                                }
+                            )
+                        }
+                    }
+                    for (z in allZones) EqhZoneBox(z)
+                    for (z in allZones) {
+                        // Optional dashed midline at box mid - a short dashed line across the box, not a full priceLine label
+                        if (eqhEqlSettings.showMidline && !z.swept) {
+                            eqhPriceLines.add(mainSeriesApi.createPriceLine(PriceLineOptions(
+                                price = z.mid,
+                                color = IntColor(AndroidColor.parseColor(eqhEqlSettings.midlineColorHex)),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.DASHED,
+                                lineVisible = true,
+                                axisLabelVisible = false,
+                                title = ""
+                            )))
+                        }
+                        // Pine boxes use a text label at box mid (label.style_label_left) - not a full-width price line.
+                        // Use price scale axis label only (no horizontal line) so the zone reads as a shaded box.
+                        // Hideable via the "Show Labels" setting.
+                        if (z.clusterLabel.isNotEmpty() && eqhEqlSettings.showLabels) {
+                            val labelHex = if (z.swept) "#868993" else if (z.isHigh) eqhEqlSettings.bearColorHex else eqhEqlSettings.bullColorHex
+                            eqhPriceLines.add(mainSeriesApi.createPriceLine(PriceLineOptions(
+                                price = z.mid,
+                                color = IntColor(AndroidColor.parseColor(labelHex)),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                lineVisible = false,
+                                axisLabelVisible = true,
+                                title = z.clusterLabel
+                            )))
+                        }
+                    }
+                }
+                lastEqhSig = sig
+                Log.d(LOG_TAG, "EQH drawn: boxes issued pending=$eqhPendingSeries priceLines=${eqhPriceLines.size}")
+            }
+        } else {
+            clearEqhRender(mainSeriesApi)
+            if (!showEqhEqlLiquidityZones) eqhPriceLineOwner = null
+            lastEqhSig = null
+        }
+        // ---------- Power Hour Breakout [LuxAlgo] (Editors' picks) ----------
+        fun clearPhRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: phPriceLineOwner ?: return
+            phPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            phPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                phBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            phBoxSeries.clear()
+        }
+        if (showPowerHourBreakout && "POWER_HOUR_BREAKOUT" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 30 && chartsViewApi != null) {
+            val ph = phPrecomputed
+            val ownerChanged = phPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "PH pass: bars=${ohlcData.size} frames=${ph?.frames?.size} breakouts=${ph?.breakouts?.size} lastSigNull=${lastPhSig == null} ownerChanged=$ownerChanged")
+            val sig = (
+                powerHourSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (ph?.frames?.joinToString(";") { f ->
+                    "${f.startTime}-${f.endTime}-${f.endSession}-${String.format(java.util.Locale.US, "%.5f", f.top)}-${String.format(java.util.Locale.US, "%.5f", f.bottom)}-${f.topExt ?: Float.NaN}-${f.bottomExt ?: Float.NaN}"
+                }.orEmpty()) + "|" +
+                (ph?.breakouts?.joinToString(";") { b -> "${b.time}-${b.bull}" }.orEmpty())
+            )
+            if (ownerChanged || lastPhSig != sig || phBoxSeries.isEmpty() && phPriceLines.isEmpty()) {
+                clearPhRender(mainSeriesApi)
+                phPriceLineOwner = mainSeriesApi
+                phPendingSeries = 0
+                if (ph != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        // Pine: box border_color = color.new(color.silver, 90), bgcolor = color.new(color.silver, 90)
+                        // 90% transparent = 10% opacity
+                        val silver10 = IntColor(applyOpacity(AndroidColor.parseColor("#c0c0c0"), 10))
+                        val topColorInt = AndroidColor.parseColor(powerHourSettings.topColorHex)
+                        val bottomColorInt = AndroidColor.parseColor(powerHourSettings.bottomColorHex)
+                        val extOpacity = (100 - powerHourSettings.transparency).coerceIn(0, 95) // transparency 80 → 20% opacity
+                        // Fibo lines default to SILVER_50 (50% opacity silver)
+                        val fiboDefaultOpacity = 50
+                        // Main-series markers (PH triangles, TBT arrows, Navigator wick dots) share one
+                        // slot and are written once by the consolidated step after all overlay blocks.
+                        fun PhBox(l: Long, r: Long, top: Float, bottom: Float) {
+                            // Pine: box.new(startTime, top, endTime, bottom, border_color=silver10, bgcolor=silver10)
+                            // BaselineSeries: base=bottom, value=top, topLineColor=silver10, topFillColor=silver10
+                            phPendingSeries++
+                            chartApi.addBaselineSeries(options = BaselineSeriesOptions(
+                                baseValue = com.trading.app.indicators.FloatPriceBaseValue(bottom.toDouble()),
+                                baseLineVisible = false,
+                                baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topLineColor = silver10,
+                                topFillColor1 = silver10,
+                                topFillColor2 = silver10,
+                                bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                priceLineVisible = false,
+                                lastValueVisible = false,
+                                crosshairMarkerVisible = false
+                            ), onSeriesCreated = { s ->
+                                s.setData(listOf(BaselineData(time = Time.Utc(l), value = top), BaselineData(time = Time.Utc(r), value = top)))
+                                phBoxSeries.add(s); phPendingSeries = (phPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun PhLine(l: Long, r: Long, price: Float, color: Int, style: LineStyle) {
+                            // Pine: line.new(startTime, level, endSession, level, color=color, width=1, style=style)
+                            phPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = LineWidth.ONE, lineStyle = style, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = price), LineData(time = Time.Utc(r), value = price)))
+                                phBoxSeries.add(s); phPendingSeries = (phPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun PhExtLine(l: Long, r: Long, price: Float, color: Int) {
+                            // Extension line (solid, width 1) at extension level
+                            phPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = LineWidth.ONE, lineStyle = LineStyle.SOLID, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = price), LineData(time = Time.Utc(r), value = price)))
+                                phBoxSeries.add(s); phPendingSeries = (phPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun PhFill(l: Long, r: Long, level: Float, ext: Float, color: Int) {
+                            // Pine: linefill.new(levelLine, extLine, color.new(color, transparency))
+                            // BaselineSeries fill between level and ext, from l to r
+                            phPendingSeries++
+                            val lo = minOf(level, ext).toDouble()
+                            val hi = maxOf(level, ext).toDouble()
+                            val fillColor = IntColor(applyOpacity(color, extOpacity))
+                            chartApi.addBaselineSeries(options = BaselineSeriesOptions(
+                                baseValue = com.trading.app.indicators.FloatPriceBaseValue(lo),
+                                baseLineVisible = false,
+                                baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topFillColor1 = fillColor,
+                                topFillColor2 = fillColor,
+                                bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                priceLineVisible = false,
+                                lastValueVisible = false,
+                                crosshairMarkerVisible = false
+                            ), onSeriesCreated = { s ->
+                                s.setData(listOf(BaselineData(time = Time.Utc(l), value = hi.toFloat()), BaselineData(time = Time.Utc(r), value = hi.toFloat())))
+                                phBoxSeries.add(s); phPendingSeries = (phPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun PhFiboLabel(price: Float, text: String, color: Int) {
+                            runCatching {
+                                val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                    price = price,
+                                    color = IntColor(color),
+                                    lineWidth = LineWidth.ONE,
+                                    lineStyle = LineStyle.DOTTED,
+                                    axisLabelVisible = true,
+                                    lineVisible = false,
+                                    title = text
+                                ))
+                                phPriceLines.add(pl)
+                            }
+                        }
+                        ph.frames.forEachIndexed { fi, fr ->
+                            val leftT = fr.startTime
+                            val endT = fr.endTime
+                            val sessionT = fr.endSession
+                            // Pine boxes/lines can have zero time width on timeframes with one inside bar.
+                            // The chart library rejects duplicate timestamps, so skip zero-width shapes.
+                            if (endT > leftT) {
+                                // Box: startTime -> endTime (Pine uses endTime for box right edge)
+                                PhBox(leftT, endT, fr.top, fr.bottom)
+                            }
+                            if (sessionT > leftT) {
+                                // Top level line: startTime -> endSession
+                                PhLine(leftT, sessionT, fr.top, topColorInt, LineStyle.SOLID)
+                                // Top extension: line + fill
+                                if (fr.topExt != null) {
+                                    PhExtLine(leftT, sessionT, fr.topExt, topColorInt)
+                                    PhFill(leftT, sessionT, fr.top, fr.topExt, topColorInt)
+                                }
+                                // Bottom level line: startTime -> endSession
+                                PhLine(leftT, sessionT, fr.bottom, bottomColorInt, LineStyle.SOLID)
+                                // Bottom extension: line + fill (note: bottom extension is below bottom)
+                                if (fr.bottomExt != null) {
+                                    PhExtLine(leftT, sessionT, fr.bottomExt, bottomColorInt)
+                                    PhFill(leftT, sessionT, fr.bottom, fr.bottomExt, bottomColorInt)
+                                }
+                                // Fibonacci levels: startTime -> endSession, 50% opacity, style per input
+                                fr.fibos.forEach { fib ->
+                                    if (fib.display) {
+                                        val fibColorInt = applyOpacity(AndroidColor.parseColor(fib.colorHex), fiboDefaultOpacity)
+                                        PhLine(leftT, sessionT, fib.price, fibColorInt, when (fib.style) {
+                                            "Dotted" -> LineStyle.DOTTED
+                                            "Dashed" -> LineStyle.DASHED
+                                            else -> LineStyle.SOLID
+                                        })
+                                        if (powerHourSettings.fibosLabels) {
+                                            val txt = String.format(java.util.Locale.US, "%.3f (%.4f)", fib.level, fib.price)
+                                            PhFiboLabel(fib.price, txt, fibColorInt)
+                                        }
+                                    }
+                                }
+                            } else if (powerHourSettings.fibosLabels) {
+                                fr.fibos.forEach { fib ->
+                                    if (fib.display) {
+                                        val fibColorInt = applyOpacity(AndroidColor.parseColor(fib.colorHex), fiboDefaultOpacity)
+                                        val txt = String.format(java.util.Locale.US, "%.3f (%.4f)", fib.level, fib.price)
+                                        PhFiboLabel(fib.price, txt, fibColorInt)
+                                    }
+                                }
+                            }
+                        }
+                        lastPhSig = sig
+                        Log.d(LOG_TAG, "PH drawn: boxes issued pending=$phPendingSeries priceLines=${phPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearPhRender(mainSeriesApi)
+            if (!showPowerHourBreakout) phPriceLineOwner = null
+            lastPhSig = null
+        }
+        // ---------- Trendline Breakouts With Targets [ChartPrime] ----------
+        fun clearTbtRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: tbtPriceLineOwner ?: return
+            tbtPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            tbtPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                tbtBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            tbtBoxSeries.clear()
+        }
+        if (showTrendlineBreakouts && "TRENDLINE_BREAKOUTS" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 60 && chartsViewApi != null) {
+            val tbt = tbtPrecomputed
+            val ownerChanged = tbtPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "TBT pass: bars=${ohlcData.size} segments=${tbt?.segments?.size} signals=${tbt?.signals?.size} targets=${tbt?.targets?.size} lastSigNull=${lastTbtSig == null} ownerChanged=$ownerChanged")
+            val sig = (
+                trendlineSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (tbt?.segments?.joinToString(";") { s ->
+                    "${s.startTime}-${s.endTime}-${String.format(java.util.Locale.US, "%.5f", s.startPrice)}-${String.format(java.util.Locale.US, "%.5f", s.endPrice)}-${String.format(java.util.Locale.US, "%.5f", s.band)}-${s.support}"
+                }.orEmpty()) + "|" +
+                (tbt?.signals?.joinToString(";") { m -> "${m.time}-${m.bull}" }.orEmpty()) + "|" +
+                (tbt?.targets?.joinToString(";") { t ->
+                    "${t.entryTime}-${t.exitTime}-${String.format(java.util.Locale.US, "%.5f", t.tp)}-${t.won}-${t.active}-${t.bull}"
+                }.orEmpty())
+            )
+            if (ownerChanged || lastTbtSig != sig || tbtBoxSeries.isEmpty() && tbtPriceLines.isEmpty()) {
+                clearTbtRender(mainSeriesApi)
+                tbtPriceLineOwner = mainSeriesApi
+                tbtPendingSeries = 0
+                if (tbt != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        // Main-series markers are written once by the consolidated step below.
+                        fun TbtLine(l: Long, r: Long, p1: Float, p2: Float, color: Int, width: LineWidth, style: LineStyle) {
+                            if (r <= l || !p1.isFinite() || !p2.isFinite()) return
+                            tbtPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = width, lineStyle = style, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = p1), LineData(time = Time.Utc(r), value = p2)))
+                                tbtBoxSeries.add(s); tbtPendingSeries = (tbtPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun TbtTargetLabel(price: Float, text: String, color: Int) {
+                            if (!price.isFinite()) return
+                            runCatching {
+                                val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                    price = price,
+                                    color = IntColor(color),
+                                    lineWidth = LineWidth.ONE,
+                                    lineStyle = LineStyle.DOTTED,
+                                    axisLabelVisible = true,
+                                    lineVisible = false,
+                                    title = text
+                                ))
+                                tbtPriceLines.add(pl)
+                            }
+                        }
+                        val grayBand = applyOpacity(AndroidColor.parseColor(trendlineSettings.lineCol1Hex), 81)
+                        val resistanceEdge = applyOpacity(AndroidColor.parseColor("#0b8b07"), 47)
+                        val supportEdge = applyOpacity(AndroidColor.parseColor("#d42e00"), 46)
+                        val targetLine = AndroidColor.parseColor("#9a6714")
+                        val targetWin = applyOpacity(AndroidColor.parseColor("#06800a"), 63)
+                        val targetLoss = applyOpacity(AndroidColor.parseColor("#f60707"), 30)
+                        // Pine draws three parallel lines per trendline; fills are approximated with edges
+                        // because the chart library has no polygon linefill primitive.
+                        tbt.segments.forEach { sg ->
+                            if (sg.endTime > sg.startTime && sg.startPrice.isFinite() && sg.endPrice.isFinite() && sg.band.isFinite() && sg.band > 0f) {
+                                val edge = if (sg.support) supportEdge else resistanceEdge
+                                TbtLine(sg.startTime, sg.endTime, sg.startPrice, sg.endPrice, edge, LineWidth.TWO, LineStyle.SOLID)
+                                TbtLine(sg.startTime, sg.endTime, sg.startPrice - sg.band, sg.endPrice - sg.band, grayBand, LineWidth.ONE, LineStyle.SOLID)
+                                TbtLine(sg.startTime, sg.endTime, sg.startPrice - sg.band * 2f, sg.endPrice - sg.band * 2f, grayBand, LineWidth.ONE, LineStyle.SOLID)
+                            }
+                        }
+                        if (trendlineSettings.showTargets) {
+                            tbt.targets.forEach { tg ->
+                                if (tg.exitTime >= tg.entryTime && tg.tp.isFinite()) {
+                                    TbtLine(tg.entryTime, tg.exitTime, tg.tp, tg.tp, targetLine, LineWidth.ONE, LineStyle.DASHED)
+                                    val labelColor = if (tg.active) targetLine else if (tg.won) targetWin else targetLoss
+                                    TbtTargetLabel(tg.tp, "Target", labelColor)
+                                }
+                            }
+                        }
+                        lastTbtSig = sig
+                        Log.d(LOG_TAG, "TBT drawn: lines issued pending=$tbtPendingSeries priceLines=${tbtPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearTbtRender(mainSeriesApi)
+            if (!showTrendlineBreakouts) tbtPriceLineOwner = null
+            lastTbtSig = null
+        }
+        // ---------- Trendline Breakout Navigator [LuxAlgo] ----------
+        fun clearTnavRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: tnavPriceLineOwner ?: return
+            tnavPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            tnavPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                tnavBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            tnavBoxSeries.clear()
+        }
+        if (showTrendlineNavigator && "TRENDLINE_NAVIGATOR" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 80 && chartsViewApi != null) {
+            val tnav = tnavPrecomputed
+            val ownerChanged = tnavPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "TNAV pass: bars=${ohlcData.size} segments=${tnav?.segments?.size} dots=${tnav?.dots?.size} tags=${tnav?.tags?.size} lastSigNull=${lastTnavSig == null} ownerChanged=$ownerChanged")
+            val sig = (
+                navigatorSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (tnav?.segments?.joinToString(";") { s ->
+                    "${s.startTime}-${s.endTime}-${String.format(java.util.Locale.US, "%.5f", s.startPrice)}-${String.format(java.util.Locale.US, "%.5f", s.endPrice)}-${s.pos}-${s.bull}"
+                }.orEmpty()) + "|" +
+                (tnav?.dots?.joinToString(";") { d -> "${d.time}-${d.bull}" }.orEmpty()) + "|" +
+                (tnav?.tags?.joinToString(";") { t -> "${t.time}-${String.format(java.util.Locale.US, "%.5f", t.price)}-${t.text}" }.orEmpty())
+            )
+            if (ownerChanged || lastTnavSig != sig || tnavBoxSeries.isEmpty() && tnavPriceLines.isEmpty()) {
+                clearTnavRender(mainSeriesApi)
+                tnavPriceLineOwner = mainSeriesApi
+                tnavPendingSeries = 0
+                if (tnav != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        fun TnavLine(l: Long, r: Long, p1: Float, p2: Float, color: Int, width: LineWidth, style: LineStyle) {
+                            if (r <= l || !p1.isFinite() || !p2.isFinite()) return
+                            tnavPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = width, lineStyle = style, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = p1), LineData(time = Time.Utc(r), value = p2)))
+                                tnavBoxSeries.add(s); tnavPendingSeries = (tnavPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun TnavTag(price: Float, text: String) {
+                            if (!price.isFinite()) return
+                            runCatching {
+                                val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                    price = price,
+                                    color = IntColor(AndroidColor.parseColor("#D1D4DC")),
+                                    lineWidth = LineWidth.ONE,
+                                    lineStyle = LineStyle.DOTTED,
+                                    axisLabelVisible = true,
+                                    lineVisible = false,
+                                    title = text
+                                ))
+                                tnavPriceLines.add(pl)
+                            }
+                        }
+                        val bullLine = AndroidColor.parseColor(navigatorSettings.bullColorHex)
+                        val bearLine = AndroidColor.parseColor(navigatorSettings.bearColorHex)
+                        tnav.segments.forEach { sg ->
+                            val style = when (sg.pos) {
+                                2 -> LineStyle.DASHED
+                                3 -> LineStyle.DOTTED
+                                else -> LineStyle.SOLID
+                            }
+                            val width = if (sg.pos == 1) LineWidth.TWO else LineWidth.ONE
+                            TnavLine(sg.startTime, sg.endTime, sg.startPrice, sg.endPrice, if (sg.bull) bullLine else bearLine, width, style)
+                        }
+                        tnav.tags.forEach { tg -> TnavTag(tg.price, tg.text) }
+                        lastTnavSig = sig
+                        Log.d(LOG_TAG, "TNAV drawn: lines issued pending=$tnavPendingSeries priceLines=${tnavPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearTnavRender(mainSeriesApi)
+            if (!showTrendlineNavigator) tnavPriceLineOwner = null
+            lastTnavSig = null
+        }
+        // ---------- Liquidity Pools [LuxAlgo] ----------
+        fun clearLpRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: lpPriceLineOwner ?: return
+            lpPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            lpPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                lpBoxSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            lpBoxSeries.clear()
+        }
+        if (showLiquidityPools && "LIQUIDITY_POOLS" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 15 && chartsViewApi != null) {
+            val lp = lpPrecomputed
+            val ownerChanged = lpPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "LP pass: bars=${ohlcData.size} zones=${lp?.zones?.size} tags=${lp?.tags?.size} lastSigNull=${lastLpSig == null} ownerChanged=$ownerChanged")
+            val sig = (
+                liquidityPoolsSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (lp?.zones?.joinToString(";") { z ->
+                    "${z.leftTime}-${z.boxRightTime}-${String.format(java.util.Locale.US, "%.5f", z.top)}-${String.format(java.util.Locale.US, "%.5f", z.bottom)}-${z.bull}-${z.vol}-${z.lineStartTime}-${z.lineEndTime}-${z.showLine}"
+                }.orEmpty()) + "|" +
+                (lp?.tags?.joinToString(";") { t -> "${t.time}-${String.format(java.util.Locale.US, "%.5f", t.price)}-${t.text}-${t.bull}" }.orEmpty())
+            )
+            if (ownerChanged || lastLpSig != sig || lpBoxSeries.isEmpty() && lpPriceLines.isEmpty()) {
+                clearLpRender(mainSeriesApi)
+                lpPriceLineOwner = mainSeriesApi
+                lpPendingSeries = 0
+                if (lp != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        fun LpZoneBox(z: com.trading.app.indicators.LpZone) {
+                            if (z.boxRightTime <= z.leftTime || z.top <= z.bottom || !z.top.isFinite() || !z.bottom.isFinite()) return
+                            val zoneColorInt = AndroidColor.parseColor(if (z.bull) liquidityPoolsSettings.bullColorHex else liquidityPoolsSettings.bearColorHex)
+                            // Pine: box.new(..., bgcolor = color.new(zone, 80), border_color = na) -> fill-only at 20%
+                            val fill = IntColor(applyOpacity(zoneColorInt, 20))
+                            lpPendingSeries++
+                            chartApi.addBaselineSeries(options = BaselineSeriesOptions(
+                                baseValue = com.trading.app.indicators.FloatPriceBaseValue(z.bottom.toDouble()),
+                                baseLineVisible = false,
+                                baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topFillColor1 = fill,
+                                topFillColor2 = fill,
+                                bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                priceLineVisible = false,
+                                lastValueVisible = false,
+                                crosshairMarkerVisible = false
+                            ), onSeriesCreated = { box ->
+                                box.setData(listOf(BaselineData(time = Time.Utc(z.leftTime), value = z.top), BaselineData(time = Time.Utc(z.boxRightTime), value = z.top)))
+                                lpBoxSeries.add(box); lpPendingSeries = (lpPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun LpLevelLine(l: Long, r: Long, price: Float, color: Int) {
+                            if (r <= l || !price.isFinite()) return
+                            lpPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = LineWidth.ONE, lineStyle = LineStyle.SOLID, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = price), LineData(time = Time.Utc(r), value = price)))
+                                lpBoxSeries.add(s); lpPendingSeries = (lpPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        val bullZone = AndroidColor.parseColor(liquidityPoolsSettings.bullColorHex)
+                        val bearZone = AndroidColor.parseColor(liquidityPoolsSettings.bearColorHex)
+                        lp.zones.forEach { z ->
+                            LpZoneBox(z)
+                            // Level line (bull: body bottom lst.b, bear: body top hst.t) extends while newest
+                            if (z.showLine) {
+                                LpLevelLine(z.lineStartTime, z.lineEndTime, z.level, if (z.bull) bullZone else bearZone)
+                            }
+                        }
+                        if (liquidityPoolsSettings.volTog) {
+                            lp.tags.takeLast(60).forEach { tg ->
+                                if (tg.price.isFinite() && tg.text.isNotBlank()) {
+                                    runCatching {
+                                        val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                            price = tg.price,
+                                            color = IntColor(if (tg.bull) bullZone else bearZone),
+                                            lineWidth = LineWidth.ONE,
+                                            lineStyle = LineStyle.DOTTED,
+                                            axisLabelVisible = true,
+                                            lineVisible = false,
+                                            title = tg.text
+                                        ))
+                                        lpPriceLines.add(pl)
+                                    }
+                                }
+                            }
+                        }
+                        lastLpSig = sig
+                        Log.d(LOG_TAG, "LP drawn: series issued pending=$lpPendingSeries priceLines=${lpPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearLpRender(mainSeriesApi)
+            if (!showLiquidityPools) lpPriceLineOwner = null
+            lastLpSig = null
+        }
+        // ---------- Pure Price Action Order & Breaker Blocks [LuxAlgo] ----------
+        fun clearObbRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: obbPriceLineOwner ?: return
+            obbPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            obbPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                obbSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            obbSeries.clear()
+        }
+        if (showOrderBlockBreaker && "ORDER_BLOCK_BREAKER" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 15 && chartsViewApi != null) {
+            val obb = obbPrecomputed
+            val ownerChanged = obbPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "OBB pass: bars=${ohlcData.size} bull=${obb?.bull?.size} bear=${obb?.bear?.size} labels=${obb?.labels?.size} ownerChanged=$ownerChanged")
+            val sig = (
+                obbSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (obb?.bull?.joinToString(";") { d ->
+                    "${d.locTime}-${d.rightTime}-${d.breaker}-${String.format(java.util.Locale.US, "%.5f", d.top)}-${String.format(java.util.Locale.US, "%.5f", d.btm)}"
+                }.orEmpty()) + "|" +
+                (obb?.bear?.joinToString(";") { d ->
+                    "${d.locTime}-${d.rightTime}-${d.breaker}-${String.format(java.util.Locale.US, "%.5f", d.top)}-${String.format(java.util.Locale.US, "%.5f", d.btm)}"
+                }.orEmpty()) + "|" +
+                (obb?.labels?.joinToString(";") { t -> "${t.time}-${String.format(java.util.Locale.US, "%.5f", t.price)}-${t.down}-${t.hex}" }.orEmpty())
+            )
+            if (ownerChanged || lastObbSig != sig) {
+                clearObbRender(mainSeriesApi)
+                obbPriceLineOwner = mainSeriesApi
+                obbPendingSeries = 0
+                if (obb != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        fun ObbBox(d: com.trading.app.indicators.ObDisplay) {
+                            if (d.rightTime <= d.locTime || d.top <= d.btm || !d.top.isFinite() || !d.btm.isFinite()) return
+                            val zoneColor = AndroidColor.parseColor(if (d.bull) obbSettings.bullCssHex else obbSettings.bearCssHex)
+                            // Pine: box.new(..., bgcolor = color.new(css, 80), border_color = na) -> fill-only at 20%
+                            val fill = IntColor(applyOpacity(zoneColor, 20))
+                            obbPendingSeries++
+                            chartApi.addBaselineSeries(options = BaselineSeriesOptions(
+                                baseValue = com.trading.app.indicators.FloatPriceBaseValue(d.btm.toDouble()),
+                                baseLineVisible = false,
+                                baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topFillColor1 = fill,
+                                topFillColor2 = fill,
+                                bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                priceLineVisible = false,
+                                lastValueVisible = false,
+                                crosshairMarkerVisible = false
+                            ), onSeriesCreated = { box ->
+                                box.setData(listOf(BaselineData(time = Time.Utc(d.locTime), value = d.top), BaselineData(time = Time.Utc(d.rightTime), value = d.top)))
+                                obbSeries.add(box); obbPendingSeries = (obbPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun ObbLine(l: Long, r: Long, price: Float, color: Int, dotted: Boolean) {
+                            if (r <= l || !price.isFinite()) return
+                            obbPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(color), lineWidth = LineWidth.ONE, lineStyle = if (dotted) LineStyle.DOTTED else LineStyle.SOLID, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = price), LineData(time = Time.Utc(r), value = price)))
+                                obbSeries.add(s); obbPendingSeries = (obbPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        val bullCss = AndroidColor.parseColor(obbSettings.bullCssHex)
+                        val bullBreakCss = AndroidColor.parseColor(obbSettings.bullBreakCssHex)
+                        val bearCss = AndroidColor.parseColor(obbSettings.bearCssHex)
+                        val bearBreakCss = AndroidColor.parseColor(obbSettings.bearBreakCssHex)
+                        val lastT = ohlcData.last().time
+                        obb.bull.forEach { d ->
+                            ObbBox(d)
+                            val css = if (d.breaker) bullBreakCss else bullCss
+                            val opacity = if (d.breaker) 60 else 20
+                            ObbLine(if (d.breaker) d.rightTime else d.locTime, lastT, d.top, applyOpacity(css, opacity), false)
+                            ObbLine(if (d.breaker) d.rightTime else d.locTime, lastT, d.btm, applyOpacity(css, opacity), false)
+                            ObbLine(d.locTime, lastT, (d.top + d.btm) / 2f, bullCss, true)
+                        }
+                        obb.bear.forEach { d ->
+                            ObbBox(d)
+                            val css = if (d.breaker) bearBreakCss else bearCss
+                            val opacity = if (d.breaker) 60 else 20
+                            ObbLine(if (d.breaker) d.rightTime else d.locTime, lastT, d.top, applyOpacity(css, opacity), false)
+                            ObbLine(if (d.breaker) d.rightTime else d.locTime, lastT, d.btm, applyOpacity(css, opacity), false)
+                            ObbLine(d.locTime, lastT, (d.top + d.btm) / 2f, bearCss, true)
+                        }
+                        if (obbSettings.showLabels) {
+                            obb.labels.forEach { lb ->
+                                if (lb.price.isFinite()) {
+                                    runCatching {
+                                        val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                            price = lb.price,
+                                            color = IntColor(AndroidColor.parseColor(lb.hex)),
+                                            lineWidth = LineWidth.ONE,
+                                            lineStyle = LineStyle.DOTTED,
+                                            axisLabelVisible = true,
+                                            lineVisible = false,
+                                            title = if (lb.down) "▼" else "▲"
+                                        ))
+                                        obbPriceLines.add(pl)
+                                    }
+                                }
+                            }
+                        }
+                        lastObbSig = sig
+                        Log.d(LOG_TAG, "OBB drawn: series issued pending=$obbPendingSeries priceLines=${obbPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearObbRender(mainSeriesApi)
+            if (!showOrderBlockBreaker) obbPriceLineOwner = null
+            lastObbSig = null
+        }
+        // ---------- Volumatic Fair Value Gaps [BigBeluga] ----------
+        fun clearVfvgRender(targetApi: SeriesApi?) {
+            val api = targetApi ?: vfvgPriceLineOwner ?: return
+            vfvgPriceLines.forEach { safelyRemovePriceLine(api, it) }
+            vfvgPriceLines.clear()
+            val chartApi = chartsViewApi?.api
+            if (chartApi != null) {
+                vfvgSeries.forEach { runCatching { chartApi.removeSeries(it) {} } }
+            }
+            vfvgSeries.clear()
+        }
+        if (showVolumaticFvg && "VOLUMATIC_FVG" !in hiddenIndicators && mainSeriesApi != null && ohlcData.size >= 15 && chartsViewApi != null) {
+            val vfvg = vfvgPrecomputed
+            val ownerChanged = vfvgPriceLineOwner != mainSeriesApi
+            Log.d(LOG_TAG, "VFVG pass: bars=${ohlcData.size} items=${vfvg?.items?.size} bull=${vfvg?.bullCount} bear=${vfvg?.bearCount} ownerChanged=$ownerChanged")
+            val sig = (
+                volumaticFvgSettings.toJson() + "|" +
+                ohlcData.size.toString() + "|" + ohlcData.last().time + "|" +
+                (vfvg?.items?.joinToString(";") { d ->
+                    "${d.leftTime}-${d.rightTime}-${d.isBull}-${String.format(java.util.Locale.US, "%.5f", d.top)}-${String.format(java.util.Locale.US, "%.5f", d.bottom)}-${d.bullPct}-${d.bearPct}-${d.bullExtSec}-${d.bearExtSec}"
+                }.orEmpty())
+            )
+            if (ownerChanged || lastVfvgSig != sig) {
+                clearVfvgRender(mainSeriesApi)
+                vfvgPriceLineOwner = mainSeriesApi
+                vfvgPendingSeries = 0
+                if (vfvg != null) {
+                    val chartApi = chartsViewApi?.api
+                    if (chartApi != null) {
+                        fun VfvgFillBox(l: Long, r: Long, topPrice: Float, bottomPrice: Float, colorInt: Int, opacity: Int) {
+                            if (r <= l || topPrice <= bottomPrice || !topPrice.isFinite() || !bottomPrice.isFinite()) return
+                            val fill = IntColor(applyOpacity(colorInt, opacity))
+                            vfvgPendingSeries++
+                            chartApi.addBaselineSeries(options = BaselineSeriesOptions(
+                                baseValue = com.trading.app.indicators.FloatPriceBaseValue(bottomPrice.toDouble()),
+                                baseLineVisible = false,
+                                baseLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                topFillColor1 = fill,
+                                topFillColor2 = fill,
+                                bottomLineColor = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor1 = IntColor(AndroidColor.TRANSPARENT),
+                                bottomFillColor2 = IntColor(AndroidColor.TRANSPARENT),
+                                lineWidth = LineWidth.ONE,
+                                lineStyle = LineStyle.SOLID,
+                                priceLineVisible = false,
+                                lastValueVisible = false,
+                                crosshairMarkerVisible = false
+                            ), onSeriesCreated = { box ->
+                                box.setData(listOf(BaselineData(time = Time.Utc(l), value = topPrice), BaselineData(time = Time.Utc(r), value = topPrice)))
+                                vfvgSeries.add(box); vfvgPendingSeries = (vfvgPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        val bullCss = AndroidColor.parseColor(volumaticFvgSettings.bullColorHex)
+                        val bearCss = AndroidColor.parseColor(volumaticFvgSettings.bearColorHex)
+                        // Pine boxes use border_color = chart.bg_color -> dark outline around the split bars
+                        val vfvgBorder = chartBgColor
+                        fun VfvgEdgeLine(l: Long, r: Long, price: Float) {
+                            if (r <= l || !price.isFinite()) return
+                            vfvgPendingSeries++
+                            chartApi.addLineSeries(options = LineSeriesOptions(color = IntColor(vfvgBorder), lineWidth = LineWidth.ONE, lineStyle = LineStyle.SOLID, priceLineVisible = false, lastValueVisible = false, crosshairMarkerVisible = false), onSeriesCreated = { s ->
+                                s.setData(listOf(LineData(time = Time.Utc(l), value = price), LineData(time = Time.Utc(r), value = price)))
+                                vfvgSeries.add(s); vfvgPendingSeries = (vfvgPendingSeries - 1).coerceAtLeast(0)
+                            })
+                        }
+                        fun VfvgTag(price: Float, text: String, tagColor: Int) {
+                            if (!price.isFinite() || text.isBlank()) return
+                            runCatching {
+                                val pl = mainSeriesApi.createPriceLine(PriceLineOptions(
+                                    price = price,
+                                    color = IntColor(tagColor),
+                                    lineWidth = LineWidth.ONE,
+                                    lineStyle = LineStyle.DOTTED,
+                                    axisLabelVisible = true,
+                                    lineVisible = false,
+                                    title = text
+                                ))
+                                vfvgPriceLines.add(pl)
+                            }
+                        }
+                        vfvg.items.forEach { d ->
+                            val colorInt = if (d.isBull) bullCss else bearCss
+                            // Pine: body bgcolor = color.new(css, 70) -> faint full-width band
+                            VfvgFillBox(d.leftTime, d.rightTime, d.top, d.bottom, colorInt, 30)
+                            // Volume split bars: SOLID bear half [top..mid] on top, SOLID bull half
+                            // [mid..bottom] below, widths = share of the previous bar's up/down volume
+                            if (volumaticFvgSettings.volumeBars) {
+                                val mid = (d.top + d.bottom) / 2f
+                                if (d.bearExtSec > 0L) {
+                                    val bearR = d.leftTime + d.bearExtSec
+                                    VfvgFillBox(d.leftTime, bearR, d.top, mid, bearCss, 85)
+                                    VfvgEdgeLine(d.leftTime, bearR, d.top)
+                                    VfvgEdgeLine(d.leftTime, bearR, mid)
+                                    VfvgTag((d.top + mid) / 2f, "${d.bearPct}%", bearCss)
+                                }
+                                if (d.bullExtSec > 0L) {
+                                    val bullR = d.leftTime + d.bullExtSec
+                                    VfvgFillBox(d.leftTime, bullR, mid, d.bottom, bullCss, 85)
+                                    VfvgEdgeLine(d.leftTime, bullR, mid)
+                                    VfvgEdgeLine(d.leftTime, bullR, d.bottom)
+                                    VfvgTag((mid + d.bottom) / 2f, "${d.bullPct}%", bullCss)
+                                }
+                            }
+                        }
+                        vfvgBullCount = vfvg.bullCount
+                        vfvgBearCount = vfvg.bearCount
+                        lastVfvgSig = sig
+                        Log.d(LOG_TAG, "VFVG drawn: series issued pending=$vfvgPendingSeries priceLines=${vfvgPriceLines.size}")
+                    }
+                }
+            }
+        } else {
+            clearVfvgRender(mainSeriesApi)
+            if (!showVolumaticFvg) vfvgPriceLineOwner = null
+            lastVfvgSig = null
+        }
+        // Consolidated overlay markers: PH triangles + TBT arrows + Navigator wick dots
+        // share the main-series marker slot, so write the combined set once here.
+        runCatching {
+            val markers = mutableListOf<SeriesMarker>()
+            var anyOverlay = false
+            if (showPowerHourBreakout && "POWER_HOUR_BREAKOUT" !in hiddenIndicators && mainSeriesApi != null) {
+                anyOverlay = true
+                val php = phPrecomputed
+                if (powerHourSettings.showBreakouts && php != null) {
+                    php.breakouts.forEach { bk ->
+                        markers.add(
+                            SeriesMarker(
+                                time = Time.Utc(bk.time),
+                                position = if (bk.bull) SeriesMarkerPosition.BELOW_BAR else SeriesMarkerPosition.ABOVE_BAR,
+                                shape = if (bk.bull) SeriesMarkerShape.ARROW_UP else SeriesMarkerShape.ARROW_DOWN,
+                                size = 2,
+                                color = IntColor(AndroidColor.parseColor(if (bk.bull) powerHourSettings.bullBreakColorHex else powerHourSettings.bearBreakColorHex))
+                            )
+                        )
+                    }
+                }
+            }
+            if (showTrendlineBreakouts && "TRENDLINE_BREAKOUTS" !in hiddenIndicators && mainSeriesApi != null) {
+                anyOverlay = true
+                tbtPrecomputed?.signals?.forEach { sg ->
+                    markers.add(
+                        SeriesMarker(
+                            time = Time.Utc(sg.time),
+                            position = if (sg.bull) SeriesMarkerPosition.BELOW_BAR else SeriesMarkerPosition.ABOVE_BAR,
+                            shape = if (sg.bull) SeriesMarkerShape.ARROW_UP else SeriesMarkerShape.ARROW_DOWN,
+                            size = 2,
+                            color = IntColor(applyOpacity(AndroidColor.parseColor(if (sg.bull) "#2ec006" else "#f10202"), 89))
+                        )
+                    )
+                }
+            }
+            if (showTrendlineNavigator && "TRENDLINE_NAVIGATOR" !in hiddenIndicators && mainSeriesApi != null) {
+                anyOverlay = true
+                val tnp = tnavPrecomputed
+                if (tnp != null) {
+                    val wickBull = AndroidColor.parseColor(navigatorSettings.wickBullColorHex)
+                    val wickBear = AndroidColor.parseColor(navigatorSettings.wickBearColorHex)
+                    tnp.dots.forEach { d ->
+                        markers.add(
+                            SeriesMarker(
+                                time = Time.Utc(d.time),
+                                position = if (d.bull) SeriesMarkerPosition.BELOW_BAR else SeriesMarkerPosition.ABOVE_BAR,
+                                shape = SeriesMarkerShape.CIRCLE,
+                                size = 2,
+                                color = IntColor(if (d.bull) wickBull else wickBear)
+                            )
+                        )
+                    }
+                }
+            }
+            if (anyOverlay) {
+                val msig = markers.joinToString(";") {
+                    val ts = when (val t = it.time) {
+                        is Time.Utc -> t.timestamp
+                        else -> 0L
+                    }
+                    "$ts-${it.position}-${it.shape}-${it.color}"
+                }
+                if (lastOverlayMarkersSig != msig) {
+                    mainSeriesApi?.setMarkers(markers.sortedBy {
+                        when (val t = it.time) {
+                            is Time.Utc -> t.timestamp
+                            else -> 0L
+                        }
+                    })
+                    lastOverlayMarkersSig = msig
+                }
+            } else {
+                lastOverlayMarkersSig = null
+            }
+        }
+        }.onFailure { android.util.Log.w("TradingChart", "render pass skipped: " + it.message); chartBusy = false }
+        // Hold ticks until async overlay series creations (onSeriesCreated) land - a tick
+        // update() racing them throws uncatchably in the JS bridge. Bounded wait.
+        var ldpWaits = 0
+        while ((ldpPendingSeries > 0 || eqhPendingSeries > 0 || phPendingSeries > 0 || tbtPendingSeries > 0 || tnavPendingSeries > 0 || lpPendingSeries > 0 || obbPendingSeries > 0 || vfvgPendingSeries > 0) && ldpWaits < 200) {
+            delay(50)
+            ldpWaits++
+        }
+        chartBusy = false
     }
 
     // Fair Value Gap zone-entry alerts
@@ -2150,18 +3344,32 @@ updateInlineRsiPaneData(
 
     // UserAlert triggers: crossing price-lines and SMC zone touches
     val smcSnapshot = remember(ohlcData, timeframe, userAlerts) {
-        if (userAlerts.any { it.condition == "SMC" && it.isActive }) {
-            com.trading.app.indicators.SmcZoneAlerts.snapshot(ohlcData, timeframeToSeconds(timeframe))
+        // Only compute engines for zones some active SMC alert actually selected
+        // (and only for this chart's symbol - foreign alerts are never evaluated here)
+        val needed = userAlerts
+            .filter { it.condition == "SMC" && it.isActive && it.symbol.equals(symbol, ignoreCase = true) }
+            .flatMap { it.smcZones }.toSet()
+        if (needed.isNotEmpty()) {
+            com.trading.app.indicators.SmcZoneAlerts.snapshot(ohlcData, timeframeToSeconds(timeframe), needed)
         } else null
     }
     val prevPriceForAlert = remember { mutableStateOf<Float?>(null) }
+    // Symbol switch: drop the previous tick so the first tick on the new symbol
+    // can never look like a cross against the old symbol's price
+    LaunchedEffect(symbol) { prevPriceForAlert.value = null }
     LaunchedEffect(currentQuoteState?.lastPrice) {
-        val price = currentQuoteState?.lastPrice ?: return@LaunchedEffect
+        val quote = currentQuoteState ?: return@LaunchedEffect
+        val price = quote.lastPrice
+        val now = System.currentTimeMillis()
+        // Weekend/stale feed guard: never evaluate alerts on a provably-stale quote
+        if (quote.time > 0L && now - quote.time > 60_000L) return@LaunchedEffect
         val prev = prevPriceForAlert.value
         if (prev != null) {
-            val now = System.currentTimeMillis()
             for (alert in userAlerts) {
                 if (!alert.isActive) continue
+                // An alert belongs to its own symbol: alerts for other assets must never
+                // be evaluated (or burned) by this chart's price/zones
+                if (!alert.symbol.equals(symbol, ignoreCase = true)) continue
                 // Throttle "Every time" to once per minute
                 if (alert.triggerMode == "Every time" && alert.lastTriggeredAt != null && now - alert.lastTriggeredAt < 60_000L) continue
 
@@ -2801,6 +4009,10 @@ updateInlineRsiPaneData(
         val lastCandle = ohlcData.lastOrNull() ?: return@LaunchedEffect
 
         if (style == "heikin_ashi") return@LaunchedEffect
+
+        // Render pass in flight (history setData or indicator overlay rebuild): skip this
+        // tick. The JS bridge throws asynchronously (uncatchable) if update() lands mid-rebuild.
+        if (chartBusy) return@LaunchedEffect
 
         val updatedCandle = lastCandle.copy(
             high = maxOf(lastCandle.high, quote.lastPrice),
@@ -4126,74 +5338,23 @@ updateInlineRsiPaneData(
             }
             }
         if (showCurrencySelector) {
-            // Top Right Currency Selector
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 12.dp, end = 2.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(ComposeColor(0xFF131722))
-                    .border(1.dp, ComposeColor(0xFF363A45), RoundedCornerShape(3.dp))
-                    .clickable { onCurrencyClick() }
-                    .padding(horizontal = 4.dp, vertical = 1.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = selectedCurrency,
-                        color = ComposeColor(0xFFD1D4DC),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        null,
-                        tint = ComposeColor(0xFF787B86),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+            Box(Modifier.align(Alignment.TopEnd)) {
+                CurrencySelectorChip(
+                    showCurrencySelector = showCurrencySelector,
+                    selectedCurrency = selectedCurrency,
+                    onCurrencyClick = onCurrencyClick
+                )
             }
         }
 
-        // Countdown Timer Overlay (positioned on right side near current price)
         if (chartSettings.scales.countdown && currentQuoteState != null) {
-            val countdown by produceState(initialValue = "", currentQuoteState, timeframe) {
-                while (true) {
-                    val now = System.currentTimeMillis() / 1000
-                    val timeframeSeconds = timeframeToSeconds(timeframe)
-                    val elapsed = now % timeframeSeconds
-                    val remaining = timeframeSeconds - elapsed
-                    
-                    val hours = remaining / 3600
-                    val minutes = (remaining % 3600) / 60
-                    val seconds = remaining % 60
-                    
-                    value = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-                    delay(1000)
-                }
-            }
-            
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(if (currentQuoteState!!.change >= 0) ComposeColor(0xCC089981) else ComposeColor(0xCCF05252))
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatPrice(currentQuoteState!!.lastPrice, symbol),
-                        color = ComposeColor.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = countdown,
-                        color = ComposeColor.White,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            Box(Modifier.align(Alignment.CenterEnd)) {
+                ChartCountdownOverlay(
+                    visible = chartSettings.scales.countdown,
+                    currentQuoteState = currentQuoteState,
+                    timeframe = timeframe,
+                    symbol = symbol
+                )
             }
         }
 
@@ -4208,70 +5369,12 @@ updateInlineRsiPaneData(
                 )
                 .align(Alignment.TopStart)
         ) {
-            if (chartSettings.statusLine.symbol) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (chartSettings.statusLine.logo) {
-                        val symbolInfo = remember(symbol) {
-                            val type = when {
-                                symbol.startsWith("BTC") || symbol.startsWith("ETH") || symbol.startsWith("SOL") -> "Crypto"
-                                symbol.length == 6 && (symbol.contains("USD") || symbol.contains("EUR") || symbol.contains("JPY") || symbol.contains("GBP")) -> "Forex"
-                                symbol == "SPX" || symbol == "DJI" || symbol == "IXIC" || symbol == "NIFTY" -> "Index"
-                                else -> "Stock"
-                            }
-                            SymbolInfo(ticker = symbol, name = "", type = type)
-                        }
-                        AssetIcon(symbolInfo, size = 24)
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Text(
-                        text = if (chartSettings.statusLine.titleMode == "Description") getFullSymbolName(symbol) else symbol,
-                        color = ComposeColor(0xFFB2B5BE),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    if (chartSettings.statusLine.openMarketStatus) {
-                        val isCrypto = symbol.uppercase().contains("BTC") || symbol.uppercase().contains("ETH")
-                        val calendar = Calendar.getInstance()
-                        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-                        val isOpen = isCrypto || (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY)
-                        val dotColor = if (isOpen) ComposeColor(0xFF089981) else ComposeColor(0xFF787B86)
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.clickable { showMarketStatus = true }
-                        ) {
-                            Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(dotColor.copy(alpha = 0.15f)))
-                            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(dotColor.copy(alpha = 0.35f)))
-                            Box(modifier = Modifier.size(11.dp).clip(CircleShape).background(dotColor))
-                        }
-                    }
-                }
-            }
-
-            currentQuoteState?.let { quote ->
-                val color = if (quote.change >= 0) ComposeColor(0xFF089981) else ComposeColor(0xFFF05252)
-                val statusFontSize = 12.8.sp  // Reduced by 20% from 16sp
-                
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 0.dp)) {
-                    Text(
-                        text = formatPrice(quote.lastPrice, symbol),
-                        color = color,
-                        fontSize = statusFontSize,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (chartSettings.statusLine.barChangeValues) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        val sign = if (quote.change >= 0) "+" else ""
-                        Text(
-                            text = String.format("%s%s (%+.2f%%)", sign, formatPrice(quote.change, symbol), quote.changePercent),
-                            color = color,
-                            fontSize = statusFontSize,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+            StatusLineHeader(
+                chartSettings = chartSettings,
+                symbol = symbol,
+                currentQuoteState = currentQuoteState,
+                onMarketStatusClick = { showMarketStatus = true }
+            )
                 
                 val indicatorRows: @Composable () -> Unit = {
                     if (showVolume) {
@@ -4300,7 +5403,7 @@ updateInlineRsiPaneData(
                                         fontSize = 13.sp
                                     )
                                 }
-                            } else null
+} else null
                         )
                     }
 
@@ -4542,125 +5645,62 @@ updateInlineRsiPaneData(
                         )
                     }
 
-                    // Editors' picks overlays in the indicator-name legend
-                    if (showPremiumDiscount) {
-                        IndicatorStatusItem(
-                            label = "Premium & Discount Delta Volume [BigBeluga]",
-                            color = ComposeColor(0xFF79C1F1),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "PREMIUM_DISCOUNT",
-                            isMoreSelected = indicatorMoreMenuTarget == "PREMIUM_DISCOUNT",
-                            isHidden = "PREMIUM_DISCOUNT" in hiddenIndicators,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "PREMIUM_DISCOUNT") null else "PREMIUM_DISCOUNT") },
-                            onHide = { onIndicatorHide("PREMIUM_DISCOUNT") },
-                            onSettings = { },
-                            onRemove = { onPremiumDiscountToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "PREMIUM_DISCOUNT"
-                                showIndicatorMoreMenu = true
-                            },
-                            extraContent = {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "Î”Vol boxes", color = ComposeColor(0xFF79C1F1), fontSize = 13.sp)
-                            }
-                        )
-                    }
-                    if (showFairValueGap) {
-                        IndicatorStatusItem(
-                            label = "Fair Value Gap [LuxAlgo]",
-                            color = ComposeColor(0xFF089981),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "FAIR_VALUE_GAP",
-                            isMoreSelected = indicatorMoreMenuTarget == "FAIR_VALUE_GAP",
-                            isHidden = "FAIR_VALUE_GAP" in hiddenIndicators,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "FAIR_VALUE_GAP") null else "FAIR_VALUE_GAP") },
-                            onHide = { onIndicatorHide("FAIR_VALUE_GAP") },
-                            onSettings = { onFvgSettingsClick() },
-                            onRemove = { onFairValueGapToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "FAIR_VALUE_GAP"
-                                showIndicatorMoreMenu = true
-                            }
-                        )
-                    }
-                    if (showSupplyDemandDaily) {
-                        IndicatorStatusItem(
-                            label = "Supply & Demand VR [LuxAlgo]",
-                            color = ComposeColor(0xFFFF5D00),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "SUPPLY_DEMAND_DAILY",
-                            isMoreSelected = indicatorMoreMenuTarget == "SUPPLY_DEMAND_DAILY",
-                            isHidden = "SUPPLY_DEMAND_DAILY" in hiddenIndicators,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "SUPPLY_DEMAND_DAILY") null else "SUPPLY_DEMAND_DAILY") },
-                            onHide = { onIndicatorHide("SUPPLY_DEMAND_DAILY") },
-                            onSettings = { onSdVrSettingsClick() },
-                            onRemove = { onSupplyDemandDailyToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "SUPPLY_DEMAND_DAILY"
-                                showIndicatorMoreMenu = true
-                            }
-                        )
-                    }
-                    if (showOteVisibleChart) {
-                        IndicatorStatusItem(
-                            label = "OTE visible chart [twingall]",
-                            color = ComposeColor(0xFFF0B90B),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "OTE_VISIBLE_CHART",
-                            isMoreSelected = indicatorMoreMenuTarget == "OTE_VISIBLE_CHART",
-                            isHidden = "OTE_VISIBLE_CHART" in hiddenIndicators,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "OTE_VISIBLE_CHART") null else "OTE_VISIBLE_CHART") },
-                            onHide = { onIndicatorHide("OTE_VISIBLE_CHART") },
-                            onSettings = { },
-                            onRemove = { onOteVisibleChartToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "OTE_VISIBLE_CHART"
-                                showIndicatorMoreMenu = true
-                            }
-                        )
-                    }
-                    if (autoFibEnabled) {
-                        IndicatorStatusItem(
-                            label = "Auto Fib Retracement",
-                            color = ComposeColor(0xFF787B86),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "AUTO_FIB_RETRACEMENT",
-                            isMoreSelected = indicatorMoreMenuTarget == "AUTO_FIB_RETRACEMENT",
-                            isHidden = !showAutoFib,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "AUTO_FIB_RETRACEMENT") null else "AUTO_FIB_RETRACEMENT") },
-                            onHide = { onAutoFibHide(!showAutoFib) },
-                            onSettings = { onAutoFibSettingsClick() },
-                            onRemove = { onAutoFibToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "AUTO_FIB_RETRACEMENT"
-                                showIndicatorMoreMenu = true
-                            }
-                        )
-                    }
-                    if (confluenceFvgEnabled) {
-                        IndicatorStatusItem(
-                            label = "Confluence FVG Finder",
-                            color = ComposeColor(0xFF089981),
-                            value = null,
-                            symbol = symbol,
-                            isSelected = selectedIndicatorId == "CONFLUENCE_FVG",
-                            isMoreSelected = indicatorMoreMenuTarget == "CONFLUENCE_FVG",
-                            isHidden = !showConfluenceFvg,
-                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "CONFLUENCE_FVG") null else "CONFLUENCE_FVG") },
-                            onHide = { onConfluenceFvgHide(!showConfluenceFvg) },
-                            onSettings = { onCfvgSettingsClick() },
-                            onRemove = { onConfluenceFvgToggle(false) },
-                            onMore = {
-                                indicatorMoreMenuTarget = "CONFLUENCE_FVG"
-                                showIndicatorMoreMenu = true
-                            }
-                        )
-                    }
+                    // Editors' picks status chips (extracted into OverlayStatusChips to keep TradingChart under the JVM 64KB method limit)
+                    OverlayStatusChips(
+                        symbol = symbol,
+                        selectedIndicatorId = selectedIndicatorId,
+                        indicatorMoreMenuTarget = indicatorMoreMenuTarget,
+                        hiddenIndicators = hiddenIndicators,
+                        showPremiumDiscount = showPremiumDiscount,
+                        showFairValueGap = showFairValueGap,
+                        showSupplyDemandDaily = showSupplyDemandDaily,
+                        showOteVisibleChart = showOteVisibleChart,
+                        showLiquidityDeltaProfiler = showLiquidityDeltaProfiler,
+                        showEqhEqlLiquidityZones = showEqhEqlLiquidityZones,
+                        showPowerHourBreakout = showPowerHourBreakout,
+                        showTrendlineBreakouts = showTrendlineBreakouts,
+                        showTrendlineNavigator = showTrendlineNavigator,
+                        showLiquidityPools = showLiquidityPools,
+                        showOrderBlockBreaker = showOrderBlockBreaker,
+                        autoFibEnabled = autoFibEnabled,
+                        showAutoFib = showAutoFib,
+                        confluenceFvgEnabled = confluenceFvgEnabled,
+                        showConfluenceFvg = showConfluenceFvg,
+                        onSelectedIndicatorIdChange = onSelectedIndicatorIdChange,
+                        onIndicatorHide = onIndicatorHide,
+                        onPremiumDiscountToggle = onPremiumDiscountToggle,
+                        onFairValueGapToggle = onFairValueGapToggle,
+                        onFvgSettingsClick = onFvgSettingsClick,
+                        onSupplyDemandDailyToggle = onSupplyDemandDailyToggle,
+                        onSdVrSettingsClick = onSdVrSettingsClick,
+                        onOteVisibleChartToggle = onOteVisibleChartToggle,
+                        onLdpSettingsClick = onLdpSettingsClick,
+                        onLiquidityDeltaProfilerToggle = onLiquidityDeltaProfilerToggle,
+                        onEqhEqlSettingsClick = onEqhEqlSettingsClick,
+                        onEqhEqlLiquidityZonesToggle = onEqhEqlLiquidityZonesToggle,
+                        onPowerHourSettingsClick = onPowerHourSettingsClick,
+                        onPowerHourBreakoutToggle = onPowerHourBreakoutToggle,
+                        onTrendlineSettingsClick = onTrendlineSettingsClick,
+                        onTrendlineBreakoutsToggle = onTrendlineBreakoutsToggle,
+                        onNavigatorSettingsClick = onNavigatorSettingsClick,
+                        onTrendlineNavigatorToggle = onTrendlineNavigatorToggle,
+                        onLiquidityPoolsSettingsClick = onLiquidityPoolsSettingsClick,
+                        onLiquidityPoolsToggle = onLiquidityPoolsToggle,
+                        onObbSettingsClick = onObbSettingsClick,
+                        onOrderBlockBreakerToggle = onOrderBlockBreakerToggle,
+                        showVolumaticFvg = showVolumaticFvg,
+                        vfvgBullCount = vfvgBullCount,
+                        vfvgBearCount = vfvgBearCount,
+                        onVolumaticFvgSettingsClick = onVolumaticFvgSettingsClick,
+                        onVolumaticFvgToggle = onVolumaticFvgToggle,
+                        onAutoFibHide = onAutoFibHide,
+                        onAutoFibSettingsClick = onAutoFibSettingsClick,
+                        onAutoFibToggle = onAutoFibToggle,
+                        onConfluenceFvgHide = onConfluenceFvgHide,
+                        onCfvgSettingsClick = onCfvgSettingsClick,
+                        onConfluenceFvgToggle = onConfluenceFvgToggle,
+                        onShowMoreMenu = { indicatorMoreMenuTarget = it; showIndicatorMoreMenu = true }
+                    )
                 }
                 if (showIndicatorsList) {
                     indicatorRows()
@@ -4685,16 +5725,7 @@ updateInlineRsiPaneData(
                     )
                 }
 
-                if (chartSettings.statusLine.ohlc) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                        if (chartSettings.symbol.openVisible) OhlcItem("O", quote.open, symbol)
-                        if (chartSettings.symbol.highVisible) OhlcItem("H", quote.high, symbol)
-                        if (chartSettings.symbol.lowVisible) OhlcItem("L", quote.low, symbol)
-                        if (chartSettings.symbol.closeVisible) OhlcItem("C", quote.lastPrice, symbol)
-                    }
                 }
-            }
-        }
 
         if (showIndicatorMoreMenu && indicatorMoreMenuTarget != null) {
             val moreTarget = indicatorMoreMenuTarget!!
@@ -4720,6 +5751,14 @@ updateInlineRsiPaneData(
                         "FAIR_VALUE_GAP" -> onFairValueGapToggle(false)
                         "SUPPLY_DEMAND_DAILY" -> onSupplyDemandDailyToggle(false)
                         "OTE_VISIBLE_CHART" -> onOteVisibleChartToggle(false)
+                        "LIQUIDITY_DELTA_PROFILER" -> onLiquidityDeltaProfilerToggle(false)
+                        "EQH_EQL_LIQUIDITY_ZONES" -> onEqhEqlLiquidityZonesToggle(false)
+                        "POWER_HOUR_BREAKOUT" -> onPowerHourBreakoutToggle(false)
+                        "TRENDLINE_BREAKOUTS" -> onTrendlineBreakoutsToggle(false)
+                        "TRENDLINE_NAVIGATOR" -> onTrendlineNavigatorToggle(false)
+                        "LIQUIDITY_POOLS" -> onLiquidityPoolsToggle(false)
+                        "ORDER_BLOCK_BREAKER" -> onOrderBlockBreakerToggle(false)
+                        "VOLUMATIC_FVG" -> onVolumaticFvgToggle(false)
                         "AUTO_FIB_RETRACEMENT" -> onAutoFibToggle(false)
                         "CONFLUENCE_FVG" -> onConfluenceFvgToggle(false)
                     }
@@ -4759,15 +5798,17 @@ updateInlineRsiPaneData(
 private fun trimRatio(r: Float): String =
     if (r == kotlin.math.floor(r)) r.toLong().toString() else r.toString()
 
-private fun formatPrice(price: Float, symbol: String = ""): String {    val symbols = DecimalFormatSymbols(Locale.US)
+private fun formatPrice(price: Float, symbol: String = ""): String {
+    val symbols = DecimalFormatSymbols(Locale.US)
     symbols.groupingSeparator = ','
     val uppercaseSymbol = symbol.uppercase()
-    val isBitcoin = uppercaseSymbol.contains("BTC") || uppercaseSymbol.contains("BITCOIN")
-    val isForex = uppercaseSymbol.length == 6 || uppercaseSymbol.contains("/")
-    
+    val group = com.asc.markets.data.trainedAssetGroup(symbol)
+    val isBitcoin = (group == null) && (uppercaseSymbol.contains("BTC") || uppercaseSymbol.contains("BITCOIN"))
+    val isForex = (group == null) && (uppercaseSymbol.length == 6 || uppercaseSymbol.contains("/"))
+
     val pattern = when {
-        isBitcoin -> "#,##0"
-        isForex -> "#,##0.00000"
+        group == "crypto" || isBitcoin -> "#,##0.00"
+        group == "forex" || isForex -> "#,##0.00000"
         else -> "#,##0.##"
     }
 
@@ -5063,4 +6104,495 @@ fun MoreMenuItem(
             )
         }
     }
+}
+
+@Composable
+private fun OverlayStatusChips(
+    symbol: String,
+    selectedIndicatorId: String?,
+    indicatorMoreMenuTarget: String?,
+    hiddenIndicators: Set<String>,
+    showPremiumDiscount: Boolean,
+    showFairValueGap: Boolean,
+    showSupplyDemandDaily: Boolean,
+    showOteVisibleChart: Boolean,
+    showLiquidityDeltaProfiler: Boolean,
+    showEqhEqlLiquidityZones: Boolean,
+    showPowerHourBreakout: Boolean,
+    showTrendlineBreakouts: Boolean,
+    showTrendlineNavigator: Boolean,
+    showLiquidityPools: Boolean,
+    showOrderBlockBreaker: Boolean,
+    autoFibEnabled: Boolean,
+    showAutoFib: Boolean,
+    confluenceFvgEnabled: Boolean,
+    showConfluenceFvg: Boolean,
+    onSelectedIndicatorIdChange: (String?) -> Unit,
+    onIndicatorHide: (String) -> Unit,
+    onPremiumDiscountToggle: (Boolean) -> Unit,
+    onFairValueGapToggle: (Boolean) -> Unit,
+    onFvgSettingsClick: () -> Unit,
+    onSupplyDemandDailyToggle: (Boolean) -> Unit,
+    onSdVrSettingsClick: () -> Unit,
+    onOteVisibleChartToggle: (Boolean) -> Unit,
+    onLdpSettingsClick: () -> Unit,
+    onLiquidityDeltaProfilerToggle: (Boolean) -> Unit,
+    onEqhEqlSettingsClick: () -> Unit,
+    onEqhEqlLiquidityZonesToggle: (Boolean) -> Unit,
+    onPowerHourSettingsClick: () -> Unit,
+    onPowerHourBreakoutToggle: (Boolean) -> Unit,
+    onTrendlineSettingsClick: () -> Unit,
+    onTrendlineBreakoutsToggle: (Boolean) -> Unit,
+    onNavigatorSettingsClick: () -> Unit,
+    onTrendlineNavigatorToggle: (Boolean) -> Unit,
+    onLiquidityPoolsSettingsClick: () -> Unit,
+    onLiquidityPoolsToggle: (Boolean) -> Unit,
+    onObbSettingsClick: () -> Unit,
+    onOrderBlockBreakerToggle: (Boolean) -> Unit,
+    showVolumaticFvg: Boolean,
+    vfvgBullCount: Int,
+    vfvgBearCount: Int,
+    onVolumaticFvgSettingsClick: () -> Unit,
+    onVolumaticFvgToggle: (Boolean) -> Unit,
+    onAutoFibHide: (Boolean) -> Unit,
+    onAutoFibSettingsClick: () -> Unit,
+    onAutoFibToggle: (Boolean) -> Unit,
+    onConfluenceFvgHide: (Boolean) -> Unit,
+    onCfvgSettingsClick: () -> Unit,
+    onConfluenceFvgToggle: (Boolean) -> Unit,
+    onShowMoreMenu: (String) -> Unit
+) {
+                    // Editors' picks overlays in the indicator-name legend
+                    if (showPremiumDiscount) {
+                        IndicatorStatusItem(
+                            label = "Premium & Discount Delta Volume [BigBeluga]",
+                            color = ComposeColor(0xFF79C1F1),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "PREMIUM_DISCOUNT",
+                            isMoreSelected = indicatorMoreMenuTarget == "PREMIUM_DISCOUNT",
+                            isHidden = "PREMIUM_DISCOUNT" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "PREMIUM_DISCOUNT") null else "PREMIUM_DISCOUNT") },
+                            onHide = { onIndicatorHide("PREMIUM_DISCOUNT") },
+                            onSettings = { },
+                            onRemove = { onPremiumDiscountToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("PREMIUM_DISCOUNT")
+                            },
+                            extraContent = {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "ΔVol boxes", color = ComposeColor(0xFF79C1F1), fontSize = 13.sp)
+                            }
+                        )
+                    }
+                    if (showFairValueGap) {
+                        IndicatorStatusItem(
+                            label = "Fair Value Gap [LuxAlgo]",
+                            color = ComposeColor(0xFF089981),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "FAIR_VALUE_GAP",
+                            isMoreSelected = indicatorMoreMenuTarget == "FAIR_VALUE_GAP",
+                            isHidden = "FAIR_VALUE_GAP" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "FAIR_VALUE_GAP") null else "FAIR_VALUE_GAP") },
+                            onHide = { onIndicatorHide("FAIR_VALUE_GAP") },
+                            onSettings = { onFvgSettingsClick() },
+                            onRemove = { onFairValueGapToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("FAIR_VALUE_GAP")
+                            }
+                        )
+                    }
+                    if (showSupplyDemandDaily) {
+                        IndicatorStatusItem(
+                            label = "Supply & Demand VR [LuxAlgo]",
+                            color = ComposeColor(0xFFFF5D00),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "SUPPLY_DEMAND_DAILY",
+                            isMoreSelected = indicatorMoreMenuTarget == "SUPPLY_DEMAND_DAILY",
+                            isHidden = "SUPPLY_DEMAND_DAILY" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "SUPPLY_DEMAND_DAILY") null else "SUPPLY_DEMAND_DAILY") },
+                            onHide = { onIndicatorHide("SUPPLY_DEMAND_DAILY") },
+                            onSettings = { onSdVrSettingsClick() },
+                            onRemove = { onSupplyDemandDailyToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("SUPPLY_DEMAND_DAILY")
+                            }
+                        )
+                    }
+                    if (showOteVisibleChart) {
+                        IndicatorStatusItem(
+                            label = "OTE visible chart [twingall]",
+                            color = ComposeColor(0xFFF0B90B),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "OTE_VISIBLE_CHART",
+                            isMoreSelected = indicatorMoreMenuTarget == "OTE_VISIBLE_CHART",
+                            isHidden = "OTE_VISIBLE_CHART" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "OTE_VISIBLE_CHART") null else "OTE_VISIBLE_CHART") },
+                            onHide = { onIndicatorHide("OTE_VISIBLE_CHART") },
+                            onSettings = { },
+                            onRemove = { onOteVisibleChartToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("OTE_VISIBLE_CHART")
+                            }
+                        )
+                    }
+                    if (showLiquidityDeltaProfiler) {
+                        IndicatorStatusItem(
+                            label = "Liquidity Delta [LuxAlgo]",
+                            color = ComposeColor(0xFF2962FF),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "LIQUIDITY_DELTA_PROFILER",
+                            isMoreSelected = indicatorMoreMenuTarget == "LIQUIDITY_DELTA_PROFILER",
+                            isHidden = "LIQUIDITY_DELTA_PROFILER" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "LIQUIDITY_DELTA_PROFILER") null else "LIQUIDITY_DELTA_PROFILER") },
+                            onHide = { onIndicatorHide("LIQUIDITY_DELTA_PROFILER") },
+                            onSettings = { onLdpSettingsClick() },
+                            onRemove = { onLiquidityDeltaProfilerToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("LIQUIDITY_DELTA_PROFILER")
+                            }
+                        )
+                    }
+                    if (showEqhEqlLiquidityZones) {
+                        IndicatorStatusItem(
+                            label = "EQH/EQL [LuxAlgo]",
+                            color = ComposeColor(0xFF089981),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "EQH_EQL_LIQUIDITY_ZONES",
+                            isMoreSelected = indicatorMoreMenuTarget == "EQH_EQL_LIQUIDITY_ZONES",
+                            isHidden = "EQH_EQL_LIQUIDITY_ZONES" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "EQH_EQL_LIQUIDITY_ZONES") null else "EQH_EQL_LIQUIDITY_ZONES") },
+                            onHide = { onIndicatorHide("EQH_EQL_LIQUIDITY_ZONES") },
+                            onSettings = { onEqhEqlSettingsClick() },
+                            onRemove = { onEqhEqlLiquidityZonesToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("EQH_EQL_LIQUIDITY_ZONES")
+                            }
+                        )
+                    }
+                    if (showPowerHourBreakout) {
+                        IndicatorStatusItem(
+                            label = "Power Hour [LuxAlgo]",
+                            color = ComposeColor(0xFFE91E63),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "POWER_HOUR_BREAKOUT",
+                            isMoreSelected = indicatorMoreMenuTarget == "POWER_HOUR_BREAKOUT",
+                            isHidden = "POWER_HOUR_BREAKOUT" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "POWER_HOUR_BREAKOUT") null else "POWER_HOUR_BREAKOUT") },
+                            onHide = { onIndicatorHide("POWER_HOUR_BREAKOUT") },
+                            onSettings = { onPowerHourSettingsClick() },
+                            onRemove = { onPowerHourBreakoutToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("POWER_HOUR_BREAKOUT")
+                            }
+                        )
+                    }
+                    if (showTrendlineBreakouts) {
+                        IndicatorStatusItem(
+                            label = "TBT [ChartPrime]",
+                            color = ComposeColor(0xFF4CAF50),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "TRENDLINE_BREAKOUTS",
+                            isMoreSelected = indicatorMoreMenuTarget == "TRENDLINE_BREAKOUTS",
+                            isHidden = "TRENDLINE_BREAKOUTS" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "TRENDLINE_BREAKOUTS") null else "TRENDLINE_BREAKOUTS") },
+                            onHide = { onIndicatorHide("TRENDLINE_BREAKOUTS") },
+                            onSettings = { onTrendlineSettingsClick() },
+                            onRemove = { onTrendlineBreakoutsToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("TRENDLINE_BREAKOUTS")
+                            }
+                        )
+                    }
+                    if (showTrendlineNavigator) {
+                        IndicatorStatusItem(
+                            label = "Trendline Navigator [LuxAlgo]",
+                            color = ComposeColor(0xFF085DEF),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "TRENDLINE_NAVIGATOR",
+                            isMoreSelected = indicatorMoreMenuTarget == "TRENDLINE_NAVIGATOR",
+                            isHidden = "TRENDLINE_NAVIGATOR" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "TRENDLINE_NAVIGATOR") null else "TRENDLINE_NAVIGATOR") },
+                            onHide = { onIndicatorHide("TRENDLINE_NAVIGATOR") },
+                            onSettings = { onNavigatorSettingsClick() },
+                            onRemove = { onTrendlineNavigatorToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("TRENDLINE_NAVIGATOR")
+                            }
+                        )
+                    }
+                    if (showLiquidityPools) {
+                        IndicatorStatusItem(
+                            label = "Liquidity Pools [LuxAlgo]",
+                            color = ComposeColor(0xFF089981),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "LIQUIDITY_POOLS",
+                            isMoreSelected = indicatorMoreMenuTarget == "LIQUIDITY_POOLS",
+                            isHidden = "LIQUIDITY_POOLS" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "LIQUIDITY_POOLS") null else "LIQUIDITY_POOLS") },
+                            onHide = { onIndicatorHide("LIQUIDITY_POOLS") },
+                            onSettings = { onLiquidityPoolsSettingsClick() },
+                            onRemove = { onLiquidityPoolsToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("LIQUIDITY_POOLS")
+                            }
+                        )
+                    }
+                    if (showOrderBlockBreaker) {
+                        IndicatorStatusItem(
+                            label = "Order Blocks & Breakers [LuxAlgo]",
+                            color = ComposeColor(0xFF2157F3),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "ORDER_BLOCK_BREAKER",
+                            isMoreSelected = indicatorMoreMenuTarget == "ORDER_BLOCK_BREAKER",
+                            isHidden = "ORDER_BLOCK_BREAKER" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "ORDER_BLOCK_BREAKER") null else "ORDER_BLOCK_BREAKER") },
+                            onHide = { onIndicatorHide("ORDER_BLOCK_BREAKER") },
+                            onSettings = { onObbSettingsClick() },
+                            onRemove = { onOrderBlockBreakerToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("ORDER_BLOCK_BREAKER")
+                            }
+                        )
+                    }
+                    if (showVolumaticFvg) {
+                        IndicatorStatusItem(
+                            label = "Volumatic FVG [BigBeluga]",
+                            color = ComposeColor(0xFF26C6DA),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "VOLUMATIC_FVG",
+                            isMoreSelected = indicatorMoreMenuTarget == "VOLUMATIC_FVG",
+                            isHidden = "VOLUMATIC_FVG" in hiddenIndicators,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "VOLUMATIC_FVG") null else "VOLUMATIC_FVG") },
+                            onHide = { onIndicatorHide("VOLUMATIC_FVG") },
+                            onSettings = { onVolumaticFvgSettingsClick() },
+                            onRemove = { onVolumaticFvgToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("VOLUMATIC_FVG")
+                            },
+                            extraContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = "${vfvgBullCount}↑", color = ComposeColor(0xFF1AC2D8), fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(text = "${vfvgBearCount}↓", color = ComposeColor(0xFFD8761A), fontSize = 13.sp)
+                                }
+                            }
+                        )
+                    }
+                    if (autoFibEnabled) {
+                        IndicatorStatusItem(
+                            label = "Auto Fib Retracement",
+                            color = ComposeColor(0xFF787B86),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "AUTO_FIB_RETRACEMENT",
+                            isMoreSelected = indicatorMoreMenuTarget == "AUTO_FIB_RETRACEMENT",
+                            isHidden = !showAutoFib,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "AUTO_FIB_RETRACEMENT") null else "AUTO_FIB_RETRACEMENT") },
+                            onHide = { onAutoFibHide(!showAutoFib) },
+                            onSettings = { onAutoFibSettingsClick() },
+                            onRemove = { onAutoFibToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("AUTO_FIB_RETRACEMENT")
+                            }
+                        )
+                    }
+                    if (confluenceFvgEnabled) {
+                        IndicatorStatusItem(
+                            label = "Confluence FVG Finder",
+                            color = ComposeColor(0xFF089981),
+                            value = null,
+                            symbol = symbol,
+                            isSelected = selectedIndicatorId == "CONFLUENCE_FVG",
+                            isMoreSelected = indicatorMoreMenuTarget == "CONFLUENCE_FVG",
+                            isHidden = !showConfluenceFvg,
+                            onClick = { onSelectedIndicatorIdChange(if (selectedIndicatorId == "CONFLUENCE_FVG") null else "CONFLUENCE_FVG") },
+                            onHide = { onConfluenceFvgHide(!showConfluenceFvg) },
+                            onSettings = { onCfvgSettingsClick() },
+                            onRemove = { onConfluenceFvgToggle(false) },
+                            onMore = {
+                                onShowMoreMenu("CONFLUENCE_FVG")
+                            }
+                        )
+                    }
+}
+
+@Composable
+private fun CurrencySelectorChip(
+    showCurrencySelector: Boolean,
+    selectedCurrency: String,
+    onCurrencyClick: () -> Unit
+) {
+        if (showCurrencySelector) {
+            // Top Right Currency Selector
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp, end = 2.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(ComposeColor(0xFF131722))
+                    .border(1.dp, ComposeColor(0xFF363A45), RoundedCornerShape(3.dp))
+                    .clickable { onCurrencyClick() }
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = selectedCurrency,
+                        color = ComposeColor(0xFFD1D4DC),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        null,
+                        tint = ComposeColor(0xFF787B86),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+}
+
+@Composable
+private fun ChartCountdownOverlay(
+    visible: Boolean,
+    currentQuoteState: SymbolQuote?,
+    timeframe: String,
+    symbol: String
+) {
+        // Countdown Timer Overlay (positioned on right side near current price)
+        if (visible && currentQuoteState != null) {
+            val countdown by produceState(initialValue = "", currentQuoteState, timeframe) {
+                while (true) {
+                    val now = System.currentTimeMillis() / 1000
+                    val timeframeSeconds = timeframeToSeconds(timeframe)
+                    val elapsed = now % timeframeSeconds
+                    val remaining = timeframeSeconds - elapsed
+                    
+                    val hours = remaining / 3600
+                    val minutes = (remaining % 3600) / 60
+                    val seconds = remaining % 60
+                    
+                    value = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    delay(1000)
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (currentQuoteState!!.change >= 0) ComposeColor(0xCC089981) else ComposeColor(0xCCF05252))
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatPrice(currentQuoteState!!.lastPrice, symbol),
+                        color = ComposeColor.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = countdown,
+                        color = ComposeColor.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+}
+
+@Composable
+private fun StatusLineHeader(
+    chartSettings: ChartSettings,
+    symbol: String,
+    currentQuoteState: SymbolQuote?,
+    onMarketStatusClick: () -> Unit
+) {
+    if (chartSettings.statusLine.symbol) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (chartSettings.statusLine.logo) {
+                        val symbolInfo = remember(symbol) {
+                            val type = when {
+                                symbol.startsWith("BTC") || symbol.startsWith("ETH") || symbol.startsWith("SOL") -> "Crypto"
+                                symbol.length == 6 && (symbol.contains("USD") || symbol.contains("EUR") || symbol.contains("JPY") || symbol.contains("GBP")) -> "Forex"
+                                symbol == "SPX" || symbol == "DJI" || symbol == "IXIC" || symbol == "NIFTY" -> "Index"
+                                else -> "Stock"
+                            }
+                            SymbolInfo(ticker = symbol, name = "", type = type)
+                        }
+                        AssetIcon(symbolInfo, size = 24)
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = if (chartSettings.statusLine.titleMode == "Description") getFullSymbolName(symbol) else symbol,
+                        color = ComposeColor(0xFFB2B5BE),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    if (chartSettings.statusLine.openMarketStatus) {
+                        val isCrypto = symbol.uppercase().contains("BTC") || symbol.uppercase().contains("ETH")
+                        val calendar = Calendar.getInstance()
+                        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                        val isOpen = isCrypto || (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY)
+                        val dotColor = if (isOpen) ComposeColor(0xFF089981) else ComposeColor(0xFF787B86)
+
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.clickable { onMarketStatusClick() }
+                        ) {
+                            Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(dotColor.copy(alpha = 0.15f)))
+                            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(dotColor.copy(alpha = 0.35f)))
+                            Box(modifier = Modifier.size(11.dp).clip(CircleShape).background(dotColor))
+                        }
+                    }
+                }
+            }
+
+            currentQuoteState?.let { quote ->
+                val color = if (quote.change >= 0) ComposeColor(0xFF089981) else ComposeColor(0xFFF05252)
+                val statusFontSize = 12.8.sp  // Reduced by 20% from 16sp
+                
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 0.dp)) {
+                    Text(
+                        text = formatPrice(quote.lastPrice, symbol),
+                        color = color,
+                        fontSize = statusFontSize,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (chartSettings.statusLine.barChangeValues) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val sign = if (quote.change >= 0) "+" else ""
+                        Text(
+                            text = String.format("%s%s (%+.2f%%)", sign, formatPrice(quote.change, symbol), quote.changePercent),
+                            color = color,
+                            fontSize = statusFontSize,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                if (chartSettings.statusLine.ohlc) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                        if (chartSettings.symbol.openVisible) OhlcItem("O", quote.open, symbol)
+                        if (chartSettings.symbol.highVisible) OhlcItem("H", quote.high, symbol)
+                        if (chartSettings.symbol.lowVisible) OhlcItem("L", quote.low, symbol)
+                        if (chartSettings.symbol.closeVisible) OhlcItem("C", quote.lastPrice, symbol)
+                    }
+                }
+            }
 }

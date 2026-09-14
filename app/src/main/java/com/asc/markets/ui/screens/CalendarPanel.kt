@@ -1,4 +1,5 @@
 package com.asc.markets.ui.screens
+import com.asc.markets.ui.components.AscRollingSpinner
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -116,7 +117,7 @@ fun EconomicCalendarScreen() {
         when {
             isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = IndigoAccent)
+                    AscRollingSpinner(color = IndigoAccent)
                 }
             }
             error != null -> {

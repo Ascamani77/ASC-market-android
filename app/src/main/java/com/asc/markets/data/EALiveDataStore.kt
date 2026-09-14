@@ -142,7 +142,7 @@ object EALiveDataStore {
             val data = json.decodeFromString<EALiveDataResponse>(responseText)
             
             if (data.assets.isNotEmpty()) {
-                _liveAssets.value = data.assets
+                _liveAssets.value = data.assets.filter { isTrainedAssetTicker(it.symbol) }
                 _isConnected.value = true
                 _lastUpdateTime.value = data.timestamp ?: System.currentTimeMillis()
                 
